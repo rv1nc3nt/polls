@@ -55,6 +55,7 @@ The software is released as open source, one instance per commune. **Non-goals.*
 | `title`, `description` | text | French, voter-facing |
 | `options` | ordered list of `{id, label}` | ≥ 2 |
 | `opens_at`, `closes_at` | timestamptz | timezone stored explicitly |
+| `paper_entry_deadline` | timestamptz | `≥ closes_at`, default equal to it; the paper keying window (§6.4) |
 | `tally_method` | enum | `schulze` \| `plurality` \| `approval` |
 | `tally_method_version` | string | pinned; R-10.2 |
 | `require_complete_ranking` | bool | |
@@ -80,7 +81,7 @@ A typical configuration: `schulze`, `require_complete_ranking = true`, `allow_ti
 
 ### 3.3 `Registration` (§6.2)
 
-`{poll_id, nne, last_name, first_names, email, email_canonical, declared_on_honour, state, review_reason, voter_hash, channel, created_at}`
+`{poll_id, nne, last_name, first_names, email, email_canonical, declared_on_honour, state, review_reason, voter_hash, channel, language, created_at}`
 
 - `state ∈ {pending_email, pending_review, active, rejected}`
 - `language`: the language chosen at registration; determines the language of every email sent to this person (§3.8).
@@ -101,7 +102,7 @@ A typical configuration: `schulze`, `require_complete_ranking = true`, `allow_ti
 - `status ∈ {live, superseded, deleted, pending_countersign}`. Exactly one row per logical ballot is `live`. `deleted` is a paper ballot withdrawn by an operator (R-8.5, R-9.4) — rows are never physically removed. `pending_countersign` is a paper entry awaiting a second operator where `paper_requires_countersign` is set.
 - Append-only. A modification inserts `version + 1` and sets the prior row to `superseded` (R-7.2). Only the `live` row counts.
 - **The live ballot set** — what the tally counts, what the closure hash covers, and what is published — is exactly the rows with `status = live`. `superseded`, `deleted` and `pending_countersign` are excluded from all three, without exception.
-- `tracking_code`: random, human-transcribable (avoid ambiguous glyphs: no `O/0`, `I/1`), stable across versions of the same ballot.
+- `tracking_code`: random, human-transcribable (avoid ambiguous glyphs: no `O/0`, `I/1`), stable across versions of the same ballot. Issued when the ballot is created, never at registration (§6.2). `(poll_id, tracking_code)` unique, as a database constraint (INV-11).
 
 ### 3.5 `PaperBallotLink`
 
@@ -109,7 +110,7 @@ A typical configuration: `schulze`, `require_complete_ranking = true`, `allow_ti
 
 ### 3.6 `AuditEvent` (R-12; see §10)
 
-`{id, poll_id, actor_id, action, object_ref, before, after, reason, at}`. Append-only, no update or delete path in the application at all.
+`{id, poll_id, actor_id, action, object_ref, before, after, reason, at}`. Append-only, no update or delete path in the application at all. `object_ref` points at a row; `before`, `after` and `reason` never contain an elector's name, NNE or email (§10).
 
 ### 3.7 `User`
 
@@ -140,10 +141,18 @@ Rules:
 
 - `draft`: configuration mutable.
 - `open`: configuration frozen (R-3.3). Only `closes_at` may be extended, with a logged reason, displayed publicly (R-3.4). Snapshot taken and `opening_seed` generated on entry.
-- `closed`: server-side cutoff at `closes_at`, enforced on every write path, not only in the UI (R-3.5). `closure_hash` computed on entry. Tally runs.
+- `closed`: the cutoffs of INV-2 are enforced server-side on every write path, not only in the UI (R-3.5). `closure_hash` and the participation counts of §9 are computed on entry. The tally is **not** automatic: an operator runs it from the back-office (§6.5, §8), since it is a pure function that gains nothing from running early and a `physical` tie-break stops for a human in any case.
 - `published`: results and artefacts public.
 
-Extension of `closes_at` is permitted only while `state = open` and only to a later timestamp.
+Extension of `closes_at` is permitted only while `state = open` and only to a later timestamp; `paper_entry_deadline` moves with it, preserving the configured window length.
+
+**Both boundary transitions are scheduled, and neither is trusted to be punctual.** `draft → open` is performed by the `open_poll` command at `opens_at`, `open → closed` by `close_poll` at `paper_entry_deadline` — which equals `closes_at` unless a keying window is configured (§6.4). The job moves the state; the instants themselves are enforced independently on every ballot write path, which refuses a ballot falling outside the window for its source whatever `state` happens to say. A job that runs late, twice, or not at all therefore cannot admit a ballot outside that window — the reasoning of INV-2, applied at both ends.
+
+Opening is the transition with side effects: it takes the roll snapshot (§6.1) and generates `opening_seed`, and both MUST occur in the same transaction as the state write, so that two concurrent runs cannot produce two snapshots or two seeds. Selection is state-based — `state = draft AND opens_at ≤ now` — so a host that was down opens the poll late rather than never.
+
+**Opening can be refused, and a refusal must be loud.** The preconditions of §3.8 (no enabled language missing a translation) and of §6.1 (a roll to snapshot) are checked by the job, at an hour when no operator is watching. `open_poll` refuses such a poll, leaves it in `draft`, logs the blocking reason and exits non-zero; it never opens a partially configured poll. A silent non-opening being the worst outcome here, the dashboard (§6.5) names the blockers in advance rather than on the morning itself.
+
+**Closure can be refused too, and identically.** Where any ballot is still `pending_countersign`, the §9 guard applies to the scheduled job as well: `close_poll` refuses, leaves the poll in `open`, logs the blocker and exits non-zero. This is safe rather than dangerous — the window checks already refuse every ballot write past `paper_entry_deadline` regardless of `state`, so the poll is closed in substance while the state field waits for the countersignatures, or for the admin override, which carries a mandatory reason and cannot be automated. The dashboard shows the blocking count.
 
 ---
 
@@ -152,8 +161,8 @@ Extension of `closes_at` is permitted only while `state = open` and only to a la
 These MUST hold and should each have a test.
 
 - **INV-1** No query joins `Registration` to `Ballot` for online ballots. There is no column, view or index that permits it (R-7.4).
-- **INV-2** No write to `Ballot` or `Registration` after `closes_at`.
-- **INV-3** No update or delete on `AuditEvent` or on superseded `Ballot` versions.
+- **INV-2** The voting window, by source: no `Ballot` write before `opens_at`; no **online** ballot write at or after `closes_at`; no **paper** ballot write at or after `paper_entry_deadline` (§6.4); no `Registration` write after `closes_at`. The retention purge (§11) is the sole exception, and is exempted by name in the trigger rather than by loosening the rule.
+- **INV-3** No update or delete on `AuditEvent` or on superseded `Ballot` versions. Absolute, with no exception for the retention purge: audit events hold no personal data to redact (§10).
 - **INV-4** `(poll_id, nne)` is unique across registrations (R-5.9).
 - **INV-5** A voter holds at most one live ballot per poll, across both channels (R-9). This is enforced **through `Registration.channel`**, never by counting ballots: for online ballots no link to the voter exists, and none may be added. `Ballot` MUST NOT carry a voter, registration or NNE reference. Adding one to satisfy this invariant would destroy INV-1.
 - **INV-6** Poll configuration fields other than `closes_at` are immutable once `state ≠ draft`.
@@ -161,6 +170,7 @@ These MUST hold and should each have a test.
 - **INV-8** Sandbox polls never appear in public listings or aggregate statistics (R-3.7).
 - **INV-9** Tally reads only ballots; it never reads registrations.
 - **INV-10** `(poll_id, email_canonical)` is unique across registrations (§6.2).
+- **INV-11** `(poll_id, tracking_code)` is unique across ballots. The canonical serialisation of §9 sorts on the tracking code and the published CSV is keyed on it, so a collision would make the closure hash ambiguous.
 
 ---
 
@@ -172,7 +182,7 @@ Python cannot make an illegal transition a compile error, so the enforcement is 
 
 **Configuration immutability (R-3.3)** is enforced in `Poll.save()`: when `state != draft`, any change to a configuration field other than `closes_at` raises. Backed by a database trigger, since `save()` is bypassed by `update()`, `bulk_update()` and raw SQL.
 
-**Write-after-closure (INV-2)** is checked in one service function that every ballot write path calls, taking the poll and the current time. This is the invariant the typestate approach could not have delivered either, since elapsing time is not a method call; here as there, the clock is consulted at the point of use.
+**The voting window (INV-2)** is checked in one service function that every ballot write path calls, taking the poll and the current time, and rejecting a write outside the window for that ballot's source — before `opens_at`, at or after `closes_at` for an online ballot, at or after `paper_entry_deadline` for a paper one. It does not consult `state`, since the scheduled transition may not have run yet (§4). This is the invariant the typestate approach could not have delivered either, since elapsing time is not a method call; here as there, the clock is consulted at the point of use. The retention purge is the one writer permitted past `closes_at`; it goes through a separate, named service function of which it is the only caller.
 
 **Database triggers are the real enforcement.** INV-3, INV-6 and INV-7 are `RunSQL` migrations creating `RAISE(ABORT)` triggers, which hold against `update()`, raw SQL, the Django shell and a future maintainer who has not read this document. INV-4 is a `UniqueConstraint` on `(poll, nne)`. Application-level checks alone survive only as long as every future code path remembers them.
 
@@ -196,7 +206,7 @@ Accept `.xlsx` and `.csv` (UTF-8 and Latin-1; sniff and let the operator confirm
 4. Outcomes (R-5.4): NNE found + name consistent → `pending_email`; NNE found + name divergent → `pending_review`; NNE absent or blank → `pending_review`.
 5. `pending_review` approved by a poll admin → `pending_email`, never straight to `active`: the mailbox is confirmed in every path. Rejection and approval both logged with a reason.
 6. NNE already registered → refuse, show a message directing the person to the mairie, log the attempt, flag it to the poll admin (R-5.9). Do not reveal any detail of the existing registration.
-7. Confirmation email carries the ballot link, the modification link and the tracking code (R-5.6), and MUST state that losing the email means losing the ability to modify the ballot, which nonetheless still counts (R-7.6).
+7. Confirmation email carries the ballot link and the modification link (R-5.6), and MUST state that losing the email means losing the ability to modify the ballot, which nonetheless still counts (R-7.6). It carries **no tracking code**: the code belongs to a ballot, and no ballot exists yet. Issuing one here would put the same value on a `Registration` row and a `Ballot` row, which is a join in all but name and destroys INV-1 and INV-5 — the 1:1 correspondence between a registration and the ballot it leads to is real, and §7 exists precisely to make it uncomputable. The code is issued at cast (§6.3) and on the paper receipt (§6.4); a voter who registers and never votes has none, which is correct. **Divergence flagged for the French document (§0):** if R-5.6 is read as requiring the tracking code in the registration email, the only safe implementation is a value derived from the token, `base32(truncate(SHA256("track" ‖ poll.token_salt ‖ token)))`, stored nowhere — and INV-11 must then be reworded to tolerate a derived value that cannot be re-rolled on collision.
 8. Reminder email 48 h before `closes_at` to `active` registrations with `channel = none` (R-5.7).
 9. Rate-limit registration and email-sending endpoints (R-5.8).
 
@@ -220,6 +230,8 @@ Operator searches the snapshot by name or NNE, is shown near-matches, and confir
 
 Entry produces a printable receipt bearing the tracking code (R-8.4). Correction and deletion require a reason and are logged with before/after (R-8.5). Deletion clears `channel` and re-enables online voting (R-9.4). If `paper_requires_countersign`, the entry is written with `status = pending_countersign` and is not counted until a second named operator validates it, which sets it to `live`.
 
+**The keying window.** Paper ballots may be entered until `paper_entry_deadline`, which is `closes_at` unless a window is configured (§3.1). Keying is transcription, not voting: the ballot was cast physically before `closes_at` and the signed form evidences that (R-8.2), while the keystroke timestamp is a clerical artefact. Online voting stops at `closes_at` regardless, and a commune wanting no window leaves the deadline at its default, where the distinction never appears. Countersignature is itself a write to the ballot and is permitted for the same window, so screen 7's queue stays usable up to the deadline. Both instants are shown publicly (§6.6): a period in which ballots can still enter the database is exactly the thing that looks bad when discovered rather than announced.
+
 If the voter has a paper ballot and attempts to vote online, refuse and direct them to the mairie (R-9.2).
 
 ---
@@ -230,7 +242,7 @@ The administrative interface is purpose-built, not Django admin. It is used by c
 
 Screens, all scoped to a poll and gated by the per-poll roles of §3.7:
 
-1. **Tableau de bord** — state, opening and closing instants, registered / confirmed / voted counts by channel, pending review count, and the actions permitted in the current state.
+1. **Tableau de bord** — state, opening and closing instants, registered / confirmed / voted counts by channel, pending review count, and the actions permitted in the current state. While the poll is in `draft` it also names every condition that would make `open_poll` refuse — a missing translation, an absent roll snapshot — so a gap is visible before the opening hour rather than at it (§4). In `open` it likewise names what would block `close_poll` — *clôture bloquée : n bulletins en attente de contreseing*.
 2. **Configuration du scrutin** — editable only in `draft`; read-only thereafter, with the closing-date extension (R-3.4) as a separate, reasoned action.
 3. **Import de la liste électorale** — upload, column mapping, validation report, preview, explicit confirmation (R-4.5).
 4. **File d'attente des inscriptions** — registrations pending review, with roll search and near-match display; accept or reject with a mandatory reason (R-5.4).
@@ -248,7 +260,7 @@ This back-office is the majority of the build. It should be scheduled first, bef
 
 ### 6.6 Public poll page
 
-While the poll is open the page shows the propositions, the closing instant, any logged extension (R-3.4), and the consultative-status notice (R-1.4). Participation figures are shown only if `show_live_participation` is set; the default is off, since publishing turnout during a poll can influence it. When the flag is off, no endpoint anywhere — page, JSON, or headers — exposes a running count.
+While the poll is open the page shows the propositions, the closing instant, the paper keying deadline where one is configured (§6.4), any logged extension (R-3.4), and the consultative-status notice (R-1.4). Participation figures are shown only if `show_live_participation` is set; the default is off, since publishing turnout during a poll can influence it. When the flag is off, no endpoint anywhere — page, JSON, or headers — exposes a running count.
 
 After publication the page carries the artefacts of §9.
 
@@ -271,6 +283,10 @@ Consequences to implement deliberately:
 - **Disabling modification strengthens anonymity.** The token → ballot link exists only to serve modification, so when the option is off, `ballot_hash` is not computed and not stored: nothing whatever connects a cast ballot to the token that cast it, and the voter's own tracking code becomes the sole handle. Voting-status is then carried by `Registration.channel` alone, set in the same transaction as the ballot insert. A poll wanting the closest approach to a secret ballot should disable modification.
 - `token_salt` is per poll, so participation cannot be correlated across polls by the application (R-13.4). Note the residual exposure at R-13.4 bis: the NNE is a permanent national identifier, so direct database access to two concurrent polls permits a join on it. Do not add any feature that surfaces this.
 - Paper ballots are deliberately **not** anonymous: `PaperBallotLink` keeps the association, because traceability and deletion-on-request require it.
+
+**Receipt-freeness is not provided, and is not attempted.** A voter who keeps their tracking code can find their own row in the published CSV (§9) and so prove to a third party how they voted. This is inherent in publication-based verifiability: the property that lets any reader recompute the result from the published set is the same property that makes a ballot findable by someone holding its code. It is accepted because the poll is consultative, and it means the software MUST NOT be used where coercion or vote-buying is a realistic risk. The README says so, next to the risk-level statement of §11.
+
+This cuts against the advice above, and the configuration screen should say so rather than presenting the choice as a straightforward privacy setting. Disabling `allow_ballot_modification` maximises anonymity — no `ballot_hash` is computed, nothing links a ballot to the token that cast it — but it removes a coerced voter's only remedy, which is to vote again privately once the coercer has gone. The commune is choosing which of the two risks it would rather carry.
 
 ---
 
@@ -323,9 +339,13 @@ closure_hash = SHA256 over the canonical serialisation of the live ballot set,
 
 The set hashed is exactly the rows with `status = live` (§3.4), serialised with option **ids**, never labels (§3.8). Document this serialisation precisely in the repository: a third party must be able to recompute the hash from the published CSV alone, and the CSV must therefore contain that set and nothing else.
 
-**Closure guard.** If any ballot is still `pending_countersign` when closure is attempted, the transition is refused. The poll admin either has the entries countersigned, or overrides with a mandatory reason which is logged and appears in the publication. Silently dropping uncountersigned ballots at closure is not acceptable.
+**Closure guard.** If any ballot is still `pending_countersign` when closure is attempted, the transition is refused; where the attempt is the scheduled `close_poll`, the refusal is loud and the poll stays `open` (§4). The poll admin either has the entries countersigned, or overrides with a mandatory reason which is logged and appears in the publication. Silently dropping uncountersigned ballots at closure is not acceptable.
 
-Publish (R-11.2): anonymised ballot list as CSV and JSON (tracking code + ranking); pairwise matrix; derivation; counts of registered electors, ballots by channel, and non-voters; `closure_hash`; `opening_seed`; tie-break computation if any. For small option counts also publish the per-ordering summary table — six rows for three strictly ranked options, sufficient on its own to recompute the result (R-11.3).
+Publish (R-11.2): anonymised ballot list as CSV and JSON (tracking code + ranking); pairwise matrix; derivation; the participation counts frozen at closure — registered electors, ballots by channel, non-voters; `closure_hash`; `opening_seed`; tie-break computation if any.
+
+Those counts are computed on entry to `closed` and stored, never derived at publication time. They read from `Registration`, which the retention job deletes (§11), and a late publication would otherwise be unable to produce them — and would in any case be reading them at a different instant from the hash they accompany.
+
+For small option counts also publish the per-ordering summary table — six rows for three strictly ranked options, sufficient on its own to recompute the result (R-11.3).
 
 ---
 
@@ -333,13 +353,24 @@ Publish (R-11.2): anonymised ballot list as CSV and JSON (tracking code + rankin
 
 Log at minimum: config changes; state transitions; `closes_at` extensions; roll imports; snapshots; registration review decisions; duplicate-NNE registration attempts; paper ballot create/correct/delete; countersignatures; collision overrides with reason; role assignments; access to the log itself. Each entry: actor, timestamp, object, before, after, reason where required (R-12.2). Auditors read everything; nobody can modify or delete (R-12.3).
 
-**Redaction-ready structure (MUST, and decided before the model is written).** `before` and `after` are JSON objects, and each event type declares which of its keys hold personal data (names, NNE, email). The retention job nulls exactly those keys in place, leaving the event, actor, timestamp and reason intact. Retrofitting this after the log contains history is a data migration over immutable rows, which is the one thing the trigger design makes hard on purpose.
+**Reference-only structure (MUST, and decided before the model is written).** An audit event stores a *reference* and non-identifying state, never a copied personal value. `object_ref` names the row — `registration:<uuid>`, `ballot:<uuid>`, `poll:<uuid>` — and `before`/`after` are JSON objects holding state, channel, status, role, and rankings by option **id**. No elector's name, NNE or email is ever written to an audit event. Staff identity is different: `actor_id` is a named operator account (R-2.2), retained legitimately, and is not elector data.
+
+The identity therefore lives only in the referenced row, which the retention job deletes (§11). After retention the log still reads *registration 7f3a… moved `pending_review` → `active`, by operator M, at T, reason `name_divergence_accepted`* — a complete record of what was done, with no way to recover to whom. That is a stronger property than redacting values after the fact, it costs nothing at write time, and it lets INV-3 stay absolute: no update path to the table at all, and so no exception for the purge to be granted.
+
+Two things it requires:
+
+- **`reason` is a structured code, not prose.** Free text authored by an operator will contain a name sooner or later — *nom mal orthographié : Dupond/Dupont* — and `reason` is retained. The event carries a code from a declared vocabulary; the prose belongs on the referenced row, in `Registration.review_reason` (§3.3), where the purge takes it. Where a screen requires a mandatory reason (R-8.5, R-9.3, §9's closure override), the mandatory part is the code; any note accompanying it is stored on the object, not on the event.
+- **Duplicate-NNE attempts (R-5.9) reference the existing registration** that caused the refusal, and record nothing about the attempter. The flag is actionable while the poll is open and worthless afterwards, so the identity dying with that row is the intended outcome.
+
+A reference to a purged row is expected, not an error: the audit screen (§6.5) renders it as *objet supprimé (rétention)*. Retrofitting any of this once the log holds history is a data migration over rows the trigger design exists to make immovable, which is why it is settled here.
 
 ---
 
 ## 11. Data protection (R-13)
 
-Retention job: two months after publication, delete registrations, NNEs, roll snapshots and `PaperBallotLink` rows, and null the declared personal-data keys in audit events (§10). Anonymised ballots, published results and the log itself are retained. Retention must be a scheduled, logged, idempotent job — not a manual procedure.
+Retention job: two months after **closure**, delete registrations, NNEs, roll snapshots and `PaperBallotLink` rows. The anchor is closure and not publication, because a poll that closes and is never published — an unresolved `physical` tie-break, an abandoned result — would otherwise keep its identity data for ever; the basis for holding it ends when the poll is over, not when somebody gets round to announcing the outcome. Publication after a purge remains possible because §9 freezes the participation counts at closure. Audit events need no treatment of their own: they hold references and non-identifying state only (§10), so deleting the referenced rows is what anonymises the log. Anonymised ballots, published results and the log itself are retained in full. Retention must be a scheduled, logged, idempotent job — not a manual procedure.
+
+The purge is the sole exception to INV-2, which it necessarily breaches: it deletes `Registration` rows long after `closes_at`. Express the exception inside the trigger rather than around it — the INV-2 trigger forbids `INSERT` and `UPDATE` on `Registration` and `Ballot` outside the voting window, and permits `DELETE` of a registration only where the poll is `published`. Disabling the trigger for the duration of the job is not an acceptable substitute. The same applies to INV-7, whose trigger refuses every `UPDATE` on `RollEntry` unconditionally and permits `DELETE` only where the poll is `published` — a snapshot is frozen, not immortal. INV-3 needs no such accommodation, since the purge never touches `AuditEvent` at all.
 
 Privacy notice at registration (R-13.2): purpose, legal basis, retention, recipients, rights, named referent. IP addresses kept only as long as rate-limiting requires (R-13.5).
 
@@ -385,7 +416,7 @@ These run on every commit and must stay fast. Everything here is a function of i
 | T-11 | Roll import with one malformed NNE | Whole import rejected; nothing written |
 | T-12 | Two concurrent polls, same elector registered in both | Two tokens; no endpoint exposes cross-poll participation |
 | T-13 | Ballot page driven by keyboard only, then by screen reader | Ranking completable without drag-and-drop |
-| T-14 | Retention job run two months after publication | Identity data gone; declared audit keys nulled; ballots, results and log retained |
+| T-14 | Retention job run two months after closure | Identity data gone; ballots, results and the log retained in full; the log's now-dangling references render as *objet supprimé* rather than erroring |
 | T-15 | Sandbox poll | Absent from public listings and statistics |
 | T-16 | Fresh host restored from backup (`restore.yml`) | Published results served; closure hash recomputed from restored data matches the published value |
 | T-17 | Registration with an address already used under a `+alias` or different case | Refused; no detail of the existing registration disclosed |
@@ -396,7 +427,7 @@ These run on every commit and must stay fast. Everything here is a function of i
 | T-22 | Poll with English enabled but one option label untranslated | Cannot leave `draft`; the gap is named on the configuration screen |
 | T-23 | Option label corrected after publication | Closure hash and result unchanged |
 | T-24 | `UPDATE` or `DELETE` on `audit_event`, and on a superseded `Ballot` row, issued in raw SQL | Rejected by the trigger, not merely by application code (INV-3) |
-| T-25 | Schema and model metadata inspected | No field or relation links `Ballot` to a voter, registration or NNE (INV-1, INV-5) |
+| T-25 | Schema and model metadata inspected; a registration and the ballot cast from its token compared field by field | No field or relation links `Ballot` to a voter, registration or NNE, and no value whatever is common to the two rows — in particular no tracking code (INV-1, INV-5, §6.2) |
 | T-26 | Roll re-imported while a poll is open; `UPDATE` attempted on a `RollEntry` | Open poll's snapshot unchanged; update rejected (INV-7, R-4.3) |
 | T-27 | Registration left in `pending_email` | Cannot reach the ballot; excluded from turnout figures (R-5.5) |
 | T-28 | Registration whose name diverges from the roll entry | Routed to `pending_review` rather than refused (R-5.4) |
@@ -412,6 +443,14 @@ These run on every commit and must stay fast. Everything here is a function of i
 | T-48 | Poll with `allow_ballot_modification` false: modification link followed after casting | Refused; no `ballot_hash` stored on any row of that poll |
 | T-49 | `send_reminders` started twice concurrently; and run after a period of downtime | Second instance exits 0 without acting; the missed reminders are sent late, once each |
 | T-50 | Service definitions under `contrib/init/` | `systemd-analyze verify` passes on the unit; the OpenRC and `rc.d` scripts pass `shellcheck`; none contains a hardcoded path |
+| T-51 | `open_poll` started twice concurrently; and run after a period of downtime | Second instance exits 0 without acting; exactly one snapshot and one `opening_seed`; a poll whose `opens_at` has passed opens late, once (§4) |
+| T-52 | Ballot posted before `opens_at`, with `state` forced to `open` directly in the database | Refused server-side by the voting-window check, which never consults `state` (§4, INV-2) |
+| T-53 | `open_poll` run against a poll with an option label untranslated in an enabled language, and against one with no roll snapshot | Refuses both, leaves them in `draft`, logs the blocking reason, exits non-zero (§3.8, §4) |
+| T-54 | Retention purge run on a published poll; then `INSERT` and `UPDATE` attempted on `Registration` in raw SQL after `closes_at` | Purge succeeds against live triggers, including the `RollEntry` deletion; insert and update rejected by the INV-2 trigger (§11) |
+| T-55 | Every audit event written across a full poll lifecycle, scanned before and after the purge | No `object_ref`, `before`, `after` or `reason` matches a name, NNE or email pattern at either point; `UPDATE` on `audit_event` still aborts (§10, INV-3) |
+| T-56 | Paper ballot keyed in after `closes_at` but before `paper_entry_deadline`; an online ballot posted at the same instant; a countersignature applied at the same instant | Paper entry and countersignature accepted and counted; online ballot refused (§6.4, INV-2) |
+| T-57 | `close_poll` reaching `paper_entry_deadline` with a `pending_countersign` ballot outstanding | Refuses, leaves the poll `open`, logs the blocker, exits non-zero; no ballot write is accepted meanwhile; the dashboard names the blocker (§4, §9) |
+| T-58 | Poll closed and never published, two months later; then published afterwards | Purge runs on the closure anchor; identity data gone; the counts frozen at closure are still published correctly (§9, §11) |
 
 T-16 and T-38 need a throwaway host (a container or a virtual machine under Molecule or equivalent) rather than the ordinary test database, and belong in a separate, slower CI job. T-13 needs a browser and a screen reader; automate what a headless browser can check and keep the assistive-technology pass as a documented manual step before each poll opens.
 
@@ -425,6 +464,7 @@ T-16 and T-38 need a throwaway host (a container or a virtual machine under Mole
 4. Named data-protection referent for the privacy notice.
 5. Which of `paper_requires_signed_form`, `paper_requires_countersign`, `paper_requires_reconciliation` are enabled for the first poll — all default false.
 6. Acceptance of the residual correlation risk at R-13.4 bis.
+7. Whether a paper keying window is used and how long it runs (`paper_entry_deadline`); the default is none, the deadline sitting on `closes_at`.
 
 ---
 
@@ -436,7 +476,7 @@ The choice is made for the project's second life rather than its first. This is 
 
 **Django** on the current LTS. SQLite in WAL mode by default; PostgreSQL supported through the ORM for larger adopters, with the caveat that the triggers of §5.1 are SQLite dialect and must be rewritten in PL/pgSQL, and that a test suite running against both backends is the only way to keep the two in step. Keep SQLite the sole supported backend until a commune actually asks for the other.
 
-**Dependencies stay few.** `openpyxl` for the xlsx roll import (R-4.2); the standard library for CSV, hashing and randomness; Django's own SMTP backend for mail; `argon2-cffi` for the handful of operator passwords. No Celery, no Redis, no queue: background work is management commands (`import_roll`, `send_reminders`, `close_poll`, `run_tally`, `retention_purge`), which keeps it individually runnable, observable and testable. Lockfile committed.
+**Dependencies stay few.** `openpyxl` for the xlsx roll import (R-4.2); the standard library for CSV, hashing and randomness; Django's own SMTP backend for mail; `argon2-cffi` for the handful of operator passwords. No Celery, no Redis, no queue: background work is management commands (`import_roll`, `open_poll`, `send_reminders`, `close_poll`, `run_tally`, `retention_purge`), which keeps it individually runnable, observable and testable. Lockfile committed.
 
 **Scheduler-agnostic jobs.** Nothing in the application knows what invokes these commands: cron, systemd timers, a container orchestrator, or a person at a terminal are all equivalent. That portability imposes four requirements on the commands themselves, since the weaker schedulers guarantee none of them.
 
@@ -445,7 +485,7 @@ The choice is made for the project's second life rather than its first. This is 
 - **Idempotent, with meaningful exit codes**, so a re-run is harmless and a failure is visible to cron mail or any monitoring.
 - **Logs to stdout and stderr**, captured by whatever invoked them; no assumption of journald. An optional `--log-file` covers the rest.
 
-Note what this leaves genuinely scheduled: only reminders and retention, both of which tolerate lateness. Closure is enforced server-side on every write path, never by a job, and the tally and publication are triggered from the back-office (§6.5). A scheduler that never fires delays a reminder; it can neither admit a late ballot nor block a result.
+Note what this leaves genuinely scheduled: opening, closure, reminders and retention. A scheduler that never fires can neither admit a late ballot nor alter a result — both boundaries are enforced on every write path independently of the job that moves the state (§4) — and reminders and retention simply run late. What it can do is delay: a poll advertised for Monday still sitting in `draft` on Monday morning, or a closed poll with no `closure_hash` and therefore no result to publish. Both are visible to the mairie rather than silent, which is why `open_poll` and `close_poll` exit non-zero on refusal and the dashboard names their blockers beforehand (§4, §6.5). The tally and publication remain operator-triggered from the back-office (§6.5).
 
 **No Django admin.** The administrative interface is purpose-built (§6.5); Django admin is not routed in production. The admin is not RGAA-conformant, is designed for developers rather than for mairie staff, cannot express the review and paper-entry workflows, and is precisely the tool that would let someone browse the registration and ballot tables side by side. This removes one of the arguments commonly made for Django: what remains in its favour here is the ORM, forms, templates, migrations, auth, i18n and the contributor pool.
 
@@ -489,7 +529,7 @@ The repository ships an Ansible playbook as the supported installation path. An 
 3. Application release from a tagged artefact, never from a working branch, into a versioned directory with a symlink switch so rollback is a symlink change.
 4. Virtualenv from the committed lockfile; `migrate` and `collectstatic`; a fail-fast check that migrations left no pending changes.
 5. Settings rendered to an environment file, mode 0600, owned by the service user. Secrets come from `ansible-vault`, never the repository.
-6. A supervised `gunicorn` service, and periodic invocation of `send_reminders` and `retention_purge` according to the `scheduler` variable: `cron` (the default, being universally available), `systemd` (timers, with `Persistent=true` and a randomised delay), or `none` for operators with their own orchestration. Under `cron`, the wrapper script sources the environment file explicitly — cron's minimal environment is the classic cause of a job that works by hand and silently fails at three in the morning.
+6. A supervised `gunicorn` service, and periodic invocation of `open_poll`, `close_poll`, `send_reminders` and `retention_purge` according to the `scheduler` variable, at an interval short enough that `opens_at` and `closes_at` are honoured to the minute: `cron` (the default, being universally available), `systemd` (timers, with `Persistent=true` and a randomised delay), or `none` for operators with their own orchestration. Under `cron`, the wrapper script sources the environment file explicitly — cron's minimal environment is the classic cause of a job that works by hand and silently fails at three in the morning.
 7. nginx vhost from a template, TLS per §14, security headers, and a rate-limit zone consistent with the application's own limits.
 8. Backups: nightly `VACUUM INTO` to `/var/backups/`, retention window, and off-host replication. The database contains `poll.token_salt`, so backup destination permissions are part of the ballot-secrecy boundary and the playbook must not loosen them.
 9. A smoke play run last: service up, health endpoint answering, a test email actually delivered to an address given in the inventory. Deployment is not "green" until mail has been proven to leave the machine, since every online ballot depends on it.
