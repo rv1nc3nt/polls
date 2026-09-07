@@ -1,0 +1,109 @@
+/* SPDX-License-Identifier: 0BSD */
+
+/* RGAA (R-14.1), and only what the criteria actually require. No framework,
+   no build step (§14): an adopting commune's IT department reads this file in
+   one sitting.
+
+   Three rules this file keeps and every later screen must keep too:
+   - nothing carries meaning by colour alone (3.1) — states and message levels
+     are written in words, and the colour is decoration on top of the word;
+   - the focus indicator is never removed and never relies on colour alone (10.7);
+   - sizes are in rem, so the page survives a 200 % zoom (10.4). */
+
+:root {
+  --ink: #1b1b1b;
+  --ink-quiet: #4a4a4a;
+  --paper: #ffffff;
+  --paper-quiet: #f4f4f1;
+  --rule: #767676;          /* 4.5:1 on --paper */
+  --link: #1a4fa0;          /* 7.4:1 on --paper */
+  --focus: #b8003f;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 0;
+  color: var(--ink);
+  background: var(--paper);
+  font: 1rem/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+main, .banner, .contentinfo, .pollnav, .messages { padding: 1rem clamp(1rem, 4vw, 3rem); }
+
+/* The skip link is the first focusable element and is off-screen until focused,
+   never `display: none`, which would take it out of the tab order (12.7). */
+.skip {
+  position: absolute;
+  left: -100vw;
+  top: 0;
+  padding: 0.5rem 1rem;
+  background: var(--ink);
+  color: var(--paper);
+}
+.skip:focus { left: 0; z-index: 10; }
+
+a { color: var(--link); }
+a:hover { text-decoration-thickness: 2px; }
+
+/* Visible focus everywhere, outline rather than a colour swap, so it survives
+   forced-colours and colour-blind viewing (10.7). */
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.banner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: baseline;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--rule);
+}
+.site-name { font-weight: 700; margin: 0; }
+.account { display: flex; gap: 0.75rem; align-items: baseline; }
+.account__name { font-weight: 600; }
+
+.pollnav {
+  background: var(--paper-quiet);
+  border-bottom: 1px solid var(--rule);
+}
+.pollnav__poll { margin: 0; font-weight: 600; }
+
+.messages { list-style: none; margin: 0; }
+.message { border-left: 4px solid var(--rule); padding: 0.5rem 0.75rem; margin-bottom: 0.5rem; }
+/* The level is printed as a word by the template; this only styles it. */
+.message__level { font-weight: 700; text-transform: uppercase; font-size: 0.8rem; }
+.message--error { border-left-color: var(--focus); }
+
+.error { border-left: 4px solid var(--focus); padding: 0.5rem 0.75rem; font-weight: 600; }
+.notice, .help { color: var(--ink-quiet); }
+
+h1 { font-size: 1.6rem; line-height: 1.25; }
+
+table { border-collapse: collapse; width: 100%; }
+caption { text-align: left; font-weight: 600; padding-bottom: 0.5rem; }
+th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid var(--rule); }
+
+.tag {
+  border: 1px solid var(--rule);
+  border-radius: 0.2rem;
+  padding: 0 0.3rem;
+  font-size: 0.8rem;
+}
+
+label { display: block; font-weight: 600; }
+input, select, button { font: inherit; padding: 0.4rem; }
+input, select { border: 1px solid var(--rule); background: var(--paper); color: var(--ink); }
+button {
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+  cursor: pointer;
+}
+
+.contentinfo { border-top: 1px solid var(--rule); color: var(--ink-quiet); }
+.langswitch { display: flex; gap: 0.5rem; align-items: end; flex-wrap: wrap; }
+.langswitch label { font-weight: 400; }

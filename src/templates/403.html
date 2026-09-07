@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD #}
+{% block title %}{% translate "Accès refusé" %}{% endblock %}
+{% block content %}
+  <h1>{% translate "Accès refusé" %}</h1>
+  {# Says that a role is missing, never which roles exist on this poll or who
+     holds them. #}
+  <p>{% translate "Votre compte n'a pas le rôle requis pour cet écran. L'administration de la commune peut vous l'attribuer." %}</p>
+{% endblock %}

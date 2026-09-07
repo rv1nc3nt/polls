@@ -14,6 +14,7 @@ uv run pytest -q                          # 51 tests, fast; no network
 uv run ruff check . && uv run ruff format --check .
 uv run mypy src tests                     # --strict, must stay clean
 cargo test --manifest-path verifier/Cargo.toml
+uv run python manage.py compilemessages   # needs GNU gettext installed
 ```
 
 All four gates run in CI and must be green before a commit lands.
@@ -25,9 +26,11 @@ canonical serialisation, name matching, tracking codes, job locking ·
 `src/apps/elections/` poll, options, snapshot, transitions, voting window,
 closure, retention · `src/apps/registrations/` · `src/apps/ballots/` ·
 `src/apps/audit/` · `src/apps/tally/` pure, imports no model ·
-`src/apps/backoffice/` espace mairie (§6.5, the bulk of the remaining work) ·
-`src/apps/publicsite/` · `verifier/` independent Rust verifier · `ansible/` ·
-`contrib/init/`.
+`src/apps/backoffice/` espace mairie (§6.5, the bulk of the remaining work;
+`access.py` is the role gate every screen goes through) · `src/apps/publicsite/`
+· `src/templates/` · `src/static/` · `locale/` (French is the msgid language, so
+only `en` has a catalogue) · `verifier/` independent Rust verifier · `ansible/`
+· `contrib/init/`.
 
 ## Properties that must not be broken
 
@@ -56,6 +59,12 @@ find a way round it.
   through `apps/elections/windows.py`, which never consults `state` — the
   scheduled job may run late, twice, or not at all.
 - **No Django admin**, in any environment.
+- **Every poll-scoped back-office screen goes through `require_poll_role`**
+  (`apps/backoffice/access.py`). `commune_admin` is commune-level and grants
+  nothing on an individual poll, and `is_superuser` is never consulted: reaching
+  the screens that show a voter beside a ballot must follow an audited grant, not
+  a flag. `tests/integration/test_backoffice_access.py` asserts both, and fails
+  on any view taking a `poll` that is not wrapped.
 
 Database triggers (`elections/migrations/0002_invariant_triggers.py`) are the
 real enforcement for INV-2, INV-3, INV-6 and INV-7. Application checks produce

@@ -1,0 +1,505 @@
+# English catalogue for the commune polling platform.
+# SPDX-License-Identifier: 0BSD
+#
+# French is the source language: the msgids are the French interface strings,
+# and French is the authoritative version where the two diverge (§3.8). This
+# catalogue is therefore the only one needed — reading the site in French uses
+# the msgids directly, with no catalogue at all.
+#
+# Written by hand because GNU gettext was not installed on the machine that
+# introduced these strings. Once `gettext` is available, `manage.py makemessages
+# -l en` regenerates it with source references and takes over; the msgstrs here
+# survive that regeneration.
+msgid ""
+msgstr ""
+"Project-Id-Version: commune-polls\n"
+"Report-Msgid-Bugs-To: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: en\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: apps/audit/models.py
+msgid "scrutin créé"
+msgstr "poll created"
+
+#: apps/audit/models.py
+msgid "configuration modifiée"
+msgstr "configuration changed"
+
+#: apps/audit/models.py
+msgid "transition d'état"
+msgstr "state transition"
+
+#: apps/audit/models.py
+msgid "clôture repoussée"
+msgstr "closing date extended"
+
+#: apps/audit/models.py
+msgid "liste électorale importée"
+msgstr "electoral roll imported"
+
+#: apps/audit/models.py
+msgid "copie figée prise"
+msgstr "snapshot taken"
+
+#: apps/audit/models.py
+msgid "inscription examinée"
+msgstr "registration reviewed"
+
+#: apps/audit/models.py
+msgid "tentative de doublon NNE"
+msgstr "duplicate NNE attempt"
+
+#: apps/audit/models.py
+msgid "bulletin papier saisi"
+msgstr "paper ballot keyed in"
+
+#: apps/audit/models.py
+msgid "bulletin papier rectifié"
+msgstr "paper ballot corrected"
+
+#: apps/audit/models.py
+msgid "bulletin papier supprimé"
+msgstr "paper ballot deleted"
+
+#: apps/audit/models.py
+msgid "bulletin contresigné"
+msgstr "ballot countersigned"
+
+#: apps/audit/models.py
+msgid "collision de canal forcée"
+msgstr "channel collision overridden"
+
+#: apps/audit/models.py
+msgid "clôture forcée"
+msgstr "closure overridden"
+
+#: apps/audit/models.py
+msgid "dépouillement effectué"
+msgstr "tally run"
+
+#: apps/audit/models.py
+msgid "tirage au sort physique saisi"
+msgstr "physical draw recorded"
+
+#: apps/audit/models.py
+msgid "résultats publiés"
+msgstr "results published"
+
+#: apps/audit/models.py
+msgid "rôle attribué"
+msgstr "role assigned"
+
+#: apps/audit/models.py
+msgid "rôle retiré"
+msgstr "role revoked"
+
+#: apps/audit/models.py
+msgid "journal consulté"
+msgstr "audit log accessed"
+
+#: apps/audit/models.py
+msgid "purge de rétention"
+msgstr "retention purge"
+
+#: apps/audit/models.py
+msgid "tâche planifiée refusée"
+msgstr "scheduled job refused"
+
+#: apps/audit/models.py
+msgid "divergence de nom acceptée"
+msgstr "name divergence accepted"
+
+#: apps/audit/models.py
+msgid "divergence de nom refusée"
+msgstr "name divergence refused"
+
+#: apps/audit/models.py
+msgid "NNE absent de la liste"
+msgstr "NNE absent from the roll"
+
+#: apps/audit/models.py
+msgid "identité confirmée en mairie"
+msgstr "identity confirmed at the mairie"
+
+#: apps/audit/models.py
+msgid "erreur de saisie"
+msgstr "keying error"
+
+#: apps/audit/models.py
+msgid "demande de l'électeur"
+msgstr "voter's request"
+
+#: apps/audit/models.py
+msgid "bulletin en double"
+msgstr "duplicate ballot"
+
+#: apps/audit/models.py
+msgid "a déjà voté en ligne"
+msgstr "already voted online"
+
+#: apps/audit/models.py
+msgid "contreseing indisponible"
+msgstr "countersignature unavailable"
+
+#: apps/audit/models.py
+msgid "échéance atteinte"
+msgstr "deadline reached"
+
+#: apps/audit/models.py
+msgid "décision administrative"
+msgstr "administrative decision"
+
+#: apps/audit/models.py
+msgid "autre"
+msgstr "other"
+
+#: apps/audit/models.py
+msgid "événement d'audit"
+msgstr "audit event"
+
+#: apps/audit/models.py
+msgid "journal d'audit"
+msgstr "audit log"
+
+#: apps/backoffice/access.py
+msgid "Vous n'avez pas le rôle requis sur ce scrutin."
+msgstr "You do not hold the required role on this poll."
+
+#: apps/backoffice/access.py
+msgid "Réservé à l'administration de la commune."
+msgstr "Restricted to the commune administration."
+
+#: apps/ballots/models.py apps/registrations/models.py
+msgid "en ligne"
+msgstr "online"
+
+#: apps/ballots/models.py apps/registrations/models.py
+msgid "papier"
+msgstr "paper"
+
+#: apps/ballots/models.py
+msgid "courant"
+msgstr "live"
+
+#: apps/ballots/models.py
+msgid "remplacé"
+msgstr "superseded"
+
+#: apps/ballots/models.py
+msgid "supprimé"
+msgstr "deleted"
+
+#: apps/ballots/models.py
+msgid "en attente de contreseing"
+msgstr "awaiting countersignature"
+
+#: apps/ballots/models.py
+msgid "bulletin"
+msgstr "ballot"
+
+#: apps/ballots/models.py
+msgid "bulletins"
+msgstr "ballots"
+
+#: apps/core/models.py
+msgid "administrateur de la commune"
+msgstr "commune administrator"
+
+#: apps/core/models.py
+msgid "Gère les comptes et crée les scrutins."
+msgstr "Manages accounts and creates polls."
+
+#: apps/core/models.py
+msgid "nom complet"
+msgstr "full name"
+
+#: apps/core/models.py
+msgid "compte"
+msgstr "account"
+
+#: apps/core/models.py
+msgid "comptes"
+msgstr "accounts"
+
+#: apps/core/models.py
+msgid "administrateur du scrutin"
+msgstr "poll administrator"
+
+#: apps/core/models.py
+msgid "opérateur de saisie"
+msgstr "entry operator"
+
+#: apps/core/models.py
+msgid "auditeur"
+msgstr "auditor"
+
+#: apps/elections/models.py
+msgid "brouillon"
+msgstr "draft"
+
+#: apps/elections/models.py
+msgid "ouvert"
+msgstr "open"
+
+#: apps/elections/models.py
+msgid "clos"
+msgstr "closed"
+
+#: apps/elections/models.py
+msgid "publié"
+msgstr "published"
+
+#: apps/elections/models.py
+msgid "Schulze"
+msgstr "Schulze"
+
+#: apps/elections/models.py
+msgid "majoritaire"
+msgstr "plurality"
+
+#: apps/elections/models.py
+msgid "par assentiment"
+msgstr "approval"
+
+#: apps/elections/models.py
+msgid "tirage au sort calculé"
+msgstr "computed draw"
+
+#: apps/elections/models.py
+msgid "tirage au sort physique"
+msgstr "physical draw"
+
+#: apps/elections/models.py
+msgid "titre"
+msgstr "title"
+
+#: apps/elections/models.py
+msgid "description"
+msgstr "description"
+
+#: apps/elections/models.py
+msgid "ouverture"
+msgstr "opening"
+
+#: apps/elections/models.py
+msgid "clôture"
+msgstr "closing"
+
+#: apps/elections/models.py
+msgid "fin de saisie des bulletins papier"
+msgstr "paper ballot keying deadline"
+
+#: apps/elections/models.py
+msgid "≥ clôture ; par défaut égale à elle (§6.4)."
+msgstr "≥ closing; equal to it by default (§6.4)."
+
+#: apps/elections/models.py
+msgid "scrutin"
+msgstr "poll"
+
+#: apps/elections/models.py
+msgid "scrutins"
+msgstr "polls"
+
+#: apps/elections/models.py
+msgid "Configuration figée hors brouillon : %(fields)s"
+msgstr "Configuration is frozen outside draft: %(fields)s"
+
+#: apps/elections/models.py
+msgid "électeur inscrit"
+msgstr "registered elector"
+
+#: apps/elections/models.py
+msgid "liste électorale figée"
+msgstr "frozen electoral roll"
+
+#: apps/elections/transitions.py
+msgid "Ouverture refusée : configuration incomplète."
+msgstr "Opening refused: configuration incomplete."
+
+#: apps/elections/transitions.py
+msgid "Clôture refusée."
+msgstr "Closure refused."
+
+#: apps/elections/transitions.py
+msgid "Seul un scrutin clos peut être publié."
+msgstr "Only a closed poll can be published."
+
+#: apps/elections/transitions.py
+msgid "Aucune empreinte de clôture."
+msgstr "No closure hash."
+
+#: apps/elections/transitions.py
+msgid "Report possible uniquement sur un scrutin ouvert."
+msgstr "Only an open poll can be extended."
+
+#: apps/elections/transitions.py
+msgid "La nouvelle date doit être postérieure."
+msgstr "The new date must be later."
+
+#: apps/elections/windows.py
+msgid "Le scrutin n'est pas encore ouvert."
+msgstr "The poll is not open yet."
+
+#: apps/elections/windows.py
+msgid "Le vote en ligne est clos."
+msgstr "Online voting has closed."
+
+#: apps/elections/windows.py
+msgid "La saisie des bulletins papier est close."
+msgstr "Paper ballot keying has closed."
+
+#: apps/elections/windows.py
+msgid "Les inscriptions sont closes."
+msgstr "Registration has closed."
+
+#: apps/registrations/models.py
+msgid "en attente de confirmation"
+msgstr "awaiting confirmation"
+
+#: apps/registrations/models.py
+msgid "en attente d'examen"
+msgstr "awaiting review"
+
+#: apps/registrations/models.py
+msgid "active"
+msgstr "active"
+
+#: apps/registrations/models.py
+msgid "rejetée"
+msgstr "rejected"
+
+#: apps/registrations/models.py
+msgid "aucun"
+msgstr "none"
+
+#: apps/registrations/models.py
+msgid "Adresse en minuscules, sans autre normalisation (§3.3)."
+msgstr "Address lower-cased, with no other normalisation (§3.3)."
+
+#: apps/registrations/models.py
+msgid "inscription"
+msgstr "registration"
+
+#: apps/registrations/models.py
+msgid "inscriptions"
+msgstr "registrations"
+
+#: templates/403.html
+msgid "Accès refusé"
+msgstr "Access denied"
+
+#: templates/403.html
+msgid "Votre compte n'a pas le rôle requis pour cet écran. L'administration de la commune peut vous l'attribuer."
+msgstr "Your account does not hold the role this screen requires. The commune administration can grant it."
+
+#: templates/404.html
+msgid "Page introuvable"
+msgstr "Page not found"
+
+#: templates/404.html
+msgid "Cette adresse ne correspond à aucune page."
+msgstr "This address matches no page."
+
+#: templates/backoffice/base.html
+msgid "Espace mairie"
+msgstr "Mairie area"
+
+#: templates/backoffice/base.html
+msgid "Se déconnecter"
+msgstr "Sign out"
+
+#: templates/backoffice/base.html
+msgid "Navigation du scrutin"
+msgstr "Poll navigation"
+
+#: templates/backoffice/login.html
+msgid "Connexion"
+msgstr "Sign in"
+
+#: templates/backoffice/login.html
+msgid "Connexion à l'espace mairie"
+msgstr "Sign in to the mairie area"
+
+#: templates/backoffice/login.html
+msgid "Identifiant ou mot de passe incorrect."
+msgstr "Incorrect username or password."
+
+#: templates/backoffice/login.html
+msgid "Identifiant"
+msgstr "Username"
+
+#: templates/backoffice/login.html
+msgid "Mot de passe"
+msgstr "Password"
+
+#: templates/backoffice/login.html
+msgid "Se connecter"
+msgstr "Sign in"
+
+#: templates/backoffice/login.html
+msgid "Les comptes sont créés par l'administration de la commune. Il n'y a ni inscription ni réinitialisation en ligne."
+msgstr "Accounts are created by the commune administration. There is no online signup and no online password reset."
+
+#: templates/backoffice/poll_index.html
+msgid "Scrutins"
+msgstr "Polls"
+
+#: templates/backoffice/poll_index.html
+msgid "Vos scrutins"
+msgstr "Your polls"
+
+#: templates/backoffice/poll_index.html
+msgid "Vous administrez la commune : tous les scrutins sont listés. L'accès aux écrans d'un scrutin demande un rôle sur ce scrutin."
+msgstr "You administer the commune: every poll is listed. Reaching a poll’s screens requires a role on that poll."
+
+#: templates/backoffice/poll_index.html
+msgid "Scrutins sur lesquels vous avez un rôle"
+msgstr "Polls on which you hold a role"
+
+#: templates/backoffice/poll_index.html
+msgid "Scrutin"
+msgstr "Poll"
+
+#: templates/backoffice/poll_index.html
+msgid "État"
+msgstr "State"
+
+#: templates/backoffice/poll_index.html
+msgid "Clôture"
+msgstr "Closing"
+
+#: templates/backoffice/poll_index.html
+msgid "bac à sable"
+msgstr "sandbox"
+
+#: templates/backoffice/poll_index.html
+msgid "Aucun scrutin ne vous est attribué."
+msgstr "No poll is assigned to you."
+
+#: templates/base.html
+msgid "Consultation citoyenne"
+msgstr "Citizen consultation"
+
+#: templates/base.html
+msgid "Aller au contenu"
+msgstr "Skip to content"
+
+#: templates/base.html
+msgid "Cette consultation est consultative : son résultat ne lie pas le conseil municipal."
+msgstr "This consultation is advisory: its result does not bind the municipal council."
+
+#: templates/base.html
+msgid "Langue"
+msgstr "Language"
+
+#: templates/base.html
+msgid "Changer"
+msgstr "Change"
+
+#: templates/publicsite/poll_list.html
+msgid "Consultations"
+msgstr "Consultations"

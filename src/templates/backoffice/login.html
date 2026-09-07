@@ -1,0 +1,32 @@
+{% extends "backoffice/base.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD #}
+
+{% block screen_title %}{% translate "Connexion" %}{% endblock %}
+{% block heading %}{% translate "Connexion à l'espace mairie" %}{% endblock %}
+
+{% block screen %}
+  {% if form.errors %}
+    {# role="alert": this one does interrupt, because the operator is waiting on
+       it. No detail about which of the two fields was wrong. #}
+    <p class="error" role="alert">{% translate "Identifiant ou mot de passe incorrect." %}</p>
+  {% endif %}
+
+  <form method="post" action="{% url 'backoffice:login' %}">
+    {% csrf_token %}
+    <p>
+      <label for="{{ form.username.id_for_label }}">{% translate "Identifiant" %}</label>
+      {{ form.username }}
+    </p>
+    <p>
+      <label for="{{ form.password.id_for_label }}">{% translate "Mot de passe" %}</label>
+      {{ form.password }}
+    </p>
+    <input type="hidden" name="next" value="{{ next }}">
+    <button type="submit">{% translate "Se connecter" %}</button>
+  </form>
+
+  <p class="help">
+    {% translate "Les comptes sont créés par l'administration de la commune. Il n'y a ni inscription ni réinitialisation en ligne." %}
+  </p>
+{% endblock %}

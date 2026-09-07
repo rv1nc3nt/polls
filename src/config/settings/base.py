@@ -115,6 +115,13 @@ X_FRAME_OPTIONS = "DENY"
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "same-origin"
 
+# §6.5: the back-office is the only authenticated area, and it is reached by
+# named accounts only (R-2.2). There is no self-service signup and no password
+# reset by mail: accounts are created on screen 10 or by the first-run wizard.
+LOGIN_URL = "backoffice:login"
+LOGIN_REDIRECT_URL = "backoffice:poll_index"
+LOGOUT_REDIRECT_URL = "backoffice:login"
+
 DEFAULT_FROM_EMAIL = os.environ.get("DJANGO_FROM_EMAIL", "mairie@example.fr")
 
 LOGGING = {

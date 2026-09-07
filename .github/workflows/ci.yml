@@ -16,6 +16,10 @@ jobs:
         with:
           enable-cache: true
       - run: uv sync --frozen
+      # A hand-edited .po is only found to be malformed when something compiles
+      # it; the runner has gettext, the developer's machine may not (§3.8).
+      - run: sudo apt-get install -y gettext
+      - run: uv run python manage.py compilemessages
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run mypy src tests

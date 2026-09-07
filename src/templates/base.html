@@ -1,18 +1,65 @@
-{% load i18n %}<!doctype html>
+{% load i18n static %}<!doctype html>
 {# SPDX-License-Identifier: 0BSD #}
-{# TODO(scaffold): RGAA-conformant base template (R-14.1) — skip link, landmarks,
-   lang attribute from the active language, no colour-only information. #}
+{# RGAA (R-14.1) applies to the back-office as much as to the public site
+   (§6.5), so the conformant scaffolding lives here and every page inherits it:
+   a skip link that is the first focusable element and becomes visible on focus,
+   one <main> per page, named landmarks, and a live region for messages. Nothing
+   in the stylesheet may carry information by colour alone — status words are
+   written out, which is also why the message list prints its level. #}
 <html lang="{{ LANGUAGE_CODE }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{% translate "Consultation citoyenne" %}{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
 </head>
 <body>
   <a class="skip" href="#contenu">{% translate "Aller au contenu" %}</a>
+
+  <header class="banner">
+    <p class="site-name"><a href="/">{% translate "Consultation citoyenne" %}</a></p>
+    {% block header_extra %}{% endblock %}
+  </header>
+
+  {% block nav %}{% endblock %}
+
+  {% if messages %}
+    {# role="status" rather than "alert": these follow an action the operator
+       just took and must not interrupt a screen reader mid-sentence. #}
+    <ul class="messages" role="status">
+      {% for message in messages %}
+        <li class="message message--{{ message.tags }}">
+          <span class="message__level">{{ message.level_tag }}</span>
+          {{ message }}
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
   <main id="contenu">{% block content %}{% endblock %}</main>
-  <footer>
+
+  <footer class="contentinfo">
+    {# R-1.4, on every page: the result does not bind the council. #}
     <p>{% translate "Cette consultation est consultative : son résultat ne lie pas le conseil municipal." %}</p>
+
+    {# §3.8: French is the authoritative version, and the pages carrying legal
+       effect must say so when they are being read in translation. #}
+    {% if LANGUAGE_CODE != "fr" %}
+      <p lang="fr">La version française fait foi ; cette traduction est fournie à titre informatif.</p>
+    {% endif %}
+
+    <form action="{% url 'set_language' %}" method="post" class="langswitch">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <label for="langswitch-select">{% translate "Langue" %}</label>
+      <select id="langswitch-select" name="language">
+        {% get_available_languages as LANGUAGES %}
+        {% for code, name in LANGUAGES %}
+          <option value="{{ code }}" lang="{{ code }}"{% if code == LANGUAGE_CODE %} selected{% endif %}>{{ name }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit">{% translate "Changer" %}</button>
+    </form>
   </footer>
 </body>
 </html>
