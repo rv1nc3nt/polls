@@ -1,0 +1,18 @@
+{% load i18n %}<!doctype html>
+{# SPDX-License-Identifier: 0BSD #}
+{# TODO(scaffold): RGAA-conformant base template (R-14.1) — skip link, landmarks,
+   lang attribute from the active language, no colour-only information. #}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{% translate "Consultation citoyenne" %}{% endblock %}</title>
+</head>
+<body>
+  <a class="skip" href="#contenu">{% translate "Aller au contenu" %}</a>
+  <main id="contenu">{% block content %}{% endblock %}</main>
+  <footer>
+    <p>{% translate "Cette consultation est consultative : son résultat ne lie pas le conseil municipal." %}</p>
+  </footer>
+</body>
+</html>

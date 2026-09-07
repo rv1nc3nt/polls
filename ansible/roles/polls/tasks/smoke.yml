@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: 0BSD
+# 9. Run last: service up, /sante answering, and a test email actually
+#    delivered to {{ polls_smoke_test_email }}.
+#
+# Deployment is not "green" until mail has been proven to leave the machine:
+# every online ballot passes through a confirmation email, and mail from a small
+# self-hosted domain is routinely filtered (§14).
+- name: TODO(scaffold) smoke play, step 9 of §15
+  ansible.builtin.debug:
+    msg: "smoke — health endpoint and a delivered test email"

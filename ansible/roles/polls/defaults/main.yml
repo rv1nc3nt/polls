@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: 0BSD
+# No hardcoded Linux paths anywhere below this file (§15): prefix, configuration
+# directory, state directory and service user are variables, so the contrib
+# service files can install the same software under /usr/local/etc and /var/db.
+polls_user: polls
+polls_group: polls
+polls_prefix: /opt/polls
+polls_config_dir: /etc/polls
+polls_state_dir: /var/lib/polls
+polls_backup_dir: /var/backups/polls
+polls_release: ""            # tagged artefact, never a working branch
+polls_domain: ""
+polls_admin_email: ""
+polls_smoke_test_email: ""
+
+# cron (default, universally available), systemd (timers, Persistent=true), or
+# none for operators with their own orchestration (§15).
+polls_scheduler: cron
+polls_job_interval_minutes: 5   # short enough to honour opens_at to the minute
+
+# Never run migrate against a poll in `open` state without setting this (§15).
+polls_allow_migrate_during_open_poll: false
+
+polls_backup_retention_days: 30
+polls_tls_method: certbot       # certbot | nginx-acme

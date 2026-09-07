@@ -4,7 +4,7 @@
 **Status:** v0.21 — implementation-ready functional spec. Stack decided (§14).
 **Audience:** implementing agent / developer.
 
-The authoritative functional requirements are the French document *Cahier des charges fonctionnel*, requirement numbers `R-x.y`. This document restates them in implementation terms and adds the domain model, algorithms, invariants and acceptance tests. Where the two diverge, the French document governs and this one is to be corrected. Cross-references to `R-x.y` appear throughout.
+The authoritative functional requirements carry the numbers `R-x.y`. This document restates them in implementation terms and adds the domain model, algorithms, invariants and acceptance tests. Where the two diverge, the requirements govern and this document is to be corrected. Cross-references to `R-x.y` appear throughout.
 
 ---
 
@@ -13,7 +13,7 @@ The authoritative functional requirements are the French document *Cahier des ch
 - Requirements marked **MUST** are load-bearing; several encode privacy or integrity properties that are impossible to retrofit (§7 in particular).
 - Items listed in §13 are undecided by the client. Implement them as configuration, never as constants.
 - The interface is multilingual, French by default (§3.8). Identifiers, code and comments are in English. §2 maps the French terms.
-- Reference convention: `R-x.y` and `R-n` refer to the French *Cahier des charges fonctionnel*; `§n` refers to a section of **this** document. `INV-n` and `T-n` are defined here at §5 and §12.
+- Reference convention: `R-x.y` and `R-n` refer to the functional requirements; `§n` refers to a section of **this** document. `INV-n` and `T-n` are defined here at §5 and §12.
 
 ---
 
@@ -206,7 +206,7 @@ Accept `.xlsx` and `.csv` (UTF-8 and Latin-1; sniff and let the operator confirm
 4. Outcomes (R-5.4): NNE found + name consistent → `pending_email`; NNE found + name divergent → `pending_review`; NNE absent or blank → `pending_review`.
 5. `pending_review` approved by a poll admin → `pending_email`, never straight to `active`: the mailbox is confirmed in every path. Rejection and approval both logged with a reason.
 6. NNE already registered → refuse, show a message directing the person to the mairie, log the attempt, flag it to the poll admin (R-5.9). Do not reveal any detail of the existing registration.
-7. Confirmation email carries the ballot link and the modification link (R-5.6), and MUST state that losing the email means losing the ability to modify the ballot, which nonetheless still counts (R-7.6). It carries **no tracking code**: the code belongs to a ballot, and no ballot exists yet. Issuing one here would put the same value on a `Registration` row and a `Ballot` row, which is a join in all but name and destroys INV-1 and INV-5 — the 1:1 correspondence between a registration and the ballot it leads to is real, and §7 exists precisely to make it uncomputable. The code is issued at cast (§6.3) and on the paper receipt (§6.4); a voter who registers and never votes has none, which is correct. **Divergence flagged for the French document (§0):** if R-5.6 is read as requiring the tracking code in the registration email, the only safe implementation is a value derived from the token, `base32(truncate(SHA256("track" ‖ poll.token_salt ‖ token)))`, stored nowhere — and INV-11 must then be reworded to tolerate a derived value that cannot be re-rolled on collision.
+7. Confirmation email carries the ballot link and the modification link (R-5.6), and MUST state that losing the email means losing the ability to modify the ballot, which nonetheless still counts (R-7.6). It carries **no tracking code**: the code belongs to a ballot, and no ballot exists yet. Issuing one here would put the same value on a `Registration` row and a `Ballot` row, which is a join in all but name and destroys INV-1 and INV-5 — the 1:1 correspondence between a registration and the ballot it leads to is real, and §7 exists precisely to make it uncomputable. The code is issued at cast (§6.3) and on the paper receipt (§6.4); a voter who registers and never votes has none, which is correct. **Divergence flagged against the requirements (§0):** if R-5.6 is read as requiring the tracking code in the registration email, the only safe implementation is a value derived from the token, `base32(truncate(SHA256("track" ‖ poll.token_salt ‖ token)))`, stored nowhere — and INV-11 must then be reworded to tolerate a derived value that cannot be re-rolled on collision.
 8. Reminder email 48 h before `closes_at` to `active` registrations with `channel = none` (R-5.7).
 9. Rate-limit registration and email-sending endpoints (R-5.8).
 

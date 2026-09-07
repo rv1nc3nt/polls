@@ -1,0 +1,58 @@
+[project]
+name = "commune-polls"
+version = "0.1.0"
+description = "Self-hosted consultative polling platform for a French commune"
+readme = "README.md"
+requires-python = ">=3.13,<3.14"
+license = "0BSD"
+authors = [{ name = "Romain VINCENT" }]
+dependencies = [
+    "django>=5.2,<6.0",
+    "openpyxl>=3.1",
+    "argon2-cffi>=23.1",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.11",
+    "django-stubs[compatible-mypy]>=5.1",
+    "ruff>=0.6",
+    "pytest>=8.3",
+    "pytest-django>=4.9",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "DJ", "S", "C4", "RUF"]
+# The interface, the labels and the comments are French: ambiguous-unicode
+# would flag every typographic apostrophe and accented character (§3.8).
+ignore = ["S101", "RUF001", "RUF002", "RUF003", "RUF012"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/migrations/*" = ["E501", "RUF012"]
+"tests/*" = ["S105", "S106", "RUF043"]
+"src/config/settings/*" = ["F403", "F405"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+mypy_path = "src"
+plugins = ["mypy_django_plugin.main"]
+exclude = ["migrations/"]
+
+[[tool.mypy.overrides]]
+module = ["openpyxl.*"]
+ignore_missing_imports = true
+
+[tool.django-stubs]
+django_settings_module = "config.settings.dev"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+pythonpath = ["src"]
+testpaths = ["tests"]
+python_files = ["test_*.py"]

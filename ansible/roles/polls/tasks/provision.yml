@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: 0BSD
+# 1. System packages, fr_FR.UTF-8, Europe/Paris, unattended upgrades, firewall
+#    allowing only 22, 80 and 443.
+# 2. Unprivileged service user; database under {{ polls_state_dir }}, backups
+#    under {{ polls_backup_dir }}, code under {{ polls_prefix }}, none of it
+#    world-readable.
+# 7. nginx vhost from a template, TLS per §14, security headers, rate-limit zone
+#    consistent with the application's own limits.
+- name: TODO(scaffold) provision steps 1, 2 and 7 of §15
+  ansible.builtin.debug:
+    msg: "provision"

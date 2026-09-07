@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: 0BSD
+# Full run: bare Debian VM → running instance, one inventory file, one command.
+# Tags let provision, deploy and backup run independently (§15).
+- name: Commune polling platform
+  hosts: polls
+  become: true
+  roles:
+    - role: polls

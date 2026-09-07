@@ -1,0 +1,6 @@
+{% extends "base.html" %}{% load i18n %}
+{# SPDX-License-Identifier: 0BSD — sandbox polls are excluded in the view (INV-8). #}
+{% block content %}
+  <h1>{% translate "Consultations" %}</h1>
+  <ul>{% for poll in polls %}<li><a href="{% url 'publicsite:poll_detail' poll.id %}">{{ poll.title }}</a></li>{% endfor %}</ul>
+{% endblock %}
