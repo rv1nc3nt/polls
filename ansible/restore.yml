@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: 0BSD
+# Part of the deliverable, not an afterthought (§15): provision a fresh host,
+# restore the most recent backup, run the same smoke play. A backup procedure
+# that has never been restored is not a backup procedure — and for a system
+# whose credibility rests on an audit log, losing that log to an untested
+# restore would be the worst possible failure (T-16).
+- name: Restore an instance from backup
+  hosts: polls
+  become: true
+  roles:
+    - role: polls
+      tags: [provision]
+  tasks:
+    - name: TODO(scaffold) restore the newest VACUUM INTO snapshot, then smoke
+      ansible.builtin.debug:
+        msg: "restore + smoke play"

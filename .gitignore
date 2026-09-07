@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+.venv/
+var/
+*.sqlite3
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+locale/*/LC_MESSAGES/*.mo
+verifier/target/

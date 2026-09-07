@@ -1,0 +1,40 @@
+#!/bin/sh
+# SPDX-License-Identifier: 0BSD
+# FreeBSD rc.d script. Best effort, installation by hand (§15).
+# BSD paths: /usr/local/etc and /var/db, never the Linux defaults.
+#
+# PROVIDE: polls
+# REQUIRE: LOGIN
+# KEYWORD: shutdown
+
+. /etc/rc.subr
+
+name="polls"
+rcvar="polls_enable"
+
+load_rc_config $name
+: ${polls_enable:="NO"}
+: ${polls_prefix:="/usr/local/polls"}
+: ${polls_config:="/usr/local/etc/polls/polls.env"}
+: ${polls_user:="polls"}
+: ${polls_log:="/var/log/polls.log"}
+
+pidfile="/var/run/${name}.pid"
+# daemon(8) with -r restarts a crashed process: the non-systemd targets must not
+# silently lose that property.
+command="/usr/sbin/daemon"
+command_args="-r -P ${pidfile} -o ${polls_log} -u ${polls_user} \
+    ${polls_prefix}/current/.venv/bin/gunicorn config.wsgi:application \
+    --bind 127.0.0.1:8000 --workers 3 --access-logfile - --error-logfile -"
+
+start_precmd="polls_prestart"
+polls_prestart() {
+    if [ ! -r "${polls_config}" ]; then
+        err 1 "missing ${polls_config}"
+    fi
+    set -a
+    . "${polls_config}"
+    set +a
+}
+
+run_rc_command "$1"

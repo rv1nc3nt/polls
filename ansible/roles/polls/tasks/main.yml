@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: 0BSD
+- name: Assert the supported target
+  # Narrow support is a feature: a playbook claiming four distributions and
+  # tested on none is worse than one that refuses to run on anything else (§15).
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['distribution'] == 'Debian'
+    fail_msg: >-
+      This playbook supports current Debian stable only. Other platforms are
+      served by contrib/init/, installation by hand, best effort.
+  tags: [always]
+
+- ansible.builtin.import_tasks: provision.yml
+  tags: [provision]
+- ansible.builtin.import_tasks: deploy.yml
+  tags: [deploy]
+- ansible.builtin.import_tasks: backup.yml
+  tags: [backup]
+- ansible.builtin.import_tasks: smoke.yml
+  tags: [smoke, deploy]

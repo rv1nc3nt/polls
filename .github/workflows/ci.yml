@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: 0BSD
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  python:
+    # The fast job: unit tests, lint and types on every commit (§12.1).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy src tests
+      - run: uv run pytest -q
+
+  verifier:
+    # T-10: the Rust verifier must agree with the Python tally on fixtures
+    # including the cyclic case of T-9. When they disagree, return to the
+    # specification and determine which is wrong.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: cargo test --manifest-path verifier/Cargo.toml
+      - run: uv sync --frozen
+      - run: uv run pytest tests/integration/test_verifier_agreement.py -q
+
+  services:
+    # T-50: service definitions under contrib/init/.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: systemd-analyze verify contrib/init/polls.service
+      - run: shellcheck contrib/init/polls.openrc contrib/init/polls.rc.freebsd
+
+  # TODO(scaffold): the slow job — T-16 and T-38 need a throwaway host
+  # (a container or a VM under Molecule), not the ordinary test database.

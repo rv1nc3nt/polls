@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: 0BSD
+# systemd unit for the web process. Debian is the playbook-installed, CI-tested
+# target (§15); this file is what the playbook installs.
+#
+# No hardcoded paths: everything comes from the environment file, so a
+# non-Debian install can point them elsewhere.
+[Unit]
+Description=Commune polling platform
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+User=polls
+Group=polls
+EnvironmentFile=/etc/polls/polls.env
+WorkingDirectory=/opt/polls/current
+ExecStart=/opt/polls/current/.venv/bin/gunicorn config.wsgi:application \
+    --bind 127.0.0.1:8000 --workers 3 --access-logfile - --error-logfile -
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/polls /var/backups/polls
+StateDirectory=polls
+
+[Install]
+WantedBy=multi-user.target

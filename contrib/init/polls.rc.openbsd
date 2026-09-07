@@ -1,0 +1,25 @@
+#!/bin/ksh
+# SPDX-License-Identifier: 0BSD
+# OpenBSD rc.d script. Best effort, installation by hand (§15).
+
+daemon_prefix="${POLLS_PREFIX:-/usr/local/polls}"
+daemon_config="${POLLS_CONFIG:-/etc/polls/polls.env}"
+daemon_user="${POLLS_USER:-_polls}"
+daemon_logfile="${POLLS_LOG:-/var/log/polls.log}"
+
+daemon="${daemon_prefix}/current/.venv/bin/gunicorn"
+daemon_flags="config.wsgi:application --bind 127.0.0.1:8000 --workers 3 --access-logfile - --error-logfile -"
+
+. /etc/rc.d/rc.subr
+
+rc_bg=YES
+rc_reload=NO
+
+rc_pre() {
+    [ -r "${daemon_config}" ] || return 1
+    set -a
+    . "${daemon_config}"
+    set +a
+}
+
+rc_cmd "$1"

@@ -1,0 +1,32 @@
+# SPDX-License-Identifier: 0BSD
+# 3. Release from a tagged artefact into a versioned directory, symlink switch
+#    so rollback is a symlink change.
+# 4. Virtualenv from the committed lockfile; migrate and collectstatic; a
+#    fail-fast check that migrations left no pending changes.
+# 5. Settings rendered to an environment file, mode 0600, owned by the service
+#    user; secrets from ansible-vault, never the repository.
+# 6. Supervised gunicorn, and periodic invocation of open_poll, close_poll,
+#    send_reminders and retention_purge per {{ polls_scheduler }}.
+#
+# Two traps this file must handle explicitly (§15):
+- name: Generate SECRET_KEY once, on first install
+  # The single most likely way to break a poll in progress. A naive template
+  # regenerates it every deploy and silently invalidates every session and
+  # signed link, including live ballot-modification links.
+  ansible.builtin.set_fact:
+    polls_secret_key_exists: true
+  # TODO(scaffold): stat the environment file, generate only when absent, never
+  # re-template the key on a subsequent run (T-38).
+
+- name: Refuse to migrate while a poll is open
+  # Schedule schema changes between polls.
+  ansible.builtin.assert:
+    that:
+      - polls_allow_migrate_during_open_poll or not (polls_open_poll_count | default(0) | int > 0)
+    fail_msg: >-
+      A poll is in `open` state. Set polls_allow_migrate_during_open_poll=true
+      only with a considered reason.
+
+- name: TODO(scaffold) deploy steps 3 to 6 of §15
+  ansible.builtin.debug:
+    msg: "deploy — the roll snapshot and the audit log live in {{ polls_state_dir }}, which this tag never touches"

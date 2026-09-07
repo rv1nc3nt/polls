@@ -1,0 +1,43 @@
+#!/sbin/openrc-run
+# SPDX-License-Identifier: 0BSD
+# OpenRC service. Best effort, installation by hand (§15).
+#
+# supervise-daemon rather than start-stop-daemon: it restarts a crashed
+# process, which is the property the systemd unit provides and which these
+# targets otherwise silently lose.
+
+: "${POLLS_PREFIX:=/opt/polls}"
+: "${POLLS_CONFIG:=/etc/polls/polls.env}"
+: "${POLLS_USER:=polls}"
+: "${POLLS_GROUP:=polls}"
+: "${POLLS_LOG:=/var/log/polls/polls.log}"
+
+name="polls"
+description="Commune polling platform"
+supervisor="supervise-daemon"
+command="${POLLS_PREFIX}/current/.venv/bin/gunicorn"
+command_args="config.wsgi:application --bind 127.0.0.1:8000 --workers 3 --access-logfile - --error-logfile -"
+command_user="${POLLS_USER}:${POLLS_GROUP}"
+directory="${POLLS_PREFIX}/current"
+# The commands write to stdout and stderr and assume no journald; the log file
+# and its logrotate configuration go alongside this script.
+output_log="${POLLS_LOG}"
+error_log="${POLLS_LOG}"
+respawn_delay=5
+
+depend() {
+    need net
+    use dns logger
+}
+
+start_pre() {
+    checkpath --directory --owner "${POLLS_USER}:${POLLS_GROUP}" --mode 0750 "$(dirname "${POLLS_LOG}")"
+    if [ -r "${POLLS_CONFIG}" ]; then
+        set -a
+        . "${POLLS_CONFIG}"
+        set +a
+    else
+        eerror "missing ${POLLS_CONFIG}"
+        return 1
+    fi
+}

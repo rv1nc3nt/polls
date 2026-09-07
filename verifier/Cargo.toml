@@ -1,0 +1,16 @@
+[package]
+name = "polls-verifier"
+version = "0.1.0"
+edition = "2021"
+license = "0BSD"
+authors = ["Romain VINCENT"]
+description = "Independent verifier for the commune polling platform (§8, §9)"
+
+# No dependencies, deliberately: SHA-256, the CSV reader and the Schulze method
+# are implemented here from docs/canonical-serialisation.md and §8 of the
+# specification. A shared crate would be a shared implementation, which is the
+# one thing this binary must not have.
+[dependencies]
+
+[profile.release]
+opt-level = 2

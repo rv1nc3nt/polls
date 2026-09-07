@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: 0BSD
+# 8. Nightly `VACUUM INTO` to {{ polls_backup_dir }}, retention window, off-host
+#    replication.
+#
+# poll.token_salt lives in the database and therefore in the backups, so the
+# backup destination permissions are part of the ballot-secrecy boundary and
+# this file must not loosen them (§14, §15).
+- name: TODO(scaffold) backup step 8 of §15
+  ansible.builtin.debug:
+    msg: "backup"
