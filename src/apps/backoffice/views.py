@@ -13,24 +13,37 @@ Two rules govern every screen and are not negotiable per-view:
 * no screen displays a voter's identity alongside ballot content, except the
   paper-entry screen, where the association is deliberate and logged.
 
-What is here so far is the shell the screens hang off: sign-in for named
-accounts (R-2.2) and the poll index that a signed-in operator lands on. The
-gate itself is ``access.py``.
+Here so far: the shell the screens hang off — sign-in for named accounts
+(R-2.2) and the poll index — plus screen 1 (tableau de bord) and screen 8
+(journal d'audit), the two that read and never write. The gate is ``access.py``;
+the read models are ``dashboard.py`` and ``auditlog.py``, so the views stay thin
+enough to see the gate on each one.
 
-TODO(scaffold): screens 1–11 of §6.5, in that order. The dashboard comes first
-because it is what names ``open_poll``'s and ``close_poll``'s blockers before
-the hour they would fire (§4) — ``opening_blockers`` and ``closing_blockers``
-in ``apps.elections.transitions`` already return them.
+TODO(scaffold): screens 2–7 and 9–11 of §6.5. Each waits on the service function
+it must post through (§5.1) — no view writes through the ORM directly, so a
+screen cannot land before ``registrations.services`` or ``ballots.services``
+does.
 """
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, LogoutView
+from django.core.paginator import Paginator
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
+from django.utils.dateparse import parse_date
+from django.utils.timezone import get_current_timezone
 
-from .access import accessible_polls, is_commune_admin
+from apps.audit import services as audit
+from apps.audit.models import Action
+from apps.core.models import Role
+from apps.elections.models import Poll
+
+from . import auditlog, dashboard
+from .access import accessible_polls, is_commune_admin, poll_roles, require_poll_role
 
 
 class OperatorLoginView(LoginView):
@@ -63,5 +76,115 @@ def poll_index(request: HttpRequest) -> HttpResponse:
         {
             "polls": accessible_polls(request.user).order_by("-created_at"),
             "is_commune_admin": is_commune_admin(request.user),
+        },
+    )
+
+
+@require_poll_role(Role.POLL_ADMIN, Role.ENTRY_OPERATOR, Role.AUDITOR)
+def poll_dashboard(request: HttpRequest, poll: Poll) -> HttpResponse:
+    """Screen 1 — tableau de bord (§6.5.1).
+
+    Open to all three per-poll roles: an entry operator needs the closing
+    instant and the paper deadline as much as an admin does, and none of what
+    is here identifies a voter.
+
+    The screen exists mainly for its blockers. §4 leaves ``open_poll`` and
+    ``close_poll`` to a scheduler that may run late, twice, or not at all, so
+    the condition that would make either refuse has to be visible before the
+    hour it would fire rather than discovered at it.
+    """
+    return render(
+        request,
+        "backoffice/dashboard.html",
+        {
+            "poll": poll,
+            "participation": dashboard.participation(poll),
+            "blockers": dashboard.blockers(poll),
+            "actions": dashboard.permitted_actions(poll, poll_roles(request.user, poll)),
+        },
+    )
+
+
+def _filters(request: HttpRequest) -> auditlog.Filters:
+    """Screen 8's query string, parsed leniently.
+
+    A malformed date filters nothing rather than erroring: this is a read-only
+    log an auditor is browsing, and a 400 on a hand-edited URL helps nobody.
+    """
+    tz = get_current_timezone()
+
+    def instant(name: str) -> datetime | None:
+        raw = request.GET.get(name, "")
+        day = parse_date(raw) if raw else None
+        return datetime.combine(day, datetime.min.time(), tzinfo=tz) if day else None
+
+    date_to = instant("date_to")
+    return auditlog.Filters(
+        actor_id=request.GET.get("actor", ""),
+        object_ref=request.GET.get("object", "").strip(),
+        date_from=instant("date_from"),
+        # Inclusive of the day the operator typed: they mean the whole of it.
+        date_to=date_to.replace(hour=23, minute=59, second=59) if date_to else None,
+    )
+
+
+@require_poll_role(Role.AUDITOR, Role.POLL_ADMIN)
+def audit_log(request: HttpRequest, poll: Poll) -> HttpResponse:
+    """Screen 8 — journal d'audit (§6.5.8).
+
+    Read-only, filterable by actor, date and object. INV-3 means there is no
+    other kind of screen this could be: the table has no update or delete path
+    in the application or the database.
+
+    Consulting it is itself logged — §10's minimum list ends with "access to the
+    log itself" — which is why this read view performs one write. The event
+    records the filters, so a later reader can see what was looked at and not
+    merely that somebody looked.
+    """
+    filters = _filters(request)
+    page = Paginator(auditlog.events(poll, filters), 50).get_page(request.GET.get("page"))
+
+    # Materialised *before* the access event below is written, and not only for
+    # tidiness: ``Paginator`` caps the slice at the count it took a moment ago,
+    # so a row inserted between the count and the evaluation of this lazy
+    # queryset pushes the oldest event on the page out of the slice. Writing
+    # the access event first would therefore hide an event from the page that
+    # recorded the access. What the auditor is shown is fixed here, then logged.
+    events_on_page = list(page.object_list)
+
+    audit.record(
+        action=Action.AUDIT_LOG_ACCESSED,
+        poll=poll,
+        actor=request.user if request.user.is_authenticated else None,
+        object_ref=audit.ref(poll),
+        after={"filters": filters.as_audit_payload(), "page": page.number},
+    )
+
+    # Paired here rather than looked up in the template, which cannot index a
+    # dict by a variable key. ``exists`` is None where the reference names
+    # nothing this screen knows how to resolve.
+    alive = auditlog.resolve_refs(events_on_page)
+    rows = [
+        {
+            "event": event,
+            "exists": alive.get(event.object_ref),
+            # JSON rather than Python's dict repr, which is what the template
+            # would otherwise print. This is the form the value is stored in and
+            # the form an auditor quoting it should be quoting (§10).
+            "before": auditlog.as_json(event.before),
+            "after": auditlog.as_json(event.after),
+        }
+        for event in events_on_page
+    ]
+
+    return render(
+        request,
+        "backoffice/audit_log.html",
+        {
+            "poll": poll,
+            "page": page,
+            "rows": rows,
+            "filters": filters,
+            "actors": auditlog.actors(poll),
         },
     )

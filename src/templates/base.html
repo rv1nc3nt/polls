@@ -1,11 +1,11 @@
 {% load i18n static %}<!doctype html>
 {# SPDX-License-Identifier: 0BSD #}
-{# RGAA (R-14.1) applies to the back-office as much as to the public site
+{% comment %} RGAA (R-14.1) applies to the back-office as much as to the public site
    (§6.5), so the conformant scaffolding lives here and every page inherits it:
    a skip link that is the first focusable element and becomes visible on focus,
    one <main> per page, named landmarks, and a live region for messages. Nothing
    in the stylesheet may carry information by colour alone — status words are
-   written out, which is also why the message list prints its level. #}
+   written out, which is also why the message list prints its level. {% endcomment %}
 <html lang="{{ LANGUAGE_CODE }}">
 <head>
   <meta charset="utf-8">
@@ -24,8 +24,8 @@
   {% block nav %}{% endblock %}
 
   {% if messages %}
-    {# role="status" rather than "alert": these follow an action the operator
-       just took and must not interrupt a screen reader mid-sentence. #}
+    {% comment %} role="status" rather than "alert": these follow an action the operator
+       just took and must not interrupt a screen reader mid-sentence. {% endcomment %}
     <ul class="messages" role="status">
       {% for message in messages %}
         <li class="message message--{{ message.tags }}">
@@ -42,8 +42,8 @@
     {# R-1.4, on every page: the result does not bind the council. #}
     <p>{% translate "Cette consultation est consultative : son résultat ne lie pas le conseil municipal." %}</p>
 
-    {# §3.8: French is the authoritative version, and the pages carrying legal
-       effect must say so when they are being read in translation. #}
+    {% comment %} §3.8: French is the authoritative version, and the pages carrying legal
+       effect must say so when they are being read in translation. {% endcomment %}
     {% if LANGUAGE_CODE != "fr" %}
       <p lang="fr">La version française fait foi ; cette traduction est fournie à titre informatif.</p>
     {% endif %}

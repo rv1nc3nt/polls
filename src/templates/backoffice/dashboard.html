@@ -1,0 +1,99 @@
+{% extends "backoffice/base.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD #}
+
+{% block screen_title %}{% translate "Tableau de bord" %}{% endblock %}
+{% block heading %}{{ poll.title }}{% endblock %}
+
+{% block pollnav %}
+  <ul class="pollnav__links">
+    <li><a href="{% url 'backoffice:dashboard' poll.pk %}" aria-current="page">{% translate "Tableau de bord" %}</a></li>
+  </ul>
+{% endblock %}
+
+{% block screen %}
+
+  {% if blockers %}
+    {% comment %} §6.5.1: the blocker is named while there is still time to act on it. A
+       poll advertised for Monday and still in `draft` on Monday morning is the
+       failure this section exists to prevent (§4). {% endcomment %}
+    <section aria-labelledby="blocages">
+      <h2 id="blocages">
+        {% if poll.state == "draft" %}{% translate "Ce scrutin ne peut pas s'ouvrir" %}
+        {% else %}{% translate "Ce scrutin ne peut pas se clore" %}{% endif %}
+      </h2>
+      <ul class="blockers">
+        {% for blocker in blockers %}<li class="blocker">{{ blocker }}</li>{% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+
+  <section aria-labelledby="etat">
+    <h2 id="etat">{% translate "État" %}</h2>
+    <dl class="facts">
+      <dt>{% translate "État" %}</dt><dd>{{ poll.get_state_display }}</dd>
+      <dt>{% translate "Ouverture" %}</dt><dd>{{ poll.opens_at }}</dd>
+      <dt>{% translate "Clôture du vote en ligne" %}</dt><dd>{{ poll.closes_at }}</dd>
+      {% if poll.paper_entry_deadline > poll.closes_at %}
+        {% comment %} §6.4: a window in which ballots can still enter the database is
+           exactly the thing that looks bad when discovered rather than
+           announced, so it is stated here and on the public page. {% endcomment %}
+        <dt>{% translate "Fin de saisie des bulletins papier" %}</dt>
+        <dd>{{ poll.paper_entry_deadline }}</dd>
+      {% endif %}
+      <dt>{% translate "Méthode de dépouillement" %}</dt><dd>{{ poll.get_tally_method_display }}</dd>
+      {% if poll.is_sandbox %}
+        <dt>{% translate "Bac à sable" %}</dt>
+        <dd>{% translate "Oui — ce scrutin n'apparaît sur aucune page publique." %}</dd>
+      {% endif %}
+    </dl>
+  </section>
+
+  <section aria-labelledby="participation">
+    <h2 id="participation">{% translate "Participation" %}</h2>
+    {% if participation.as_at_closure %}
+      {% comment %} §9 froze these on entry to `closed`; the retention purge (§11) deletes
+         the registrations a fresh count would read, so they are never
+         re-derived (T-58). {% endcomment %}
+      <p class="notice">{% translate "Chiffres figés à la clôture." %}</p>
+    {% endif %}
+    <dl class="facts">
+      <dt>{% translate "Inscriptions" %}</dt><dd>{{ participation.registered }}</dd>
+      {% if participation.confirmed is not None %}
+        <dt>{% translate "Confirmées" %}</dt><dd>{{ participation.confirmed }}</dd>
+      {% endif %}
+      <dt>{% translate "Votes en ligne" %}</dt><dd>{{ participation.voted_online }}</dd>
+      <dt>{% translate "Votes papier" %}</dt><dd>{{ participation.voted_paper }}</dd>
+      <dt>{% translate "N'ont pas voté" %}</dt><dd>{{ participation.not_voted }}</dd>
+      {% if participation.pending_review is not None %}
+        <dt>{% translate "Inscriptions en attente d'examen" %}</dt>
+        <dd>{{ participation.pending_review }}</dd>
+      {% endif %}
+    </dl>
+    {% comment %} INV-5, stated where somebody might otherwise be tempted: these come from
+       the registrations, never from counting ballots. {% endcomment %}
+    <p class="help">{% translate "La participation est comptée sur les inscriptions, jamais sur les bulletins : aucun lien entre un électeur et un bulletin en ligne n'existe." %}</p>
+  </section>
+
+  <section aria-labelledby="actions">
+    <h2 id="actions">{% translate "Actions possibles" %}</h2>
+    {% if actions %}
+      <ul class="actions">
+        {% for action in actions %}
+          <li>
+            {% if action.url_name %}
+              <a href="{% url action.url_name poll.pk %}">{{ action.label }}</a>
+            {% else %}
+              {% comment %} The screen is not built yet. Said in words, not by greying out:
+                 nothing may carry meaning by colour alone (R-14.1). {% endcomment %}
+              {{ action.label }} — <span class="pending">{% translate "écran à venir" %}</span>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>{% translate "Aucune action ne vous est ouverte dans cet état." %}</p>
+    {% endif %}
+  </section>
+
+{% endblock %}

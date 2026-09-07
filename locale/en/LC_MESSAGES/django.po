@@ -503,3 +503,185 @@ msgstr "Change"
 #: templates/publicsite/poll_list.html
 msgid "Consultations"
 msgstr "Consultations"
+
+msgid "Action"
+msgstr "Action"
+
+msgid "Actions possibles"
+msgstr "Available actions"
+
+msgid "Au"
+msgstr "To"
+
+msgid "Aucun événement ne correspond."
+msgstr "No event matches."
+
+msgid "Aucune action ne vous est ouverte dans cet état."
+msgstr "No action is open to you in this state."
+
+msgid "Aucune liste électorale importée : rien à figer à l'ouverture."
+msgstr "No electoral roll imported: nothing to freeze at opening."
+
+msgid "Auteur"
+msgstr "Actor"
+
+msgid "Avant → après"
+msgstr "Before → after"
+
+msgid "Bac à sable"
+msgstr "Sandbox"
+
+msgid "Ce journal est en lecture seule. Aucun événement ne peut être modifié ni supprimé, y compris par un administrateur."
+msgstr "This log is read-only. No event can be modified or deleted, by an administrator or by anyone else."
+
+msgid "Ce scrutin ne peut pas s'ouvrir"
+msgstr "This poll cannot open"
+
+msgid "Ce scrutin ne peut pas se clore"
+msgstr "This poll cannot close"
+
+msgid "Chiffres figés à la clôture."
+msgstr "Figures frozen at closure."
+
+msgid "Clôture bloquée : %(count)s bulletin(s) en attente de contreseing."
+msgstr "Closure blocked: %(count)s ballot(s) awaiting countersignature."
+
+msgid "Clôture du vote en ligne"
+msgstr "Online voting closes"
+
+msgid "Configurer le scrutin"
+msgstr "Configure the poll"
+
+msgid "Confirmées"
+msgstr "Confirmed"
+
+msgid "Consulter le journal d'audit"
+msgstr "Read the audit log"
+
+msgid "Contresigner des bulletins"
+msgstr "Countersign ballots"
+
+msgid "Date"
+msgstr "Date"
+
+msgid "Du"
+msgstr "From"
+
+msgid "Dépouiller et publier"
+msgstr "Tally and publish"
+
+msgid "Examiner les inscriptions en attente"
+msgstr "Review pending registrations"
+
+msgid "Filtrer"
+msgstr "Filter"
+
+msgid "Filtrer le journal"
+msgstr "Filter the log"
+
+msgid "Fin de saisie des bulletins papier"
+msgstr "Paper ballot keying deadline"
+
+msgid "Il faut au moins deux propositions."
+msgstr "At least two propositions are required."
+
+msgid "Importer la liste électorale"
+msgstr "Import the electoral roll"
+
+msgid "Inscriptions"
+msgstr "Registrations"
+
+msgid "Inscriptions en attente d'examen"
+msgstr "Registrations awaiting review"
+
+msgid "Journal d'audit"
+msgstr "Audit log"
+
+msgid "La participation est comptée sur les inscriptions, jamais sur les bulletins : aucun lien entre un électeur et un bulletin en ligne n'existe."
+msgstr "Turnout is counted from the registrations, never from the ballots: no link between an elector and an online ballot exists."
+
+msgid "Le scrutin n'est pas ouvert."
+msgstr "The poll is not open."
+
+msgid "Le scrutin n'est plus en brouillon."
+msgstr "The poll is no longer a draft."
+
+msgid "Motif"
+msgstr "Reason"
+
+msgid "Méthode de dépouillement"
+msgstr "Tally method"
+
+msgid "N'ont pas voté"
+msgstr "Did not vote"
+
+msgid "Objet"
+msgstr "Object"
+
+msgid "Oui — ce scrutin n'apparaît sur aucune page publique."
+msgstr "Yes — this poll appears on no public page."
+
+msgid "Ouverture"
+msgstr "Opens"
+
+msgid "Page précédente"
+msgstr "Previous page"
+
+msgid "Page suivante"
+msgstr "Next page"
+
+msgid "Pages du journal"
+msgstr "Log pages"
+
+msgid "Par exemple bulletin, ou un identifiant complet."
+msgstr "For example ballot, or a full identifier."
+
+msgid "Participation"
+msgstr "Turnout"
+
+msgid "Rectifier ou supprimer un bulletin papier"
+msgstr "Correct or delete a paper ballot"
+
+msgid "Reporter la date de clôture"
+msgstr "Extend the closing date"
+
+msgid "Saisir un bulletin papier"
+msgstr "Key in a paper ballot"
+
+msgid "Tableau de bord"
+msgstr "Dashboard"
+
+msgid "Tous"
+msgstr "All"
+
+msgid "Traduction manquante en %(language)s : %(what)s."
+msgstr "Missing %(language)s translation: %(what)s."
+
+msgid "Traduction manquante en %(language)s : proposition « %(option)s »."
+msgstr "Missing %(language)s translation: proposition “%(option)s”."
+
+msgid "Votes en ligne"
+msgstr "Online votes"
+
+msgid "Votes papier"
+msgstr "Paper votes"
+
+msgid "la description"
+msgstr "the description"
+
+msgid "le titre"
+msgstr "the title"
+
+msgid "objet supprimé (rétention)"
+msgstr "object deleted (retention)"
+
+msgid "écran à venir"
+msgstr "screen to come"
+
+msgid "%(total)s événement"
+msgid_plural "%(total)s événements"
+msgstr[0] "%(total)s event"
+msgstr[1] "%(total)s events"
+
+msgid "Page %(current)s sur %(total)s"
+msgstr "Page %(current)s of %(total)s"

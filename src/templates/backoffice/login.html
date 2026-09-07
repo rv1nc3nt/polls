@@ -7,8 +7,8 @@
 
 {% block screen %}
   {% if form.errors %}
-    {# role="alert": this one does interrupt, because the operator is waiting on
-       it. No detail about which of the two fields was wrong. #}
+    {% comment %} role="alert": this one does interrupt, because the operator is waiting on
+       it. No detail about which of the two fields was wrong. {% endcomment %}
     <p class="error" role="alert">{% translate "Identifiant ou mot de passe incorrect." %}</p>
   {% endif %}
 

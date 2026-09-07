@@ -1,17 +1,17 @@
 {% extends "base.html" %}
 {% load i18n %}
 {# SPDX-License-Identifier: 0BSD #}
-{# The espace mairie shell (§6.5). The screens fill `screen`; everything that
+{% comment %} The espace mairie shell (§6.5). The screens fill `screen`; everything that
    must appear on all eleven — who is signed in, how to sign out, which poll is
-   in scope — is here so no screen can omit it. #}
+   in scope — is here so no screen can omit it. {% endcomment %}
 
 {% block title %}{% block screen_title %}{% translate "Espace mairie" %}{% endblock %} — {% translate "Espace mairie" %}{% endblock %}
 
 {% block header_extra %}
   {% if user.is_authenticated %}
     <div class="account">
-      {# R-2.2: named accounts, and the name is on screen. An operator should be
-         able to see at a glance whose actions the audit log is about to record. #}
+      {% comment %} R-2.2: named accounts, and the name is on screen. An operator should be
+         able to see at a glance whose actions the audit log is about to record. {% endcomment %}
       <span class="account__name">{{ user }}</span>
       <form action="{% url 'backoffice:logout' %}" method="post">
         {% csrf_token %}

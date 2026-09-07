@@ -27,7 +27,8 @@ canonical serialisation, name matching, tracking codes, job locking ·
 closure, retention · `src/apps/registrations/` · `src/apps/ballots/` ·
 `src/apps/audit/` · `src/apps/tally/` pure, imports no model ·
 `src/apps/backoffice/` espace mairie (§6.5, the bulk of the remaining work;
-`access.py` is the role gate every screen goes through) · `src/apps/publicsite/`
+`access.py` is the role gate every screen goes through, `dashboard.py` and
+`auditlog.py` the read models for screens 1 and 8) · `src/apps/publicsite/`
 · `src/templates/` · `src/static/` · `locale/` (French is the msgid language, so
 only `en` has a catalogue) · `verifier/` independent Rust verifier · `ansible/`
 · `contrib/init/`.
@@ -106,6 +107,14 @@ taken — that costs more than it saves.
   with it. Refusals are logged *after* the rollback — see `open_poll`.
 - `ruff` ignores RUF001–003 here: French text is full of typographic
   apostrophes and accents that would otherwise be flagged on every line.
+- A Django `{# … #}` comment is **single-line only**. Spanning one over two
+  lines does not comment it out — it renders verbatim into the page, with no
+  error anywhere. Multi-line commentary uses `{% comment %}`, and
+  `tests/unit/test_templates.py` fails the build on the mistake.
+- `Paginator` caps its slice at the count it took a moment earlier, and
+  `page.object_list` is lazy. A row inserted between the two — the audit
+  screen's own access event, say — silently pushes the oldest row off the page.
+  Materialise the page before writing anything.
 - Under `mypy --strict`, `voter_hash(...) != ballot_hash(...)` is a
   non-overlapping comparison. That is the point (§5.1); convert with `bytes()`
   in a test that deliberately compares them.

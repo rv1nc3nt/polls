@@ -7,8 +7,8 @@
 
 {% block screen %}
   {% if is_commune_admin %}
-    {# §3.7: the flag is commune-level. It lists every poll, and opens none of
-       their screens — that needs a per-poll grant (§6.5.10). #}
+    {% comment %} §3.7: the flag is commune-level. It lists every poll, and opens none of
+       their screens — that needs a per-poll grant (§6.5.10). {% endcomment %}
     <p class="notice">{% translate "Vous administrez la commune : tous les scrutins sont listés. L'accès aux écrans d'un scrutin demande un rôle sur ce scrutin." %}</p>
   {% endif %}
 
@@ -25,7 +25,10 @@
       <tbody>
         {% for poll in polls %}
           <tr>
-            <td>{{ poll.title }}{% if poll.is_sandbox %} <span class="tag">{% translate "bac à sable" %}</span>{% endif %}</td>
+            <td>
+              <a href="{% url 'backoffice:dashboard' poll.pk %}">{{ poll.title }}</a>
+              {% if poll.is_sandbox %} <span class="tag">{% translate "bac à sable" %}</span>{% endif %}
+            </td>
             <td>{{ poll.get_state_display }}</td>
             <td>{{ poll.closes_at }}</td>
           </tr>
