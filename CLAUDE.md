@@ -1,9 +1,15 @@
 # CLAUDE.md
 
-Consultative polling platform for one French commune. `spec-plateforme-vote.md`
-is the specification and is authoritative; `§n` in code comments and commit
-messages refers to its sections, `R-x.y` to the functional requirements it
-restates, `INV-n` and `T-n` to its invariants (§5) and acceptance tests (§12).
+Consultative polling platform for one French commune. The functional
+requirements are `cahier-des-charges.md` (French, authoritative) and
+`requirements-en.md` (its English translation); their rules are numbered `R-x.y`
+and govern. `spec-plateforme-vote.md` is the implementation specification: it
+restates the `R-x.y` rules in implementation terms and adds the domain model,
+algorithms, invariants and acceptance tests. The spec must conform to the
+requirements — where the two diverge the requirements win and the spec is
+corrected, not the other way round. `§n` in code comments and commit messages
+refers to spec sections, `INV-n` and `T-n` to its invariants (§5) and acceptance
+tests (§12).
 
 ## Commands
 
@@ -85,8 +91,13 @@ the good error message; the triggers are what hold.
   comments in English.
 - Comments explain *why*, citing the section that decided it. Do not restate
   what the code says.
-- Do not name the source requirements document; cite `R-x.y` as "the functional
-  requirements".
+- The functional requirements are one document in two languages,
+  `cahier-des-charges.md` and `requirements-en.md`. Keep them rule-for-rule in
+  sync: an `R-x.y` edit touches both files in the same commit, and the section
+  order and rule numbering stay identical. French is authoritative; the English
+  file is a translation and is corrected to match it, never the reverse. In code
+  comments and commit messages cite the bare `R-x.y` number or "the functional
+  requirements", not a filename.
 - Copyright is **Romain VINCENT**'s. Licence 0BSD, `SPDX-License-Identifier:
   0BSD` in every source file.
 - Where the code departs from the specification, record it in
