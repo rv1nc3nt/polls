@@ -1,0 +1,129 @@
+{% extends "backoffice/base.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD #}
+
+{% block screen_title %}{% translate "Inscriptions en attente" %}{% endblock %}
+{% block heading %}{% translate "Inscriptions en attente d'examen" %}{% endblock %}
+
+{% block pollnav %}
+  <ul class="pollnav__links">
+    <li><a href="{% url 'backoffice:dashboard' poll.pk %}">{% translate "Tableau de bord" %}</a></li>
+    <li><a href="{% url 'backoffice:registration_queue' poll.pk %}" aria-current="page">{% translate "Inscriptions" %}</a></li>
+    <li><a href="{% url 'backoffice:audit_log' poll.pk %}">{% translate "Journal d'audit" %}</a></li>
+  </ul>
+{% endblock %}
+
+{% block screen %}
+  {% comment %}
+    R-5.4: these reached the queue because the automatic match failed — a name
+    that diverges from the roll, an NNE absent from it, or none given. None of
+    that is a refusal; it is a decision for an agent (T-28).
+  {% endcomment %}
+  <p class="notice">{% translate "Ces demandes n'ont pas pu être rapprochées automatiquement de la liste électorale. Comparez la déclaration à la liste, puis acceptez ou refusez avec un motif." %}</p>
+
+  {% comment %}
+    §6.2 step 3: the mairie needs to know why a couple sharing one address
+    cannot both register online, because they will be the ones asked.
+  {% endcomment %}
+  <p class="help">{% translate "Une même adresse électronique ne peut servir qu'une fois. Deux personnes partageant une adresse ne peuvent pas s'inscrire toutes les deux en ligne : leur voie est le vote papier à la mairie." %}</p>
+
+  {% for row in rows %}
+    <article class="review" aria-labelledby="demande-{{ row.registration.pk }}">
+      <h2 id="demande-{{ row.registration.pk }}">
+        {{ row.registration.last_name }} {{ row.registration.first_names }}
+      </h2>
+
+      <dl class="facts">
+        <dt>{% translate "NNE déclaré" %}</dt>
+        <dd>{{ row.registration.nne|default:_("aucun") }}</dd>
+        <dt>{% translate "Adresse électronique" %}</dt>
+        <dd>{{ row.registration.email }}</dd>
+        <dt>{% translate "Déclaration sur l'honneur" %}</dt>
+        <dd>{% if row.registration.declared_on_honour %}{% translate "signée" %}{% else %}{% translate "absente" %}{% endif %}</dd>
+        <dt>{% translate "Demande reçue le" %}</dt>
+        <dd>{{ row.registration.created_at }}</dd>
+      </dl>
+
+      <h3>{% translate "Entrées proches de la liste électorale" %}</h3>
+      {% if row.matches %}
+        <table>
+          <caption>{% translate "À comparer à la déclaration ci-dessus" %}</caption>
+          <thead>
+            <tr>
+              <th scope="col">{% translate "Nom" %}</th>
+              <th scope="col">{% translate "Prénoms" %}</th>
+              <th scope="col">{% translate "NNE" %}</th>
+              <th scope="col">{% translate "Concordance" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for match in row.matches %}
+              <tr>
+                <td>{{ match.entry.last_name }}</td>
+                <td>{{ match.entry.first_names }}</td>
+                <td>{{ match.entry.nne }}</td>
+                {% comment %}
+                  Written out, never a colour or an icon alone (R-14.1).
+                {% endcomment %}
+                <td>
+                  {% if match.same_nne %}{% translate "NNE identique" %}{% endif %}
+                  {% if match.same_last_name %}{% translate "nom identique" %}{% endif %}
+                  {% if match.shared_first_names %}{% blocktranslate count n=match.shared_first_names %}{{ n }} prénom commun{% plural %}{{ n }} prénoms communs{% endblocktranslate %}{% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p>{% translate "Aucune entrée proche. Vérifiez auprès de la personne, ou en mairie." %}</p>
+      {% endif %}
+
+      <form method="post" action="{% url 'backoffice:registration_decide' poll.pk %}" class="decision">
+        {% csrf_token %}
+        <input type="hidden" name="registration" value="{{ row.registration.pk }}">
+        <p>
+          <label for="note-{{ row.registration.pk }}">{% translate "Note (facultative)" %}</label>
+          {% comment %}
+            §10: this prose is stored on the registration row, where the
+            retention purge takes it — never on the audit event, whose reason is
+            a code. The label says so, because an agent who does not know that
+            will write a name into the wrong field.
+          {% endcomment %}
+          <span class="help">{% translate "Conservée avec la demande et supprimée avec elle. N'apparaît pas dans le journal d'audit." %}</span>
+          <input id="note-{{ row.registration.pk }}" type="text" name="note" maxlength="500">
+        </p>
+        {% comment %}
+          §6.2 step 5 logs a reason on both decisions, and §10 makes it a code
+          from a declared vocabulary. Two selects rather than one, because the
+          codes that mean "accepted" and the codes that mean "refused" are
+          different sets and a single list invites the wrong one.
+        {% endcomment %}
+        <fieldset class="decision__half">
+          <legend>{% translate "Accepter" %}</legend>
+          <label for="ok-{{ row.registration.pk }}">{% translate "Motif" %}</label>
+          <select id="ok-{{ row.registration.pk }}" name="approve_reason">
+            <option value="">{% translate "— choisir —" %}</option>
+            {% for value, label in approval_reasons %}
+              <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" name="decision" value="approve">{% translate "Accepter et envoyer le lien de vote" %}</button>
+        </fieldset>
+
+        <fieldset class="decision__half">
+          <legend>{% translate "Refuser" %}</legend>
+          <label for="no-{{ row.registration.pk }}">{% translate "Motif" %}</label>
+          <select id="no-{{ row.registration.pk }}" name="reject_reason">
+            <option value="">{% translate "— choisir —" %}</option>
+            {% for value, label in refusal_reasons %}
+              <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" name="decision" value="reject">{% translate "Refuser" %}</button>
+        </fieldset>
+      </form>
+    </article>
+  {% empty %}
+    <p>{% translate "Aucune inscription n'attend d'examen." %}</p>
+  {% endfor %}
+{% endblock %}

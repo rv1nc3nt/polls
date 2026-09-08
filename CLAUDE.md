@@ -14,6 +14,7 @@ uv run pytest -q                          # 51 tests, fast; no network
 uv run ruff check . && uv run ruff format --check .
 uv run mypy src tests                     # --strict, must stay clean
 cargo test --manifest-path verifier/Cargo.toml
+uv run python manage.py compilemessages   # needs GNU gettext installed
 ```
 
 All four gates run in CI and must be green before a commit lands.
@@ -23,11 +24,18 @@ All four gates run in CI and must be green before a commit lands.
 `src/config/` project settings and URLs · `src/apps/core/` types, crypto,
 canonical serialisation, name matching, tracking codes, job locking ·
 `src/apps/elections/` poll, options, snapshot, transitions, voting window,
-closure, retention · `src/apps/registrations/` · `src/apps/ballots/` ·
+closure, retention, `rollimport.py` (§6.1: parsing, mapping, validation, the
+transactional apply shared by the CLI and screen 3) ·
+`src/apps/registrations/` (§6.2: `services`, `mail`, `forms`, `views`) ·
+`src/apps/ballots/` ·
 `src/apps/audit/` · `src/apps/tally/` pure, imports no model ·
-`src/apps/backoffice/` espace mairie (§6.5, the bulk of the remaining work) ·
-`src/apps/publicsite/` · `verifier/` independent Rust verifier · `ansible/` ·
-`contrib/init/`.
+`src/apps/backoffice/` espace mairie (§6.5, the bulk of the remaining work;
+`access.py` is the role gate every screen goes through, `dashboard.py`,
+`auditlog.py` and `review.py` the read models for screens 1, 4 and 8)
+· `src/apps/publicsite/`
+· `src/templates/` · `src/static/` · `locale/` (French is the msgid language, so
+only `en` has a catalogue) · `verifier/` independent Rust verifier · `ansible/`
+· `contrib/init/`.
 
 ## Properties that must not be broken
 
@@ -55,7 +63,17 @@ find a way round it.
   `apps/elections/transitions.py`, and a test enforces it. Ballot writes go
   through `apps/elections/windows.py`, which never consults `state` — the
   scheduled job may run late, twice, or not at all.
+- **The plaintext token is never persisted.** Only `voter_hash` is stored
+  (§7). It follows that the token-for-session exchange of §6.3
+  (`apps/core/tokensession.py`) puts a *registration id* in the session, never
+  the token: Django's session backend is a database table.
 - **No Django admin**, in any environment.
+- **Every poll-scoped back-office screen goes through `require_poll_role`**
+  (`apps/backoffice/access.py`). `commune_admin` is commune-level and grants
+  nothing on an individual poll, and `is_superuser` is never consulted: reaching
+  the screens that show a voter beside a ballot must follow an audited grant, not
+  a flag. `tests/integration/test_backoffice_access.py` asserts both, and fails
+  on any view taking a `poll` that is not wrapped.
 
 Database triggers (`elections/migrations/0002_invariant_triggers.py`) are the
 real enforcement for INV-2, INV-3, INV-6 and INV-7. Application checks produce
@@ -94,9 +112,36 @@ taken — that costs more than it saves.
   raw SQL in a test must use `obj.pk.hex` or it silently matches no row and the
   trigger never fires.
 - An audit event written inside a transaction that then raises is rolled back
-  with it. Refusals are logged *after* the rollback — see `open_poll`.
+  with it. Refusals are logged *after* the rollback — see `open_poll`, and
+  `registrations.services.register`, where the duplicate-NNE flag of R-5.9 is
+  written outside the transaction the refusal aborts.
+- Mail is sent from `transaction.on_commit`, so a rolled-back registration
+  cannot produce a delivered message. Tests must wrap the call in
+  pytest-django's `django_capture_on_commit_callbacks(execute=True)` or the
+  outbox stays empty.
+- Configuration is frozen once a poll leaves `draft` (INV-6) and the **trigger**
+  enforces it, so a test that needs `allow_ballot_modification`, `opens_at` or
+  `is_sandbox` to differ must build a second poll rather than update one.
+  `closes_at` and `paper_entry_deadline` are the two that still move (R-3.4).
 - `ruff` ignores RUF001–003 here: French text is full of typographic
   apostrophes and accents that would otherwise be flagged on every line.
+- A Django `{# … #}` comment is **single-line only**. Spanning one over two
+  lines does not comment it out — it renders verbatim into the page, with no
+  error anywhere. Multi-line commentary uses `{% comment %}`, and
+  `tests/unit/test_templates.py` fails the build on the mistake.
+- `Paginator` caps its slice at the count it took a moment earlier, and
+  `page.object_list` is lazy. A row inserted between the two — the audit
+  screen's own access event, say — silently pushes the oldest row off the page.
+  Materialise the page before writing anything.
 - Under `mypy --strict`, `voter_hash(...) != ballot_hash(...)` is a
   non-overlapping comparison. That is the point (§5.1); convert with `bytes()`
   in a test that deliberately compares them.
+- `WorkingRollEntry` is commune-wide, not poll-scoped (§3.2) — screen 3 is
+  reached from one poll but replaces every poll's future snapshot. The
+  `open_window_poll` fixture seeds one row of it, so a test asserting an exact
+  `WorkingRollEntry.objects.count()` after an import must count that row too.
+- Latin-1 decodes every byte 0–255, so a CSV upload can never fail to decode —
+  there is no "wrong encoding" a `_read_csv` can catch. §6.1's real defence
+  against garbage content is the validation report downstream, not a
+  decode-time refusal; do not write a test expecting `UnreadableFile` from bad
+  bytes on a `.csv` path.

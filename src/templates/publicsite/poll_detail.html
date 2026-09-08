@@ -1,6 +1,6 @@
 {% extends "base.html" %}{% load i18n %}
-{# SPDX-License-Identifier: 0BSD
+{% comment %} SPDX-License-Identifier: 0BSD
    TODO(scaffold): §6.6 — propositions, closing instant, paper keying deadline
    where configured, any logged extension (R-3.4), consultative-status notice.
-   Participation figures ONLY where poll.show_live_participation is set (T-20). #}
+   Participation figures ONLY where poll.show_live_participation is set (T-20). {% endcomment %}
 {% block content %}<h1>{{ poll.title }}</h1>{% endblock %}

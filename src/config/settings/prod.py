@@ -23,3 +23,14 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 CSRF_TRUSTED_ORIGINS = [
     o for o in os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",") if o
 ]
+
+# §14: rate limiting must count across workers, so the cache is shared. The
+# database backend needs `manage.py createcachetable`, which the deploy runs.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+        "LOCATION": "polls_cache",
+    }
+}
+
+PUBLIC_BASE_URL = os.environ["DJANGO_PUBLIC_BASE_URL"]

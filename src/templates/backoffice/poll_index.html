@@ -1,0 +1,41 @@
+{% extends "backoffice/base.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD #}
+
+{% block screen_title %}{% translate "Scrutins" %}{% endblock %}
+{% block heading %}{% translate "Vos scrutins" %}{% endblock %}
+
+{% block screen %}
+  {% if is_commune_admin %}
+    {% comment %} §3.7: the flag is commune-level. It lists every poll, and opens none of
+       their screens — that needs a per-poll grant (§6.5.10). {% endcomment %}
+    <p class="notice">{% translate "Vous administrez la commune : tous les scrutins sont listés. L'accès aux écrans d'un scrutin demande un rôle sur ce scrutin." %}</p>
+  {% endif %}
+
+  {% if polls %}
+    <table>
+      <caption>{% translate "Scrutins sur lesquels vous avez un rôle" %}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{% translate "Scrutin" %}</th>
+          <th scope="col">{% translate "État" %}</th>
+          <th scope="col">{% translate "Clôture" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for poll in polls %}
+          <tr>
+            <td>
+              <a href="{% url 'backoffice:dashboard' poll.pk %}">{{ poll.title }}</a>
+              {% if poll.is_sandbox %} <span class="tag">{% translate "bac à sable" %}</span>{% endif %}
+            </td>
+            <td>{{ poll.get_state_display }}</td>
+            <td>{{ poll.closes_at }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>{% translate "Aucun scrutin ne vous est attribué." %}</p>
+  {% endif %}
+{% endblock %}

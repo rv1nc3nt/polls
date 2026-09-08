@@ -1,0 +1,109 @@
+{% extends "backoffice/base.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD #}
+
+{% block screen_title %}{% translate "Journal d'audit" %}{% endblock %}
+{% block heading %}{% translate "Journal d'audit" %}{% endblock %}
+
+{% block pollnav %}
+  <ul class="pollnav__links">
+    <li><a href="{% url 'backoffice:dashboard' poll.pk %}">{% translate "Tableau de bord" %}</a></li>
+    <li><a href="{% url 'backoffice:audit_log' poll.pk %}" aria-current="page">{% translate "Journal d'audit" %}</a></li>
+  </ul>
+{% endblock %}
+
+{% block screen %}
+
+  {% comment %} R-12.3: nobody can modify or delete. There is no action on this page
+     because INV-3 gives the table no update or delete path to offer. {% endcomment %}
+  <p class="notice">{% translate "Ce journal est en lecture seule. Aucun événement ne peut être modifié ni supprimé, y compris par un administrateur." %}</p>
+
+  <form method="get" class="filters" role="search" aria-label="{% translate 'Filtrer le journal' %}">
+    <p>
+      <label for="f-actor">{% translate "Auteur" %}</label>
+      <select id="f-actor" name="actor">
+        <option value="">{% translate "Tous" %}</option>
+        {% for actor in actors %}
+          <option value="{{ actor.pk }}"{% if actor.pk|stringformat:"s" == filters.actor_id %} selected{% endif %}>{{ actor }}</option>
+        {% endfor %}
+      </select>
+    </p>
+    <p>
+      <label for="f-object">{% translate "Objet" %}</label>
+      <input id="f-object" type="search" name="object" value="{{ filters.object_ref }}"
+             aria-describedby="f-object-help">
+      <span id="f-object-help" class="help">{% translate "Par exemple bulletin, ou un identifiant complet." %}</span>
+    </p>
+    <p>
+      <label for="f-from">{% translate "Du" %}</label>
+      <input id="f-from" type="date" name="date_from" value="{{ request.GET.date_from }}">
+    </p>
+    <p>
+      <label for="f-to">{% translate "Au" %}</label>
+      <input id="f-to" type="date" name="date_to" value="{{ request.GET.date_to }}">
+    </p>
+    <button type="submit">{% translate "Filtrer" %}</button>
+  </form>
+
+  <table>
+    <caption>
+      {% blocktranslate count total=page.paginator.count trimmed %}
+        {{ total }} événement
+      {% plural %}
+        {{ total }} événements
+      {% endblocktranslate %}
+    </caption>
+    <thead>
+      <tr>
+        <th scope="col">{% translate "Date" %}</th>
+        <th scope="col">{% translate "Auteur" %}</th>
+        <th scope="col">{% translate "Action" %}</th>
+        <th scope="col">{% translate "Objet" %}</th>
+        <th scope="col">{% translate "Motif" %}</th>
+        <th scope="col">{% translate "Avant → après" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+        <tr>
+          <td>{{ row.event.at }}</td>
+          {# A scheduled command has no account; actor_label names it (§10). #}
+          <td>{{ row.event.actor|default:row.event.actor_label }}</td>
+          <td>{{ row.event.get_action_display }}</td>
+          <td>
+            <code>{{ row.event.object_ref }}</code>
+            {% if row.exists is False %}
+              {% comment %} §10: a dangling reference is expected, not an error — the
+                 retention purge deleted the row and that is what anonymises
+                 the log. {% endcomment %}
+              <span class="purged">{% translate "objet supprimé (rétention)" %}</span>
+            {% endif %}
+          </td>
+          <td>{{ row.event.get_reason_display }}</td>
+          <td>
+            {% if row.before %}<code>{{ row.before }}</code> →{% endif %}
+            {% if row.after %}<code>{{ row.after }}</code>{% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6">{% translate "Aucun événement ne correspond." %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if page.has_other_pages %}
+    {# The filters ride along, or turning the page silently drops them. #}
+    {% with keep="&actor="|add:filters.actor_id|add:"&object="|add:filters.object_ref|add:"&date_from="|add:request.GET.date_from|add:"&date_to="|add:request.GET.date_to %}
+    <nav class="pagination" aria-label="{% translate 'Pages du journal' %}">
+      {% if page.has_previous %}
+        <a href="?page={{ page.previous_page_number }}{{ keep }}">{% translate "Page précédente" %}</a>
+      {% endif %}
+      <span>{% blocktranslate with current=page.number total=page.paginator.num_pages %}Page {{ current }} sur {{ total }}{% endblocktranslate %}</span>
+      {% if page.has_next %}
+        <a href="?page={{ page.next_page_number }}{{ keep }}">{% translate "Page suivante" %}</a>
+      {% endif %}
+    </nav>
+    {% endwith %}
+  {% endif %}
+
+{% endblock %}

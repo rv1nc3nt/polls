@@ -14,19 +14,31 @@ from pathlib import Path
 SRC = Path(__file__).resolve().parents[2] / "src"
 ALLOWED = {SRC / "apps" / "elections" / "transitions.py"}
 
+#: ``state`` is also a field on ``Registration``, whose lifecycle is §6.2's and
+#: not §4's. The AST cannot tell one object from the other, so the exemption is
+#: by the enum being *assigned*, and the default stays "flag it": an assignment
+#: this list does not explain is reported, whatever it turns out to be.
+NON_POLL_STATE_ENUMS = frozenset({"RegistrationState"})
+
 
 def _assigns_poll_state(path: Path) -> bool:
     tree = ast.parse(path.read_text())
     for node in ast.walk(tree):
+        targets: list[ast.expr]
+        value: ast.expr | None
         if isinstance(node, ast.Assign):
-            targets = node.targets
+            targets, value = node.targets, node.value
         elif isinstance(node, ast.AugAssign | ast.AnnAssign):
-            targets = [node.target]
+            targets, value = [node.target], node.value
         else:
             continue
         for target in targets:
-            if isinstance(target, ast.Attribute) and target.attr == "state":
-                return True
+            if not (isinstance(target, ast.Attribute) and target.attr == "state"):
+                continue
+            assigned = ast.unparse(value) if value is not None else ""
+            if any(enum in assigned for enum in NON_POLL_STATE_ENUMS):
+                continue
+            return True
     return False
 
 

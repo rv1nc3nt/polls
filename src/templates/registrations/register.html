@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD #}
+
+{% block title %}{% translate "Inscription" %} — {{ poll.title }}{% endblock %}
+
+{% block content %}
+  <h1>{% blocktranslate with title=poll.title %}S'inscrire à « {{ title }} »{% endblocktranslate %}</h1>
+
+  {% if error %}
+    <p class="error" role="alert">{{ error }}</p>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+    {% for field in form %}
+      <p class="field">
+        <label for="{{ field.id_for_label }}">
+          {{ field.label }}{% if field.field.required %} <span class="required">{% translate "(obligatoire)" %}</span>{% endif %}
+        </label>
+        {% if field.help_text %}<span class="help" id="{{ field.auto_id }}-help">{{ field.help_text }}</span>{% endif %}
+        {{ field }}
+        {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+      </p>
+    {% endfor %}
+    <button type="submit">{% translate "S'inscrire" %}</button>
+  </form>
+
+  {% comment %}
+    R-13.2: the privacy notice belongs at the point of collection, and §3.8
+    makes the French text the one that governs where a translation differs.
+  {% endcomment %}
+  <section aria-labelledby="donnees" class="privacy">
+    <h2 id="donnees">{% translate "Vos données" %}</h2>
+    <p>{% translate "Les informations ci-dessus servent uniquement à vérifier que vous êtes inscrit sur la liste électorale de la commune et à vous envoyer votre lien de vote. Elles sont conservées deux mois après la clôture du scrutin, puis supprimées." %}</p>
+    <p>{% translate "Votre bulletin n'est relié à votre identité par aucune donnée : la plateforme sait que vous avez voté, jamais comment." %}</p>
+    <p>{% translate "Pour exercer vos droits d'accès, de rectification et d'effacement, adressez-vous à la mairie." %}</p>
+  </section>
+{% endblock %}

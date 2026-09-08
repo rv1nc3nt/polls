@@ -1,8 +1,11 @@
 # SPDX-License-Identifier: 0BSD
 # 3. Release from a tagged artefact into a versioned directory, symlink switch
 #    so rollback is a symlink change.
-# 4. Virtualenv from the committed lockfile; migrate and collectstatic; a
-#    fail-fast check that migrations left no pending changes.
+# 4. Virtualenv from the committed lockfile; migrate, collectstatic and
+#    compilemessages; a fail-fast check that migrations left no pending
+#    changes. `compilemessages` needs GNU gettext on the target, so the package
+#    belongs in provision step 1 — without it the English interface silently
+#    falls back to the French msgids (§3.8).
 # 5. Settings rendered to an environment file, mode 0600, owned by the service
 #    user; secrets from ansible-vault, never the repository.
 # 6. Supervised gunicorn, and periodic invocation of open_poll, close_poll,
