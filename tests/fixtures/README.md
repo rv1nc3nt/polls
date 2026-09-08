@@ -26,7 +26,7 @@ will fail on the real file and must fail on this one too.
 ## Regenerating
 
 ```
-python3 generate_fixture_roll.py --rows 60 --seed 1 --out roll-fixture.csv
+python3 tests/fixtures/generate_roll_fixture.py --rows 60 --seed 1
 ```
 
 Deterministic: the same seed produces the same file. Raise `--rows` for a
