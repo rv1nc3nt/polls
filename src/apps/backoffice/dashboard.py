@@ -162,7 +162,11 @@ def _actions_for_state(poll: Poll) -> list[PermittedAction]:
             ]
         case PollState.OPEN:
             actions = [
-                PermittedAction(_("Examiner les inscriptions en attente"), (Role.POLL_ADMIN,)),
+                PermittedAction(
+                    _("Examiner les inscriptions en attente"),
+                    (Role.POLL_ADMIN,),
+                    url_name="backoffice:registration_queue",
+                ),
                 PermittedAction(_("Saisir un bulletin papier"), (Role.ENTRY_OPERATOR,)),
                 PermittedAction(
                     _("Rectifier ou supprimer un bulletin papier"), (Role.ENTRY_OPERATOR,)

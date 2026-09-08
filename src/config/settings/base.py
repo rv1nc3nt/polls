@@ -124,6 +124,28 @@ LOGOUT_REDIRECT_URL = "backoffice:login"
 
 DEFAULT_FROM_EMAIL = os.environ.get("DJANGO_FROM_EMAIL", "mairie@example.fr")
 
+# Links in outgoing mail (§6.2 step 7). A management command sending reminders
+# has no request to infer the host from, so the site's own address is
+# deployment configuration (§15) rather than something derived per send.
+PUBLIC_BASE_URL = os.environ.get("DJANGO_PUBLIC_BASE_URL", "http://localhost:8000")
+
+# Rate limiting (R-5.8) counts through the cache. LocMem is per process, so it
+# under-counts across gunicorn workers; production uses the database backend,
+# which needs `manage.py createcachetable` at deploy (§15). No Redis: §14 keeps
+# the dependencies few, and a commune-sized instance does not need one.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "polls",
+    }
+}
+
+# R-5.8, as counts per window. Deferred to configuration rather than constants
+# (§13): a commune with six thousand electors and one with sixty need different
+# numbers, and neither should have to edit the source to get them.
+RATE_LIMIT_REGISTRATION = os.environ.get("DJANGO_RATE_LIMIT_REGISTRATION", "5/1h")
+RATE_LIMIT_EMAIL = os.environ.get("DJANGO_RATE_LIMIT_EMAIL", "3/1h")
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,

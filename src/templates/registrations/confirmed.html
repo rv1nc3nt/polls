@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD #}
+
+{% block title %}{% translate "Inscription confirmée" %}{% endblock %}
+
+{% block content %}
+  {% if error %}
+    <h1>{% translate "Lien non valide" %}</h1>
+    <p role="alert">{{ error }}</p>
+    <p>{% translate "Vérifiez que vous avez copié l'adresse en entier. Si le problème persiste, adressez-vous à la mairie." %}</p>
+  {% elif registration.state == "active" %}
+    <h1>{% translate "Votre inscription est confirmée" %}</h1>
+    <p>{% blocktranslate with closes=poll.closes_at %}Vous pouvez voter jusqu'au {{ closes }}.{% endblocktranslate %}</p>
+    {% comment %}
+      TODO(scaffold): the ballot itself is §6.3. Its link belongs here, and this
+      page is already the token-free URL the exchange redirects to, so adding it
+      is a link and not a change of shape.
+    {% endcomment %}
+  {% else %}
+    <h1>{% translate "Inscription non confirmée" %}</h1>
+    <p>{% translate "Cette inscription ne peut pas être confirmée. Adressez-vous à la mairie." %}</p>
+  {% endif %}
+{% endblock %}

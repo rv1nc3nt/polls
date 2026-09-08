@@ -1,0 +1,9 @@
+{% load i18n %}{% autoescape off %}{% blocktranslate %}Bonjour,
+
+La consultation « {{ poll_title }} » se clôt le {{ closes_at }} et votre bulletin
+n'a pas encore été enregistré.
+
+Pour voter, utilisez le lien reçu lors de votre inscription.{% endblocktranslate %}
+
+{% translate "Si vous ne le retrouvez pas, adressez-vous à la mairie." %}
+{% endautoescape %}

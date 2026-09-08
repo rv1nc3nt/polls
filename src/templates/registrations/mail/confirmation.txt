@@ -1,0 +1,17 @@
+{% load i18n %}{% autoescape off %}{% blocktranslate %}Bonjour,
+
+Votre inscription à la consultation « {{ poll_title }} » a bien été reçue.
+
+Pour la confirmer et accéder à votre bulletin, ouvrez ce lien :
+
+{{ ballot_url }}
+
+Le vote est ouvert jusqu'au {{ closes_at }}.{% endblocktranslate %}
+{% if allow_modification %}
+{% blocktranslate %}Conservez ce message. Ce lien est le seul moyen de modifier votre bulletin
+avant la clôture. Personne, pas même la mairie, ne peut le retrouver ni vous en
+envoyer un autre : si vous le perdez, votre vote reste enregistré et compte
+normalement, mais vous ne pourrez plus le modifier.{% endblocktranslate %}
+{% endif %}
+{% translate "Cette consultation est consultative : son résultat ne lie pas le conseil municipal." %}
+{% endautoescape %}

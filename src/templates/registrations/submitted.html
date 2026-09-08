@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD #}
+
+{% block title %}{% translate "Demande enregistrée" %}{% endblock %}
+
+{% block content %}
+  {% if outcome == "pending_email" %}
+    <h1>{% translate "Vérifiez votre boîte aux lettres" %}</h1>
+    <p>{% translate "Nous vous avons envoyé un message contenant votre lien de vote. Ouvrez-le pour confirmer votre inscription et voter." %}</p>
+    <p>{% translate "Si rien n'arrive dans les prochaines minutes, pensez à regarder dans les courriers indésirables, puis contactez la mairie." %}</p>
+  {% else %}
+    {% comment %}
+      R-5.4: a divergent name, an absent NNE or a blank one is routed to a human
+      rather than refused, and the applicant is told so plainly (T-28).
+    {% endcomment %}
+    <h1>{% translate "Votre demande sera examinée" %}</h1>
+    <p>{% translate "Nous n'avons pas pu rapprocher automatiquement votre demande de la liste électorale. Un agent de la mairie va l'examiner et vous recevrez ensuite votre lien de vote par courrier électronique." %}</p>
+    <p>{% translate "Aucune démarche supplémentaire n'est nécessaire de votre part." %}</p>
+  {% endif %}
+{% endblock %}

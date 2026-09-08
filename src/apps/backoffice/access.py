@@ -57,6 +57,21 @@ def _operator(user: Account) -> User | None:
     return None
 
 
+def current_operator(request: HttpRequest) -> User:
+    """The signed-in operator, for a view already past the gate.
+
+    ``request.user`` is statically ``User | AnonymousUser`` everywhere, but a
+    view wrapped in ``require_poll_role`` or ``require_commune_admin`` has
+    already been through ``_operator``. This narrows the type without a cast, so
+    that if the gate is ever removed from a view the failure is loud here rather
+    than an anonymous actor silently landing in the audit log (§10).
+    """
+    operator = _operator(request.user)
+    if operator is None:
+        raise PermissionDenied(_("Action réservée à un compte connecté."))
+    return operator
+
+
 def poll_roles(user: Account, poll: Poll) -> frozenset[str]:
     """Every role this account holds on this poll (R-2.1). Empty for anyone else."""
     operator = _operator(user)

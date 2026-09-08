@@ -5,7 +5,7 @@ from . import views
 
 app_name = "backoffice"
 
-# TODO(scaffold): screens 2–7 and 9–11 of §6.5 land here. Poll-scoped routes
+# TODO(scaffold): screens 2, 3, 5–7 and 9–11 of §6.5 land here. Poll-scoped routes
 # carry ``<uuid:poll_id>``, which ``access.require_poll_role`` resolves and
 # gates — a route that does not is a screen open to anyone signed in.
 urlpatterns = [
@@ -14,4 +14,14 @@ urlpatterns = [
     path("deconnexion/", views.OperatorLogoutView.as_view(), name="logout"),
     path("scrutin/<uuid:poll_id>/", views.poll_dashboard, name="dashboard"),
     path("scrutin/<uuid:poll_id>/journal/", views.audit_log, name="audit_log"),
+    path(
+        "scrutin/<uuid:poll_id>/inscriptions/",
+        views.registration_queue,
+        name="registration_queue",
+    ),
+    path(
+        "scrutin/<uuid:poll_id>/inscriptions/decision/",
+        views.registration_decide,
+        name="registration_decide",
+    ),
 ]

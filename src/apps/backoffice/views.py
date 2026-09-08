@@ -19,31 +19,44 @@ Here so far: the shell the screens hang off — sign-in for named accounts
 the read models are ``dashboard.py`` and ``auditlog.py``, so the views stay thin
 enough to see the gate on each one.
 
-TODO(scaffold): screens 2–7 and 9–11 of §6.5. Each waits on the service function
-it must post through (§5.1) — no view writes through the ORM directly, so a
-screen cannot land before ``registrations.services`` or ``ballots.services``
-does.
+TODO(scaffold): screens 2, 3, 5–7 and 9–11 of §6.5. Each waits on the service
+function it must post through (§5.1) — no view writes through the ORM directly,
+so a screen cannot land before ``registrations.services`` or
+``ballots.services`` does.
 """
 
 from __future__ import annotations
 
 from datetime import datetime
 
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, LogoutView
 from django.core.paginator import Paginator
+from django.db import transaction
 from django.http import HttpRequest, HttpResponse
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.dateparse import parse_date
 from django.utils.timezone import get_current_timezone
+from django.utils.translation import gettext as _
 
 from apps.audit import services as audit
-from apps.audit.models import Action
+from apps.audit.models import Action, Reason
 from apps.core.models import Role
 from apps.elections.models import Poll
+from apps.elections.windows import WindowClosed
+from apps.registrations import mail as registration_mail
+from apps.registrations import services as registrations
+from apps.registrations.models import Registration
 
-from . import auditlog, dashboard
-from .access import accessible_polls, is_commune_admin, poll_roles, require_poll_role
+from . import auditlog, dashboard, review
+from .access import (
+    accessible_polls,
+    current_operator,
+    is_commune_admin,
+    poll_roles,
+    require_poll_role,
+)
 
 
 class OperatorLoginView(LoginView):
@@ -188,3 +201,82 @@ def audit_log(request: HttpRequest, poll: Poll) -> HttpResponse:
             "actors": auditlog.actors(poll),
         },
     )
+
+
+@require_poll_role(Role.POLL_ADMIN)
+def registration_queue(request: HttpRequest, poll: Poll) -> HttpResponse:
+    """Screen 4 — file d'attente des inscriptions (§6.5.4).
+
+    Registrations that could not be matched automatically, each beside the roll
+    entries an agent should compare them against. Poll admin only: this is where
+    an elector's identity is read, and R-5.4 makes the decision an
+    administrative one.
+    """
+    queue = review.pending(poll)
+    return render(
+        request,
+        "backoffice/registration_queue.html",
+        {
+            "poll": poll,
+            "rows": [
+                {"registration": registration, "matches": review.near_matches(registration)}
+                for registration in queue
+            ],
+            "approval_reasons": review.choices(review.APPROVAL_REASONS),
+            "refusal_reasons": review.choices(review.REFUSAL_REASONS),
+        },
+    )
+
+
+@require_poll_role(Role.POLL_ADMIN)
+def registration_decide(request: HttpRequest, poll: Poll) -> HttpResponse:
+    """Accept or reject one pending registration, with a mandatory reason.
+
+    Posts through ``registrations.services`` and writes nothing itself (§6.5).
+    Approval mints the token and mails it — never straight to ``active``, since
+    the mailbox is confirmed in every path (§6.2 step 5, T-18).
+    """
+    if request.method != "POST":
+        return redirect("backoffice:registration_queue", poll_id=str(poll.pk))
+
+    registration = get_object_or_404(
+        Registration, pk=request.POST.get("registration", ""), poll=poll
+    )
+    note = request.POST.get("note", "").strip()
+    decision = request.POST.get("decision", "")
+
+    # The vocabulary is checked against the one *this* decision offers, not
+    # against every Reason there is: a refusal logged as "bulletin en double"
+    # would be a valid code and a false record (§10).
+    def _reason(field: str, permitted: tuple[Reason, ...]) -> str:
+        value = request.POST.get(field, "")
+        return value if value in {str(reason) for reason in permitted} else ""
+
+    try:
+        if decision == "approve":
+            reason = _reason("approve_reason", review.APPROVAL_REASONS)
+            if not reason:
+                messages.error(request, _("Un motif est obligatoire pour accepter."))
+            else:
+                registration, token = registrations.approve(
+                    registration, reason=reason, actor=current_operator(request), note=note
+                )
+                transaction.on_commit(
+                    lambda: registration_mail.send_confirmation(registration, token)
+                )
+                messages.success(request, _("Inscription acceptée : le lien de vote a été envoyé."))
+        elif decision == "reject":
+            reason = _reason("reject_reason", review.REFUSAL_REASONS)
+            if not reason:
+                messages.error(request, _("Un motif est obligatoire pour refuser."))
+            else:
+                registrations.reject(
+                    registration, reason=reason, actor=current_operator(request), note=note
+                )
+                messages.success(request, _("Inscription refusée."))
+        else:
+            messages.error(request, _("Décision inconnue."))
+    except (registrations.RegistrationRefused, WindowClosed) as refusal:
+        messages.error(request, str(refusal))
+
+    return redirect("backoffice:registration_queue", poll_id=str(poll.pk))

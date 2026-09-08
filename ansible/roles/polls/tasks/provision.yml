@@ -5,7 +5,13 @@
 #    under {{ polls_backup_dir }}, code under {{ polls_prefix }}, none of it
 #    world-readable.
 # 7. nginx vhost from a template, TLS per §14, security headers, rate-limit zone
-#    consistent with the application's own limits.
+#    consistent with the application's own limits. It MUST also suppress
+#    request-URI logging under `/*/inscription/*/confirmation/` and the ballot
+#    prefixes: a token travels in those URLs, and §7's claim that it never
+#    reaches a log is false without this. The other three parts of that rule —
+#    the session exchange, `Referrer-Policy: no-referrer` and
+#    `Cache-Control: no-store` — are in `apps/core/tokensession.py`.
+#    `manage.py createcachetable` also runs here, for the rate limiter (R-5.8).
 - name: TODO(scaffold) provision steps 1, 2 and 7 of §15
   ansible.builtin.debug:
     msg: "provision"

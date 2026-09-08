@@ -24,7 +24,8 @@ All four gates run in CI and must be green before a commit lands.
 `src/config/` project settings and URLs · `src/apps/core/` types, crypto,
 canonical serialisation, name matching, tracking codes, job locking ·
 `src/apps/elections/` poll, options, snapshot, transitions, voting window,
-closure, retention · `src/apps/registrations/` · `src/apps/ballots/` ·
+closure, retention · `src/apps/registrations/` (§6.2: `services`, `mail`, `forms`, `views`) ·
+`src/apps/ballots/` ·
 `src/apps/audit/` · `src/apps/tally/` pure, imports no model ·
 `src/apps/backoffice/` espace mairie (§6.5, the bulk of the remaining work;
 `access.py` is the role gate every screen goes through, `dashboard.py` and
@@ -59,6 +60,10 @@ find a way round it.
   `apps/elections/transitions.py`, and a test enforces it. Ballot writes go
   through `apps/elections/windows.py`, which never consults `state` — the
   scheduled job may run late, twice, or not at all.
+- **The plaintext token is never persisted.** Only `voter_hash` is stored
+  (§7). It follows that the token-for-session exchange of §6.3
+  (`apps/core/tokensession.py`) puts a *registration id* in the session, never
+  the token: Django's session backend is a database table.
 - **No Django admin**, in any environment.
 - **Every poll-scoped back-office screen goes through `require_poll_role`**
   (`apps/backoffice/access.py`). `commune_admin` is commune-level and grants
@@ -104,7 +109,17 @@ taken — that costs more than it saves.
   raw SQL in a test must use `obj.pk.hex` or it silently matches no row and the
   trigger never fires.
 - An audit event written inside a transaction that then raises is rolled back
-  with it. Refusals are logged *after* the rollback — see `open_poll`.
+  with it. Refusals are logged *after* the rollback — see `open_poll`, and
+  `registrations.services.register`, where the duplicate-NNE flag of R-5.9 is
+  written outside the transaction the refusal aborts.
+- Mail is sent from `transaction.on_commit`, so a rolled-back registration
+  cannot produce a delivered message. Tests must wrap the call in
+  pytest-django's `django_capture_on_commit_callbacks(execute=True)` or the
+  outbox stays empty.
+- Configuration is frozen once a poll leaves `draft` (INV-6) and the **trigger**
+  enforces it, so a test that needs `allow_ballot_modification`, `opens_at` or
+  `is_sandbox` to differ must build a second poll rather than update one.
+  `closes_at` and `paper_entry_deadline` are the two that still move (R-3.4).
 - `ruff` ignores RUF001–003 here: French text is full of typographic
   apostrophes and accents that would otherwise be flagged on every line.
 - A Django `{# … #}` comment is **single-line only**. Spanning one over two

@@ -45,7 +45,15 @@ def check_ballot_window(poll: Poll, source: str, now: datetime | None = None) ->
 
 
 def check_registration_window(poll: Poll, now: datetime | None = None) -> None:
-    """No registration write after ``closes_at`` (INV-2).
+    """No registration write after ``closes_at`` (INV-2), nor before ``opens_at``.
+
+    INV-2 names only the closing bound. The opening one is here because
+    matching is against the frozen snapshot (R-5.3), and the snapshot does not
+    exist until ``draft → open`` writes it (§4): registering earlier would not
+    fail, it would route every applicant to ``pending_review`` for want of a
+    roll to match against, which is worse. Like the ballot window this consults
+    the clock and not ``Poll.state``, since the scheduled transition may run
+    late (§4).
 
     The retention purge is the sole exception and is not a caller here: it goes
     through ``apps.elections.retention``, of which it is the only user, and the
@@ -53,5 +61,7 @@ def check_registration_window(poll: Poll, now: datetime | None = None) -> None:
     (§11).
     """
     now = now or timezone.now()
+    if now < poll.opens_at:
+        raise WindowClosed(_("Les inscriptions ne sont pas encore ouvertes."))
     if now >= poll.closes_at:
         raise WindowClosed(_("Les inscriptions sont closes."))

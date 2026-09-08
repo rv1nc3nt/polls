@@ -685,3 +685,265 @@ msgstr[1] "%(total)s events"
 
 msgid "Page %(current)s sur %(total)s"
 msgstr "Page %(current)s of %(total)s"
+
+msgid "(obligatoire)"
+msgstr "(required)"
+
+msgid "Accepter"
+msgstr "Accept"
+
+msgid "Accepter et envoyer le lien de vote"
+msgstr "Accept and send the voting link"
+
+msgid "Action réservée à un compte connecté."
+msgstr "This action requires a signed-in account."
+
+msgid "Adresse électronique"
+msgstr "Email address"
+
+msgid "Aucune démarche supplémentaire n'est nécessaire de votre part."
+msgstr "Nothing further is required of you."
+
+msgid "Aucune entrée proche. Vérifiez auprès de la personne, ou en mairie."
+msgstr "No close entry. Check with the person, or at the mairie."
+
+msgid "Aucune inscription n'attend d'examen."
+msgstr "No registration is awaiting review."
+
+msgid "Ce lien n'est pas valide."
+msgstr "This link is not valid."
+
+msgid "Ces demandes n'ont pas pu être rapprochées automatiquement de la liste électorale. Comparez la déclaration à la liste, puis acceptez ou refusez avec un motif."
+msgstr "These requests could not be matched automatically against the electoral roll. Compare the declaration with the roll, then accept or refuse with a reason."
+
+msgid "Cette inscription n'est pas en attente d'examen."
+msgstr "This registration is not awaiting review."
+
+msgid "Cette inscription ne peut pas être confirmée."
+msgstr "This registration cannot be confirmed."
+
+msgid "Cette inscription ne peut pas être confirmée. Adressez-vous à la mairie."
+msgstr "This registration cannot be confirmed. Please contact the mairie."
+
+msgid "Choisissez une adresse que vous seul consultez : c'est elle qui recevra le lien de vote, et ce lien vaut droit de vote. Une même adresse ne peut servir qu'une fois ; deux personnes partageant une adresse doivent voter à la mairie."
+msgstr "Choose an address only you read: it will receive the voting link, and that link carries the right to vote. One address can be used only once; two people sharing an address must vote at the mairie."
+
+msgid "Concordance"
+msgstr "Match"
+
+msgid "Confirmez votre inscription : %(poll)s"
+msgstr "Confirm your registration: %(poll)s"
+
+msgid "Conservée avec la demande et supprimée avec elle. N'apparaît pas dans le journal d'audit."
+msgstr "Kept with the request and deleted with it. Does not appear in the audit log."
+
+msgid "Demande enregistrée"
+msgstr "Request received"
+
+msgid "Demande reçue le"
+msgstr "Request received on"
+
+msgid "Décision inconnue."
+msgstr "Unknown decision."
+
+msgid "Déclaration sur l'honneur"
+msgstr "Declaration on honour"
+
+msgid "Entrées proches de la liste électorale"
+msgstr "Close entries in the electoral roll"
+
+msgid "Il figure sur votre carte électorale. Vous pouvez l'obtenir auprès de la mairie, ou par le service « Interroger sa situation électorale »."
+msgstr "It appears on your voter card. You can obtain it from the mairie, or through the “Interroger sa situation électorale” service."
+
+msgid "Inscription"
+msgstr "Registration"
+
+msgid "Inscription acceptée : le lien de vote a été envoyé."
+msgstr "Registration accepted: the voting link has been sent."
+
+msgid "Inscription confirmée"
+msgstr "Registration confirmed"
+
+msgid "Inscription non confirmée"
+msgstr "Registration not confirmed"
+
+msgid "Inscription refusée."
+msgstr "Registration refused."
+
+msgid "Inscriptions en attente"
+msgstr "Pending registrations"
+
+msgid "Je déclare sur l'honneur être inscrit sur la liste électorale de la commune et ne m'inscrire qu'une seule fois à cette consultation."
+msgstr "I declare on my honour that I am on the commune’s electoral roll and that I am registering only once for this consultation."
+
+msgid "Les informations ci-dessus servent uniquement à vérifier que vous êtes inscrit sur la liste électorale de la commune et à vous envoyer votre lien de vote. Elles sont conservées deux mois après la clôture du scrutin, puis supprimées."
+msgstr "The information above is used only to check that you are on the commune’s electoral roll and to send you your voting link. It is kept for two months after the poll closes, then deleted."
+
+msgid "Les inscriptions ne sont pas encore ouvertes."
+msgstr "Registration is not open yet."
+
+msgid "Lien non valide"
+msgstr "Invalid link"
+
+msgid "NNE"
+msgstr "NNE"
+
+msgid "NNE déclaré"
+msgstr "NNE declared"
+
+msgid "NNE identique"
+msgstr "same NNE"
+
+msgid "Nom"
+msgstr "Last name"
+
+msgid "Nom de famille"
+msgstr "Last name"
+
+msgid "Note (facultative)"
+msgstr "Note (optional)"
+
+msgid "Nous n'avons pas pu rapprocher automatiquement votre demande de la liste électorale. Un agent de la mairie va l'examiner et vous recevrez ensuite votre lien de vote par courrier électronique."
+msgstr "We could not match your request against the electoral roll automatically. A mairie officer will review it and you will then receive your voting link by email."
+
+msgid "Nous ne pouvons pas enregistrer cette demande en ligne. Veuillez vous adresser à la mairie."
+msgstr "We cannot record this request online. Please contact the mairie."
+
+msgid "Nous vous avons envoyé un message contenant votre lien de vote. Ouvrez-le pour confirmer votre inscription et voter."
+msgstr "We have sent you a message containing your voting link. Open it to confirm your registration and vote."
+
+msgid "Numéro national d'électeur (NNE)"
+msgstr "National elector number (NNE)"
+
+msgid "Pour exercer vos droits d'accès, de rectification et d'effacement, adressez-vous à la mairie."
+msgstr "To exercise your rights of access, rectification and erasure, contact the mairie."
+
+msgid "Prénom(s)"
+msgstr "First name(s)"
+
+msgid "Prénoms"
+msgstr "First names"
+
+msgid "Rappel : le scrutin « %(poll)s » se clôt bientôt"
+msgstr "Reminder: the poll “%(poll)s” closes soon"
+
+msgid "Refuser"
+msgstr "Refuse"
+
+msgid "S'inscrire"
+msgstr "Register"
+
+msgid "Si rien n'arrive dans les prochaines minutes, pensez à regarder dans les courriers indésirables, puis contactez la mairie."
+msgstr "If nothing arrives within a few minutes, check your spam folder, then contact the mairie."
+
+msgid "Si vous ne le retrouvez pas, adressez-vous à la mairie."
+msgstr "If you cannot find it, contact the mairie."
+
+msgid "Tous vos prénoms, tels qu'ils figurent sur votre carte électorale."
+msgstr "All your first names, as they appear on your voter card."
+
+msgid "Un NNE comporte 8 ou 9 chiffres."
+msgstr "An NNE has 8 or 9 digits."
+
+msgid "Un motif est obligatoire pour accepter."
+msgstr "A reason is required to accept."
+
+msgid "Un motif est obligatoire pour refuser."
+msgstr "A reason is required to refuse."
+
+msgid "Un motif est obligatoire."
+msgstr "A reason is required."
+
+msgid "Une même adresse électronique ne peut servir qu'une fois. Deux personnes partageant une adresse ne peuvent pas s'inscrire toutes les deux en ligne : leur voie est le vote papier à la mairie."
+msgstr "One email address can be used only once. Two people sharing an address cannot both register online: their route is the paper ballot at the mairie."
+
+msgid "Vos données"
+msgstr "Your data"
+
+msgid "Votre bulletin n'est relié à votre identité par aucune donnée : la plateforme sait que vous avez voté, jamais comment."
+msgstr "No data links your ballot to your identity: the platform knows that you voted, never how."
+
+msgid "Votre demande sera examinée"
+msgstr "Your request will be reviewed"
+
+msgid "Votre inscription est confirmée"
+msgstr "Your registration is confirmed"
+
+msgid "Vérifiez que vous avez copié l'adresse en entier. Si le problème persiste, adressez-vous à la mairie."
+msgstr "Check that you copied the whole address. If the problem persists, contact the mairie."
+
+msgid "Vérifiez votre boîte aux lettres"
+msgstr "Check your inbox"
+
+msgid "absente"
+msgstr "absent"
+
+msgid "nom identique"
+msgstr "same last name"
+
+msgid "signée"
+msgstr "signed"
+
+msgid "À comparer à la déclaration ci-dessus"
+msgstr "To compare with the declaration above"
+
+msgid "— choisir —"
+msgstr "— choose —"
+
+msgid "%(n)s prénom commun"
+msgid_plural "%(n)s prénoms communs"
+msgstr[0] "%(n)s first name in common"
+msgstr[1] "%(n)s first names in common"
+
+msgid "Vous pouvez voter jusqu'au %(closes)s."
+msgstr "You can vote until %(closes)s."
+
+msgid "S'inscrire à « %(title)s »"
+msgstr "Register for “%(title)s”"
+
+msgid ""
+"Bonjour,\n"
+"\n"
+"Votre inscription à la consultation « %(poll_title)s » a bien été reçue.\n"
+"\n"
+"Pour la confirmer et accéder à votre bulletin, ouvrez ce lien :\n"
+"\n"
+"%(ballot_url)s\n"
+"\n"
+"Le vote est ouvert jusqu'au %(closes_at)s."
+msgstr ""
+"Hello,\n"
+"\n"
+"Your registration for the consultation “%(poll_title)s” has been received.\n"
+"\n"
+"To confirm it and reach your ballot, open this link:\n"
+"\n"
+"%(ballot_url)s\n"
+"\n"
+"Voting is open until %(closes_at)s."
+
+msgid ""
+"Conservez ce message. Ce lien est le seul moyen de modifier votre bulletin\n"
+"avant la clôture. Personne, pas même la mairie, ne peut le retrouver ni vous en\n"
+"envoyer un autre : si vous le perdez, votre vote reste enregistré et compte\n"
+"normalement, mais vous ne pourrez plus le modifier."
+msgstr ""
+"Keep this message. This link is the only way to change your ballot before\n"
+"closing. Nobody, not even the mairie, can recover it or send you another: if\n"
+"you lose it, your vote remains recorded and counts normally, but you will no\n"
+"longer be able to change it."
+
+msgid ""
+"Bonjour,\n"
+"\n"
+"La consultation « %(poll_title)s » se clôt le %(closes_at)s et votre bulletin\n"
+"n'a pas encore été enregistré.\n"
+"\n"
+"Pour voter, utilisez le lien reçu lors de votre inscription."
+msgstr ""
+"Hello,\n"
+"\n"
+"The consultation “%(poll_title)s” closes on %(closes_at)s and your ballot has\n"
+"not yet been recorded.\n"
+"\n"
+"To vote, use the link you received when you registered."

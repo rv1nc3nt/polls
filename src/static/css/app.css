@@ -132,3 +132,13 @@ button {
 /* An audit row's before/after is JSON; let it scroll rather than stretch the
    table past the viewport. */
 td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
+
+/* Screen 4. The two decisions sit side by side and are told apart by their
+   legend, never by colour alone (R-14.1). */
+.review { border-top: 1px solid var(--rule); padding-top: 1rem; margin-top: 1.5rem; }
+.decision { display: flex; flex-wrap: wrap; gap: 1.5rem; align-items: start; }
+.decision__half { border: 1px solid var(--rule); padding: 0.75rem; }
+.decision__half legend { font-weight: 700; padding: 0 0.4rem; }
+.field { margin-bottom: 1rem; }
+.field .help, .privacy { display: block; color: var(--ink-quiet); }
+.required { font-weight: 400; color: var(--ink-quiet); }
