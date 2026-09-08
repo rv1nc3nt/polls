@@ -1,7 +1,7 @@
 # Implementation Specification — Commune Polling Platform
 
 **Client:** Commune de Sainte-Marie-du-Mont (Isère), France
-**Status:** v0.21 — implementation-ready functional spec. Stack decided (§14).
+**Status:** v0.22 — implementation-ready functional spec. Stack decided (§14).
 **Audience:** implementing agent / developer.
 
 The authoritative functional requirements carry the numbers `R-x.y`. This document restates them in implementation terms and adds the domain model, algorithms, invariants and acceptance tests. Where the two diverge, the requirements govern and this document is to be corrected. Cross-references to `R-x.y` appear throughout.
@@ -33,7 +33,10 @@ The software is released as open source, one instance per commune. **Non-goals.*
 | *bulletin* | ballot |
 | *électeur* | voter / elector |
 | *liste électorale* | electoral roll |
-| *numéro national d'électeur* (NNE) | national elector number; 8–9 digits, permanent, nationwide |
+| *nom de naissance* | birth surname |
+| *nom d'usage* | name in use (a married name, say); often blank (R-5.3) |
+| *type de liste* | electoral-list type: `principale`, `complémentaire municipale`, `complémentaire européenne` (R-4.7) |
+| *date de naissance* | date of birth; not always well-formed, and kept verbatim when it will not parse (R-4.9) |
 | *copie figée* | frozen roll snapshot |
 | *opérateur de saisie* | entry operator (a council member) |
 | *récépissé* | receipt |
@@ -67,6 +70,7 @@ The software is released as open source, one instance per commune. **Non-goals.*
 | `paper_requires_countersign` | bool | default false; R-8.7 |
 | `paper_requires_reconciliation` | bool | default false; R-8.6 |
 | `allow_ballot_modification` | bool | default true; R-7.1. Immutable once open, and disclosed on the ballot page |
+| `eligible_list_types` | list of enum | electoral-list types conferring the right to register and vote in this poll; a municipal question takes `principale` and `complémentaire municipale` (R-4.7) |
 | `languages` | list | enabled content languages, first is the default; `["fr"]` unless configured (§3.8) |
 | `show_live_participation` | bool | default false; see §6.6 |
 | `is_sandbox` | bool | immutable after creation; R-3.7 |
@@ -77,18 +81,25 @@ A typical configuration: `schulze`, `require_complete_ranking = true`, `allow_ti
 
 ### 3.2 `RollEntry` — frozen snapshot (R-4.3)
 
-`{poll_id, last_name, first_names, nne}`. Copied from the current roll at the `draft → open` transition. Immutable thereafter. `(poll_id, nne)` unique.
+`{poll_id, birth_name, usual_name, first_names, date_of_birth, date_uncertain, list_types}`. Copied from the current working roll at the `draft → open` transition (§6.1). Immutable thereafter (INV-7).
+
+- Identity is stored **in clear, not hashed** (R-4.4): the review queue (§6.2), the operator search at paper entry (R-8.3, §6.4) and R-4.4's own auditor access after closure all read it. The retention purge (§11) is what bounds the exposure.
+- `usual_name` may be blank. A registration match tries the declared surname against **both** `birth_name` and `usual_name` (R-5.3).
+- `date_of_birth` is kept verbatim as the export gave it. It is parsed at import; where it will not — a partial date, `00/00/1953`, a bare year, common for electors born abroad — `date_uncertain` is set (R-4.9). Such an entry never matches a registration automatically and is always sent to review.
+- `list_types` is the set of electoral-list types the elector appears on (R-4.7). One entry per elector, not one per list — see the collapse rule in §6.1 (R-4.6).
+- There is **no natural unique key**: the roll's order number is neither unique nor stable (R-4.8) and there is no national identifier here. Apparent duplicates that survive import (§6.1) are separated, if at all, by a human in the review queue, not by a constraint.
 
 ### 3.3 `Registration` (§6.2)
 
-`{poll_id, nne, last_name, first_names, email, email_canonical, declared_on_honour, state, review_reason, voter_hash, channel, language, created_at}`
+`{poll_id, roll_entry_id, declared_last_name, declared_first_names, declared_dob, email, email_canonical, declared_on_honour, state, review_reason, voter_hash, channel, language, created_at}`
 
+- `roll_entry_id`: nullable FK to the snapshot `RollEntry` this registration is bound to. Set when a single unambiguous match is found (→ `pending_email`) or when a poll admin resolves a review; null while `pending_review` is unresolved and for `rejected`. The `declared_*` fields hold what the person typed, kept for the review queue and purged with the row (§11).
 - `state ∈ {pending_email, pending_review, active, rejected}`
 - `language`: the language chosen at registration; determines the language of every email sent to this person (§3.8).
 - `email_canonical`: the address lower-cased, nothing more. `(poll_id, email_canonical)` unique — one elector, one address (§6.2). No alias normalisation: `+suffix` and dot handling are provider conventions, and any rule about them either merges distinct people or gives false assurance about the ones it misses.
 - `channel ∈ {none, online, paper}` (R-9.1)
 - `voter_hash = H("voter" ‖ poll.token_salt ‖ token)` (R-7.4)
-- `(poll_id, nne)` unique (R-5.9)
+- `(poll_id, roll_entry_id)` unique across registrations **not** in `rejected` — one roll entry, one registration per poll (R-5.9, INV-4). A partial constraint: it does not touch the still-unbound `pending_review` rows.
 - Scoped to one poll. A person voting in two concurrent polls has two rows, two tokens. This is required by R-13.4 and is not a bug.
 
 ### 3.4 `Ballot`
@@ -106,11 +117,11 @@ A typical configuration: `schulze`, `require_complete_ranking = true`, `allow_ti
 
 ### 3.5 `PaperBallotLink`
 
-`{poll_id, ballot_id, nne, operator_id, countersigned_by, created_at}`. Paper ballots stay linked to the voter — deliberately (R-8.2 bis). Deleted at retention (R-13.3).
+`{poll_id, ballot_id, roll_entry_id, operator_id, countersigned_by, created_at}`. `roll_entry_id` is the snapshot entry the operator confirmed at entry (§6.4). Paper ballots stay linked to the voter — deliberately (R-8.2 bis). Deleted at retention (R-13.3).
 
 ### 3.6 `AuditEvent` (R-12; see §10)
 
-`{id, poll_id, actor_id, action, object_ref, before, after, reason, at}`. Append-only, no update or delete path in the application at all. `object_ref` points at a row; `before`, `after` and `reason` never contain an elector's name, NNE or email (§10).
+`{id, poll_id, actor_id, action, object_ref, before, after, reason, at}`. Append-only, no update or delete path in the application at all. `object_ref` points at a row; `before`, `after` and `reason` never contain an elector's name, date of birth or email (§10).
 
 ### 3.7 `User`
 
@@ -150,6 +161,8 @@ Extension of `closes_at` is permitted only while `state = open` and only to a la
 
 Opening is the transition with side effects: it takes the roll snapshot (§6.1) and generates `opening_seed`, and both MUST occur in the same transaction as the state write, so that two concurrent runs cannot produce two snapshots or two seeds. Selection is state-based — `state = draft AND opens_at ≤ now` — so a host that was down opens the poll late rather than never.
 
+**Registration, review and voting all begin at `open`,** since that is when the snapshot they work against is frozen (§6.1, R-4.3). An elector who registers shortly before `closes_at` may fail to clear review and confirm their mailbox in time. A separate, earlier registration window — the snapshot frozen at its start — would remove that risk; the requirements leave the choice open (their §15), and taking it later means moving the snapshot transition, not reworking the model.
+
 **Opening can be refused, and a refusal must be loud.** The preconditions of §3.8 (no enabled language missing a translation) and of §6.1 (a roll to snapshot) are checked by the job, at an hour when no operator is watching. `open_poll` refuses such a poll, leaves it in `draft`, logs the blocking reason and exits non-zero; it never opens a partially configured poll. A silent non-opening being the worst outcome here, the dashboard (§6.5) names the blockers in advance rather than on the morning itself.
 
 **Closure can be refused too, and identically.** Where any ballot is still `pending_countersign`, the §9 guard applies to the scheduled job as well: `close_poll` refuses, leaves the poll in `open`, logs the blocker and exits non-zero. This is safe rather than dangerous — the window checks already refuse every ballot write past `paper_entry_deadline` regardless of `state`, so the poll is closed in substance while the state field waits for the countersignatures, or for the admin override, which carries a mandatory reason and cannot be automated. The dashboard shows the blocking count.
@@ -163,8 +176,8 @@ These MUST hold and should each have a test.
 - **INV-1** No query joins `Registration` to `Ballot` for online ballots. There is no column, view or index that permits it (R-7.4).
 - **INV-2** The voting window, by source: no `Ballot` write before `opens_at`; no **online** ballot write at or after `closes_at`; no **paper** ballot write at or after `paper_entry_deadline` (§6.4); no `Registration` write after `closes_at`. The retention purge (§11) is the sole exception, and is exempted by name in the trigger rather than by loosening the rule.
 - **INV-3** No update or delete on `AuditEvent` or on superseded `Ballot` versions. Absolute, with no exception for the retention purge: audit events hold no personal data to redact (§10).
-- **INV-4** `(poll_id, nne)` is unique across registrations (R-5.9).
-- **INV-5** A voter holds at most one live ballot per poll, across both channels (R-9). This is enforced **through `Registration.channel`**, never by counting ballots: for online ballots no link to the voter exists, and none may be added. `Ballot` MUST NOT carry a voter, registration or NNE reference. Adding one to satisfy this invariant would destroy INV-1.
+- **INV-4** `(poll_id, roll_entry_id)` is unique across registrations not in `rejected`: a roll entry gives rise to at most one registration per poll (R-5.9).
+- **INV-5** A voter holds at most one live ballot per poll, across both channels (R-9). This is enforced **through `Registration.channel`**, never by counting ballots: for online ballots no link to the voter exists, and none may be added. `Ballot` MUST NOT carry a voter, registration or roll-entry reference. Adding one to satisfy this invariant would destroy INV-1.
 - **INV-6** Poll configuration fields other than `closes_at` are immutable once `state ≠ draft`.
 - **INV-7** `RollEntry` rows are never modified after the snapshot.
 - **INV-8** Sandbox polls never appear in public listings or aggregate statistics (R-3.7).
@@ -184,7 +197,7 @@ Python cannot make an illegal transition a compile error, so the enforcement is 
 
 **The voting window (INV-2)** is checked in one service function that every ballot write path calls, taking the poll and the current time, and rejecting a write outside the window for that ballot's source — before `opens_at`, at or after `closes_at` for an online ballot, at or after `paper_entry_deadline` for a paper one. It does not consult `state`, since the scheduled transition may not have run yet (§4). This is the invariant the typestate approach could not have delivered either, since elapsing time is not a method call; here as there, the clock is consulted at the point of use. The retention purge is the one writer permitted past `closes_at`; it goes through a separate, named service function of which it is the only caller.
 
-**Database triggers are the real enforcement.** INV-3, INV-6 and INV-7 are `RunSQL` migrations creating `RAISE(ABORT)` triggers, which hold against `update()`, raw SQL, the Django shell and a future maintainer who has not read this document. INV-4 is a `UniqueConstraint` on `(poll, nne)`. Application-level checks alone survive only as long as every future code path remembers them.
+**Database triggers are the real enforcement.** INV-3, INV-6 and INV-7 are `RunSQL` migrations creating `RAISE(ABORT)` triggers, which hold against `update()`, raw SQL, the Django shell and a future maintainer who has not read this document. INV-4 is a partial `UniqueConstraint` on `(poll, roll_entry)` over registrations not in `rejected`. Application-level checks alone survive only as long as every future code path remembers them.
 
 **INV-1** — no query joining `Registration` to `Ballot` — has no schema expression here: the models share no foreign key, and the models module must define no relation between them. Assert with a test that inspects the model metadata, and keep the two in separate service modules so a join has no natural place to be written.
 
@@ -194,18 +207,34 @@ Python cannot make an illegal transition a compile error, so the enforcement is 
 
 ### 6.1 Roll import (R-4.2, R-4.5)
 
-Accept `.xlsx` and `.csv` (UTF-8 and Latin-1; sniff and let the operator confirm). Steps: upload → column mapping UI → validation report (missing fields, malformed NNE, duplicate NNE, duplicate name+NNE mismatch) → preview → explicit confirmation → transactional apply, all-or-nothing. Log filename, SHA-256 of the file, row count, operator. A new import replaces the working roll entirely and does not touch snapshots of already-open polls.
+Accept `.xlsx` and `.csv` (UTF-8 and Latin-1; sniff and let the operator confirm). Steps: upload → column mapping UI → validation report → preview → explicit confirmation → transactional apply, all-or-nothing. Log filename, SHA-256 of the file, row count and operator. A new import replaces the working roll entirely and does not touch the snapshot of an already-open poll (INV-7).
+
+**Fields imported (R-4.2):** birth surname, name in use, forenames, date of birth, list type. Nothing else — not sex, nationality, place of birth, polling station or order number; nationality in particular reveals national origin and is implied by the list type anyway. The address is imported only where postal enrolment is configured (§13); it is not otherwise collected.
+
+**The report informs; it does not gate.** Only a structurally unusable file is refused, and then nothing is written (R-4.5):
+
+- **Blocking:** a mandatory column left unmapped, or a row carrying no name at all.
+- **Reported and imported:** a date of birth that will not parse (the row is flagged `date_uncertain`, kept verbatim — R-4.9); an incomplete row (no list type, say); rows that collapse together (below); two entries sharing a normalised name and date of birth that do **not** collapse — a fact about the roll, judgement for a human, never a refusal.
+
+**Collapsing (R-4.6).** The export carries one row per elector *per list type*. The import merges rows that share a normalised identity — name and date of birth — into one entry holding the union of their list types. A row flagged `date_uncertain` is not collapsed on a parsed value.
+
+`row_count` logged is the number of rows read, not the number of entries created.
 
 ### 6.2 Registration (§5)
 
-1. Form: last name, first names, NNE, email, honour-declaration checkbox (R-5.2). Include help text: the NNE is on the *carte électorale*, obtainable from the mairie, or via the *Interroger sa situation électorale* service.
-2. Match on NNE against the snapshot (R-5.3). Name comparison uses NFKD normalisation, diacritic stripping, case folding, hyphen and apostrophe normalisation, particle handling (`de`, `du`, `le`, …), and order-insensitive comparison of first names.
+1. Form: surname, first names, date of birth, email, honour-declaration checkbox (R-5.2). Help text: either the birth surname or the name in use is accepted.
+2. Match against the snapshot on normalised name and date of birth (R-5.3). Name comparison uses NFKD normalisation, diacritic stripping, case folding, hyphen and apostrophe normalisation, particle handling (`de`, `du`, `le`, …), and order-insensitive comparison of first names; the declared surname is tried against **both** `birth_name` and `usual_name`. The date of birth carries most of the discriminating power, so the name comparison stays lenient. An entry flagged `date_uncertain` (R-4.9) never matches here.
+
+   At no point before the mailbox is confirmed is the matched entry shown back to the person (R-5.11): otherwise the form becomes a way to confirm, from a name and a date of birth, that someone is on the roll. Matching establishes the right to vote, not identity — the roll's identity data are obtainable by any elector under article L.37 of the electoral code, so self-registration alone proves less than it seems (R-5.12).
 3. Lower-case the email and reject if `(poll, email_canonical)` already exists: one elector, one address. Show the same neutral message as case 6 and do not disclose the existing registration. Note for the mairie: a couple sharing a single address cannot both register online; their route is the paper channel at the mairie, and the back-office help text must say so.
 
    The rule is uniqueness of the address as given, not of the underlying mailbox, which cannot be determined from outside: aliases, forwarding and catch-all domains all defeat it. What this buys is that the same address is not reused; the guarantee that a token is private to one person rests on the elector choosing an address only they read, which the registration page should say plainly.
-4. Outcomes (R-5.4): NNE found + name consistent → `pending_email`; NNE found + name divergent → `pending_review`; NNE absent or blank → `pending_review`.
-5. `pending_review` approved by a poll admin → `pending_email`, never straight to `active`: the mailbox is confirmed in every path. Rejection and approval both logged with a reason.
-6. NNE already registered → refuse, show a message directing the person to the mairie, log the attempt, flag it to the poll admin (R-5.9). Do not reveal any detail of the existing registration.
+4. Outcomes (R-5.4):
+   - exactly one matching entry, and its `list_types` meet `poll.eligible_list_types` → bind `roll_entry_id`, `pending_email`;
+   - exactly one matching entry, but its list types confer no eligibility for this poll (R-4.7) → `rejected`, reason recorded; the person is told they are not eligible for this poll;
+   - no match, several matches, or a match only against a `date_uncertain` entry → `pending_review`.
+5. `pending_review` resolved by a poll admin: **approve** — the admin picks the roll entry, `roll_entry_id` is bound, state goes to `pending_email`, never straight to `active` — or **reject**. Both are logged with a reason, and the person is told their registration is under review (R-5.4).
+6. The matched (or admin-picked) roll entry already carries a non-`rejected` registration → refuse, show a message directing the person to the mairie, log the attempt, flag it to the poll admin (R-5.9). Do not reveal any detail of the existing registration.
 7. Confirmation email carries the ballot link and the modification link (R-5.6), and MUST state that losing the email means losing the ability to modify the ballot, which nonetheless still counts (R-7.6). It carries **no tracking code**: the code belongs to a ballot, and no ballot exists yet. Issuing one here would put the same value on a `Registration` row and a `Ballot` row, which is a join in all but name and destroys INV-1 and INV-5 — the 1:1 correspondence between a registration and the ballot it leads to is real, and §7 exists precisely to make it uncomputable. The code is issued at cast (§6.3) and on the paper receipt (§6.4); a voter who registers and never votes has none, which is correct. **Divergence flagged against the requirements (§0):** if R-5.6 is read as requiring the tracking code in the registration email, the only safe implementation is a value derived from the token, `base32(truncate(SHA256("track" ‖ poll.token_salt ‖ token)))`, stored nowhere — and INV-11 must then be reworded to tolerate a derived value that cannot be re-rolled on collision.
 8. Reminder email 48 h before `closes_at` to `active` registrations with `channel = none` (R-5.7).
 9. Rate-limit registration and email-sending endpoints (R-5.8).
@@ -222,7 +251,7 @@ Where it is not set, the ballot is cast once. The ballot page MUST say so before
 
 ### 6.4 Paper entry (R-8)
 
-Operator searches the snapshot by name or NNE, is shown near-matches, and confirms the elector (R-8.3). Then: check `channel`.
+Operator searches the snapshot by name or date of birth, is shown near-matches, and confirms the elector (R-8.3). Where two entries cannot be told apart on the data held, the operator settles it with the elector in front of them, not from the record (R-8.3). Then: check `channel`.
 
 - `channel = paper` already → this is an edit of the existing ballot, not a new one.
 - `channel = online` → blocking red interstitial; proceed only on explicit confirmation with a mandatory reason, both logged; the UI should first suggest that the voter modify their own ballot online (R-9.3).
@@ -281,7 +310,7 @@ Consequences to implement deliberately:
 - Administrators see two irreconcilable lists: names with a voted/not-voted flag, and anonymous rankings with tracking codes (R-7.5).
 - Token loss is unrecoverable by anyone, including administrators (R-7.6). Say so in the confirmation email — where `allow_ballot_modification` is false the point is moot, and the email should not raise it.
 - **Disabling modification strengthens anonymity.** The token → ballot link exists only to serve modification, so when the option is off, `ballot_hash` is not computed and not stored: nothing whatever connects a cast ballot to the token that cast it, and the voter's own tracking code becomes the sole handle. Voting-status is then carried by `Registration.channel` alone, set in the same transaction as the ballot insert. A poll wanting the closest approach to a secret ballot should disable modification.
-- `token_salt` is per poll, so participation cannot be correlated across polls by the application (R-13.4). Note the residual exposure at R-13.4 bis: the NNE is a permanent national identifier, so direct database access to two concurrent polls permits a join on it. Do not add any feature that surfaces this.
+- `token_salt` is per poll, so participation cannot be correlated across polls by the application (R-13.4). Note the residual exposure at R-13.4 bis: name and date of birth are stable identifiers, so direct database access to two concurrent polls permits a join on them. The mitigation is to keep identity data readable only by the poll admin and to purge it on schedule (§11); do not add any feature that surfaces the correlation.
 - Paper ballots are deliberately **not** anonymous: `PaperBallotLink` keeps the association, because traceability and deletion-on-request require it.
 
 **Receipt-freeness is not provided, and is not attempted.** A voter who keeps their tracking code can find their own row in the published CSV (§9) and so prove to a third party how they voted. This is inherent in publication-based verifiability: the property that lets any reader recompute the result from the published set is the same property that makes a ballot findable by someone holding its code. It is accepted because the poll is consultative, and it means the software MUST NOT be used where coercion or vote-buying is a realistic risk. The README says so, next to the risk-level statement of §11.
@@ -351,16 +380,16 @@ For small option counts also publish the per-ordering summary table — six rows
 
 ## 10. Audit log (R-12)
 
-Log at minimum: config changes; state transitions; `closes_at` extensions; roll imports; snapshots; registration review decisions; duplicate-NNE registration attempts; paper ballot create/correct/delete; countersignatures; collision overrides with reason; role assignments; access to the log itself. Each entry: actor, timestamp, object, before, after, reason where required (R-12.2). Auditors read everything; nobody can modify or delete (R-12.3).
+Log at minimum: config changes; state transitions; `closes_at` extensions; roll imports; snapshots; registration review decisions; registration attempts against an already-registered roll entry; registrations refused for an ineligible list type; paper ballot create/correct/delete; countersignatures; collision overrides with reason; role assignments; access to the log itself. Each entry: actor, timestamp, object, before, after, reason where required (R-12.2). Auditors read everything; nobody can modify or delete (R-12.3).
 
-**Reference-only structure (MUST, and decided before the model is written).** An audit event stores a *reference* and non-identifying state, never a copied personal value. `object_ref` names the row — `registration:<uuid>`, `ballot:<uuid>`, `poll:<uuid>` — and `before`/`after` are JSON objects holding state, channel, status, role, and rankings by option **id**. No elector's name, NNE or email is ever written to an audit event. Staff identity is different: `actor_id` is a named operator account (R-2.2), retained legitimately, and is not elector data.
+**Reference-only structure (MUST, and decided before the model is written).** An audit event stores a *reference* and non-identifying state, never a copied personal value. `object_ref` names the row — `registration:<uuid>`, `ballot:<uuid>`, `poll:<uuid>` — and `before`/`after` are JSON objects holding state, channel, status, role, and rankings by option **id**. No elector's name, date of birth or email is ever written to an audit event. Staff identity is different: `actor_id` is a named operator account (R-2.2), retained legitimately, and is not elector data.
 
 The identity therefore lives only in the referenced row, which the retention job deletes (§11). After retention the log still reads *registration 7f3a… moved `pending_review` → `active`, by operator M, at T, reason `name_divergence_accepted`* — a complete record of what was done, with no way to recover to whom. That is a stronger property than redacting values after the fact, it costs nothing at write time, and it lets INV-3 stay absolute: no update path to the table at all, and so no exception for the purge to be granted.
 
 Two things it requires:
 
 - **`reason` is a structured code, not prose.** Free text authored by an operator will contain a name sooner or later — *nom mal orthographié : Dupond/Dupont* — and `reason` is retained. The event carries a code from a declared vocabulary; the prose belongs on the referenced row, in `Registration.review_reason` (§3.3), where the purge takes it. Where a screen requires a mandatory reason (R-8.5, R-9.3, §9's closure override), the mandatory part is the code; any note accompanying it is stored on the object, not on the event.
-- **Duplicate-NNE attempts (R-5.9) reference the existing registration** that caused the refusal, and record nothing about the attempter. The flag is actionable while the poll is open and worthless afterwards, so the identity dying with that row is the intended outcome.
+- **Attempts against an already-registered entry (R-5.9) reference the existing registration** that caused the refusal, and record nothing about the attempter. The flag is actionable while the poll is open and worthless afterwards, so the identity dying with that row is the intended outcome.
 
 A reference to a purged row is expected, not an error: the audit screen (§6.5) renders it as *objet supprimé (rétention)*. Retrofitting any of this once the log holds history is a data migration over rows the trigger design exists to make immovable, which is why it is settled here.
 
@@ -368,7 +397,7 @@ A reference to a purged row is expected, not an error: the audit screen (§6.5) 
 
 ## 11. Data protection (R-13)
 
-Retention job: two months after **closure**, delete registrations, NNEs, roll snapshots and `PaperBallotLink` rows. The anchor is closure and not publication, because a poll that closes and is never published — an unresolved `physical` tie-break, an abandoned result — would otherwise keep its identity data for ever; the basis for holding it ends when the poll is over, not when somebody gets round to announcing the outcome. Publication after a purge remains possible because §9 freezes the participation counts at closure. Audit events need no treatment of their own: they hold references and non-identifying state only (§10), so deleting the referenced rows is what anonymises the log. Anonymised ballots, published results and the log itself are retained in full. Retention must be a scheduled, logged, idempotent job — not a manual procedure.
+Retention job: two months after **closure**, delete the registrations, the roll snapshot and the `PaperBallotLink` rows — every row that holds an elector's identity data. The anchor is closure and not publication, because a poll that closes and is never published — an unresolved `physical` tie-break, an abandoned result — would otherwise keep its identity data for ever; the basis for holding it ends when the poll is over, not when somebody gets round to announcing the outcome. Publication after a purge remains possible because §9 freezes the participation counts at closure. Audit events need no treatment of their own: they hold references and non-identifying state only (§10), so deleting the referenced rows is what anonymises the log. Anonymised ballots, published results and the log itself are retained in full. Retention must be a scheduled, logged, idempotent job — not a manual procedure.
 
 The purge is the sole exception to INV-2, which it necessarily breaches: it deletes `Registration` rows long after `closes_at`. Express the exception inside the trigger rather than around it — the INV-2 trigger forbids `INSERT` and `UPDATE` on `Registration` and `Ballot` outside the voting window, and permits `DELETE` of a registration only where the poll is `published`. Disabling the trigger for the duration of the job is not an acceptable substitute. The same applies to INV-7, whose trigger refuses every `UPDATE` on `RollEntry` unconditionally and permits `DELETE` only where the poll is `published` — a snapshot is frozen, not immortal. INV-3 needs no such accommodation, since the purge never touches `AuditEvent` at all.
 
@@ -391,7 +420,7 @@ These run on every commit and must stay fast. Everything here is a function of i
 | T-9 | Cyclic-majority ballot set (A>B>C, B>C>A, C>A>B in equal numbers) | Schulze reports a tie; the tie-break resolves it; identical on re-run |
 | T-33 | Fixture sets tallied under `plurality` and `approval` | Correct winners and derivations (§8.2) |
 | T-39 | Empty ballot set | Tally reports the absence of a result rather than failing |
-| T-40 | Name pairs differing by diacritics, case, hyphens, particles and first-name order | Normalisation matches them; genuinely different names do not collide (R-5.3) |
+| T-40 | Name pairs differing by diacritics, case, hyphens, particles and first-name order; and a declared surname equal to the entry's *name in use* but not its birth surname | Normalisation matches them; the birth-surname / name-in-use alternation matches; genuinely different names do not collide (R-5.3) |
 | T-41 | Addresses differing only by case; addresses differing by a `+suffix` or a dot | First pair canonicalises equal; the others are treated as distinct addresses (§3.3) |
 | T-42 | Golden ballot set | Canonical serialisation matches a stored byte-for-byte vector, and the closure hash matches its stored value (§9) |
 | T-43 | One token | `voter_hash ≠ ballot_hash`; both stable across runs; both change when the poll salt changes (§7) |
@@ -399,13 +428,15 @@ These run on every commit and must stay fast. Everything here is a function of i
 | T-45 | Rankings that are incomplete, or contain ties | Accepted or rejected exactly per `require_complete_ranking` and `allow_ties_in_ballot` (R-6.1) |
 | T-46 | Content with a missing translation in an enabled language | Falls back to the poll's default language, never to an empty string (§3.8) |
 | T-47 | Closing instant spanning the Europe/Paris daylight-saving transition | The comparison resolves to the intended absolute instant |
+| T-59 | Dates of birth: a well-formed `dd/mm/yyyy`, a bare year, `00/00/1953`, an empty string | The well-formed one parses; the rest are flagged `date_uncertain` and kept verbatim (R-4.9) |
+| T-60 | The collapse step (§6.1) over parsed rows: one elector present on `principale` and on `complémentaire municipale`; another with a `date_uncertain` date of birth | The first pair collapses to one entry whose `list_types` holds both; the `date_uncertain` row is not collapsed on a parsed value (R-4.6, R-4.9) |
 
 ### 12.2 Integration — database, triggers, HTTP, mail, browser
 
 | # | Given / when | Then |
 |---|---|---|
 | T-1 | A ballot is cast, then modified three times | Four versions stored; one `live`; tracking code unchanged |
-| T-2 | Registration with an NNE already used | Refused, logged, flagged; no detail of the existing registration disclosed |
+| T-2 | Registration resolving to a roll entry that already carries a non-rejected registration | Refused, logged, flagged; no detail of the existing registration disclosed (R-5.9) |
 | T-3 | Vote submitted one second after `closes_at`, clock skew simulated | Refused server-side |
 | T-4 | Attempt to change `options` while `state = open` | Rejected |
 | T-5 | `closes_at` extended | Allowed, logged with reason, shown on the public page |
@@ -413,7 +444,7 @@ These run on every commit and must stay fast. Everything here is a function of i
 | T-7 | Elector with a paper ballot attempts to vote online | Refused, directed to the mairie |
 | T-8 | Operator enters a paper ballot for an elector who voted online | Blocking warning; proceeds only with confirmation and reason; both logged |
 | T-10 | Published CSV re-tallied by the Rust verifier | Identical winner, matrix and closure hash; run in CI on fixtures including T-9's |
-| T-11 | Roll import with one malformed NNE | Whole import rejected; nothing written |
+| T-11 | Roll import missing a mandatory column; and one with a row carrying no name | Both refused, nothing written (R-4.5) |
 | T-12 | Two concurrent polls, same elector registered in both | Two tokens; no endpoint exposes cross-poll participation |
 | T-13 | Ballot page driven by keyboard only, then by screen reader | Ranking completable without drag-and-drop |
 | T-14 | Retention job run two months after closure | Identity data gone; ballots, results and the log retained in full; the log's now-dangling references render as *objet supprimé* rather than erroring |
@@ -427,10 +458,10 @@ These run on every commit and must stay fast. Everything here is a function of i
 | T-22 | Poll with English enabled but one option label untranslated | Cannot leave `draft`; the gap is named on the configuration screen |
 | T-23 | Option label corrected after publication | Closure hash and result unchanged |
 | T-24 | `UPDATE` or `DELETE` on `audit_event`, and on a superseded `Ballot` row, issued in raw SQL | Rejected by the trigger, not merely by application code (INV-3) |
-| T-25 | Schema and model metadata inspected; a registration and the ballot cast from its token compared field by field | No field or relation links `Ballot` to a voter, registration or NNE, and no value whatever is common to the two rows — in particular no tracking code (INV-1, INV-5, §6.2) |
+| T-25 | Schema and model metadata inspected; a registration and the ballot cast from its token compared field by field | No field or relation links `Ballot` to a voter, registration or roll entry, and no value whatever is common to the two rows — in particular no tracking code (INV-1, INV-5, §6.2) |
 | T-26 | Roll re-imported while a poll is open; `UPDATE` attempted on a `RollEntry` | Open poll's snapshot unchanged; update rejected (INV-7, R-4.3) |
 | T-27 | Registration left in `pending_email` | Cannot reach the ballot; excluded from turnout figures (R-5.5) |
-| T-28 | Registration whose name diverges from the roll entry | Routed to `pending_review` rather than refused (R-5.4) |
+| T-28 | Registration whose name or date of birth diverges from every roll entry | Routed to `pending_review` rather than refused (R-5.4) |
 | T-29 | Ballot violating the poll's ranking constraints, posted directly to the endpoint | Rejected server-side, not only in the browser |
 | T-30 | Two voters open the ballot page | Option display order differs; stored order and ids unaffected (R-6.2) |
 | T-31 | Paper ballot deleted by an operator | `channel` cleared, online voting re-enabled, both actions logged with reason (R-9.4) |
@@ -447,10 +478,14 @@ These run on every commit and must stay fast. Everything here is a function of i
 | T-52 | Ballot posted before `opens_at`, with `state` forced to `open` directly in the database | Refused server-side by the voting-window check, which never consults `state` (§4, INV-2) |
 | T-53 | `open_poll` run against a poll with an option label untranslated in an enabled language, and against one with no roll snapshot | Refuses both, leaves them in `draft`, logs the blocking reason, exits non-zero (§3.8, §4) |
 | T-54 | Retention purge run on a published poll; then `INSERT` and `UPDATE` attempted on `Registration` in raw SQL after `closes_at` | Purge succeeds against live triggers, including the `RollEntry` deletion; insert and update rejected by the INV-2 trigger (§11) |
-| T-55 | Every audit event written across a full poll lifecycle, scanned before and after the purge | No `object_ref`, `before`, `after` or `reason` matches a name, NNE or email pattern at either point; `UPDATE` on `audit_event` still aborts (§10, INV-3) |
+| T-55 | Every audit event written across a full poll lifecycle, scanned before and after the purge | No `object_ref`, `before`, `after` or `reason` matches a name, date-of-birth or email pattern at either point; `UPDATE` on `audit_event` still aborts (§10, INV-3) |
 | T-56 | Paper ballot keyed in after `closes_at` but before `paper_entry_deadline`; an online ballot posted at the same instant; a countersignature applied at the same instant | Paper entry and countersignature accepted and counted; online ballot refused (§6.4, INV-2) |
 | T-57 | `close_poll` reaching `paper_entry_deadline` with a `pending_countersign` ballot outstanding | Refuses, leaves the poll `open`, logs the blocker, exits non-zero; no ballot write is accepted meanwhile; the dashboard names the blocker (§4, §9) |
 | T-58 | Poll closed and never published, two months later; then published afterwards | Purge runs on the closure anchor; identity data gone; the counts frozen at closure are still published correctly (§9, §11) |
+| T-61 | Registration matching an entry whose list types fall outside `poll.eligible_list_types` | `rejected` with a reason; the person is told they are not eligible; the attempt is logged (R-4.7, R-5.4) |
+| T-62 | Registration whose declared name and raw date string equal a `date_uncertain` entry exactly | `pending_review`, never auto-matched (R-4.9) |
+| T-63 | Roll import with duplicate names, incomplete rows and unparseable dates — no missing column, no nameless row | Succeeds; every row imported; the report lists the duplicates, the incomplete rows and the `date_uncertain` flags (R-4.5) |
+| T-64 | `tests/fixtures/roll-fixture.csv` imported with `eligible_list_types = {principale, complémentaire municipale}` | 58 entries from 60 rows; 57 eligible; the European-list-only entry ineligible; 2 flagged `date_uncertain`; one pair indistinguishable on name and date of birth — per `tests/fixtures/README.md` |
 
 T-16 and T-38 need a throwaway host (a container or a virtual machine under Molecule or equivalent) rather than the ordinary test database, and belong in a separate, slower CI job. T-13 needs a browser and a screen reader; automate what a headless browser can check and keep the assistive-technology pass as a documented manual step before each poll opens.
 
@@ -465,6 +500,8 @@ T-16 and T-38 need a throwaway host (a container or a virtual machine under Mole
 5. Which of `paper_requires_signed_form`, `paper_requires_countersign`, `paper_requires_reconciliation` are enabled for the first poll — all default false.
 6. Acceptance of the residual correlation risk at R-13.4 bis.
 7. Whether a paper keying window is used and how long it runs (`paper_entry_deadline`); the default is none, the deadline sitting on `closes_at`.
+8. Whether postal enrolment is offered. If it is, the roll import also imports the address (R-4.2) and the registration form collects it; neither is in the first release.
+9. `review_all_registrations` — whether **every** registration goes to the manual queue, or only those R-5.4 sends there. The requirements lean towards universal review — an exact name-and-date match proves less than it looks (R-5.12), and the volume in one commune is small — so default it to true. The queue screen (§6.5) and the scheduled-review path are built either way.
 
 ---
 
