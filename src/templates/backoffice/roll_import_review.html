@@ -1,0 +1,105 @@
+{% extends "backoffice/base.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD #}
+
+{% block screen_title %}{% translate "Import de la liste électorale" %}{% endblock %}
+{% block heading %}{% translate "Import de la liste électorale" %}{% endblock %}
+
+{% block pollnav %}
+  <ul class="pollnav__links">
+    <li><a href="{% url 'backoffice:dashboard' poll.pk %}">{% translate "Tableau de bord" %}</a></li>
+    <li><a href="{% url 'backoffice:roll_import' poll.pk %}">{% translate "Liste électorale" %}</a></li>
+  </ul>
+{% endblock %}
+
+{% block screen %}
+  <p>{% blocktranslate %}Fichier : {{ filename }}{% endblocktranslate %}</p>
+  <p>{% blocktranslate count total=total_rows %}{{ total }} ligne à traiter{% plural %}{{ total }} lignes à traiter{% endblocktranslate %}</p>
+
+  <form method="post">
+    {% csrf_token %}
+
+    {% comment %}
+      §6.1's column mapping UI. A guess is pre-selected (never authoritative);
+      changing a selection and pressing "Actualiser" re-runs the mapping and
+      the report below without a fresh upload.
+    {% endcomment %}
+    <fieldset>
+      <legend>{% translate "Correspondance des colonnes" %}</legend>
+      {% for f in fields %}
+        <p class="field">
+          <label for="col-{{ f.name }}">{{ f.label }}</label>
+          <select id="col-{{ f.name }}" name="col_{{ f.name }}">
+            <option value="">{% translate "— non associée —" %}</option>
+            {% for header in headers %}
+              <option value="{{ header }}"{% if header == f.selected %} selected{% endif %}>
+                {{ header }}
+              </option>
+            {% endfor %}
+          </select>
+        </p>
+      {% endfor %}
+      <button type="submit" name="action" value="revalidate">{% translate "Actualiser l'aperçu" %}</button>
+    </fieldset>
+
+    {% if report %}
+      <section aria-labelledby="rapport">
+        <h2 id="rapport">{% translate "Rapport de validation" %}</h2>
+
+        {% comment %}
+          §6.1's four categories. The first three block the import outright
+          (T-11); the fourth is judgement for the operator, the same way a
+          divergent registration is (R-5.4), and never blocks.
+        {% endcomment %}
+        <ul class="validation-report">
+          <li class="{% if report.missing_fields %}validation-report__bad{% else %}validation-report__ok{% endif %}">
+            {% blocktranslate count n=report.missing_fields|length %}{{ n }} ligne avec un champ manquant{% plural %}{{ n }} lignes avec un champ manquant{% endblocktranslate %}
+          </li>
+          <li class="{% if report.malformed_nne %}validation-report__bad{% else %}validation-report__ok{% endif %}">
+            {% blocktranslate count n=report.malformed_nne|length %}{{ n }} ligne avec un NNE mal formé{% plural %}{{ n }} lignes avec un NNE mal formé{% endblocktranslate %}
+          </li>
+          <li class="{% if report.duplicate_nne %}validation-report__bad{% else %}validation-report__ok{% endif %}">
+            {% blocktranslate count n=report.duplicate_nne|length %}{{ n }} ligne avec un NNE en doublon{% plural %}{{ n }} lignes avec un NNE en doublon{% endblocktranslate %}
+          </li>
+          <li class="validation-report__warn">
+            {% blocktranslate count n=report.duplicate_name_nne_mismatch|length %}{{ n }} doublon de nom à vérifier (non bloquant){% plural %}{{ n }} doublons de nom à vérifier (non bloquant){% endblocktranslate %}
+          </li>
+        </ul>
+
+        {% if report.blocking %}
+          <p class="error" role="alert">{% translate "Import refusé : corrigez le fichier source et rechargez-le. Rien n'a été écrit." %}</p>
+        {% endif %}
+
+        <h3>{% translate "Aperçu (20 premières lignes)" %}</h3>
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">{% translate "Ligne" %}</th>
+              <th scope="col">{% translate "Nom" %}</th>
+              <th scope="col">{% translate "Prénoms" %}</th>
+              <th scope="col">{% translate "NNE" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in preview %}
+              <tr>
+                <td>{{ row.index }}</td>
+                <td>{{ row.last_name }}</td>
+                <td>{{ row.first_names }}</td>
+                <td>{{ row.nne }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+
+        <p>
+          <button type="submit" name="action" value="confirm" {% if report.blocking %}disabled{% endif %}>
+            {% translate "Confirmer l'import" %}
+          </button>
+        </p>
+      </section>
+    {% endif %}
+  </form>
+
+  <p><a href="{% url 'backoffice:roll_import' poll.pk %}">{% translate "Recommencer avec un autre fichier" %}</a></p>
+{% endblock %}

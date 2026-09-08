@@ -24,12 +24,15 @@ All four gates run in CI and must be green before a commit lands.
 `src/config/` project settings and URLs · `src/apps/core/` types, crypto,
 canonical serialisation, name matching, tracking codes, job locking ·
 `src/apps/elections/` poll, options, snapshot, transitions, voting window,
-closure, retention · `src/apps/registrations/` (§6.2: `services`, `mail`, `forms`, `views`) ·
+closure, retention, `rollimport.py` (§6.1: parsing, mapping, validation, the
+transactional apply shared by the CLI and screen 3) ·
+`src/apps/registrations/` (§6.2: `services`, `mail`, `forms`, `views`) ·
 `src/apps/ballots/` ·
 `src/apps/audit/` · `src/apps/tally/` pure, imports no model ·
 `src/apps/backoffice/` espace mairie (§6.5, the bulk of the remaining work;
-`access.py` is the role gate every screen goes through, `dashboard.py` and
-`auditlog.py` the read models for screens 1 and 8) · `src/apps/publicsite/`
+`access.py` is the role gate every screen goes through, `dashboard.py`,
+`auditlog.py` and `review.py` the read models for screens 1, 4 and 8)
+· `src/apps/publicsite/`
 · `src/templates/` · `src/static/` · `locale/` (French is the msgid language, so
 only `en` has a catalogue) · `verifier/` independent Rust verifier · `ansible/`
 · `contrib/init/`.
@@ -133,3 +136,12 @@ taken — that costs more than it saves.
 - Under `mypy --strict`, `voter_hash(...) != ballot_hash(...)` is a
   non-overlapping comparison. That is the point (§5.1); convert with `bytes()`
   in a test that deliberately compares them.
+- `WorkingRollEntry` is commune-wide, not poll-scoped (§3.2) — screen 3 is
+  reached from one poll but replaces every poll's future snapshot. The
+  `open_window_poll` fixture seeds one row of it, so a test asserting an exact
+  `WorkingRollEntry.objects.count()` after an import must count that row too.
+- Latin-1 decodes every byte 0–255, so a CSV upload can never fail to decode —
+  there is no "wrong encoding" a `_read_csv` can catch. §6.1's real defence
+  against garbage content is the validation report downstream, not a
+  decode-time refusal; do not write a test expecting `UnreadableFile` from bad
+  bytes on a `.csv` path.

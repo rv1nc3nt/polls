@@ -947,3 +947,100 @@ msgstr ""
 "not yet been recorded.\n"
 "\n"
 "To vote, use the link you received when you registered."
+
+msgid "Actualiser l'aperçu"
+msgstr "Refresh the preview"
+
+msgid "Aperçu (20 premières lignes)"
+msgstr "Preview (first 20 rows)"
+
+msgid "Aucun import en cours. Recommencez."
+msgstr "No import in progress. Start again."
+
+msgid "Cet import remplace entièrement la liste électorale de travail, pour tous les scrutins. Les scrutins déjà ouverts conservent leur copie figée et ne sont pas concernés ; tout scrutin encore en brouillon utilisera cette nouvelle liste à son ouverture."
+msgstr "This import entirely replaces the working electoral roll, for every poll. Polls already open keep their frozen snapshot and are unaffected; any poll still in draft will use this new roll when it opens."
+
+msgid "Charger le fichier"
+msgstr "Upload the file"
+
+msgid "Choisissez un fichier."
+msgstr "Choose a file."
+
+msgid "Confirmer l'import"
+msgstr "Confirm the import"
+
+msgid "Correspondance des colonnes"
+msgstr "Column mapping"
+
+msgid "Encodage UTF-8 ou Latin-1, détecté automatiquement."
+msgstr "UTF-8 or Latin-1 encoding, detected automatically."
+
+msgid "Encodage non reconnu (ni UTF-8 ni Latin-1)."
+msgstr "Unrecognised encoding (neither UTF-8 nor Latin-1)."
+
+msgid "Fichier (.csv ou .xlsx)"
+msgstr "File (.csv or .xlsx)"
+
+msgid "Fichier .xlsx illisible."
+msgstr "Unreadable .xlsx file."
+
+msgid "Import de la liste électorale"
+msgstr "Electoral roll import"
+
+msgid "Import refusé : corrigez le fichier source et rechargez-le. Rien n'a été écrit."
+msgstr "Import refused: fix the source file and reload it. Nothing has been written."
+
+msgid "Le classeur ne contient aucune feuille."
+msgstr "The workbook contains no sheet."
+
+msgid "Le fichier contient des lignes invalides."
+msgstr "The file contains invalid rows."
+
+msgid "Le fichier est vide."
+msgstr "The file is empty."
+
+msgid "Ligne"
+msgstr "Row"
+
+msgid "Liste électorale"
+msgstr "Electoral roll"
+
+msgid "Liste électorale importée : %(count)s inscrit(s)."
+msgstr "Electoral roll imported: %(count)s elector(s)."
+
+msgid "Rapport de validation"
+msgstr "Validation report"
+
+msgid "Recommencer avec un autre fichier"
+msgstr "Start again with another file"
+
+msgid "— non associée —"
+msgstr "— unmapped —"
+
+msgid "Fichier : %(filename)s"
+msgstr "File: %(filename)s"
+
+msgid "%(total)s ligne à traiter"
+msgid_plural "%(total)s lignes à traiter"
+msgstr[0] "%(total)s row to process"
+msgstr[1] "%(total)s rows to process"
+
+msgid "%(n)s ligne avec un champ manquant"
+msgid_plural "%(n)s lignes avec un champ manquant"
+msgstr[0] "%(n)s row with a missing field"
+msgstr[1] "%(n)s rows with a missing field"
+
+msgid "%(n)s ligne avec un NNE mal formé"
+msgid_plural "%(n)s lignes avec un NNE mal formé"
+msgstr[0] "%(n)s row with a malformed NNE"
+msgstr[1] "%(n)s rows with a malformed NNE"
+
+msgid "%(n)s ligne avec un NNE en doublon"
+msgid_plural "%(n)s lignes avec un NNE en doublon"
+msgstr[0] "%(n)s row with a duplicate NNE"
+msgstr[1] "%(n)s rows with a duplicate NNE"
+
+msgid "%(n)s doublon de nom à vérifier (non bloquant)"
+msgid_plural "%(n)s doublons de nom à vérifier (non bloquant)"
+msgstr[0] "%(n)s name to double-check (not blocking)"
+msgstr[1] "%(n)s names to double-check (not blocking)"

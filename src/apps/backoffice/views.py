@@ -43,6 +43,7 @@ from django.utils.translation import gettext as _
 from apps.audit import services as audit
 from apps.audit.models import Action, Reason
 from apps.core.models import Role
+from apps.elections import rollimport
 from apps.elections.models import Poll
 from apps.elections.windows import WindowClosed
 from apps.registrations import mail as registration_mail
@@ -280,3 +281,107 @@ def registration_decide(request: HttpRequest, poll: Poll) -> HttpResponse:
         messages.error(request, str(refusal))
 
     return redirect("backoffice:registration_queue", poll_id=str(poll.pk))
+
+
+# --- Screen 3: import de la liste électorale (§6.5.3, §6.1) -----------------
+
+#: The parsed file, held between the upload step and the review step. Keyed to
+#: the session rather than the poll: ``WorkingRollEntry`` is commune-wide
+#: (§3.2), so an in-progress import is not "this poll's" import even though the
+#: screen that started it is scoped to one.
+_ROLL_DRAFT_SESSION_KEY = "roll_import_draft"
+
+
+@require_poll_role(Role.POLL_ADMIN)
+def roll_import(request: HttpRequest, poll: Poll) -> HttpResponse:
+    """Screen 3, step 1 — upload (§6.1, §6.5.3).
+
+    Accepts the file, parses it, and stores the parsed table in the session for
+    the review step. Nothing is written yet: a bad file is caught here, before
+    anything durable exists to clean up.
+    """
+    error = ""
+    if request.method == "POST":
+        upload = request.FILES.get("file")
+        filename = upload.name if upload else None
+        if upload is None or not filename:
+            error = _("Choisissez un fichier.")
+        else:
+            data = upload.read()
+            try:
+                table = rollimport.read_table(data, filename)
+            except rollimport.UnreadableFile as exc:
+                error = str(exc)
+            else:
+                request.session[_ROLL_DRAFT_SESSION_KEY] = {
+                    "filename": filename,
+                    "sha256": rollimport.file_digest(data),
+                    "headers": table.headers,
+                    "rows": table.rows,
+                }
+                return redirect("backoffice:roll_import_review", poll_id=str(poll.pk))
+
+    return render(request, "backoffice/roll_import.html", {"poll": poll, "error": error})
+
+
+@require_poll_role(Role.POLL_ADMIN)
+def roll_import_review(request: HttpRequest, poll: Poll) -> HttpResponse:
+    """Screen 3, steps 2–5 — column mapping, validation report, preview,
+    explicit confirmation (§6.1, R-4.5), all on one page.
+
+    The mapping lives in the form, not the session: resubmitting with a
+    different choice re-runs the mapping and the report immediately, so
+    correcting a wrong guess costs one click, not a restart. Only the parsed
+    table — the part that is expensive to redo — is kept in the session.
+    """
+    draft = request.session.get(_ROLL_DRAFT_SESSION_KEY)
+    if draft is None:
+        messages.error(request, _("Aucun import en cours. Recommencez."))
+        return redirect("backoffice:roll_import", poll_id=str(poll.pk))
+
+    table = rollimport.Table(headers=draft["headers"], rows=draft["rows"])
+    guessed = rollimport.guess_mapping(table.headers)
+    mapping = {
+        name: request.POST.get(f"col_{name}", guessed.get(name, "")) for name in rollimport.FIELDS
+    }
+    mapping = {name: header for name, header in mapping.items() if header}
+
+    context: dict[str, object] = {
+        "poll": poll,
+        "filename": draft["filename"],
+        "headers": table.headers,
+        # Paired here rather than looked up in the template by a variable key,
+        # which Django's template language cannot do (the audit log hit the
+        # same limit — see ``auditlog.resolve_refs``'s caller).
+        "fields": [
+            {"name": name, "label": label, "selected": mapping.get(name, "")}
+            for name, label in ((n, rollimport.FIELD_LABELS[n]) for n in rollimport.FIELDS)
+        ],
+        "total_rows": len(table.rows),
+    }
+
+    if len(mapping) < len(rollimport.FIELDS):
+        # Step 2: mapping is not complete yet — nothing to validate.
+        return render(request, "backoffice/roll_import_review.html", context)
+
+    rows = rollimport.apply_mapping(table, mapping)
+    report = rollimport.validate(rows)
+    context["report"] = report
+    context["preview"] = rows[:20]
+
+    if request.POST.get("action") == "confirm" and not report.blocking:
+        roll_import_row = rollimport.apply_import(
+            rows,
+            filename=draft["filename"],
+            file_sha256=bytes.fromhex(draft["sha256"]),
+            operator=current_operator(request),
+        )
+        del request.session[_ROLL_DRAFT_SESSION_KEY]
+        messages.success(
+            request,
+            _("Liste électorale importée : %(count)s inscrit(s).")
+            % {"count": roll_import_row.row_count},
+        )
+        return redirect("backoffice:dashboard", poll_id=str(poll.pk))
+
+    return render(request, "backoffice/roll_import_review.html", context)

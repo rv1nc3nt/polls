@@ -5,7 +5,7 @@ from . import views
 
 app_name = "backoffice"
 
-# TODO(scaffold): screens 2, 3, 5–7 and 9–11 of §6.5 land here. Poll-scoped routes
+# TODO(scaffold): screens 2, 5–7 and 9–11 of §6.5 land here. Poll-scoped routes
 # carry ``<uuid:poll_id>``, which ``access.require_poll_role`` resolves and
 # gates — a route that does not is a screen open to anyone signed in.
 urlpatterns = [
@@ -23,5 +23,15 @@ urlpatterns = [
         "scrutin/<uuid:poll_id>/inscriptions/decision/",
         views.registration_decide,
         name="registration_decide",
+    ),
+    path(
+        "scrutin/<uuid:poll_id>/liste-electorale/",
+        views.roll_import,
+        name="roll_import",
+    ),
+    path(
+        "scrutin/<uuid:poll_id>/liste-electorale/verification/",
+        views.roll_import_review,
+        name="roll_import_review",
     ),
 ]

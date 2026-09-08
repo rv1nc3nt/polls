@@ -142,3 +142,11 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 .field { margin-bottom: 1rem; }
 .field .help, .privacy { display: block; color: var(--ink-quiet); }
 .required { font-weight: 400; color: var(--ink-quiet); }
+
+/* Screen 3's validation report. Status is written as a word by the template
+   (0 lignes / n lignes) and this only tints the row — never the only signal. */
+.validation-report { list-style: none; padding: 0; }
+.validation-report li { border-left: 4px solid var(--rule); padding: 0.4rem 0.75rem; margin-bottom: 0.35rem; }
+.validation-report__bad { border-left-color: var(--focus); }
+.validation-report__ok { border-left-color: #2f7d3a; }
+.validation-report__warn { border-left-color: #8a6d1f; }

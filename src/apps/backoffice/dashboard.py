@@ -158,7 +158,11 @@ def _actions_for_state(poll: Poll) -> list[PermittedAction]:
         case PollState.DRAFT:
             return [
                 PermittedAction(_("Configurer le scrutin"), (Role.POLL_ADMIN,)),
-                PermittedAction(_("Importer la liste électorale"), (Role.POLL_ADMIN,)),
+                PermittedAction(
+                    _("Importer la liste électorale"),
+                    (Role.POLL_ADMIN,),
+                    url_name="backoffice:roll_import",
+                ),
             ]
         case PollState.OPEN:
             actions = [
