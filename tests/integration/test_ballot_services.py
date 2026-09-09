@@ -258,6 +258,44 @@ def test_delete_paper_needs_a_reason(open_paper_poll: Poll, operator: User) -> N
         services.delete_paper(ballot, str(operator.pk), "", "")
 
 
+def test_t31_deleting_a_paper_ballot_re_enables_the_online_vote(
+    open_paper_poll: Poll, operator: User
+) -> None:
+    """T-31 / R-9.4: an elector who registered online but was keyed on paper.
+    Deleting the paper ballot clears ``channel`` and the *same* online link
+    works again — online voting is genuinely re-enabled, not merely unblocked
+    on paper. The create and the delete are both on the audit trail, the delete
+    carrying its mandatory reason and the paper → none channel move.
+    """
+    entry = _entry(open_paper_poll)
+    registration_id, token = _voter(open_paper_poll)
+    assert Registration.objects.get(pk=registration_id).channel == Channel.NONE
+
+    ballot = services.enter_paper(open_paper_poll, str(entry.pk), STRICT, str(operator.pk), "fr")
+    assert Registration.objects.get(pk=registration_id).channel == Channel.PAPER
+
+    # While the paper ballot stands, the online link is refused (R-9.1).
+    with pytest.raises(BallotRefused):
+        services.cast_online(open_paper_poll, token, STRICT)
+
+    deleted = services.delete_paper(
+        ballot, str(operator.pk), Reason.KEYING_ERROR, "bulletin saisi par erreur"
+    )
+    assert deleted.status == BallotStatus.DELETED
+    assert Registration.objects.get(pk=registration_id).channel == Channel.NONE
+
+    # Re-enabled: the original link now casts.
+    result = services.cast_online(open_paper_poll, token, STRICT)
+    assert result.ballot.status == BallotStatus.LIVE
+    assert Registration.objects.get(pk=registration_id).channel == Channel.ONLINE
+
+    (_created,) = _events(open_paper_poll, Action.PAPER_BALLOT_CREATED)
+    (removed,) = _events(open_paper_poll, Action.PAPER_BALLOT_DELETED)
+    assert removed.reason == Reason.KEYING_ERROR
+    assert removed.before == {"status": BallotStatus.LIVE, "channel": "paper"}
+    assert removed.after == {"status": BallotStatus.DELETED, "channel": "none"}
+
+
 # --- countersign -------------------------------------------------------
 
 

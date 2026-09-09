@@ -20,7 +20,7 @@ from apps.audit.models import Action, AuditEvent, Reason
 from apps.core.models import PollRole, Role, User
 from apps.elections import config
 from apps.elections.models import Poll, TallyMethod
-from apps.elections.transitions import open_poll
+from apps.elections.transitions import TransitionRefused, open_poll, opening_blockers
 
 
 @pytest.fixture
@@ -197,6 +197,61 @@ def test_adding_a_language_leaves_a_translation_gap_for_the_dashboard(
     open_window_poll.refresh_from_db()
     assert open_window_poll.languages == ["fr", "en"]
     assert "title:en" in open_window_poll.missing_translations()
+
+
+def test_t22_one_untranslated_option_label_blocks_the_opening_and_is_named(
+    client: Client, open_window_poll: Poll, admin_user: User
+) -> None:
+    """T-22 / R-14.3: English enabled, title and description translated, every
+    option label translated *but one* — the poll cannot leave ``draft`` and the
+    gap is named for the operator. ``open_poll`` refuses and leaves the state
+    untouched; the dashboard spells the gap out in French; the configuration
+    screen carries the pointer to it.
+
+    §3.8 phrases this as "the configuration screen shows the gaps"; the
+    implementation names them on the dashboard (screen 1) and screen 2 directs
+    the reader there — recorded in the ``missing_translations`` docstring. R-14.3
+    fixes only that the gap block the opening and be surfaced, which holds.
+    """
+    _grant(open_window_poll, admin_user, Role.POLL_ADMIN)
+    client.force_login(admin_user)
+
+    assert [o.option_id for o in open_window_poll.options.all()] == ["a", "b", "c"]
+
+    # First POST enables English; its content fields do not exist on the form
+    # until the language is on the poll, so this leaves every ``en`` string blank.
+    add_en = _payload(open_window_poll)
+    add_en["extra_languages"] = ["en"]
+    assert client.post(_url(open_window_poll), add_en).status_code == 302
+
+    # Second POST fills the English content — title, description and two of the
+    # three option labels. Option c is left untranslated.
+    poll = Poll.objects.get(pk=open_window_poll.pk)
+    assert poll.languages == ["fr", "en"]
+    fill = _payload(poll)
+    fill["title_en"] = "Redevelopment of the square"
+    fill["description_en"] = "Three options."
+    fill["opt-0-label_en"] = "The square, redeveloped"
+    fill["opt-1-label_en"] = "A wooded park"
+    fill["opt-2-label_en"] = ""  # option c left untranslated
+    assert client.post(_url(poll), fill).status_code == 302
+
+    poll = Poll.objects.get(pk=poll.pk)
+    assert poll.missing_translations() == ["option:c:en"]
+    assert "missing_translation:option:c:en" in opening_blockers(poll)
+
+    # Cannot leave draft.
+    with pytest.raises(TransitionRefused):
+        open_poll(poll)
+    assert Poll.objects.get(pk=poll.pk).state == "draft"
+
+    # The dashboard names the gap, in French, pointing at the option.
+    dashboard = client.get(f"/fr/mairie/scrutin/{poll.pk}/").content.decode()
+    assert "Traduction manquante en en : proposition « c »." in dashboard
+
+    # The configuration screen carries the reader to where the gaps are shown.
+    config_screen = client.get(_url(poll)).content.decode()
+    assert "tableau de bord" in config_screen
 
 
 # --- §8.2: the screen-2 misconfiguration warning -------------------------
