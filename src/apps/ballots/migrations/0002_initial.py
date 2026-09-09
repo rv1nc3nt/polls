@@ -86,7 +86,9 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="ballot",
             constraint=models.UniqueConstraint(
-                fields=("poll", "tracking_code"), name="uniq_ballot_poll_tracking_code"
+                fields=("poll", "tracking_code"),
+                condition=models.Q(("status", "superseded"), _negated=True),
+                name="uniq_ballot_poll_tracking_code",
             ),
         ),
         migrations.AddConstraint(

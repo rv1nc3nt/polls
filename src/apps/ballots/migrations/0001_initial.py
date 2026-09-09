@@ -63,6 +63,8 @@ class Migration(migrations.Migration):
                         default=uuid.uuid4, editable=False, primary_key=True, serialize=False
                     ),
                 ),
+                ("note", models.TextField(blank=True)),
+                ("language", models.CharField(blank=True, max_length=10)),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
             ],
         ),

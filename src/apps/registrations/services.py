@@ -399,7 +399,7 @@ def confirm_mailbox(registration: Registration) -> Registration:
 
 
 @transaction.atomic
-def mark_voted(registration_id: str, channel: Channel) -> None:
+def mark_voted(registration_id: str, channel: Channel | str) -> None:
     """Set ``channel`` in the same transaction as the ballot insert (INV-5, §7).
 
     This is how "has this person voted" is answered, always. Counting ballots
@@ -407,9 +407,27 @@ def mark_voted(registration_id: str, channel: Channel) -> None:
 
     Takes an **id** rather than a registration, and returns nothing: the ballot
     service is the caller, and giving it a ``Registration`` to hold would put a
-    voter and a ballot in one scope, which is where a join gets written.
+    voter and a ballot in one scope, which is where a join gets written. It
+    accepts a bare channel string too, so ``ballots.services`` need not import
+    the ``Channel`` enum.
     """
     Registration.objects.filter(pk=registration_id).update(channel=channel)
+
+
+@transaction.atomic
+def clear_paper_channel(poll: Poll, roll_entry_id: str) -> None:
+    """R-9.4: an operator deleting a paper ballot re-opens online voting for the
+    elector, which is ``channel`` back to ``none`` on the bound registration.
+
+    Reached from ``ballots.services.delete_paper``, which holds a snapshot-entry
+    id and no ``Registration`` (INV-1). A no-op where nothing is bound.
+    """
+    entry = RollEntry.objects.filter(poll=poll, pk=roll_entry_id).first()
+    if entry is None:
+        return
+    Registration.objects.filter(poll=poll, roll_entry=entry).exclude(
+        state=RegistrationState.REJECTED
+    ).update(channel=Channel.NONE)
 
 
 @transaction.atomic

@@ -89,10 +89,17 @@ class Ballot(models.Model):
         verbose_name = _("bulletin")
         verbose_name_plural = _("bulletins")
         constraints = [
-            # INV-11: the canonical serialisation sorts on this value, so a
-            # collision would make the closure hash ambiguous.
+            # INV-11: the canonical serialisation sorts on the tracking code and
+            # the published CSV is keyed on it, so a collision would make the
+            # closure hash ambiguous. A modification keeps the code across
+            # versions (R-7.2), so the uniqueness is over the *current* row of a
+            # chain — every status but ``superseded``: at any instant that is
+            # exactly one row per code (one live or pending, or a terminal
+            # deleted, plus a not-in-force collision record on its own code).
             models.UniqueConstraint(
-                fields=["poll", "tracking_code"], name="uniq_ballot_poll_tracking_code"
+                fields=["poll", "tracking_code"],
+                condition=~models.Q(status="superseded"),
+                name="uniq_ballot_poll_tracking_code",
             ),
             models.UniqueConstraint(
                 fields=["poll", "tracking_code", "version"], name="uniq_ballot_version"
@@ -137,6 +144,14 @@ class PaperBallotLink(models.Model):
         null=True,
         blank=True,
     )
+    # Operator prose about this entry — the collision-override circumstances
+    # (R-9.3), a keying-error note (R-8.5). It lives here, on the row the
+    # retention purge deletes, never on an audit event whose ``reason`` is a
+    # code (§10).
+    note = models.TextField(blank=True)
+    # The language the operator keyed in; the receipt (R-8.4) is rendered in it,
+    # falling back to the poll default (§3.8).
+    language = models.CharField(max_length=10, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
