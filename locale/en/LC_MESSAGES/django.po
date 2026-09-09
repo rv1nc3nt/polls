@@ -1365,3 +1365,15 @@ msgstr "closed — results published"
 
 msgid "close — dépouillement en cours"
 msgstr "closed — count under way"
+
+msgid "Proposition"
+msgstr "Proposition"
+
+msgid "Ajouter une proposition"
+msgstr "Add a proposition"
+
+msgid "Retirer cette proposition"
+msgstr "Remove this proposition"
+
+msgid "Rétablir cette proposition"
+msgstr "Restore this proposition"

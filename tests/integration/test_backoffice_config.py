@@ -106,6 +106,31 @@ def test_the_draft_screen_offers_an_editable_form(
     assert 'name="is_sandbox"' not in body
 
 
+def test_the_draft_screen_carries_the_add_remove_proposition_enhancement(
+    client: Client, open_window_poll: Poll, admin_user: User
+) -> None:
+    """The propositions count is not fixed (R-3.1: *at least* two). The screen
+    ships static/js/option-editor.js and the hooks it drives — an « Ajouter »
+    control and a clone template carrying Django's ``__prefix__`` placeholder —
+    so a poll can be given any number of options. Progressive enhancement: the
+    ``extra`` blank rows and the DELETE checkbox are the no-JS path.
+    """
+    _grant(open_window_poll, admin_user, Role.POLL_ADMIN)
+    client.force_login(admin_user)
+
+    body = client.get(_url(open_window_poll)).content.decode()
+    assert "js/option-editor.js" in body
+    assert "data-option-editor" in body
+    assert "data-option-add-button" in body
+    assert 'name="opt-__prefix__-option_id"' in body
+
+    # The frozen, read-only view past draft carries none of it.
+    open_poll(open_window_poll)
+    frozen = client.get(_url(open_window_poll)).content.decode()
+    assert "js/option-editor.js" not in frozen
+    assert "data-option-editor" not in frozen
+
+
 def test_saving_persists_the_change_and_logs_which_fields_moved(
     client: Client, open_window_poll: Poll, admin_user: User
 ) -> None:

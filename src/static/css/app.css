@@ -343,6 +343,18 @@ details form.inline label { margin: 0; }
 
 .pollpicker { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: end; margin-bottom: 1.5rem; }
 
+/* ---- proposition editor (screen 2) --------------------------------- */
+
+/* Revealed by static/js/option-editor.js; the no-JS path never shows them. */
+.option-editor__add[hidden],
+.option-row__controls[hidden],
+.option-row__delete[hidden] { display: none; }
+.option-editor__add { margin-top: 0.25rem; }
+.option-row__delete label { display: inline-flex; align-items: center; gap: 0.4rem; }
+/* A stored row awaiting removal on save: kept in place, struck through, undoable. */
+.option-row--removed { opacity: 0.55; }
+.option-row--removed legend { text-decoration: line-through; }
+
 /* ---- tables ---------------------------------------------------------- */
 
 table { border-collapse: collapse; width: 100%; margin: 0.5rem 0 2rem; }

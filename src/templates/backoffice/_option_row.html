@@ -1,0 +1,36 @@
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD #}
+{% comment %}
+  One proposition row of the screen-2 configuration editor (§6.5.2, R-3.1).
+  Rendered once per bound form by poll_config.html, and once more — inside a
+  <template>, with Django's __prefix__ placeholder — as the pattern
+  static/js/option-editor.js clones when an operator adds a proposition.
+
+  No-JS path: the `extra` blank rows at the end are how a proposition is added,
+  and the DELETE checkbox is how one is dropped. The script only layers an
+  « Ajouter » control and a per-row « Retirer » button on top of that.
+{% endcomment %}
+<fieldset class="option-row" data-option-row>
+  <legend>{% translate "Proposition" %} <span data-option-number>{{ number }}</span></legend>
+  {% for field in option_form.hidden_fields %}{{ field }}{% endfor %}
+  {% for field in option_form.visible_fields %}
+    {% if field.name == "DELETE" %}
+      <p class="field option-row__delete" data-option-delete>
+        <label for="{{ field.id_for_label }}">{{ field }} {{ field.label }}</label>
+        {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+      </p>
+    {% else %}
+      <p class="field">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {% if field.help_text %}<span class="help">{{ field.help_text }}</span>{% endif %}
+        {{ field }}
+        {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+      </p>
+    {% endif %}
+  {% endfor %}
+  <p class="option-row__controls" data-option-remove-wrap hidden>
+    <button type="button" class="secondary" data-option-remove
+            data-label-remove="{% translate 'Retirer cette proposition' %}"
+            data-label-undo="{% translate 'Rétablir cette proposition' %}">{% translate "Retirer cette proposition" %}</button>
+  </p>
+</fieldset>

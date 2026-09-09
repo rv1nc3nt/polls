@@ -1,5 +1,5 @@
 {% extends "backoffice/base.html" %}
-{% load i18n %}
+{% load i18n static %}
 {# SPDX-License-Identifier: 0BSD #}
 
 {% block screen_title %}{% translate "Configuration du scrutin" %}{% endblock %}
@@ -58,35 +58,37 @@
       {% endfor %}
     </fieldset>
 
-    <fieldset>
+    <fieldset data-option-editor>
       <legend>{% translate "Propositions" %}</legend>
       {% comment %}
         §3.1: an ordered list of at least two options. Row order is the
         proposition order. Clear a row or tick « Supprimer » to drop it; the
-        blank rows at the end are there to add more.
+        blank rows at the end are there to add more. static/js/option-editor.js
+        adds an « Ajouter une proposition » control and a per-row « Retirer »
+        button over this — progressive enhancement, so the blank rows and the
+        checkbox stay the whole story without JavaScript.
       {% endcomment %}
       <p class="help">{% translate "Au moins deux propositions. L'ordre des lignes est l'ordre des propositions. L'identifiant est porté par les bulletins et le résultat publié : ne le changez plus après l'ouverture." %}</p>
 
       {% for message in formset.non_form_errors %}<p class="error" role="alert">{{ message }}</p>{% endfor %}
 
       {{ formset.management_form }}
-      {% for option_form in formset %}
-        <fieldset class="option-row">
-          <legend>{% blocktranslate with n=forloop.counter %}Proposition {{ n }}{% endblocktranslate %}</legend>
-          {% for field in option_form %}
-            {% if field.is_hidden %}
-              {{ field }}
-            {% else %}
-              <p class="field">
-                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                {% if field.help_text %}<span class="help">{{ field.help_text }}</span>{% endif %}
-                {{ field }}
-                {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
-              </p>
-            {% endif %}
-          {% endfor %}
-        </fieldset>
-      {% endfor %}
+      <div data-option-rows>
+        {% for option_form in formset %}
+          {% include "backoffice/_option_row.html" with option_form=option_form number=forloop.counter %}
+        {% endfor %}
+      </div>
+
+      <p class="option-editor__add" data-option-add hidden>
+        <button type="button" class="secondary" data-option-add-button>{% translate "Ajouter une proposition" %}</button>
+      </p>
+
+      {% comment %}
+        The pattern option-editor.js clones for a new row: the same partial with
+        Django's __prefix__ placeholder in place of the row index. Inert markup
+        until the script copies it, so the no-JS page is unaffected.
+      {% endcomment %}
+      <template data-option-template>{% include "backoffice/_option_row.html" with option_form=formset.empty_form number="" %}</template>
     </fieldset>
 
     <fieldset>
@@ -221,4 +223,11 @@
 
 {% endif %}
 
+{% endblock %}
+
+{% block body_end %}
+  {% if editable %}
+    {# Draft only: the add / remove-a-proposition enhancement (§6.5.2). #}
+    <script src="{% static 'js/option-editor.js' %}" defer></script>
+  {% endif %}
 {% endblock %}

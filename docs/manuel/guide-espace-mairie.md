@@ -150,6 +150,13 @@ Chaque proposition porte un **identifiant** (`option_id`, ex. `jardin`) et un
 libellés et de leurs traductions (R-10.7). **Ne changez pas un identifiant après
 coup** : les bulletins et le résultat publié le portent.
 
+Le nombre de propositions n'est pas limité (**au moins deux**, R-3.1). Le bouton
+**« Ajouter une proposition »** insère une ligne ; le bouton **« Retirer »** de
+chaque ligne la supprime — sur une proposition déjà enregistrée, le retrait est
+réversible tant que la configuration n'est pas enregistrée. Sans JavaScript, les
+deux lignes vierges en fin de formulaire servent à ajouter, et la case
+**« Supprimer »** de chaque ligne à retirer.
+
 ### Langues
 
 Interface traduite par catalogue ; titre, description et libellés traduits pour
