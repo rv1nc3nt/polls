@@ -1,11 +1,20 @@
 # SPDX-License-Identifier: 0BSD
 """The espace mairie navigation (§6.5).
 
-One menu, defined here once and built per request from the poll and the
-operator's per-poll roles (§3.7). It replaces the ``{% block pollnav %}`` that
-each screen used to carry: those listed a different subset of links, in a
-different order, sometimes under a different name, so the navigation changed
-shape as the operator moved through it.
+One menu, defined here once, on every back-office page. It replaces the
+``{% block pollnav %}`` each screen used to carry — those listed a different
+subset of links, in a different order, sometimes under a different name, so the
+navigation changed shape as the operator moved through it.
+
+The menu has two parts, and the first never changes:
+
+* the **global** links — « Scrutins », plus « Comptes opérateurs » and « Rôles
+  par scrutin » for a commune admin — sit under the wordmark on every screen, in
+  the same order, whether or not a poll is in scope;
+* the **poll** groups — prepare the poll, key the paper, tally, then the
+  read-only trail — are *added* below when a poll is open, headed by its title
+  and state. Leaving a poll removes that block; it never rearranges the part
+  above it.
 
 The rules this keeps:
 
@@ -17,7 +26,7 @@ The rules this keeps:
   import review, a single paper ballot, the registration decision — lights its
   parent entry (``owns``).
 
-The menu is data, not markup: ``_POLL_MENU`` and ``_COMMUNE_MENU`` below are the
+The menu is data, not markup: ``_GLOBAL_ITEMS`` and ``_POLL_MENU`` below are the
 whole of it, and ``backoffice/_nav.html`` only renders what the resolver returns.
 """
 
@@ -41,8 +50,8 @@ _POLL_ADMIN = str(Role.POLL_ADMIN)
 _ENTRY_OPERATOR = str(Role.ENTRY_OPERATOR)
 _AUDITOR = str(Role.AUDITOR)
 
-#: Sentinel role for the commune-level menu: the entry needs the commune-admin
-#: flag (§3.7), which is not one of the per-poll roles.
+#: Sentinel role for a global entry that needs the commune-admin flag (§3.7),
+#: which is not one of the per-poll roles.
 _COMMUNE = "__commune__"
 
 
@@ -70,8 +79,16 @@ class _Group:
     items: tuple[_Item, ...] = field(default_factory=tuple)
 
 
-#: Poll-scoped screens, grouped in the order the work is done: prepare the poll,
-#: key the paper, tally, then the read-only trail.
+#: Always under the wordmark, in this order, on every screen. « Scrutins » is
+#: open to any signed-in operator; the other two need the commune-admin flag.
+_GLOBAL_ITEMS: tuple[_Item, ...] = (
+    _Item(_("Scrutins"), "poll_index"),
+    _Item(_("Comptes opérateurs"), "account_admin", (_COMMUNE,)),
+    _Item(_("Rôles par scrutin"), "role_admin", (_COMMUNE,)),
+)
+
+#: Added below the global links when a poll is in scope, grouped in the order the
+#: work is done: prepare the poll, key the paper, tally, then the read-only trail.
 _POLL_MENU: tuple[_Group, ...] = (
     _Group(
         _("Scrutin"),
@@ -111,78 +128,77 @@ _POLL_MENU: tuple[_Group, ...] = (
     _Group(_("Suivi"), (_Item(_("Journal d'audit"), "audit_log", (_AUDITOR, _POLL_ADMIN)),)),
 )
 
-#: Commune-level screens (§6.5.10). "Scrutins" is open to any signed-in
-#: operator; the other two need the commune-admin flag.
-_COMMUNE_MENU: tuple[_Group, ...] = (
-    _Group(
-        _("Commune"),
-        (
-            _Item(_("Scrutins"), "poll_index"),
-            _Item(_("Comptes opérateurs"), "account_admin", (_COMMUNE,)),
-            _Item(_("Rôles par scrutin"), "role_admin", (_COMMUNE,)),
-        ),
-    ),
-)
+_Resolved = tuple[list[dict[str, object]], list[dict[str, object]], "Promise | str"]
 
 
-def _resolve(context: template.Context) -> tuple[list[dict[str, object]], Promise | str]:
-    """The groups to render and the active entry's label.
+def _resolve(context: template.Context) -> _Resolved:
+    """``(global_items, poll_groups, current_label)`` for the current request.
 
-    ``poll`` in the template context marks a poll-scoped screen; its absence a
-    commune-level one. The active screen comes from ``request.resolver_match``;
-    ``poll_index`` deliberately yields no breadcrumb leaf — the root crumb is
-    already "Scrutins".
+    Returns empties for anyone not signed in, so the tag renders the wordmark
+    alone on the login and first-run screens. The active screen comes from
+    ``request.resolver_match``; ``poll_index`` deliberately yields no breadcrumb
+    leaf — the root crumb is already "Scrutins".
     """
     request = context["request"]
+    user = request.user
+    if not (user.is_authenticated and user.is_active):
+        return [], [], ""
+
     match = getattr(request, "resolver_match", None)
     url_name = match.url_name if match is not None else ""
-
     poll = context.get("poll")
-    if isinstance(poll, Poll):
-        roles = poll_roles(request.user, poll)
-        source = _POLL_MENU
+    poll = poll if isinstance(poll, Poll) else None
 
-        def visible(item: _Item) -> bool:
-            if item.needs_countersign and not poll.paper_requires_countersign:
-                return False
-            return not item.roles or bool(roles & set(item.roles))
-
-        def href(item: _Item) -> str:
-            return reverse(f"backoffice:{item.url_name}", args=[poll.pk])
-
-    else:
-        commune_admin = is_commune_admin(request.user)
-        source = _COMMUNE_MENU
-
-        def visible(item: _Item) -> bool:
-            return _COMMUNE not in item.roles or commune_admin
-
-        def href(item: _Item) -> str:
-            return reverse(f"backoffice:{item.url_name}")
-
-    groups: list[dict[str, object]] = []
     current_label: Promise | str = ""
-    for group in source:
-        entries = []
-        for item in group.items:
-            if not visible(item):
-                continue
-            active = item.lit_by(url_name)
-            if active and item.url_name != "poll_index":
-                current_label = item.label
-            entries.append({"label": item.label, "url": href(item), "current": active})
-        if entries:
-            groups.append({"label": group.label, "items": entries})
-    return groups, current_label
+
+    commune_admin = is_commune_admin(user)
+    global_items: list[dict[str, object]] = []
+    for item in _GLOBAL_ITEMS:
+        if _COMMUNE in item.roles and not commune_admin:
+            continue
+        active = item.lit_by(url_name)
+        if active and item.url_name != "poll_index":
+            current_label = item.label
+        global_items.append(
+            {"label": item.label, "url": reverse(f"backoffice:{item.url_name}"), "current": active}
+        )
+
+    poll_groups: list[dict[str, object]] = []
+    if poll is not None:
+        roles = poll_roles(user, poll)
+        for group in _POLL_MENU:
+            entries = []
+            for item in group.items:
+                if item.needs_countersign and not poll.paper_requires_countersign:
+                    continue
+                if item.roles and not (roles & set(item.roles)):
+                    continue
+                active = item.lit_by(url_name)
+                if active:
+                    current_label = item.label
+                entries.append(
+                    {
+                        "label": item.label,
+                        "url": reverse(f"backoffice:{item.url_name}", args=[poll.pk]),
+                        "current": active,
+                    }
+                )
+            if entries:
+                poll_groups.append({"label": group.label, "items": entries})
+
+    return global_items, poll_groups, current_label
 
 
 @register.inclusion_tag("backoffice/_nav.html", takes_context=True)
 def bo_nav(context: template.Context) -> dict[str, object]:
-    """The left-column menu for the current screen."""
-    groups, _label = _resolve(context)
+    """The left-column menu: the global links always, the poll groups when a
+    poll is in scope."""
+    global_items, poll_groups, _label = _resolve(context)
+    poll = context.get("poll")
     return {
-        "groups": groups,
-        "poll": context.get("poll"),
+        "global_items": global_items,
+        "poll_groups": poll_groups,
+        "poll": poll if isinstance(poll, Poll) else None,
         "poll_index_url": reverse("backoffice:poll_index"),
     }
 
@@ -191,5 +207,5 @@ def bo_nav(context: template.Context) -> dict[str, object]:
 def bo_current_label(context: template.Context) -> Promise | str:
     """The active menu entry's label, for the breadcrumb leaf. Empty on the poll
     index and anywhere the current screen is not in the menu at all."""
-    _groups, label = _resolve(context)
+    _global, _poll, label = _resolve(context)
     return label

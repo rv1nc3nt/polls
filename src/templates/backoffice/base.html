@@ -1,16 +1,18 @@
 {% extends "base.html" %}
 {% load i18n backoffice_nav %}
 {# SPDX-License-Identifier: 0BSD #}
-{% comment %} The espace mairie shell (§6.5). One fixed left-column menu, identical on every
-   screen and built from the poll and the operator's roles (§3.7) — it replaces the
-   per-screen `pollnav` blocks, whose links and order drifted from one page to the
-   next. A breadcrumb stays pinned to the top of the content while the screen
-   scrolls, so "where am I" is always answered; its leaf is the active menu entry,
-   so the two cannot disagree. The signed-in operator is kept on the back office:
-   the commune name leads to « Scrutins », and the public site is a separate,
-   explicit link that opens in its own tab. {% endcomment %}
+{% comment %} The espace mairie shell (§6.5). One fixed left-column menu on every back-office
+   screen, login and first-run included: the wordmark and the global links never
+   move, and a poll's own groups are added below only while that poll is in scope
+   (apps/backoffice/templatetags/backoffice_nav.py). It replaces the per-screen
+   `pollnav` blocks, whose links and order drifted from one page to the next. A
+   breadcrumb stays pinned to the top of the content while the screen scrolls, so
+   "where am I" is always answered; its leaf is the active menu entry, so the two
+   cannot disagree. The signed-in operator is kept on the back office: the commune
+   name leads to « Scrutins », and the public site is a separate, explicit link
+   that opens in its own tab. {% endcomment %}
 
-{% block body_class %}{% if user.is_authenticated %}bo{% endif %}{% endblock %}
+{% block body_class %}bo{% endblock %}
 {% block home_url %}{% url 'backoffice:poll_index' %}{% endblock %}
 
 {% block title %}{% block screen_title %}{% translate "Espace mairie" %}{% endblock %} — {% translate "Espace mairie" %}{% endblock %}
@@ -32,7 +34,7 @@
   {% endif %}
 {% endblock %}
 
-{% block nav %}{% if user.is_authenticated %}{% bo_nav %}{% endif %}{% endblock %}
+{% block nav %}{% bo_nav %}{% endblock %}
 
 {% block content %}
   {% if user.is_authenticated %}

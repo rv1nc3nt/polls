@@ -1,11 +1,22 @@
 {% load i18n %}
 {# SPDX-License-Identifier: 0BSD #}
-{% comment %} Rendered by the `bo_nav` tag (apps/backoffice/templatetags/backoffice_nav.py),
-   which decides — from the poll and the operator's per-poll roles — which groups
-   and entries appear. An entry the operator may not open is absent, never greyed
-   (R-14.1). {% endcomment %}
+{% comment %} Rendered by the `bo_nav` tag (apps/backoffice/templatetags/backoffice_nav.py).
+   The wordmark and the global links are on every screen, in the same place; the
+   poll block is added below only when a poll is in scope. An entry the operator
+   may not open is absent, never greyed (R-14.1). {% endcomment %}
 <nav class="bo-side" aria-label="{% translate 'Navigation de l’espace mairie' %}">
   <a class="bo-side__brand" href="{{ poll_index_url }}">{% translate "Espace mairie" %}</a>
+
+  {% if global_items %}
+    <ul class="bo-side__list bo-side__list--global">
+      {% for item in global_items %}
+        <li>
+          <a class="bo-side__link{% if item.current %} is-current{% endif %}"
+             href="{{ item.url }}"{% if item.current %} aria-current="page"{% endif %}>{{ item.label }}</a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
 
   {% if poll %}
     <div class="bo-side__poll">
@@ -13,17 +24,16 @@
       {% comment %} R-14.1: the state is a word; the wash behind it only sorts it. {% endcomment %}
       <span class="bo-state bo-state--{{ poll.state }}">{{ poll.get_state_display }}</span>
     </div>
+    {% for group in poll_groups %}
+      <p class="bo-side__group" id="bo-grp-{{ forloop.counter }}">{{ group.label }}</p>
+      <ul class="bo-side__list" aria-labelledby="bo-grp-{{ forloop.counter }}">
+        {% for item in group.items %}
+          <li>
+            <a class="bo-side__link{% if item.current %} is-current{% endif %}"
+               href="{{ item.url }}"{% if item.current %} aria-current="page"{% endif %}>{{ item.label }}</a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endfor %}
   {% endif %}
-
-  {% for group in groups %}
-    <p class="bo-side__group" id="bo-grp-{{ forloop.counter }}">{{ group.label }}</p>
-    <ul class="bo-side__list" aria-labelledby="bo-grp-{{ forloop.counter }}">
-      {% for item in group.items %}
-        <li>
-          <a class="bo-side__link{% if item.current %} is-current{% endif %}"
-             href="{{ item.url }}"{% if item.current %} aria-current="page"{% endif %}>{{ item.label }}</a>
-        </li>
-      {% endfor %}
-    </ul>
-  {% endfor %}
 </nav>
