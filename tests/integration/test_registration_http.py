@@ -20,7 +20,7 @@ from django.test import Client
 from django.utils import timezone
 
 from apps.audit.models import Action, AuditEvent
-from apps.core.models import PollRole, Role, User
+from apps.core.models import Commune, PollRole, Role, User
 from apps.elections.models import Poll
 from apps.elections.transitions import open_poll
 from apps.registrations import services
@@ -64,6 +64,22 @@ def test_the_form_states_the_privacy_notice_and_the_name_help(
     assert "carte électorale" in body
     assert "nom d&#x27;usage" in body
     assert "deux mois après la clôture" in body
+
+
+def test_the_privacy_notice_names_the_commune_referent_once_installed(
+    client: Client, live_poll: Poll
+) -> None:
+    """R-13.1 / R-13.2: with the commune record in place (§6.5.11) the notice
+    names the data controller and the referent who answers rights requests."""
+    Commune.objects.create(
+        name="Sainte-Marie-du-Mont",
+        data_protection_referent="Secrétariat de mairie",
+        data_protection_contact="rgpd@sainte-marie-du-mont.example.fr",
+    )
+    body = client.get(f"/fr/inscription/{live_poll.pk}/").content.decode()
+    assert "Responsable du traitement : Sainte-Marie-du-Mont" in body
+    assert "Secrétariat de mairie" in body
+    assert "rgpd@sainte-marie-du-mont.example.fr" in body
 
 
 def test_a_matched_registration_is_told_to_check_its_mail(

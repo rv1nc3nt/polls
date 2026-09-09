@@ -26,16 +26,15 @@ to see the gate on each one.
 
 Here so far, additionally: screen 9 (clôture et publication), whose read model
 is ``results.py`` and whose write paths are ``elections.closure`` (the physical
-tie-break) and ``elections.transitions.publish_poll``; and screen 10 (comptes et
-rôles), whose read model and write path are both ``accounts.py``. Screen 10 is
+tie-break) and ``elections.transitions.publish_poll``; screen 10 (comptes et
+rôles), whose read model and write path are both ``accounts.py``; and screen 11
+(première installation), whose write path is ``firstrun.py``. Screen 10 is
 commune-level — it goes through ``require_commune_admin``, not
 ``require_poll_role``, and neither of its views takes a ``poll`` argument, so the
 per-poll roles it *assigns* are still not access to a poll's screens for the
-commune admin who assigns them (§3.7).
-
-TODO(scaffold): screen 11 of §6.5 — première installation, the first-run wizard.
-Commune-level like screen 10, but runs before any account exists, so it cannot
-be behind ``require_commune_admin``.
+commune admin who assigns them (§3.7). Screen 11 runs before any account exists,
+so it cannot use either gate: ``require_first_run`` opens it only while no
+account has been created.
 """
 
 from __future__ import annotations
@@ -43,13 +42,13 @@ from __future__ import annotations
 from datetime import datetime
 
 from django.contrib import messages
-from django.contrib.auth import password_validation
+from django.contrib.auth import login, password_validation
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, LogoutView
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
+from django.http import Http404, HttpRequest, HttpResponse, HttpResponseBase, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.dateparse import parse_date
@@ -73,17 +72,19 @@ from apps.registrations import mail as registration_mail
 from apps.registrations import services as registrations
 from apps.registrations.models import Channel, Registration
 
-from . import accounts, auditlog, dashboard, paper, results, review
+from . import accounts, auditlog, dashboard, firstrun, paper, results, review
 from .access import (
     accessible_polls,
     current_operator,
     is_commune_admin,
     poll_roles,
     require_commune_admin,
+    require_first_run,
     require_poll_role,
 )
 from .forms import (
     ExtensionForm,
+    FirstRunForm,
     GrantRoleForm,
     NewAccountForm,
     OptionFormSet,
@@ -100,15 +101,62 @@ class OperatorLoginView(LoginView):
     Django's view, its own template: there is no self-service account creation
     and no password reset by email here. Accounts are made by a commune admin
     on screen 10, or by the first-run wizard (§6.5.11).
+
+    On a fresh install there is no account to sign in with, so this redirects
+    to the wizard instead of showing a form nobody can pass.
     """
 
     template_name = "backoffice/login.html"
+
+    def dispatch(self, request: HttpRequest, *args: object, **kwargs: object) -> HttpResponseBase:
+        if firstrun.is_open():
+            return redirect("backoffice:first_run")
+        return super().dispatch(request, *args, **kwargs)
 
 
 class OperatorLogoutView(LogoutView):
     """POST-only since Django 5.0, which is also what it should have been."""
 
     next_page = "backoffice:login"
+
+
+# --- Screen 11: première installation (§6.5.11) -------------------------
+#
+# The one screen not gated on a role or the commune-admin flag: it runs on a
+# fresh database, before any account exists, so it is gated by
+# ``require_first_run`` on there being no account and closes for good once the
+# first one is made. It replaces ``createsuperuser`` (§14) and, like
+# ``accounts.create_account``, writes no audit event — there is no operator yet
+# and no ``Action`` code for installing the instance.
+
+
+@require_first_run
+def first_run(request: HttpRequest) -> HttpResponse:
+    """Screen 11 — première installation (§6.5.11).
+
+    Creates the commune record and the first ``commune_admin`` account so an
+    adopting commune never runs ``createsuperuser`` (§14). ``require_first_run``
+    keeps it reachable only while no account exists; ``firstrun.install`` is the
+    writer and does both rows in one transaction. The new administrator is
+    signed in on success and lands on the (empty) poll index.
+    """
+    form = FirstRunForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        admin = firstrun.install(
+            commune_name=form.cleaned_data["commune_name"],
+            data_protection_referent=form.cleaned_data["data_protection_referent"],
+            data_protection_contact=form.cleaned_data["data_protection_contact"],
+            username=form.cleaned_data["username"],
+            full_name=form.cleaned_data["full_name"],
+            raw_password=form.cleaned_data["raw_password"],
+        )
+        login(request, admin)
+        messages.success(
+            request,
+            _("Installation terminée. Vous êtes connecté comme administrateur de la commune."),
+        )
+        return redirect("backoffice:poll_index")
+    return render(request, "backoffice/first_run.html", {"form": form})
 
 
 @login_required

@@ -1052,3 +1052,97 @@ msgid "%(n)s doublon de nom à vérifier (non bloquant)"
 msgid_plural "%(n)s doublons de nom à vérifier (non bloquant)"
 msgstr[0] "%(n)s name to double-check (not blocking)"
 msgstr[1] "%(n)s names to double-check (not blocking)"
+
+# Screen 11 — première installation (§6.5.11) and the commune record.
+
+msgid "nom de la commune"
+msgstr "commune name"
+
+msgid "Nom de la commune"
+msgstr "Commune name"
+
+msgid "Tel qu'il doit apparaître sur les pages publiques et dans la notice."
+msgstr "As it should appear on the public pages and in the notice."
+
+msgid "Tel qu'il apparaîtra sur les pages publiques et dans la notice."
+msgstr "As it will appear on the public pages and in the notice."
+
+msgid "référent données personnelles"
+msgstr "data-protection referent"
+
+msgid "Référent données personnelles"
+msgstr "Data-protection referent"
+
+msgid ""
+"Personne ou service à qui les électeurs adressent leurs demandes d'accès, de "
+"rectification et d'effacement (R-13.2)."
+msgstr ""
+"Person or office to whom electors address their access, rectification and "
+"erasure requests (R-13.2)."
+
+msgid ""
+"Personne ou service qui répond aux demandes d'accès, de rectification et "
+"d'effacement des électeurs (R-13.2)."
+msgstr ""
+"Person or office that answers electors' access, rectification and erasure "
+"requests (R-13.2)."
+
+msgid "contact du référent"
+msgstr "referent's contact"
+
+msgid "Contact du référent"
+msgstr "Referent's contact"
+
+msgid "Adresse électronique ou postale, publiée dans la notice d'information."
+msgstr "Email or postal address, published in the information notice."
+
+msgid "Identifiant de connexion de l'administrateur"
+msgstr "Administrator's sign-in username"
+
+msgid "Nom complet de l'administrateur"
+msgstr "Administrator's full name"
+
+msgid "Le journal d'audit nomme une personne, pas une fonction (R-2.2)."
+msgstr "The audit log names a person, not an office (R-2.2)."
+
+msgid "Mot de passe"
+msgstr "Password"
+
+msgid "Confirmer le mot de passe"
+msgstr "Confirm the password"
+
+msgid "Les deux mots de passe diffèrent."
+msgstr "The two passwords differ."
+
+msgid ""
+"Installation terminée. Vous êtes connecté comme administrateur de la commune."
+msgstr "Installation complete. You are signed in as commune administrator."
+
+msgid "Première installation"
+msgstr "First-time setup"
+
+msgid ""
+"Cette page ne s'affiche qu'une fois, à la mise en service de l'instance. Elle "
+"crée la commune et son premier compte administrateur, puis disparaît."
+msgstr ""
+"This page is shown only once, when the instance is brought into service. It "
+"creates the commune and its first administrator account, then disappears."
+
+msgid "La commune"
+msgstr "The commune"
+
+msgid "Le compte administrateur"
+msgstr "The administrator account"
+
+msgid "Créer la commune et l'administrateur"
+msgstr "Create the commune and the administrator"
+
+msgid ""
+"Responsable du traitement : %(name)s. Pour exercer vos droits d'accès, de "
+"rectification et d'effacement, adressez-vous à %(referent)s (%(contact)s)."
+msgstr ""
+"Data controller: %(name)s. To exercise your rights of access, rectification "
+"and erasure, contact %(referent)s (%(contact)s)."
+
+msgid "commune"
+msgstr "commune"

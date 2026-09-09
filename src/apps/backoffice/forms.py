@@ -24,6 +24,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from django import forms
 from django.conf import settings
 from django.contrib.auth import password_validation
+from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.utils.translation import gettext_lazy as _
 
 from apps.audit.models import Reason
@@ -386,6 +387,69 @@ class NewAccountForm(forms.ModelForm):  # type: ignore[type-arg]  # not subscrip
         password: str = self.cleaned_data["raw_password"]
         password_validation.validate_password(password)
         return password
+
+
+# --- Screen 11: première installation (§6.5.11) --------------------------
+
+
+class FirstRunForm(forms.Form):
+    """The first-run wizard: the commune record and the initial administrator
+    in one form (§6.5.11).
+
+    It validates shape only — a password that passes Django's validators and a
+    confirmation that matches it — and hands the cleaned values to
+    ``firstrun.install``, which writes both rows in one transaction. The
+    username is not checked for uniqueness because the screen only exists while
+    there are no accounts (``access.require_first_run``).
+    """
+
+    commune_name = forms.CharField(
+        label=_("Nom de la commune"),
+        max_length=200,
+        help_text=_("Tel qu'il apparaîtra sur les pages publiques et dans la notice."),
+    )
+    data_protection_referent = forms.CharField(
+        label=_("Référent données personnelles"),
+        max_length=200,
+        help_text=_(
+            "Personne ou service qui répond aux demandes d'accès, de rectification "
+            "et d'effacement des électeurs (R-13.2)."
+        ),
+    )
+    data_protection_contact = forms.CharField(
+        label=_("Contact du référent"),
+        max_length=300,
+        help_text=_("Adresse électronique ou postale, publiée dans la notice d'information."),
+    )
+
+    username = forms.CharField(
+        label=_("Identifiant de connexion de l'administrateur"),
+        max_length=150,
+        validators=[UnicodeUsernameValidator()],
+    )
+    full_name = forms.CharField(
+        label=_("Nom complet de l'administrateur"),
+        max_length=200,
+        help_text=_("Le journal d'audit nomme une personne, pas une fonction (R-2.2)."),
+    )
+    raw_password = forms.CharField(label=_("Mot de passe"), widget=forms.PasswordInput)
+    raw_password_confirm = forms.CharField(
+        label=_("Confirmer le mot de passe"), widget=forms.PasswordInput
+    )
+
+    def clean_raw_password(self) -> str:
+        password: str = self.cleaned_data["raw_password"]
+        password_validation.validate_password(password)
+        return password
+
+    def clean(self) -> dict[str, Any]:
+        super().clean()
+        cleaned = self.cleaned_data
+        password = cleaned.get("raw_password")
+        confirm = cleaned.get("raw_password_confirm")
+        if password and confirm and password != confirm:
+            self.add_error("raw_password_confirm", _("Les deux mots de passe diffèrent."))
+        return cleaned
 
 
 class GrantRoleForm(forms.Form):

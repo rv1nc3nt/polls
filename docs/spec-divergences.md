@@ -183,3 +183,32 @@ on-screen summary and sends no email, the tracking code being unchanged (R-7.2)
 and already held. §6.3 was updated to match. The weaker-token alternative
 (token kept in the modification URL) was rejected — it trades away part of
 T-21 for a redundant email.
+
+## 7. The commune record is a model the domain model (§3) does not list
+
+**Specification, §6.5.11** has the first-run wizard "creating the commune
+record and the initial administrator", but §3 enumerates no such entity and no
+requirement fixes its fields. §13 item 4 defers "the named data-protection
+referent for the privacy notice" as configuration without saying where it
+lives.
+
+**What the code does.** `apps/core/models.py` gains a `Commune` model: a
+singleton (`id` pinned to `1`, a check constraint holding it there;
+`Commune.current()` reads it) carrying `name`, `data_protection_referent` and
+`data_protection_contact`. The first-run wizard (screen 11) creates it in the
+same transaction as the initial `commune_admin` account, so the two never
+exist apart. A context processor (`apps.core.context.commune`) puts it on every
+template; `base.html` uses `name` for the site title and the registration
+privacy notice uses the referent fields (R-13.1, R-13.2), each with a generic
+fallback for a not-yet-installed instance.
+
+**Why a model and not settings.** R-13.2's referent is operator-editable
+configuration an adopting commune sets once, at install, without touching the
+source or the environment — which is the whole point of the wizard existing
+(§6.5.11, §14). Settings would push it back into deployment. R-1.3 (single
+commune, one instance) is what makes a one-row model the right shape rather
+than a tenant table.
+
+**Not settled by amending the spec.** This is additive — it implements
+§6.5.11 rather than contradicting anything — so §3 should gain a `Commune`
+entry and §13 item 4 should point at it. Recorded here until that edit is made.

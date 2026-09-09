@@ -8,12 +8,13 @@ app_name = "backoffice"
 # Commune-level routes carry no ``<uuid:poll_id>`` and go through
 # ``access.require_commune_admin``; poll-scoped routes carry ``<uuid:poll_id>``,
 # which ``access.require_poll_role`` resolves and gates — a poll-scoped route
-# that does not is a screen open to anyone signed in.
-# TODO(scaffold): screen 11 of §6.5 — première installation — lands here, but
-# before any account exists, so it is gated on there being no account rather
-# than on the commune-admin flag.
+# that does not is a screen open to anyone signed in. Screen 11 (première
+# installation) is the exception: it runs before any account exists, so it is
+# gated by ``access.require_first_run`` on there being no account rather than on
+# the commune-admin flag.
 urlpatterns = [
     path("", views.poll_index, name="poll_index"),
+    path("installation/", views.first_run, name="first_run"),
     path("connexion/", views.OperatorLoginView.as_view(), name="login"),
     path("deconnexion/", views.OperatorLogoutView.as_view(), name="logout"),
     path("comptes/", views.account_admin, name="account_admin"),

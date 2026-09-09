@@ -1,0 +1,54 @@
+{% extends "backoffice/base.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD #}
+
+{% block screen_title %}{% translate "Première installation" %}{% endblock %}
+{% block heading %}{% translate "Première installation" %}{% endblock %}
+
+{% block screen %}
+  {% comment %}
+    §6.5.11 / §14: this screen replaces `createsuperuser`. It runs once, while
+    no account exists; once the administrator below is created it is closed for
+    good and this URL redirects to the sign-in page.
+  {% endcomment %}
+  <p class="notice">{% translate "Cette page ne s'affiche qu'une fois, à la mise en service de l'instance. Elle crée la commune et son premier compte administrateur, puis disparaît." %}</p>
+
+  <form method="post">
+    {% csrf_token %}
+    {% for message in form.non_field_errors %}<p class="error" role="alert">{{ message }}</p>{% endfor %}
+
+    <fieldset>
+      <legend>{% translate "La commune" %}</legend>
+      {% comment %} R-13.1 : la commune est responsable de traitement. R-13.2 : la notice
+         d'information présentée à l'inscription nomme le référent et son contact. {% endcomment %}
+      {% for field in form %}{% if field.name == "commune_name" or field.name == "data_protection_referent" or field.name == "data_protection_contact" %}
+        <p class="field">
+          <label for="{{ field.id_for_label }}">
+            {{ field.label }}{% if field.field.required %} <span class="required">{% translate "(obligatoire)" %}</span>{% endif %}
+          </label>
+          {% if field.help_text %}<span class="help" id="{{ field.auto_id }}-help">{{ field.help_text }}</span>{% endif %}
+          {{ field }}
+          {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+        </p>
+      {% endif %}{% endfor %}
+    </fieldset>
+
+    <fieldset>
+      <legend>{% translate "Le compte administrateur" %}</legend>
+      {% comment %} R-2.2 : un compte nominatif par personne. §3.7 : ce rôle gère les comptes
+         et crée les scrutins ; il n'ouvre aucun écran d'un scrutin sans un rôle attribué. {% endcomment %}
+      {% for field in form %}{% if field.name == "username" or field.name == "full_name" or field.name == "raw_password" or field.name == "raw_password_confirm" %}
+        <p class="field">
+          <label for="{{ field.id_for_label }}">
+            {{ field.label }}{% if field.field.required %} <span class="required">{% translate "(obligatoire)" %}</span>{% endif %}
+          </label>
+          {% if field.help_text %}<span class="help" id="{{ field.auto_id }}-help">{{ field.help_text }}</span>{% endif %}
+          {{ field }}
+          {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+        </p>
+      {% endif %}{% endfor %}
+    </fieldset>
+
+    <button type="submit">{% translate "Créer la commune et l'administrateur" %}</button>
+  </form>
+{% endblock %}

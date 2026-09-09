@@ -31,7 +31,7 @@ from django.contrib.auth.views import redirect_to_login
 from django.core.exceptions import PermissionDenied
 from django.db.models import QuerySet
 from django.http import HttpRequest, HttpResponse
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from django.utils.translation import gettext as _
 
 from apps.core.models import PollRole, Role, User
@@ -136,7 +136,7 @@ def require_poll_role(*roles: Role) -> Callable[[PollView], DispatchedView]:
 
 
 def require_commune_admin(view: DispatchedView) -> DispatchedView:
-    """Gate a commune-level screen (§6.5.10, §6.5.11) on the account flag."""
+    """Gate a commune-level screen (§6.5.10) on the account flag."""
 
     @wraps(view)
     def wrapper(request: HttpRequest, *args: object, **kwargs: object) -> HttpResponse:
@@ -144,6 +144,28 @@ def require_commune_admin(view: DispatchedView) -> DispatchedView:
             return redirect_to_login(request.get_full_path())
         if not is_commune_admin(request.user):
             raise PermissionDenied(_("Réservé à l'administration de la commune."))
+        return view(request, *args, **kwargs)
+
+    return wrapper
+
+
+def require_first_run(view: DispatchedView) -> DispatchedView:
+    """Gate the first-run wizard (§6.5.11).
+
+    It runs before any account exists, so it cannot sit behind a role or the
+    commune-admin flag like every other screen. Instead it is open only while
+    ``firstrun.is_open()`` holds — no account yet — and closes for good once
+    the first account is created, sending anyone who reaches the URL afterwards
+    to the sign-in page. The import is local: ``access`` is imported very early
+    and ``firstrun`` pulls in the account service.
+    """
+
+    @wraps(view)
+    def wrapper(request: HttpRequest, *args: object, **kwargs: object) -> HttpResponse:
+        from . import firstrun
+
+        if not firstrun.is_open():
+            return redirect("backoffice:login")
         return view(request, *args, **kwargs)
 
     return wrapper

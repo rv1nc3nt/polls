@@ -60,6 +60,8 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "django.template.context_processors.i18n",
+                # The commune record (§6.5.11) for the R-1.4 / R-13.2 notices.
+                "apps.core.context.commune",
             ],
         },
     },

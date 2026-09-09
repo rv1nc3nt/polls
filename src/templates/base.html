@@ -10,14 +10,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}{% translate "Consultation citoyenne" %}{% endblock %}</title>
+  <title>{% block title %}{% if commune %}{{ commune.name }}{% else %}{% translate "Consultation citoyenne" %}{% endif %}{% endblock %}</title>
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
 </head>
 <body>
   <a class="skip" href="#contenu">{% translate "Aller au contenu" %}</a>
 
   <header class="banner">
-    <p class="site-name"><a href="/">{% translate "Consultation citoyenne" %}</a></p>
+    <p class="site-name"><a href="/">{% if commune %}{{ commune.name }}{% else %}{% translate "Consultation citoyenne" %}{% endif %}</a></p>
     {% block header_extra %}{% endblock %}
   </header>
 

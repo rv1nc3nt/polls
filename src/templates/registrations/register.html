@@ -34,6 +34,13 @@
     <h2 id="donnees">{% translate "Vos données" %}</h2>
     <p>{% translate "Les informations ci-dessus servent uniquement à vérifier que vous êtes inscrit sur la liste électorale de la commune et à vous envoyer votre lien de vote. Elles sont conservées deux mois après la clôture du scrutin, puis supprimées." %}</p>
     <p>{% translate "Votre bulletin n'est relié à votre identité par aucune donnée : la plateforme sait que vous avez voté, jamais comment." %}</p>
-    <p>{% translate "Pour exercer vos droits d'accès, de rectification et d'effacement, adressez-vous à la mairie." %}</p>
+    {% comment %} R-13.1 / R-13.2: name the data controller and the referent who answers
+       access, rectification and erasure requests. From the commune record (§6.5.11);
+       the generic fallback covers an instance whose wizard has not run. {% endcomment %}
+    {% if commune %}
+      <p>{% blocktranslate with name=commune.name referent=commune.data_protection_referent contact=commune.data_protection_contact %}Responsable du traitement : {{ name }}. Pour exercer vos droits d'accès, de rectification et d'effacement, adressez-vous à {{ referent }} ({{ contact }}).{% endblocktranslate %}</p>
+    {% else %}
+      <p>{% translate "Pour exercer vos droits d'accès, de rectification et d'effacement, adressez-vous à la mairie." %}</p>
+    {% endif %}
   </section>
 {% endblock %}
