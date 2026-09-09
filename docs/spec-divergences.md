@@ -245,12 +245,24 @@ pinned equal) produce byte-identical closure hashes and identical winner,
 matrix and derivation — and also asserts the freeze, so the divergence is
 pinned rather than latent.
 
-**Not yet settled.** Either §3.8/T-23 should be reworded to say labels are
-fixed at `draft` exit (the safer reading — a frozen label cannot drift from the
-ballot a voter saw), or the option `UPDATE` trigger should admit a
-`label_i18n`-only change with a matching screen-2 action. The first is the
-smaller change and matches the current code; recorded here until the spec edit
-is made.
+**Settled (2026-09-09).** Labels are fixed at `draft` exit — the safer reading:
+a label is the record of what a voter ranked, and the id-based hash and tally
+mean nothing is lost by forbidding a later edit. The code already does this
+(`inv6_option_*_frozen` freeze `elections_polloption` whole outside `draft`, and
+R-3.3 freezes all configuration at `open`), so no code change.
+
+The blocker was that R-10.7 — authoritative, both language files — read "a
+translation **added or corrected after closure** can affect neither the result
+nor the hash", which presupposes the edit is possible; §3.8 faithfully restated
+it. R-10.7 was amended (both files) to state the property affirmatively — the
+result and the hash are *independent of* the labels and their translations — and
+to point at the R-3.3 freeze, dropping the post-closure-edit presupposition.
+§3.8 and the T-23 row were reworded to match; T-23 now asserts the freeze as the
+intended rule (a `label_i18n` write past `draft` is refused) rather than as a
+pinned divergence. The docstrings in `canonical.py`, `closure.py`,
+`elections/models.py` and `docs/canonical-serialisation.md` that phrased the
+property as "a translation corrected after closure cannot move the hash" were
+reworded the same way.
 
 ## 9. TLS in the Ansible role is certbot only
 

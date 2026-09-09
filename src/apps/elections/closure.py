@@ -183,8 +183,9 @@ def publication(poll: Poll) -> dict[str, Any]:
     """Everything §9 requires published, as one JSON-serialisable document.
 
     Option **labels** appear here as a separate lookup table, never inside a
-    ranking (§3.8): correcting a translation after publication must move
-    neither the hash nor the result (T-23).
+    ranking (§3.8): the hash and the result are built from option ids and are
+    independent of the labels (R-10.7, T-23). Labels are frozen at `open`
+    (R-3.3, INV-6), so this table shows exactly what voters ranked.
     """
     ballots, options, result = tallied(poll)
 

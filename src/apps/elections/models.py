@@ -218,8 +218,10 @@ class Poll(models.Model):
 
 class PollOption(models.Model):
     """One proposition. ``option_id`` is what rankings, hashes and the published
-    CSV carry; labels are a lookup table beside them (§3.8), so correcting a
-    translation after publication moves neither the hash nor the result (T-23).
+    CSV carry; labels are a lookup table beside them (§3.8), so the hash and the
+    result are independent of the labels (R-10.7, T-23). Labels are frozen with
+    the rest of the configuration when the poll opens (R-3.3, INV-6): the
+    ``inv6_option_*_frozen`` triggers refuse every write outside ``draft``.
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

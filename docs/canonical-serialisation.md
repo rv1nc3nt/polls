@@ -25,10 +25,10 @@ A ranking is a **list of groups**, each group a list of option **ids**:
     [["a", "b"], ["c"]]          a and b tied, both above c
     [["a"]]                      only a ranked; b and c are equal-last (R-10.4)
 
-Option ids, never labels: a translation corrected after closure must move
-neither the hash nor the result (§3.8). Ids **within a group** are sorted by
-code point, because a tie is unordered and two orderings of the same tie must
-not produce two hashes. Groups keep the voter's order.
+Option ids, never labels: the hash and the result are built from ids alone and
+are independent of the labels and their translations (§3.8). Ids **within a
+group** are sorted by code point, because a tie is unordered and two orderings
+of the same tie must not produce two hashes. Groups keep the voter's order.
 
 ## A record
 

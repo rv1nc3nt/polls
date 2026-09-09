@@ -206,7 +206,7 @@ Aucun générateur pseudo-aléatoire de bibliothèque n'est employé, la reprodu
 
 **R-10.6** Le dépouillement n'est effectué qu'après la clôture. Il ne lit que les bulletins, jamais le registre des électeurs.
 
-**R-10.7** Le dépouillement repose sur les identifiants des options et jamais sur leurs libellés, de sorte qu'une traduction ajoutée ou corrigée après la clôture ne puisse affecter ni le résultat ni l'empreinte prévue à la règle R-11.1.
+**R-10.7** Le dépouillement repose sur les identifiants des options et jamais sur leurs libellés ; le résultat et l'empreinte prévue à la règle R-11.1 sont ainsi indépendants des libellés et de leurs traductions. Les libellés sont figés avec le reste de la configuration au passage à l'état `ouvert` (règle R-3.3), de sorte que le résultat publié présente exactement les libellés que les électeurs ont classés.
 
 ---
 

@@ -208,7 +208,7 @@ No library pseudo-random generator is used, reproducibility having to depend nei
 
 **R-10.6** The tally is carried out only after closure. It reads ballots alone, and never the register of electors.
 
-**R-10.7** The tally rests on the identifiers of the options, never on their labels, so that a translation added or corrected after closure can affect neither the result nor the hash at R-11.1.
+**R-10.7** The tally rests on the identifiers of the options, never on their labels; the result and the hash at R-11.1 are thereby independent of the labels and their translations. The labels are frozen with the rest of the configuration on transition to the `open` state (R-3.3), so that the published result shows exactly the labels the electors ranked.
 
 ---
 

@@ -397,16 +397,17 @@ def _publish_with_labels(labels: dict[str, dict[str, str]]) -> Poll:
     return Poll.objects.get(pk=poll.pk)
 
 
-def test_t23_correcting_an_option_label_moves_neither_the_hash_nor_the_result(db: None) -> None:
-    """T-23 / §3.8: the closure hash and the tally are functions of option ids
-    and tracking codes only. Two polls identical but for their labels — ballots
-    and tracking codes pinned equal — publish the same hash and the same
-    winner, matrix and derivation; only the ``options`` lookup table differs.
+def test_t23_labels_are_frozen_and_the_hash_and_result_are_built_from_ids(db: None) -> None:
+    """T-23 / §3.8 / R-10.7: option labels are configuration, frozen when the
+    poll opens (R-3.3, INV-6) — there is no path to add or correct a translation
+    once a poll has left ``draft``, and a ``label_i18n`` write past ``draft`` is
+    refused at the database.
 
-    The label store is in fact frozen once the poll leaves ``draft`` (INV-6),
-    so a post-publication correction is refused at the database — see
-    ``docs/spec-divergences.md`` §8. The property T-23 protects holds either
-    way, and both halves are asserted here.
+    Nothing is lost by that: the closure hash and the tally are functions of
+    option ids and tracking codes only. Two polls identical but for their
+    labels — ballots and tracking codes pinned equal — publish the same hash and
+    the same winner, matrix and derivation; only the ``options`` lookup table
+    differs.
     """
     plain = _publish_with_labels(
         {"a": {"fr": "A"}, "b": {"fr": "B"}, "c": {"fr": "C"}},
@@ -440,7 +441,8 @@ def test_t23_correcting_an_option_label_moves_neither_the_hash_nor_the_result(db
     assert doc_plain["options"] != doc_reworded["options"]
     assert doc_reworded["options"]["a"] == {"fr": "La place réaménagée"}
 
-    # And the correction cannot actually be persisted after publication.
+    # And a label edit past ``draft`` is refused at the database — the labels a
+    # voter ranked cannot be rewritten after the fact (R-3.3, INV-6).
     option = plain.options.get(option_id="a")
     option.label_i18n = {"fr": "A — libellé corrigé"}
     with pytest.raises(Exception, match="INV-6"), transaction.atomic():

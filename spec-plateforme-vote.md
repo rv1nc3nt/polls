@@ -142,7 +142,7 @@ Rules:
 - At render time a missing translation falls back to the poll's default language, never to an empty string.
 - Emails use `Registration.language`. The receipt for a paper ballot uses the language selected by the operator at entry, defaulting to the poll default.
 - Language is selected by URL prefix (`/fr/…`, `/en/…`) with Django's `i18n_patterns`, so a ballot link is language-explicit and shareable.
-- **Translations never touch the tally or the hash.** `ranking` stores option **ids**; the canonical serialisation of §9 contains ids and tracking codes only. Labels appear in the publication as a separate lookup table. A translation added or corrected after closure therefore cannot change the closure hash or the result — a property the verifier depends on.
+- **Translations never touch the tally or the hash.** `ranking` stores option **ids**; the canonical serialisation of §9 contains ids and tracking codes only. Labels appear in the publication as a separate lookup table, so the closure hash and the result are independent of them — a property the verifier depends on. Labels are frozen with the rest of the configuration when the poll opens (R-3.3, INV-6): there is no path to add or correct a translation once a poll has left `draft`, and the published result therefore shows exactly the labels voters ranked.
 
 ---
 
@@ -458,7 +458,7 @@ These run on every commit and must stay fast. Everything here is a function of i
 | T-20 | `show_live_participation` off | No page, endpoint or header discloses a running count |
 | T-21 | Modification link followed | Token exchanged for a session, redirect to token-free URL; token absent from access logs and `Referer` |
 | T-22 | Poll with English enabled but one option label untranslated | Cannot leave `draft`; the gap is named on the configuration screen |
-| T-23 | Option label corrected after publication | Closure hash and result unchanged |
+| T-23 | A `label_i18n` edit attempted on a poll past `draft`; and two polls with identical ballots and tracking codes but different option labels | The edit is refused (labels are configuration, frozen at `open` — R-3.3, INV-6); the two polls share a byte-identical closure hash and an identical winner, matrix and derivation — tally and hash are built from option ids (R-10.7) |
 | T-24 | `UPDATE` or `DELETE` on `audit_event`, and on a superseded `Ballot` row, issued in raw SQL | Rejected by the trigger, not merely by application code (INV-3) |
 | T-25 | Schema and model metadata inspected; a registration and the ballot cast from its token compared field by field | No field or relation links `Ballot` to a voter, registration or roll entry, and no value whatever is common to the two rows — in particular no tracking code (INV-1, INV-5, §6.2) |
 | T-26 | Roll re-imported while a poll is open; `UPDATE` attempted on a `RollEntry` | Open poll's snapshot unchanged; update rejected (INV-7, R-4.3) |

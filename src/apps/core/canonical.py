@@ -11,10 +11,10 @@ The rules, in full:
 1.  The set is exactly the ballots with ``status = live`` (§3.4). Superseded,
     deleted and ``pending_countersign`` rows are excluded, without exception.
 2.  A ranking is a list of groups, each group a list of option **ids** — never
-    labels (§3.8), so a translation corrected after closure cannot move the
-    hash. A strict ranking is a list of one-element groups. Ids within a group
-    are sorted by code point, since a tie is unordered and two orderings of the
-    same tie must not produce two hashes.
+    labels (§3.8): the hash is built from ids alone and is independent of the
+    labels and their translations. A strict ranking is a list of one-element
+    groups. Ids within a group are sorted by code point, since a tie is
+    unordered and two orderings of the same tie must not produce two hashes.
 3.  A record is the JSON object ``{"tracking_code": …, "ranking": …}`` with the
     keys in that order, no insignificant whitespace (separators ``,`` and
     ``:``), non-ASCII left as UTF-8 rather than escaped.
