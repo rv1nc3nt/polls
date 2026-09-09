@@ -1,0 +1,33 @@
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD #}
+{% comment %}
+  The ranking widget of R-6.3 / R-14.1: numbered selects, one per proposition,
+  the keyboard- and screen-reader-usable alternative to drag-and-drop. Included
+  by the paper-entry screen (§6.5.5) and, later, the online ballot page (§6.3).
+  Expects ``form`` to be a ``ballots.forms.RankingForm``.
+{% endcomment %}
+{{ form.order }}
+
+<p class="help">
+  {% if form.allow_ties %}
+    {% translate "Donnez un rang à chaque proposition. Plusieurs propositions peuvent partager un rang. Une proposition sans rang est classée dernière à égalité." %}
+  {% else %}
+    {% translate "Donnez un rang distinct à chaque proposition. Une proposition sans rang est classée dernière." %}
+  {% endif %}
+</p>
+
+<ol class="ranking">
+  {% for option_id, field in form.ranked_fields %}
+    <li class="ranking__row">
+      <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {% if field.errors %}
+        <p class="error" role="alert">{{ field.errors|join:" " }}</p>
+      {% endif %}
+    </li>
+  {% endfor %}
+</ol>
+
+{% if form.non_field_errors %}
+  <p class="error" role="alert">{{ form.non_field_errors|join:" " }}</p>
+{% endif %}

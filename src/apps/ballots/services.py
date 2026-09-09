@@ -18,13 +18,9 @@ from apps.elections.models import Poll
 
 from .models import Ballot
 
-
-class BallotRefused(Exception):
-    """A cast or modification the server refuses, whatever the browser allowed.
-
-    Ranking constraints are validated here as well as in the page, since a
-    ballot can be posted straight to the endpoint (T-29).
-    """
+# Re-exported: callers have always caught ``services.BallotRefused``; it now
+# lives with the validation that raises it (§6.3, T-29).
+from .ranking import BallotRefused as BallotRefused
 
 
 def cast_online(poll: Poll, token: Token, ranking: list[list[str]]) -> Ballot:
