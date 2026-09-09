@@ -94,19 +94,43 @@ no query may join a registration to an online ballot; voting status lives on
 state only, and has no update or delete path; the closure hash depends on option
 ids and tracking codes alone.
 
-## Scaffolding status
+## Build status
 
-Implemented and tested: the domain model and its migrations, the database
-triggers enforcing INV-2, INV-3, INV-6 and INV-7, the transition function and
-its guards, the closure hash and publication artefacts, the tally and the
-tie-break, the anonymity scheme, name and address matching, the management
-commands' locking and selection, and the Rust verifier with its cross-check
-against the Python tally.
+Implemented and tested — the four CI gates (`ruff`, `ruff format`,
+`mypy --strict`, `pytest`) and the Rust `cargo test` are green:
 
-Not yet written: the back-office screens (§6.5), the registration and casting
-flows (§6.2–§6.4) — their service functions are stubs with the specification
-attached — the roll import (§6.1), the email templates, the RGAA markup, the
-`.po` catalogues, and the bodies of the Ansible tasks.
+- the domain model and its migrations, and the database triggers enforcing
+  INV-2, INV-3, INV-6 and INV-7;
+- the transition function and its guards, the voting window, closure, the
+  closure hash and publication artefacts, the tally, the tie-break, retention;
+- the anonymity scheme (§7), name and address matching;
+- the roll import (§6.1), the registration and review flow (§6.2), online
+  casting and modification (§6.3), paper entry, correction, deletion and
+  countersignature (§6.4);
+- all eleven back-office screens (§6.5), the public poll and results pages and
+  `GET /sante` (§6.6);
+- the management commands, with the locking and state-based selection §14
+  requires, and the mail templates they send;
+- the `en` message catalogue (French is the msgid language);
+- the independent Rust verifier and its cross-check against the Python tally;
+- the Ansible role — `provision`, `deploy`, `backup`, `restore`, `smoke` (§15).
+
+Every acceptance test T-1…T-64 (§12) has a test or a Molecule scenario.
+
+Outstanding:
+
+- **T-16 and T-38** run only in the dedicated CI `molecule` job — they need a
+  throwaway systemd host, not the pytest database — and **T-13**'s
+  screen-reader pass stays a manual step before each poll opens (the
+  keyboard-only half is automated).
+- No prebuilt **container image** or no-toolchain deployment guide yet, and no
+  generated **third-party licence notice** (§14).
+- **RGAA conformance audit** of the markup (R-14.1) and an **email
+  deliverability test** to real mailboxes (§14) are pre-launch tasks, not code.
+- The §13 items — first-poll option labels, enabled languages, opening and
+  closing instants, the data-protection referent, the paper-workflow toggles,
+  the keying window, postal enrolment, `review_all_registrations` — are wired
+  as configuration and await the commune's values.
 
 ## Licence
 

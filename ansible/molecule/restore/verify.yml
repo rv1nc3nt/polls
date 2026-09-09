@@ -10,9 +10,10 @@
 #      published closure hash recomputes to the same value from the restored
 #      data.
 #
-# The role's backup.yml and restore.yml are still debug stubs, so steps that
-# need a real snapshot are guarded: the scenario proves the harness now and
-# activates fully once backup.yml, deploy.yml and restore.yml are written.
+# converge.yml runs the full role, and backup.yml takes an initial snapshot on
+# a fresh host (§15 step 8), so a snapshot always exists here; the guard below
+# is a safety net, not a pending-implementation skip. The closure-hash
+# comparisons still bind only when the fixture data contains a published poll.
 
 - name: T-16 — record state, lose it, restore it
   hosts: all
@@ -29,15 +30,13 @@
         file_type: file
       register: snapshots
 
-    - name: Skip the round trip until backup.yml produces a snapshot
-      ansible.builtin.debug:
+    - name: Fail if converge left no snapshot to restore from
+      ansible.builtin.fail:
         msg: >-
-          T-16 skipped — no snapshot under {{ polls_backup_dir }}. Implement
-          backup step 8 of §15 and this scenario runs end to end.
-      when: snapshots.matched | int == 0
-
-    - name: End the play cleanly when there is nothing to restore
-      ansible.builtin.meta: end_play
+          No snapshot under {{ polls_backup_dir }}. converge.yml runs the full
+          role and backup.yml takes an initial snapshot on a fresh host, so an
+          empty directory here means that step failed — investigate rather than
+          skip T-16.
       when: snapshots.matched | int == 0
 
     - name: Count the audit-log rows before the loss
@@ -140,13 +139,9 @@
         - hash_before.stdout | default('') | length > 0
 
     - name: /sante answers after the restore
+      # deploy.yml wires gunicorn behind nginx and smoke.yml checks this same
+      # endpoint (§15 steps 3-6, 9); a restore that left the service down fails
+      # here.
       ansible.builtin.uri:
         url: http://127.0.0.1:8000/sante
         status_code: 200
-      register: sante
-      failed_when: false
-
-    - name: Note when the service is not yet wired
-      ansible.builtin.debug:
-        msg: "T-16: /sante unreachable — deploy step 6 / smoke step 9 not implemented yet."
-      when: sante.status | default(0) != 200
