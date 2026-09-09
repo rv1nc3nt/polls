@@ -65,6 +65,84 @@ def test_validate_enforces_completeness_only_when_required() -> None:
     validate_ranking([["a"]], OPTIONS, require_complete=False, allow_ties=False)
 
 
+# --- T-45: the accept/reject matrix of R-6.1 ----------------------------
+
+_STRICT_COMPLETE = [["a"], ["b"], ["c"]]
+_STRICT_SHORT = [["a"], ["b"]]
+_TIED_COMPLETE = [["a", "b"], ["c"]]
+_TIED_SHORT = [["a", "b"]]
+
+# (ranking, require_complete, allow_ties, rejection message or None). The
+# validator tests the tie before completeness (see ``validate_ranking``), so a
+# ranking that is both tied and short is refused for the tie where both apply.
+_T45_MATRIX = [
+    # A strict, complete ranking is admissible under every configuration.
+    (_STRICT_COMPLETE, False, False, None),
+    (_STRICT_COMPLETE, False, True, None),
+    (_STRICT_COMPLETE, True, False, None),
+    (_STRICT_COMPLETE, True, True, None),
+    # Incomplete: refused exactly when the poll requires a complete ranking.
+    (_STRICT_SHORT, False, False, None),
+    (_STRICT_SHORT, False, True, None),
+    (_STRICT_SHORT, True, False, "doivent être classées"),
+    (_STRICT_SHORT, True, True, "doivent être classées"),
+    # Contains a tie: refused exactly when the poll forbids ex æquo.
+    (_TIED_COMPLETE, False, False, "ex æquo"),
+    (_TIED_COMPLETE, False, True, None),
+    (_TIED_COMPLETE, True, False, "ex æquo"),
+    (_TIED_COMPLETE, True, True, None),
+    # Both at once: admissible only when ties are allowed and completeness is
+    # not required; otherwise the tie is reported first, the gap only after.
+    (_TIED_SHORT, False, False, "ex æquo"),
+    (_TIED_SHORT, False, True, None),
+    (_TIED_SHORT, True, False, "ex æquo"),
+    (_TIED_SHORT, True, True, "doivent être classées"),
+]
+
+
+@pytest.mark.parametrize(("ranking", "require_complete", "allow_ties", "rejection"), _T45_MATRIX)
+def test_t45_incomplete_and_tied_rankings_are_judged_exactly_by_the_two_flags(
+    ranking: list[list[str]],
+    require_complete: bool,
+    allow_ties: bool,
+    rejection: str | None,
+) -> None:
+    """T-45 / R-6.1: ``validate_ranking`` — the server-side layer, which a POST
+    straight to the endpoint still goes through (T-29) — accepts or rejects an
+    incomplete or tied ranking exactly per ``require_complete_ranking`` and
+    ``allow_ties_in_ballot``, and for no other reason.
+    """
+    if rejection is None:
+        validate_ranking(ranking, OPTIONS, require_complete=require_complete, allow_ties=allow_ties)
+    else:
+        with pytest.raises(BallotRefused, match=rejection):
+            validate_ranking(
+                ranking, OPTIONS, require_complete=require_complete, allow_ties=allow_ties
+            )
+
+
+@pytest.mark.parametrize("require_complete", [False, True])
+@pytest.mark.parametrize("allow_ties", [False, True])
+def test_t45_the_poll_fields_are_what_drives_the_decision(
+    open_window_poll: Poll, require_complete: bool, allow_ties: bool
+) -> None:
+    """T-45 / R-6.1: the two named poll fields, not the page, decide. ``RankingForm``
+    reads ``poll.require_complete_ranking`` and ``poll.allow_ties_in_ballot`` and
+    hands them to ``validate_ranking``; a ranking that is both short and tied is
+    admissible only when ties are allowed and a complete ranking is not required.
+    """
+    open_window_poll.require_complete_ranking = require_complete
+    open_window_poll.allow_ties_in_ballot = allow_ties
+    form = _form(
+        open_window_poll,
+        {"order": "a,b,c", "rank_a": "1", "rank_b": "1"},
+    )
+    expected = allow_ties and not require_complete
+    assert form.is_valid() is expected, form.errors
+    if expected:
+        assert form.cleaned_data["ranking"] == [["a", "b"]]
+
+
 # --- RankingForm --------------------------------------------------------
 
 
