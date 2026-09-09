@@ -217,3 +217,37 @@ than a tenant table.
 **Not settled by amending the spec.** This is additive — it implements
 §6.5.11 rather than contradicting anything — so §3 should gain a `Commune`
 entry and §13 item 4 should point at it. Recorded here until that edit is made.
+
+## 8. Option labels cannot be corrected after the poll leaves draft
+
+**Specification, §3.8 and T-23.** §3.8: "A translation added or **corrected
+after closure** therefore cannot change the closure hash or the result — a
+property the verifier depends on." T-23 exercises exactly that: *option label
+corrected after publication → closure hash and result unchanged*. Both sentences
+presuppose that correcting a label after `draft` is a supported operation.
+
+**What the code does.** The INV-6 option triggers
+(`inv6_option_insert_frozen` / `_update_frozen` / `_delete_frozen`,
+`src/apps/elections/migrations/0002_invariant_triggers.py`) freeze
+`elections_polloption` **whole** once the poll is not `draft` — every column,
+`label_i18n` included. Screen 2 is read-only past `draft` (§6.5.2) with no
+label-only edit path, and no service function writes one. So a post-publication
+label correction is not merely unimplemented, it is refused at the database.
+
+**Why this is nonetheless fine for T-23's property.** The hash and the result
+are functions of option **ids** and tracking codes only: `canonical_record`
+serialises `tracking_code` and a `ranking` of ids, and `closure.tallied` tallies
+`ranking` against `[option_id …]`. Neither reads `label_i18n`; labels reach the
+publication solely through `document["options"]`, a lookup table beside the
+result. `tests/integration/test_publicsite.py::test_t23_*` asserts this
+directly — two polls identical but for their labels (tracking codes and ballots
+pinned equal) produce byte-identical closure hashes and identical winner,
+matrix and derivation — and also asserts the freeze, so the divergence is
+pinned rather than latent.
+
+**Not yet settled.** Either §3.8/T-23 should be reworded to say labels are
+fixed at `draft` exit (the safer reading — a frozen label cannot drift from the
+ballot a voter saw), or the option `UPDATE` trigger should admit a
+`label_i18n`-only change with a matching screen-2 action. The first is the
+smaller change and matches the current code; recorded here until the spec edit
+is made.

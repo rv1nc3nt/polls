@@ -6,23 +6,28 @@ running count appears only where ``show_live_participation`` is set and nowhere
 otherwise (R-11.5, T-20); an extension of the closing date shows on the page
 (R-3.4, T-5); and the published results — page, CSV and JSON — are exactly the
 live ballot set and the §9 document, so the closure hash recomputes from the
-CSV alone (R-11.2, R-11.4).
+CSV alone and the three artefacts cross-check (R-11.2, R-11.4, T-36).
 """
 
 from __future__ import annotations
 
+import csv
+import io
 import json
 from datetime import timedelta
 
 import pytest
+from django.db import transaction
 from django.test import Client
 from django.utils import timezone
 
 from apps.audit.models import Reason
-from apps.ballots.models import Ballot, BallotSource
-from apps.core.canonical import closure_hash
+from apps.ballots.models import Ballot, BallotSource, BallotStatus
+from apps.core.canonical import CanonicalBallot, closure_hash
 from apps.core.codes import new_tracking_code
 from apps.core.models import User
+from apps.core.types import TrackingCode
+from apps.elections import closure
 from apps.elections.closure import live_ballots
 from apps.elections.models import Poll, PollOption, WorkingRollEntry
 from apps.elections.transitions import close_poll, extend_closes_at, open_poll, publish_poll
@@ -244,6 +249,206 @@ def test_the_published_json_is_the_publication_document(
     assert published_poll.closure_hash is not None
     assert document["closure_hash"] == bytes(published_poll.closure_hash).hex()
     assert document["winner"] == "a"
+
+
+def test_t36_published_artefacts_cross_check(client: Client, db: None) -> None:
+    """T-36: the three published artefacts agree, on a poll with a non-trivial
+    mix — both channels, superseded versions, non-voters and one unconfirmed
+    registration.
+
+    Two identities (§9, R-11.2/4):
+
+    * *CSV row count = live set = hashed set.* The CSV carries one row per
+      ``live`` ballot and no other; the superseded rows beside them reach
+      neither the CSV nor the hash, which recomputes from the CSV alone.
+    * *registered = online + paper + non-voters.* The counts frozen at closure
+      reconcile, and are drawn from the ``active`` registrations only — a
+      ``pending_email`` one is not a registrant yet (R-5.5, T-27).
+    """
+    poll = _make_poll()
+    open_poll(poll)
+    poll = Poll.objects.get(pk=poll.pk)
+
+    # Registrations, by channel. The platform never joins these to a ballot
+    # (INV-1); the figures below are counted from ``channel`` alone.
+    for i in range(5):
+        _register(poll, f"online{i}", channel=Channel.ONLINE)
+    for i in range(2):
+        _register(poll, f"paper{i}", channel=Channel.PAPER)
+    for i in range(3):
+        _register(poll, f"abstention{i}")  # active, channel = none
+    Registration.objects.create(
+        poll=poll,
+        declared_last_name="Dupont",
+        declared_first_names="Émile",
+        declared_dob="12/05/1970",
+        email="pending@example.fr",
+        email_canonical="pending@example.fr",
+        state=RegistrationState.PENDING_EMAIL,
+        channel=Channel.NONE,
+    )
+
+    # The live ballot set: five online, two paper. One online ballot was
+    # modified once and one paper ballot corrected once, leaving two superseded
+    # rows that share their code with the live version that replaced them.
+    live_codes: set[str] = set()
+
+    def _live(code: str, ranking: list[list[str]], source: str, version: int = 1) -> None:
+        live_codes.add(code)
+        Ballot.objects.create(
+            poll=poll,
+            tracking_code=code,
+            version=version,
+            ranking=ranking,
+            source=source,
+            status=BallotStatus.LIVE,
+        )
+
+    for _i in range(4):
+        _live(new_tracking_code(), [["a"], ["b"], ["c"]], BallotSource.ONLINE)
+    _live(new_tracking_code(), [["b"], ["a"], ["c"]], BallotSource.PAPER)
+
+    modified = new_tracking_code()
+    Ballot.objects.create(
+        poll=poll,
+        tracking_code=modified,
+        version=1,
+        ranking=[["c"], ["b"], ["a"]],
+        source=BallotSource.ONLINE,
+        status=BallotStatus.SUPERSEDED,
+    )
+    _live(modified, [["a"], ["c"], ["b"]], BallotSource.ONLINE, version=2)
+
+    corrected = new_tracking_code()
+    Ballot.objects.create(
+        poll=poll,
+        tracking_code=corrected,
+        version=1,
+        ranking=[["c"], ["a"], ["b"]],
+        source=BallotSource.PAPER,
+        status=BallotStatus.SUPERSEDED,
+    )
+    _live(corrected, [["b"], ["c"], ["a"]], BallotSource.PAPER, version=2)
+
+    close_poll(poll)
+    publish_poll(poll, User.objects.create_user(username="p.admin", password="x"))
+    poll = Poll.objects.get(pk=poll.pk)
+
+    csv_text = client.get(f"/fr/scrutin/{poll.pk}/resultats/?format=csv").content.decode()
+    document = json.loads(client.get(f"/fr/scrutin/{poll.pk}/resultats/?format=json").content)
+
+    rows = list(csv.reader(io.StringIO(csv_text)))
+    assert rows[0] == ["tracking_code", "ranking"]
+    data = rows[1:]
+
+    # CSV row count = live set = hashed set.
+    live = Ballot.live.filter(poll=poll)
+    assert len(data) == live.count() == len(live_ballots(poll)) == document["ballot_count"] == 7
+    assert {code for code, _ranking in data} == live_codes
+    recomputed = closure_hash(
+        CanonicalBallot(TrackingCode(code), json.loads(ranking)) for code, ranking in data
+    )
+    assert poll.closure_hash is not None
+    assert recomputed == bytes(poll.closure_hash) == bytes.fromhex(document["closure_hash"])
+
+    # The superseded versions are gone from every artefact: the modified code
+    # appears once, carrying its v2 ranking, not v1's.
+    by_code = {code: json.loads(ranking) for code, ranking in data}
+    assert by_code[modified] == [["a"], ["c"], ["b"]]
+    assert by_code[corrected] == [["b"], ["c"], ["a"]]
+
+    # registered = online + paper + non-voters, over the active registrations.
+    counts = document["counts"]
+    assert counts == poll.frozen_counts
+    assert counts["registered"] == (
+        counts["ballots_online"] + counts["ballots_paper"] + counts["non_voters"]
+    )
+    assert (counts["ballots_online"], counts["ballots_paper"], counts["non_voters"]) == (5, 2, 3)
+    assert counts["registered"] == 10
+    assert Registration.objects.filter(poll=poll, state=RegistrationState.ACTIVE).count() == 10
+
+
+# --- T-23: labels never move the hash or the result ------------------
+
+
+#: Pinned tracking codes and rankings, so two polls that differ only in their
+#: option labels have a byte-identical canonical serialisation (§9).
+_T23_BALLOTS = [
+    ("TRACKAAAA1", [["a"], ["b"], ["c"]]),
+    ("TRACKBBBB2", [["a"], ["c"], ["b"]]),
+    ("TRACKCCCC3", [["b"], ["a"], ["c"]]),
+]
+
+
+def _publish_with_labels(labels: dict[str, dict[str, str]]) -> Poll:
+    poll = _make_poll()
+    for option in poll.options.all():
+        # Still ``draft`` here, so the INV-6 option trigger permits the write.
+        option.label_i18n = labels[option.option_id]
+        option.save(update_fields=["label_i18n"])
+    open_poll(poll)
+    poll = Poll.objects.get(pk=poll.pk)
+    for code, ranking in _T23_BALLOTS:
+        Ballot.objects.create(
+            poll=poll, tracking_code=code, ranking=ranking, source=BallotSource.ONLINE
+        )
+    close_poll(poll)
+    publish_poll(poll, User.objects.create_user(username=f"admin-{poll.pk}", password="x"))
+    return Poll.objects.get(pk=poll.pk)
+
+
+def test_t23_correcting_an_option_label_moves_neither_the_hash_nor_the_result(db: None) -> None:
+    """T-23 / §3.8: the closure hash and the tally are functions of option ids
+    and tracking codes only. Two polls identical but for their labels — ballots
+    and tracking codes pinned equal — publish the same hash and the same
+    winner, matrix and derivation; only the ``options`` lookup table differs.
+
+    The label store is in fact frozen once the poll leaves ``draft`` (INV-6),
+    so a post-publication correction is refused at the database — see
+    ``docs/spec-divergences.md`` §8. The property T-23 protects holds either
+    way, and both halves are asserted here.
+    """
+    plain = _publish_with_labels(
+        {"a": {"fr": "A"}, "b": {"fr": "B"}, "c": {"fr": "C"}},
+    )
+    reworded = _publish_with_labels(
+        {
+            "a": {"fr": "La place réaménagée"},
+            "b": {"fr": "Un parc arboré"},
+            "c": {"fr": "Un parking silo"},
+        },
+    )
+
+    assert plain.closure_hash is not None
+    assert reworded.closure_hash is not None
+    assert bytes(plain.closure_hash) == bytes(reworded.closure_hash)
+    assert bytes(plain.closure_hash) == closure_hash(live_ballots(plain))
+
+    doc_plain = closure.publication(plain)
+    doc_reworded = closure.publication(reworded)
+    for key in (
+        "closure_hash",
+        "winner",
+        "matrix",
+        "derivation",
+        "ballot_count",
+        "serialisation_bytes",
+        "orderings",
+    ):
+        assert doc_plain[key] == doc_reworded[key], key
+    # The one thing that does differ is the label lookup table.
+    assert doc_plain["options"] != doc_reworded["options"]
+    assert doc_reworded["options"]["a"] == {"fr": "La place réaménagée"}
+
+    # And the correction cannot actually be persisted after publication.
+    option = plain.options.get(option_id="a")
+    option.label_i18n = {"fr": "A — libellé corrigé"}
+    with pytest.raises(Exception, match="INV-6"), transaction.atomic():
+        option.save(update_fields=["label_i18n"])
+    assert PollOption.objects.get(pk=option.pk).label_i18n == {"fr": "A"}
+    reloaded = Poll.objects.get(pk=plain.pk)
+    assert reloaded.closure_hash is not None
+    assert bytes(reloaded.closure_hash) == bytes(plain.closure_hash)
 
 
 def test_an_unknown_format_is_404(client: Client, published_poll: Poll) -> None:

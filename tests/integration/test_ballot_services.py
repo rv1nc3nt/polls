@@ -9,7 +9,7 @@ recorded but never counted (D4), a correction supersedes rather than overwrites
 
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from django.utils import timezone
@@ -20,7 +20,8 @@ from apps.ballots.models import Ballot, BallotStatus, PaperBallotLink
 from apps.ballots.ranking import BallotRefused
 from apps.core.models import User
 from apps.core.types import Token
-from apps.elections.models import Poll, RollEntry
+from apps.elections.models import Poll, PollOption, RollEntry, WorkingRollEntry
+from apps.elections.transitions import open_poll
 from apps.elections.windows import WindowClosed
 from apps.registrations.models import Channel, Registration, RegistrationState
 
@@ -355,6 +356,74 @@ def test_cast_online_refuses_after_closes_at(open_paper_poll: Poll) -> None:
     with pytest.raises(WindowClosed):
         services.cast_online(poll, token, STRICT)
     assert not Ballot.objects.filter(poll=poll).exists()
+
+
+def _next_autumn_fold_utc(after: datetime) -> datetime:
+    """The instant Europe/Paris next steps 03:00 CEST → 02:00 CET after
+    ``after`` — the last Sunday of October, 01:00 UTC. Computed rather than
+    hardcoded so the test does not expire with a calendar year."""
+    year = after.year
+    while True:
+        day = datetime(year, 10, 31, tzinfo=UTC)
+        while day.weekday() != 6:  # Sunday
+            day -= timedelta(days=1)
+        fold = day.replace(hour=1, minute=0)
+        if fold > after:
+            return fold
+        year += 1
+
+
+def test_t34_no_ballot_after_the_intended_instant_across_the_dst_fold(
+    db: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """T-34: a poll closing in the Europe/Paris autumn fold. ``closes_at`` is
+    the *first* 02:30 (CEST); the wall clock then reads 02:00–03:00 a second
+    time an hour later. A cast whose clock reads 02:00 the second time round —
+    earlier than 02:30 on the face of it — is 30 minutes past the close in
+    absolute terms and is refused; one reading 02:00 the first time round is
+    accepted. Same wall-clock string, opposite outcomes, decided by the offset.
+    """
+    fold = _next_autumn_fold_utc(timezone.now())
+    close_at = fold - timedelta(minutes=30)  # first 02:30, CEST
+    first_0200 = fold - timedelta(hours=1)  # first 02:00, CEST — before close
+    second_0200 = fold  # second 02:00, CET — after close
+    assert second_0200 - first_0200 == timedelta(hours=1)
+    assert first_0200 < close_at < second_0200
+
+    poll = Poll.objects.create(
+        title_i18n={"fr": "Scrutin bascule d'heure"},
+        description_i18n={"fr": "Trois propositions."},
+        languages=["fr"],
+        # Open already (so the voter can register now); closing at the fold.
+        opens_at=timezone.now() - timedelta(days=1),
+        closes_at=close_at,
+        paper_entry_deadline=close_at,
+    )
+    for position, option_id in enumerate(["a", "b", "c"]):
+        PollOption.objects.create(
+            poll=poll, option_id=option_id, label_i18n={"fr": option_id.upper()}, position=position
+        )
+    WorkingRollEntry.objects.create(
+        birth_name="Dupont",
+        first_names="Émile",
+        date_of_birth="12/05/1970",
+        date_of_birth_parsed="1970-05-12",
+        list_types=["principale"],
+    )
+    open_poll(poll)
+    poll = Poll.objects.get(pk=poll.pk)
+    _registration_id, token = _voter(poll)
+
+    # 02:00, second time round the clock — past the close. Refused, nothing written.
+    monkeypatch.setattr("apps.elections.windows.timezone.now", lambda: second_0200)
+    with pytest.raises(WindowClosed):
+        services.cast_online(poll, token, STRICT)
+    assert not Ballot.objects.filter(poll=poll).exists()
+
+    # 02:00, first time round — before the close. Accepted.
+    monkeypatch.setattr("apps.elections.windows.timezone.now", lambda: first_0200)
+    result = services.cast_online(poll, token, STRICT)
+    assert result.ballot.status == BallotStatus.LIVE
 
 
 def test_cast_online_flips_the_channel_and_stores_a_ballot_hash(open_paper_poll: Poll) -> None:
