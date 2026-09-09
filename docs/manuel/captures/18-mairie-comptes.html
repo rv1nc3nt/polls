@@ -292,11 +292,14 @@ input, select, textarea {
   color: var(--ink);
   max-width: 100%;
 }
-input[type="search"], input[type="text"], input[type="email"], input[type="date"], select {
+input[type="search"], input[type="text"], input[type="email"], input[type="password"], input[type="date"], select {
   min-height: 2.5rem;
 }
-input[type="search"], input[type="text"], input[type="email"] { width: min(30rem, 100%); }
+input[type="search"], input[type="text"], input[type="email"], input[type="password"] { width: min(30rem, 100%); }
 select { cursor: pointer; }
+/* The reset-password field rides in a wrapping flex row beside its button
+   (screen 18); keep it from pushing the button onto its own line. */
+details form.inline input[type="password"] { width: min(16rem, 100%); }
 input:focus-visible, select:focus-visible, textarea:focus-visible { border-color: var(--focus); }
 input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); width: 1rem; height: 1rem; }
 
@@ -549,7 +552,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
       
       <span class="account__name">Marie Rousseau</span>
       <form action="/fr/mairie/deconnexion/" method="post">
-        <input type="hidden" name="csrfmiddlewaretoken" value="tAD1GlShhqLINrqy6qeiySQeG9nj1GbYTFlvzMrmM7ccMkJ0YTBKMIem4k9SrQlE">
+        <input type="hidden" name="csrfmiddlewaretoken" value="WpfFRP6ueuv8kvQa2931zuHiiQRvft56XDxNqagVpJiyX4Z9CSqQPRHRGX8jmzMg">
         <button type="submit">Se déconnecter</button>
       </form>
     </div>
@@ -574,7 +577,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 
   <h2>Créer un compte</h2>
   <form method="post">
-    <input type="hidden" name="csrfmiddlewaretoken" value="tAD1GlShhqLINrqy6qeiySQeG9nj1GbYTFlvzMrmM7ccMkJ0YTBKMIem4k9SrQlE">
+    <input type="hidden" name="csrfmiddlewaretoken" value="WpfFRP6ueuv8kvQa2931zuHiiQRvft56XDxNqagVpJiyX4Z9CSqQPRHRGX8jmzMg">
     <input type="hidden" name="action" value="create">
     
       <p class="field">
@@ -643,24 +646,24 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
               <summary>Gérer ce compte</summary>
 
               <form method="post" class="inline">
-                <input type="hidden" name="csrfmiddlewaretoken" value="tAD1GlShhqLINrqy6qeiySQeG9nj1GbYTFlvzMrmM7ccMkJ0YTBKMIem4k9SrQlE">
-                <input type="hidden" name="account" value="9d1e14e0-788d-42d5-ac69-a7b185289f50">
+                <input type="hidden" name="csrfmiddlewaretoken" value="WpfFRP6ueuv8kvQa2931zuHiiQRvft56XDxNqagVpJiyX4Z9CSqQPRHRGX8jmzMg">
+                <input type="hidden" name="account" value="06110ad0-0a16-4f7e-a4e7-3172d2d61357">
                 
                   <button type="submit" name="action" value="promote">Faire administrateur de la commune</button>
                 
               </form>
 
               <form method="post" class="inline">
-                <input type="hidden" name="csrfmiddlewaretoken" value="tAD1GlShhqLINrqy6qeiySQeG9nj1GbYTFlvzMrmM7ccMkJ0YTBKMIem4k9SrQlE">
-                <input type="hidden" name="account" value="9d1e14e0-788d-42d5-ac69-a7b185289f50">
-                <label for="pw-9d1e14e0-788d-42d5-ac69-a7b185289f50">Nouveau mot de passe</label>
-                <input id="pw-9d1e14e0-788d-42d5-ac69-a7b185289f50" type="password" name="raw_password" autocomplete="new-password">
+                <input type="hidden" name="csrfmiddlewaretoken" value="WpfFRP6ueuv8kvQa2931zuHiiQRvft56XDxNqagVpJiyX4Z9CSqQPRHRGX8jmzMg">
+                <input type="hidden" name="account" value="06110ad0-0a16-4f7e-a4e7-3172d2d61357">
+                <label for="pw-06110ad0-0a16-4f7e-a4e7-3172d2d61357">Nouveau mot de passe</label>
+                <input id="pw-06110ad0-0a16-4f7e-a4e7-3172d2d61357" type="password" name="raw_password" autocomplete="new-password">
                 <button type="submit" name="action" value="set_password">Réinitialiser le mot de passe</button>
               </form>
 
               <form method="post" class="inline danger">
-                <input type="hidden" name="csrfmiddlewaretoken" value="tAD1GlShhqLINrqy6qeiySQeG9nj1GbYTFlvzMrmM7ccMkJ0YTBKMIem4k9SrQlE">
-                <input type="hidden" name="account" value="9d1e14e0-788d-42d5-ac69-a7b185289f50">
+                <input type="hidden" name="csrfmiddlewaretoken" value="WpfFRP6ueuv8kvQa2931zuHiiQRvft56XDxNqagVpJiyX4Z9CSqQPRHRGX8jmzMg">
+                <input type="hidden" name="account" value="06110ad0-0a16-4f7e-a4e7-3172d2d61357">
                 
                   <button type="submit" name="action" value="deactivate">Désactiver le compte</button>
                 
@@ -693,24 +696,24 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
               <summary>Gérer ce compte</summary>
 
               <form method="post" class="inline">
-                <input type="hidden" name="csrfmiddlewaretoken" value="tAD1GlShhqLINrqy6qeiySQeG9nj1GbYTFlvzMrmM7ccMkJ0YTBKMIem4k9SrQlE">
-                <input type="hidden" name="account" value="56940715-8475-4794-ab9e-b830dd8304f0">
+                <input type="hidden" name="csrfmiddlewaretoken" value="WpfFRP6ueuv8kvQa2931zuHiiQRvft56XDxNqagVpJiyX4Z9CSqQPRHRGX8jmzMg">
+                <input type="hidden" name="account" value="c9b2466d-6ce8-4567-9fbc-2e690c8cebda">
                 
                   <button type="submit" name="action" value="promote">Faire administrateur de la commune</button>
                 
               </form>
 
               <form method="post" class="inline">
-                <input type="hidden" name="csrfmiddlewaretoken" value="tAD1GlShhqLINrqy6qeiySQeG9nj1GbYTFlvzMrmM7ccMkJ0YTBKMIem4k9SrQlE">
-                <input type="hidden" name="account" value="56940715-8475-4794-ab9e-b830dd8304f0">
-                <label for="pw-56940715-8475-4794-ab9e-b830dd8304f0">Nouveau mot de passe</label>
-                <input id="pw-56940715-8475-4794-ab9e-b830dd8304f0" type="password" name="raw_password" autocomplete="new-password">
+                <input type="hidden" name="csrfmiddlewaretoken" value="WpfFRP6ueuv8kvQa2931zuHiiQRvft56XDxNqagVpJiyX4Z9CSqQPRHRGX8jmzMg">
+                <input type="hidden" name="account" value="c9b2466d-6ce8-4567-9fbc-2e690c8cebda">
+                <label for="pw-c9b2466d-6ce8-4567-9fbc-2e690c8cebda">Nouveau mot de passe</label>
+                <input id="pw-c9b2466d-6ce8-4567-9fbc-2e690c8cebda" type="password" name="raw_password" autocomplete="new-password">
                 <button type="submit" name="action" value="set_password">Réinitialiser le mot de passe</button>
               </form>
 
               <form method="post" class="inline danger">
-                <input type="hidden" name="csrfmiddlewaretoken" value="tAD1GlShhqLINrqy6qeiySQeG9nj1GbYTFlvzMrmM7ccMkJ0YTBKMIem4k9SrQlE">
-                <input type="hidden" name="account" value="56940715-8475-4794-ab9e-b830dd8304f0">
+                <input type="hidden" name="csrfmiddlewaretoken" value="WpfFRP6ueuv8kvQa2931zuHiiQRvft56XDxNqagVpJiyX4Z9CSqQPRHRGX8jmzMg">
+                <input type="hidden" name="account" value="c9b2466d-6ce8-4567-9fbc-2e690c8cebda">
                 
                   <button type="submit" name="action" value="deactivate">Désactiver le compte</button>
                 
@@ -733,24 +736,24 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
               <summary>Gérer ce compte</summary>
 
               <form method="post" class="inline">
-                <input type="hidden" name="csrfmiddlewaretoken" value="tAD1GlShhqLINrqy6qeiySQeG9nj1GbYTFlvzMrmM7ccMkJ0YTBKMIem4k9SrQlE">
-                <input type="hidden" name="account" value="c9e56512-275f-4372-8a91-fcf59479934a">
+                <input type="hidden" name="csrfmiddlewaretoken" value="WpfFRP6ueuv8kvQa2931zuHiiQRvft56XDxNqagVpJiyX4Z9CSqQPRHRGX8jmzMg">
+                <input type="hidden" name="account" value="c7026412-471c-4086-8c5c-e298bd5f1978">
                 
                   <button type="submit" name="action" value="demote">Retirer l'administration de la commune</button>
                 
               </form>
 
               <form method="post" class="inline">
-                <input type="hidden" name="csrfmiddlewaretoken" value="tAD1GlShhqLINrqy6qeiySQeG9nj1GbYTFlvzMrmM7ccMkJ0YTBKMIem4k9SrQlE">
-                <input type="hidden" name="account" value="c9e56512-275f-4372-8a91-fcf59479934a">
-                <label for="pw-c9e56512-275f-4372-8a91-fcf59479934a">Nouveau mot de passe</label>
-                <input id="pw-c9e56512-275f-4372-8a91-fcf59479934a" type="password" name="raw_password" autocomplete="new-password">
+                <input type="hidden" name="csrfmiddlewaretoken" value="WpfFRP6ueuv8kvQa2931zuHiiQRvft56XDxNqagVpJiyX4Z9CSqQPRHRGX8jmzMg">
+                <input type="hidden" name="account" value="c7026412-471c-4086-8c5c-e298bd5f1978">
+                <label for="pw-c7026412-471c-4086-8c5c-e298bd5f1978">Nouveau mot de passe</label>
+                <input id="pw-c7026412-471c-4086-8c5c-e298bd5f1978" type="password" name="raw_password" autocomplete="new-password">
                 <button type="submit" name="action" value="set_password">Réinitialiser le mot de passe</button>
               </form>
 
               <form method="post" class="inline danger">
-                <input type="hidden" name="csrfmiddlewaretoken" value="tAD1GlShhqLINrqy6qeiySQeG9nj1GbYTFlvzMrmM7ccMkJ0YTBKMIem4k9SrQlE">
-                <input type="hidden" name="account" value="c9e56512-275f-4372-8a91-fcf59479934a">
+                <input type="hidden" name="csrfmiddlewaretoken" value="WpfFRP6ueuv8kvQa2931zuHiiQRvft56XDxNqagVpJiyX4Z9CSqQPRHRGX8jmzMg">
+                <input type="hidden" name="account" value="c7026412-471c-4086-8c5c-e298bd5f1978">
                 
                   <button type="submit" name="action" value="deactivate">Désactiver le compte</button>
                 
@@ -779,24 +782,24 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
               <summary>Gérer ce compte</summary>
 
               <form method="post" class="inline">
-                <input type="hidden" name="csrfmiddlewaretoken" value="tAD1GlShhqLINrqy6qeiySQeG9nj1GbYTFlvzMrmM7ccMkJ0YTBKMIem4k9SrQlE">
-                <input type="hidden" name="account" value="4bb4a5da-361b-4619-aae5-bf04aa7491ef">
+                <input type="hidden" name="csrfmiddlewaretoken" value="WpfFRP6ueuv8kvQa2931zuHiiQRvft56XDxNqagVpJiyX4Z9CSqQPRHRGX8jmzMg">
+                <input type="hidden" name="account" value="6d96fa52-d769-4ff2-9849-479a87071cbf">
                 
                   <button type="submit" name="action" value="promote">Faire administrateur de la commune</button>
                 
               </form>
 
               <form method="post" class="inline">
-                <input type="hidden" name="csrfmiddlewaretoken" value="tAD1GlShhqLINrqy6qeiySQeG9nj1GbYTFlvzMrmM7ccMkJ0YTBKMIem4k9SrQlE">
-                <input type="hidden" name="account" value="4bb4a5da-361b-4619-aae5-bf04aa7491ef">
-                <label for="pw-4bb4a5da-361b-4619-aae5-bf04aa7491ef">Nouveau mot de passe</label>
-                <input id="pw-4bb4a5da-361b-4619-aae5-bf04aa7491ef" type="password" name="raw_password" autocomplete="new-password">
+                <input type="hidden" name="csrfmiddlewaretoken" value="WpfFRP6ueuv8kvQa2931zuHiiQRvft56XDxNqagVpJiyX4Z9CSqQPRHRGX8jmzMg">
+                <input type="hidden" name="account" value="6d96fa52-d769-4ff2-9849-479a87071cbf">
+                <label for="pw-6d96fa52-d769-4ff2-9849-479a87071cbf">Nouveau mot de passe</label>
+                <input id="pw-6d96fa52-d769-4ff2-9849-479a87071cbf" type="password" name="raw_password" autocomplete="new-password">
                 <button type="submit" name="action" value="set_password">Réinitialiser le mot de passe</button>
               </form>
 
               <form method="post" class="inline danger">
-                <input type="hidden" name="csrfmiddlewaretoken" value="tAD1GlShhqLINrqy6qeiySQeG9nj1GbYTFlvzMrmM7ccMkJ0YTBKMIem4k9SrQlE">
-                <input type="hidden" name="account" value="4bb4a5da-361b-4619-aae5-bf04aa7491ef">
+                <input type="hidden" name="csrfmiddlewaretoken" value="WpfFRP6ueuv8kvQa2931zuHiiQRvft56XDxNqagVpJiyX4Z9CSqQPRHRGX8jmzMg">
+                <input type="hidden" name="account" value="6d96fa52-d769-4ff2-9849-479a87071cbf">
                 
                   <button type="submit" name="action" value="deactivate">Désactiver le compte</button>
                 
@@ -818,7 +821,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
     
 
     <form action="/i18n/setlang/" method="post" class="langswitch">
-      <input type="hidden" name="csrfmiddlewaretoken" value="tAD1GlShhqLINrqy6qeiySQeG9nj1GbYTFlvzMrmM7ccMkJ0YTBKMIem4k9SrQlE">
+      <input type="hidden" name="csrfmiddlewaretoken" value="WpfFRP6ueuv8kvQa2931zuHiiQRvft56XDxNqagVpJiyX4Z9CSqQPRHRGX8jmzMg">
       <input type="hidden" name="next" value="/fr/mairie/comptes/">
       <label for="langswitch-select">Langue</label>
       <select id="langswitch-select" name="language">

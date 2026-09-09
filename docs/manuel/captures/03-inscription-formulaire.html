@@ -292,11 +292,14 @@ input, select, textarea {
   color: var(--ink);
   max-width: 100%;
 }
-input[type="search"], input[type="text"], input[type="email"], input[type="date"], select {
+input[type="search"], input[type="text"], input[type="email"], input[type="password"], input[type="date"], select {
   min-height: 2.5rem;
 }
-input[type="search"], input[type="text"], input[type="email"] { width: min(30rem, 100%); }
+input[type="search"], input[type="text"], input[type="email"], input[type="password"] { width: min(30rem, 100%); }
 select { cursor: pointer; }
+/* The reset-password field rides in a wrapping flex row beside its button
+   (screen 18); keep it from pushing the button onto its own line. */
+details form.inline input[type="password"] { width: min(16rem, 100%); }
 input:focus-visible, select:focus-visible, textarea:focus-visible { border-color: var(--focus); }
 input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); width: 1rem; height: 1rem; }
 
@@ -556,7 +559,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
   
 
   <form method="post">
-    <input type="hidden" name="csrfmiddlewaretoken" value="QdtlwWgHy5ldoqr1Tb93e8MRisw9bUarfMFQRyLCN4a8IiSyVDvdsEKrGLCI1A6Q">
+    <input type="hidden" name="csrfmiddlewaretoken" value="os4aVooPXv9fKUT7Z1SFI7Z273hNp20mcnhchgIjeR5eBsBNsQMhImb2gtAsrh2Z">
     
       <p class="field">
         <label for="id_last_name">
@@ -626,8 +629,8 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
     
 
     <form action="/i18n/setlang/" method="post" class="langswitch">
-      <input type="hidden" name="csrfmiddlewaretoken" value="QdtlwWgHy5ldoqr1Tb93e8MRisw9bUarfMFQRyLCN4a8IiSyVDvdsEKrGLCI1A6Q">
-      <input type="hidden" name="next" value="/fr/inscription/534afc66-f211-495b-afc8-fa235bcaaf68/">
+      <input type="hidden" name="csrfmiddlewaretoken" value="os4aVooPXv9fKUT7Z1SFI7Z273hNp20mcnhchgIjeR5eBsBNsQMhImb2gtAsrh2Z">
+      <input type="hidden" name="next" value="/fr/inscription/b99d054c-5dcd-4644-9028-064461e98acf/">
       <label for="langswitch-select">Langue</label>
       <select id="langswitch-select" name="language">
         

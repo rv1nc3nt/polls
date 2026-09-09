@@ -292,11 +292,14 @@ input, select, textarea {
   color: var(--ink);
   max-width: 100%;
 }
-input[type="search"], input[type="text"], input[type="email"], input[type="date"], select {
+input[type="search"], input[type="text"], input[type="email"], input[type="password"], input[type="date"], select {
   min-height: 2.5rem;
 }
-input[type="search"], input[type="text"], input[type="email"] { width: min(30rem, 100%); }
+input[type="search"], input[type="text"], input[type="email"], input[type="password"] { width: min(30rem, 100%); }
 select { cursor: pointer; }
+/* The reset-password field rides in a wrapping flex row beside its button
+   (screen 18); keep it from pushing the button onto its own line. */
+details form.inline input[type="password"] { width: min(16rem, 100%); }
 input:focus-visible, select:focus-visible, textarea:focus-visible { border-color: var(--focus); }
 input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); width: 1rem; height: 1rem; }
 
@@ -549,7 +552,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
       
       <span class="account__name">Jean Mercier</span>
       <form action="/fr/mairie/deconnexion/" method="post">
-        <input type="hidden" name="csrfmiddlewaretoken" value="ltkuPg1b0Ezk8lsKat6qEX2Kld84STqlOQb0F0IQHhowMws6JQg1FhEevO9mVcEz">
+        <input type="hidden" name="csrfmiddlewaretoken" value="HRu7iXEiTGkm4QgqdcxhRPzyRsBWBqBrxYRp68Rg9TMRzui6iKnP2Qc07xkBQ1et">
         <button type="submit">Se déconnecter</button>
       </form>
     </div>
@@ -563,9 +566,9 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
       <p class="pollnav__poll">Réaménagement de la place de la Mairie — ouvert</p>
       
   <ul class="pollnav__links">
-    <li><a href="/fr/mairie/scrutin/534afc66-f211-495b-afc8-fa235bcaaf68/">Tableau de bord</a></li>
-    <li><a href="/fr/mairie/scrutin/534afc66-f211-495b-afc8-fa235bcaaf68/inscriptions/" aria-current="page">Inscriptions</a></li>
-    <li><a href="/fr/mairie/scrutin/534afc66-f211-495b-afc8-fa235bcaaf68/journal/">Journal d'audit</a></li>
+    <li><a href="/fr/mairie/scrutin/b99d054c-5dcd-4644-9028-064461e98acf/">Tableau de bord</a></li>
+    <li><a href="/fr/mairie/scrutin/b99d054c-5dcd-4644-9028-064461e98acf/inscriptions/" aria-current="page">Inscriptions</a></li>
+    <li><a href="/fr/mairie/scrutin/b99d054c-5dcd-4644-9028-064461e98acf/journal/">Journal d'audit</a></li>
   </ul>
 
     </nav>
@@ -584,8 +587,8 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
   <p class="help">Une même adresse électronique ne peut servir qu'une fois. Deux personnes partageant une adresse ne peuvent pas s'inscrire toutes les deux en ligne : leur voie est le vote papier à la mairie.</p>
 
   
-    <article class="review" aria-labelledby="demande-21354acd-2680-4872-94b8-97b9be9595d3">
-      <h2 id="demande-21354acd-2680-4872-94b8-97b9be9595d3">
+    <article class="review" aria-labelledby="demande-6a4c85cb-f0a2-42d3-bbb0-fa0c842837a8">
+      <h2 id="demande-6a4c85cb-f0a2-42d3-bbb0-fa0c842837a8">
         Dubois Marc
       </h2>
 
@@ -597,12 +600,12 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
         <dt>Déclaration sur l'honneur</dt>
         <dd>signée</dd>
         <dt>Demande reçue le</dt>
-        <dd>9 septembre 2026 20:38</dd>
+        <dd>9 septembre 2026 21:23</dd>
       </dl>
 
-      <form method="post" action="/fr/mairie/scrutin/534afc66-f211-495b-afc8-fa235bcaaf68/inscriptions/decision/" class="decision">
-        <input type="hidden" name="csrfmiddlewaretoken" value="ltkuPg1b0Ezk8lsKat6qEX2Kld84STqlOQb0F0IQHhowMws6JQg1FhEevO9mVcEz">
-        <input type="hidden" name="registration" value="21354acd-2680-4872-94b8-97b9be9595d3">
+      <form method="post" action="/fr/mairie/scrutin/b99d054c-5dcd-4644-9028-064461e98acf/inscriptions/decision/" class="decision">
+        <input type="hidden" name="csrfmiddlewaretoken" value="HRu7iXEiTGkm4QgqdcxhRPzyRsBWBqBrxYRp68Rg9TMRzui6iKnP2Qc07xkBQ1et">
+        <input type="hidden" name="registration" value="6a4c85cb-f0a2-42d3-bbb0-fa0c842837a8">
 
         <h3>Entrées proches de la liste électorale</h3>
         
@@ -610,16 +613,16 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
         
 
         <p>
-          <label for="note-21354acd-2680-4872-94b8-97b9be9595d3">Note (facultative)</label>
+          <label for="note-6a4c85cb-f0a2-42d3-bbb0-fa0c842837a8">Note (facultative)</label>
           
           <span class="help">Conservée avec la demande et supprimée avec elle. N'apparaît pas dans le journal d'audit.</span>
-          <input id="note-21354acd-2680-4872-94b8-97b9be9595d3" type="text" name="note" maxlength="500">
+          <input id="note-6a4c85cb-f0a2-42d3-bbb0-fa0c842837a8" type="text" name="note" maxlength="500">
         </p>
         
         <fieldset class="decision__half">
           <legend>Accepter</legend>
-          <label for="ok-21354acd-2680-4872-94b8-97b9be9595d3">Motif</label>
-          <select id="ok-21354acd-2680-4872-94b8-97b9be9595d3" name="approve_reason">
+          <label for="ok-6a4c85cb-f0a2-42d3-bbb0-fa0c842837a8">Motif</label>
+          <select id="ok-6a4c85cb-f0a2-42d3-bbb0-fa0c842837a8" name="approve_reason">
             <option value="">— choisir —</option>
             
               <option value="name_divergence_accepted">divergence de nom acceptée</option>
@@ -636,8 +639,8 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 
         <fieldset class="decision__half">
           <legend>Refuser</legend>
-          <label for="no-21354acd-2680-4872-94b8-97b9be9595d3">Motif</label>
-          <select id="no-21354acd-2680-4872-94b8-97b9be9595d3" name="reject_reason">
+          <label for="no-6a4c85cb-f0a2-42d3-bbb0-fa0c842837a8">Motif</label>
+          <select id="no-6a4c85cb-f0a2-42d3-bbb0-fa0c842837a8" name="reject_reason">
             <option value="">— choisir —</option>
             
               <option value="name_divergence_refused">divergence de nom refusée</option>
@@ -667,8 +670,8 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
     
 
     <form action="/i18n/setlang/" method="post" class="langswitch">
-      <input type="hidden" name="csrfmiddlewaretoken" value="ltkuPg1b0Ezk8lsKat6qEX2Kld84STqlOQb0F0IQHhowMws6JQg1FhEevO9mVcEz">
-      <input type="hidden" name="next" value="/fr/mairie/scrutin/534afc66-f211-495b-afc8-fa235bcaaf68/inscriptions/">
+      <input type="hidden" name="csrfmiddlewaretoken" value="HRu7iXEiTGkm4QgqdcxhRPzyRsBWBqBrxYRp68Rg9TMRzui6iKnP2Qc07xkBQ1et">
+      <input type="hidden" name="next" value="/fr/mairie/scrutin/b99d054c-5dcd-4644-9028-064461e98acf/inscriptions/">
       <label for="langswitch-select">Langue</label>
       <select id="langswitch-select" name="language">
         

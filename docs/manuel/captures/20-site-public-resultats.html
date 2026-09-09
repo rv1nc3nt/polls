@@ -292,11 +292,14 @@ input, select, textarea {
   color: var(--ink);
   max-width: 100%;
 }
-input[type="search"], input[type="text"], input[type="email"], input[type="date"], select {
+input[type="search"], input[type="text"], input[type="email"], input[type="password"], input[type="date"], select {
   min-height: 2.5rem;
 }
-input[type="search"], input[type="text"], input[type="email"] { width: min(30rem, 100%); }
+input[type="search"], input[type="text"], input[type="email"], input[type="password"] { width: min(30rem, 100%); }
 select { cursor: pointer; }
+/* The reset-password field rides in a wrapping flex row beside its button
+   (screen 18); keep it from pushing the button onto its own line. */
+details form.inline input[type="password"] { width: min(16rem, 100%); }
 input:focus-visible, select:focus-visible, textarea:focus-visible { border-color: var(--focus); }
 input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); width: 1rem; height: 1rem; }
 
@@ -552,7 +555,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 
   <main id="contenu">
   <h1>Résultats : « Horaires d&#x27;ouverture de la médiathèque municipale »</h1>
-  <p><a href="/fr/scrutin/77a962fb-0d8f-49cc-b8b6-2ace655fbb60/">← Revenir à la page de la consultation</a></p>
+  <p><a href="/fr/scrutin/632dae9a-84dc-40d5-a515-f61a915d7760/">← Revenir à la page de la consultation</a></p>
 
   <section aria-labelledby="issue">
     <h2 id="issue">Issue</h2>
@@ -664,9 +667,9 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
     
     <dl class="facts">
       <dt>Empreinte de clôture (SHA-256)</dt>
-      <dd><code>771195b891a871bc7ea6c93ba038868fca28bc71a73882a739e39bc681331f24</code></dd>
+      <dd><code>c79d9608f8b71bdbedfe5e57654431b91f82425344e54076edb75acaf5f85c76</code></dd>
       <dt>Graine d'ouverture</dt>
-      <dd><code>4f2816c11bfc2f60bf2ab6ced43e6b1b79ae4fe2b49655e2ea3f434ec012e3b8</code></dd>
+      <dd><code>a7084addc13da73d1e6d24b01947ed304d51c33a0b4baa1d53af047847abbbc0</code></dd>
     </dl>
     <ul>
       <li><a href="?format=csv">Liste anonymisée des bulletins (CSV)</a> —
@@ -692,8 +695,8 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
     
 
     <form action="/i18n/setlang/" method="post" class="langswitch">
-      <input type="hidden" name="csrfmiddlewaretoken" value="OkuliCVeKivDXIIfnbJjtPMWVfUhm9dmdTGQDeq9ZhkyhA9MpD5tHlKwjy0QcP9L">
-      <input type="hidden" name="next" value="/fr/scrutin/77a962fb-0d8f-49cc-b8b6-2ace655fbb60/resultats/">
+      <input type="hidden" name="csrfmiddlewaretoken" value="QTidLiGLEkB6061wgATMCq0kBKQWT9wMEOvf7a0fVGx5REJcJpNoCFckKa9BVoyp">
+      <input type="hidden" name="next" value="/fr/scrutin/632dae9a-84dc-40d5-a515-f61a915d7760/resultats/">
       <label for="langswitch-select">Langue</label>
       <select id="langswitch-select" name="language">
         

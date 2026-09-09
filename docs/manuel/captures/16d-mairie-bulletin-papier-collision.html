@@ -292,11 +292,14 @@ input, select, textarea {
   color: var(--ink);
   max-width: 100%;
 }
-input[type="search"], input[type="text"], input[type="email"], input[type="date"], select {
+input[type="search"], input[type="text"], input[type="email"], input[type="password"], input[type="date"], select {
   min-height: 2.5rem;
 }
-input[type="search"], input[type="text"], input[type="email"] { width: min(30rem, 100%); }
+input[type="search"], input[type="text"], input[type="email"], input[type="password"] { width: min(30rem, 100%); }
 select { cursor: pointer; }
+/* The reset-password field rides in a wrapping flex row beside its button
+   (screen 18); keep it from pushing the button onto its own line. */
+details form.inline input[type="password"] { width: min(16rem, 100%); }
 input:focus-visible, select:focus-visible, textarea:focus-visible { border-color: var(--focus); }
 input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); width: 1rem; height: 1rem; }
 
@@ -549,7 +552,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
       
       <span class="account__name">Sophie Blanchard</span>
       <form action="/fr/mairie/deconnexion/" method="post">
-        <input type="hidden" name="csrfmiddlewaretoken" value="uuypoXXF1CBZ5lRQy8GSPQUh3lac7IIqZmolN2kp8PpJg9y6qOxCOvKBuf9frpUD">
+        <input type="hidden" name="csrfmiddlewaretoken" value="Nf633GDX6uplZI3fVVOZfBFmtiyYbMjPGbzeJVJttKPTLDhqpulzDAgRfR1N0VKC">
         <button type="submit">Se déconnecter</button>
       </form>
     </div>
@@ -563,9 +566,9 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
       <p class="pollnav__poll">Réaménagement de la place de la Mairie — ouvert</p>
       
   <ul class="pollnav__links">
-    <li><a href="/fr/mairie/scrutin/534afc66-f211-495b-afc8-fa235bcaaf68/">Tableau de bord</a></li>
-    <li><a href="/fr/mairie/scrutin/534afc66-f211-495b-afc8-fa235bcaaf68/bulletin-papier/" aria-current="page">Saisie</a></li>
-    <li><a href="/fr/mairie/scrutin/534afc66-f211-495b-afc8-fa235bcaaf68/bulletins-papier/">Bulletins papier</a></li>
+    <li><a href="/fr/mairie/scrutin/b99d054c-5dcd-4644-9028-064461e98acf/">Tableau de bord</a></li>
+    <li><a href="/fr/mairie/scrutin/b99d054c-5dcd-4644-9028-064461e98acf/bulletin-papier/" aria-current="page">Saisie</a></li>
+    <li><a href="/fr/mairie/scrutin/b99d054c-5dcd-4644-9028-064461e98acf/bulletins-papier/">Bulletins papier</a></li>
   </ul>
 
     </nav>
@@ -622,8 +625,8 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
     
 
     <form action="/i18n/setlang/" method="post" class="langswitch">
-      <input type="hidden" name="csrfmiddlewaretoken" value="uuypoXXF1CBZ5lRQy8GSPQUh3lac7IIqZmolN2kp8PpJg9y6qOxCOvKBuf9frpUD">
-      <input type="hidden" name="next" value="/fr/mairie/scrutin/534afc66-f211-495b-afc8-fa235bcaaf68/bulletin-papier/">
+      <input type="hidden" name="csrfmiddlewaretoken" value="Nf633GDX6uplZI3fVVOZfBFmtiyYbMjPGbzeJVJttKPTLDhqpulzDAgRfR1N0VKC">
+      <input type="hidden" name="next" value="/fr/mairie/scrutin/b99d054c-5dcd-4644-9028-064461e98acf/bulletin-papier/">
       <label for="langswitch-select">Langue</label>
       <select id="langswitch-select" name="language">
         

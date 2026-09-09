@@ -292,11 +292,14 @@ input, select, textarea {
   color: var(--ink);
   max-width: 100%;
 }
-input[type="search"], input[type="text"], input[type="email"], input[type="date"], select {
+input[type="search"], input[type="text"], input[type="email"], input[type="password"], input[type="date"], select {
   min-height: 2.5rem;
 }
-input[type="search"], input[type="text"], input[type="email"] { width: min(30rem, 100%); }
+input[type="search"], input[type="text"], input[type="email"], input[type="password"] { width: min(30rem, 100%); }
 select { cursor: pointer; }
+/* The reset-password field rides in a wrapping flex row beside its button
+   (screen 18); keep it from pushing the button onto its own line. */
+details form.inline input[type="password"] { width: min(16rem, 100%); }
 input:focus-visible, select:focus-visible, textarea:focus-visible { border-color: var(--focus); }
 input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); width: 1rem; height: 1rem; }
 
@@ -557,16 +560,16 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
     <ul class="poll-index">
       
         <li>
-          <a href="/fr/scrutin/534afc66-f211-495b-afc8-fa235bcaaf68/">Réaménagement de la place de la Mairie</a>
+          <a href="/fr/scrutin/b99d054c-5dcd-4644-9028-064461e98acf/">Réaménagement de la place de la Mairie</a>
           <span class="help">
             
-              ouverte — clôture le 20 septembre 2026 20:38
+              ouverte — clôture le 20 septembre 2026 21:23
             
           </span>
         </li>
       
         <li>
-          <a href="/fr/scrutin/77a962fb-0d8f-49cc-b8b6-2ace655fbb60/">Horaires d&#x27;ouverture de la médiathèque municipale</a>
+          <a href="/fr/scrutin/632dae9a-84dc-40d5-a515-f61a915d7760/">Horaires d&#x27;ouverture de la médiathèque municipale</a>
           <span class="help">
             
               close — résultats publiés
@@ -586,7 +589,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
     
 
     <form action="/i18n/setlang/" method="post" class="langswitch">
-      <input type="hidden" name="csrfmiddlewaretoken" value="wxCgCzHy9UjJZoxgYZVx1lm8ssL4xHttV6OLXbctoT8EjgYN0rhHfRkIQLRDnnpS">
+      <input type="hidden" name="csrfmiddlewaretoken" value="xy3oeu6aFPT1nCVqgZoAPyHrrxYsLYUtltgqAmqEWbP0eaD6JOicPNTrAXh7NdW6">
       <input type="hidden" name="next" value="/fr/">
       <label for="langswitch-select">Langue</label>
       <select id="langswitch-select" name="language">

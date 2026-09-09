@@ -292,11 +292,14 @@ input, select, textarea {
   color: var(--ink);
   max-width: 100%;
 }
-input[type="search"], input[type="text"], input[type="email"], input[type="date"], select {
+input[type="search"], input[type="text"], input[type="email"], input[type="password"], input[type="date"], select {
   min-height: 2.5rem;
 }
-input[type="search"], input[type="text"], input[type="email"] { width: min(30rem, 100%); }
+input[type="search"], input[type="text"], input[type="email"], input[type="password"] { width: min(30rem, 100%); }
 select { cursor: pointer; }
+/* The reset-password field rides in a wrapping flex row beside its button
+   (screen 18); keep it from pushing the button onto its own line. */
+details form.inline input[type="password"] { width: min(16rem, 100%); }
 input:focus-visible, select:focus-visible, textarea:focus-visible { border-color: var(--focus); }
 input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); width: 1rem; height: 1rem; }
 
@@ -571,12 +574,12 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
     
     <dl class="facts">
       <dt>Ouverture du vote</dt>
-      <dd>6 septembre 2026 20:38 (Europe/Paris)</dd>
+      <dd>6 septembre 2026 21:23 (Europe/Paris)</dd>
       <dt>Clôture du vote en ligne</dt>
-      <dd>20 septembre 2026 20:38 (Europe/Paris)</dd>
+      <dd>20 septembre 2026 21:23 (Europe/Paris)</dd>
       
         <dt>Fin de la saisie des bulletins papier</dt>
-        <dd>21 septembre 2026 20:38 (Europe/Paris)</dd>
+        <dd>21 septembre 2026 21:23 (Europe/Paris)</dd>
       
     </dl>
 
@@ -587,7 +590,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
     <section aria-labelledby="participer">
       <h2 id="participer">Participer</h2>
       <p>Le vote se fait en ligne, après inscription vérifiée contre la liste électorale de la commune.</p>
-      <p><a href="/fr/inscription/534afc66-f211-495b-afc8-fa235bcaaf68/">S'inscrire pour voter</a></p>
+      <p><a href="/fr/inscription/b99d054c-5dcd-4644-9028-064461e98acf/">S'inscrire pour voter</a></p>
       <p class="help">Un bulletin peut aussi être remis sur papier à la mairie, qui le saisit.</p>
     </section>
   
@@ -609,8 +612,8 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
     
 
     <form action="/i18n/setlang/" method="post" class="langswitch">
-      <input type="hidden" name="csrfmiddlewaretoken" value="o4GKSUkMWVc19WPXQoDwVkxMApmzOuQlNDSfdwPHbU1WtOguSQZG9QvmYIs8EaMK">
-      <input type="hidden" name="next" value="/fr/scrutin/534afc66-f211-495b-afc8-fa235bcaaf68/">
+      <input type="hidden" name="csrfmiddlewaretoken" value="4PAmUOvYGJM3o3zSBVmSGT6QnIpGuqdhSKNogGPsX5I2fBhy4KguG8iQw8IlwFfU">
+      <input type="hidden" name="next" value="/fr/scrutin/b99d054c-5dcd-4644-9028-064461e98acf/">
       <label for="langswitch-select">Langue</label>
       <select id="langswitch-select" name="language">
         

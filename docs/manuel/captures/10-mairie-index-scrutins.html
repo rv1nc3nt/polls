@@ -292,11 +292,14 @@ input, select, textarea {
   color: var(--ink);
   max-width: 100%;
 }
-input[type="search"], input[type="text"], input[type="email"], input[type="date"], select {
+input[type="search"], input[type="text"], input[type="email"], input[type="password"], input[type="date"], select {
   min-height: 2.5rem;
 }
-input[type="search"], input[type="text"], input[type="email"] { width: min(30rem, 100%); }
+input[type="search"], input[type="text"], input[type="email"], input[type="password"] { width: min(30rem, 100%); }
 select { cursor: pointer; }
+/* The reset-password field rides in a wrapping flex row beside its button
+   (screen 18); keep it from pushing the button onto its own line. */
+details form.inline input[type="password"] { width: min(16rem, 100%); }
 input:focus-visible, select:focus-visible, textarea:focus-visible { border-color: var(--focus); }
 input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); width: 1rem; height: 1rem; }
 
@@ -549,7 +552,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
       
       <span class="account__name">Marie Rousseau</span>
       <form action="/fr/mairie/deconnexion/" method="post">
-        <input type="hidden" name="csrfmiddlewaretoken" value="ED9lvIbvMROm9oFja8tzWZaDdhPzuBH24IRPo9KAhyfQ8hYL2BQ1aPyLBsB8ULRI">
+        <input type="hidden" name="csrfmiddlewaretoken" value="v2EMeaQPJqwxTOsBPvFuRoi35ZoEUraKwgWUNv0gUFjXwnBApe2j7LiCt6Fs1xRU">
         <button type="submit">Se déconnecter</button>
       </form>
     </div>
@@ -589,29 +592,29 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
         
           <tr>
             <td>
-              <a href="/fr/mairie/scrutin/77a962fb-0d8f-49cc-b8b6-2ace655fbb60/">Horaires d&#x27;ouverture de la médiathèque municipale</a>
+              <a href="/fr/mairie/scrutin/632dae9a-84dc-40d5-a515-f61a915d7760/">Horaires d&#x27;ouverture de la médiathèque municipale</a>
               
             </td>
             <td>publié</td>
-            <td>10 septembre 2026 20:38</td>
+            <td>10 septembre 2026 21:23</td>
           </tr>
         
           <tr>
             <td>
-              <a href="/fr/mairie/scrutin/8eed20e9-b418-413c-943c-71d8b1187f08/">Nom de la future salle des fêtes</a>
+              <a href="/fr/mairie/scrutin/0e232094-e2c3-4826-910f-acdc4b29a8d2/">Nom de la future salle des fêtes</a>
               
             </td>
             <td>brouillon</td>
-            <td>13 octobre 2026 20:38</td>
+            <td>13 octobre 2026 21:23</td>
           </tr>
         
           <tr>
             <td>
-              <a href="/fr/mairie/scrutin/534afc66-f211-495b-afc8-fa235bcaaf68/">Réaménagement de la place de la Mairie</a>
+              <a href="/fr/mairie/scrutin/b99d054c-5dcd-4644-9028-064461e98acf/">Réaménagement de la place de la Mairie</a>
               
             </td>
             <td>ouvert</td>
-            <td>20 septembre 2026 20:38</td>
+            <td>20 septembre 2026 21:23</td>
           </tr>
         
       </tbody>
@@ -628,7 +631,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
     
 
     <form action="/i18n/setlang/" method="post" class="langswitch">
-      <input type="hidden" name="csrfmiddlewaretoken" value="ED9lvIbvMROm9oFja8tzWZaDdhPzuBH24IRPo9KAhyfQ8hYL2BQ1aPyLBsB8ULRI">
+      <input type="hidden" name="csrfmiddlewaretoken" value="v2EMeaQPJqwxTOsBPvFuRoi35ZoEUraKwgWUNv0gUFjXwnBApe2j7LiCt6Fs1xRU">
       <input type="hidden" name="next" value="/fr/mairie/">
       <label for="langswitch-select">Langue</label>
       <select id="langswitch-select" name="language">

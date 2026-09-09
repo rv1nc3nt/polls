@@ -292,11 +292,14 @@ input, select, textarea {
   color: var(--ink);
   max-width: 100%;
 }
-input[type="search"], input[type="text"], input[type="email"], input[type="date"], select {
+input[type="search"], input[type="text"], input[type="email"], input[type="password"], input[type="date"], select {
   min-height: 2.5rem;
 }
-input[type="search"], input[type="text"], input[type="email"] { width: min(30rem, 100%); }
+input[type="search"], input[type="text"], input[type="email"], input[type="password"] { width: min(30rem, 100%); }
 select { cursor: pointer; }
+/* The reset-password field rides in a wrapping flex row beside its button
+   (screen 18); keep it from pushing the button onto its own line. */
+details form.inline input[type="password"] { width: min(16rem, 100%); }
 input:focus-visible, select:focus-visible, textarea:focus-visible { border-color: var(--focus); }
 input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); width: 1rem; height: 1rem; }
 
@@ -556,11 +559,11 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
   <p>Le classement ci-dessous est celui de votre bulletin actuel. En validant, vous le remplacez ; la version précédente est conservée mais n'est plus comptée (R-7.2).</p>
 
   <form method="post">
-    <input type="hidden" name="csrfmiddlewaretoken" value="JAzkMId5vbwx4ieWqhP4QOikYk5v4O128siyaXa5CmTeJwHvHCCihVF6GV90XC9x">
+    <input type="hidden" name="csrfmiddlewaretoken" value="7ShiBFFfpHXPKonMG57hbUC5XYowH0zfQLqpHgSXE5OPMK400zU2IQMt9oNQYtet">
     
 
 
-<input type="hidden" name="order" value="mineral,jardin,mixte" id="id_order">
+<input type="hidden" name="order" value="jardin,mineral,mixte" id="id_order">
 
 <p class="help">
   
@@ -569,21 +572,6 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 </p>
 
 <ol class="ranking">
-  
-    <li class="ranking__row">
-      <label for="id_rank_mineral">Scénario A — place minérale et ombrières</label>
-      <select name="rank_mineral" id="id_rank_mineral">
-  <option value="">Non classé</option>
-
-  <option value="1">1</option>
-
-  <option value="2">2</option>
-
-  <option value="3" selected>3</option>
-
-</select>
-      
-    </li>
   
     <li class="ranking__row">
       <label for="id_rank_jardin">Scénario B — jardin planté et noue paysagère</label>
@@ -595,6 +583,21 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
   <option value="2">2</option>
 
   <option value="3">3</option>
+
+</select>
+      
+    </li>
+  
+    <li class="ranking__row">
+      <label for="id_rank_mineral">Scénario A — place minérale et ombrières</label>
+      <select name="rank_mineral" id="id_rank_mineral">
+  <option value="">Non classé</option>
+
+  <option value="1">1</option>
+
+  <option value="2">2</option>
+
+  <option value="3" selected>3</option>
 
 </select>
       
@@ -631,8 +634,8 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
     
 
     <form action="/i18n/setlang/" method="post" class="langswitch">
-      <input type="hidden" name="csrfmiddlewaretoken" value="JAzkMId5vbwx4ieWqhP4QOikYk5v4O128siyaXa5CmTeJwHvHCCihVF6GV90XC9x">
-      <input type="hidden" name="next" value="/fr/bulletin/534afc66-f211-495b-afc8-fa235bcaaf68/modifier/">
+      <input type="hidden" name="csrfmiddlewaretoken" value="7ShiBFFfpHXPKonMG57hbUC5XYowH0zfQLqpHgSXE5OPMK400zU2IQMt9oNQYtet">
+      <input type="hidden" name="next" value="/fr/bulletin/b99d054c-5dcd-4644-9028-064461e98acf/modifier/">
       <label for="langswitch-select">Langue</label>
       <select id="langswitch-select" name="language">
         
