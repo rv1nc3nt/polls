@@ -25,8 +25,9 @@ contreseing des bulletins papier) and screen 8 (journal d'audit). The gate is
 to see the gate on each one.
 
 Here so far, additionally: screen 9 (clôture et publication), whose read model
-is ``results.py`` and whose write paths are ``elections.closure`` (the physical
-tie-break) and ``elections.transitions.publish_poll``; screen 10 (comptes et
+is ``elections.results_view`` (shared with the public results page) and whose
+write paths are ``elections.closure`` (the physical tie-break) and
+``elections.transitions.publish_poll``; screen 10 (comptes et
 rôles), whose read model and write path are both ``accounts.py``; and screen 11
 (première installation), whose write path is ``firstrun.py``. Screen 10 is
 commune-level — it goes through ``require_commune_admin``, not
@@ -64,7 +65,7 @@ from apps.ballots.ranking import BallotRefused
 from apps.core.codes import format_tracking_code
 from apps.core.models import PollRole, Role, User
 from apps.core.types import TrackingCode
-from apps.elections import closure, config, rollimport
+from apps.elections import closure, config, results_view, rollimport
 from apps.elections.models import Poll, PollState, RollEntry
 from apps.elections.transitions import TransitionRefused, extend_closes_at, publish_poll
 from apps.elections.windows import WindowClosed
@@ -72,7 +73,7 @@ from apps.registrations import mail as registration_mail
 from apps.registrations import services as registrations
 from apps.registrations.models import Channel, Registration
 
-from . import accounts, auditlog, dashboard, firstrun, paper, results, review
+from . import accounts, auditlog, dashboard, firstrun, paper, review
 from .access import (
     accessible_polls,
     current_operator,
@@ -852,7 +853,7 @@ def results_publish(request: HttpRequest, poll: Poll) -> HttpResponse:
     return render(
         request,
         "backoffice/results_publish.html",
-        {"poll": poll, "screen9": results.screen9(poll)},
+        {"poll": poll, "screen9": results_view.result_view(poll)},
     )
 
 

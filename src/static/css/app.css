@@ -336,6 +336,25 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 .noprint + .noprint, .receipt + .noprint { margin-top: 1rem; }
 .noprint a + a { margin-left: 1.25rem; }
 
+/* ---- public poll page and results (§6.6, §9) ----------------------
+   Reading pages: prose width on the text, the propositions as a plain list,
+   the consultative-status statement set apart without colour carrying it. */
+
+.status { font-weight: 600; }
+.propositions { padding-left: 1.4rem; margin: 0.5rem 0 0; }
+.propositions li { padding: 0.2rem 0; }
+.extensions { list-style: none; padding: 0; margin: 0.5rem 0 0; }
+.extensions li { padding: 0.4rem 0; border-bottom: 1px solid var(--rule); max-width: var(--measure); }
+.extensions li:last-child { border-bottom: 0; }
+.outcome { font-size: 1.1rem; font-weight: 600; max-width: var(--measure); }
+.legal { border-top: 1px solid var(--rule); padding-top: 1rem; }
+.legal p { max-width: var(--measure); }
+.poll-index { list-style: none; padding: 0; }
+.poll-index li { padding: 0.5rem 0; border-bottom: 1px solid var(--rule); }
+.poll-index li:last-child { border-bottom: 0; }
+.poll-index a { font-weight: 600; }
+.poll-index .help { display: block; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; }
 }

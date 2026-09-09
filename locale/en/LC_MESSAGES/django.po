@@ -1105,9 +1105,6 @@ msgstr "Administrator's full name"
 msgid "Le journal d'audit nomme une personne, pas une fonction (R-2.2)."
 msgstr "The audit log names a person, not an office (R-2.2)."
 
-msgid "Mot de passe"
-msgstr "Password"
-
 msgid "Confirmer le mot de passe"
 msgstr "Confirm the password"
 
@@ -1146,3 +1143,199 @@ msgstr ""
 
 msgid "commune"
 msgstr "commune"
+
+# Public poll page and results page (§6.6, §9). Some strings are shared with
+# back-office screen 9, whose catalogue entries were also outstanding.
+
+msgid "Consultation ouverte."
+msgstr "Poll open."
+
+msgid "Consultation close. Les résultats sont publiés."
+msgstr "Poll closed. The results are published."
+
+msgid "Voir les résultats"
+msgstr "See the results"
+
+msgid ""
+"Consultation close. Le dépouillement est en cours ; les résultats seront "
+"publiés ici."
+msgstr "Poll closed. The count is under way; the results will be published here."
+
+msgid "Les propositions soumises"
+msgstr "The propositions put to the vote"
+
+msgid "Calendrier"
+msgstr "Timetable"
+
+msgid "Ouverture du vote"
+msgstr "Voting opens"
+
+msgid "Fin de la saisie des bulletins papier"
+msgstr "End of paper-ballot keying"
+
+msgid "Report de la clôture"
+msgstr "Extension of the closing date"
+
+msgid "Clôture repoussée du %(old)s au %(new)s"
+msgstr "Closing date moved from %(old)s to %(new)s"
+
+msgid "motif"
+msgstr "reason"
+
+msgid "enregistré le %(when)s"
+msgstr "recorded on %(when)s"
+
+msgid "Participer"
+msgstr "Take part"
+
+msgid ""
+"Le vote se fait en ligne, après inscription vérifiée contre la liste "
+"électorale de la commune."
+msgstr ""
+"Voting is done online, after registration checked against the commune's "
+"electoral roll."
+
+msgid "S'inscrire pour voter"
+msgstr "Register to vote"
+
+msgid "Un bulletin peut aussi être remis sur papier à la mairie, qui le saisit."
+msgstr "A ballot may also be handed in on paper at the mairie, which keys it in."
+
+msgid "Bulletins déposés"
+msgstr "Ballots cast"
+
+msgid "dont en ligne"
+msgstr "of which online"
+
+msgid "dont sur papier"
+msgstr "of which on paper"
+
+msgid "Inscrits n'ayant pas encore voté"
+msgstr "Registered electors who have not yet voted"
+
+msgid "Portée de la consultation"
+msgstr "Standing of the poll"
+
+msgid ""
+"Cette consultation est consultative. Son résultat éclaire la délibération du "
+"conseil municipal sans la lier. Elle ne constitue pas une consultation des "
+"électeurs au sens des articles L1112-15 et suivants du code général des "
+"collectivités territoriales."
+msgstr ""
+"This poll is consultative. Its result informs the deliberation of the "
+"municipal council without binding it. It does not constitute a consultation "
+"des électeurs within the meaning of articles L1112-15 et seq. of the code "
+"général des collectivités territoriales."
+
+msgid "Résultats"
+msgstr "Results"
+
+msgid "Résultats : « %(title)s »"
+msgstr "Results: \"%(title)s\""
+
+msgid "← Revenir à la page de la consultation"
+msgstr "← Back to the poll page"
+
+msgid "Issue"
+msgstr "Outcome"
+
+msgid "Proposition retenue : %(label)s."
+msgstr "Proposition carried: %(label)s."
+
+msgid "Le dépouillement rapporte une égalité."
+msgstr "The count reports a tie."
+
+msgid "Aucun bulletin retenu : la consultation n'a pas produit de résultat."
+msgstr "No ballots in force: the poll produced no result."
+
+msgid "Bulletins retenus"
+msgstr "Ballots in force"
+
+msgid ""
+"Clôture forcée par l'administration ; motif : %(reason)s. Les bulletins en "
+"attente de contreseing à cet instant ne sont pas comptés."
+msgstr ""
+"Closure forced by the administration; reason: %(reason)s. Ballots awaiting "
+"countersignature at that moment are not counted."
+
+msgid "Participation, figée à la clôture"
+msgstr "Participation, frozen at closure"
+
+msgid "Inscrits"
+msgstr "Registered electors"
+
+msgid "Le raisonnement"
+msgstr "The reasoning"
+
+msgid "Matrice des préférences deux à deux — la ligne bat la colonne"
+msgstr "Pairwise preference matrix — the row beats the column"
+
+msgid "bat"
+msgstr "beats"
+
+msgid "Nombre de bulletins par ordre de classement (R-11.3)"
+msgstr "Number of ballots per distinct ordering (R-11.3)"
+
+msgid "Règle : %(rule)s. Ordre retenu :"
+msgstr "Rule: %(rule)s. Order applied:"
+
+msgid "Vérifier ce résultat"
+msgstr "Verify this result"
+
+msgid "Empreinte de clôture (SHA-256)"
+msgstr "Closure hash (SHA-256)"
+
+msgid "Graine d'ouverture"
+msgstr "Opening seed"
+
+msgid "Liste anonymisée des bulletins (CSV)"
+msgstr "Anonymised ballot list (CSV)"
+
+msgid ""
+"exactement les bulletins retenus ; l'empreinte de clôture se recalcule à "
+"partir de ce seul fichier."
+msgstr ""
+"exactly the ballots in force; the closure hash recomputes from this file "
+"alone."
+
+msgid "Document de publication complet (JSON)"
+msgstr "Full publication document (JSON)"
+
+msgid "matrice, raisonnement, comptes figés, empreinte, graine, départage."
+msgstr "matrix, reasoning, frozen counts, hash, seed, tie-break."
+
+msgid ""
+"Chaque bulletin porte un code de suivi remis à l'électeur au moment du vote. "
+"Retrouvez le vôtre dans la liste publiée pour confirmer qu'il a été "
+"enregistré tel que vous l'avez exprimé. Un vérificateur indépendant, écrit "
+"séparément, recalcule la matrice, le vainqueur, le départage et l'empreinte à "
+"partir du seul fichier CSV."
+msgstr ""
+"Every ballot carries a tracking code given to the elector at the moment of "
+"voting. Find yours in the published list to confirm it was recorded as you "
+"cast it. An independent verifier, written separately, recomputes the matrix, "
+"the winner, the tie-break and the hash from the CSV file alone."
+
+msgid "Départage"
+msgstr "Tie-break"
+
+msgid "Classement"
+msgstr "Ordering"
+
+msgid "Bulletins"
+msgstr "Ballots"
+
+msgid "Propositions à égalité :"
+msgstr "Propositions tied:"
+
+msgid "Aucune consultation pour le moment."
+msgstr "No polls at this time."
+
+msgid "ouverte — clôture le %(when)s"
+msgstr "open — closes on %(when)s"
+
+msgid "close — résultats publiés"
+msgstr "closed — results published"
+
+msgid "close — dépouillement en cours"
+msgstr "closed — count under way"

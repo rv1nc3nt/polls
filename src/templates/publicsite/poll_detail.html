@@ -1,6 +1,93 @@
-{% extends "base.html" %}{% load i18n %}
-{% comment %} SPDX-License-Identifier: 0BSD
-   TODO(scaffold): §6.6 — propositions, closing instant, paper keying deadline
-   where configured, any logged extension (R-3.4), consultative-status notice.
-   Participation figures ONLY where poll.show_live_participation is set (T-20). {% endcomment %}
-{% block content %}<h1>{{ poll.title }}</h1>{% endblock %}
+{% extends "base.html" %}
+{% load i18n tz %}
+{# SPDX-License-Identifier: 0BSD — sandbox and draft polls 404 in the view (INV-8, §6.6). #}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+  <h1>{{ title }}</h1>
+
+  {% if is_open %}
+    <p class="status">{% translate "Consultation ouverte." %}</p>
+  {% elif is_published %}
+    <p class="status">{% translate "Consultation close. Les résultats sont publiés." %}
+      <a href="{% url 'publicsite:results' poll.id %}">{% translate "Voir les résultats" %}</a>.</p>
+  {% else %}
+    <p class="status">{% translate "Consultation close. Le dépouillement est en cours ; les résultats seront publiés ici." %}</p>
+  {% endif %}
+
+  {% if description %}{{ description|linebreaks }}{% endif %}
+
+  <section aria-labelledby="propositions">
+    <h2 id="propositions">{% translate "Les propositions soumises" %}</h2>
+    <ol class="propositions">
+      {% for option in options %}<li>{{ option.label }}</li>{% endfor %}
+    </ol>
+  </section>
+
+  <section aria-labelledby="calendrier">
+    <h2 id="calendrier">{% translate "Calendrier" %}</h2>
+    {% comment %} §6.4: both instants are shown publicly wherever a paper keying window
+       is configured — a period in which ballots can still enter the database is
+       exactly what looks bad discovered rather than announced. {% endcomment %}
+    <dl class="facts">
+      <dt>{% translate "Ouverture du vote" %}</dt>
+      <dd>{{ poll.opens_at|timezone:poll.timezone|date:"DATETIME_FORMAT" }} ({{ poll.timezone }})</dd>
+      <dt>{% translate "Clôture du vote en ligne" %}</dt>
+      <dd>{{ poll.closes_at|timezone:poll.timezone|date:"DATETIME_FORMAT" }} ({{ poll.timezone }})</dd>
+      {% if has_paper_window %}
+        <dt>{% translate "Fin de la saisie des bulletins papier" %}</dt>
+        <dd>{{ poll.paper_entry_deadline|timezone:poll.timezone|date:"DATETIME_FORMAT" }} ({{ poll.timezone }})</dd>
+      {% endif %}
+    </dl>
+
+    {% if extensions %}
+      {% comment %} R-3.4: an extension of the closing date is recorded in the audit log
+         with a reason and displayed here. The operator who made it is not named —
+         the public interest is that the date moved, when, and why. {% endcomment %}
+      <h3>{% translate "Report de la clôture" %}</h3>
+      <ul class="extensions">
+        {% for extension in extensions %}
+          <li>
+            {% blocktranslate with old=extension.old|timezone:poll.timezone|date:"DATETIME_FORMAT" new=extension.new|timezone:poll.timezone|date:"DATETIME_FORMAT" %}Clôture repoussée du {{ old }} au {{ new }}{% endblocktranslate %}
+            — {% translate "motif" %} : {{ extension.reason }}
+            <span class="help">({% blocktranslate with when=extension.at|timezone:poll.timezone|date:"DATETIME_FORMAT" %}enregistré le {{ when }}{% endblocktranslate %})</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </section>
+
+  {% if is_open %}
+    <section aria-labelledby="participer">
+      <h2 id="participer">{% translate "Participer" %}</h2>
+      <p>{% translate "Le vote se fait en ligne, après inscription vérifiée contre la liste électorale de la commune." %}</p>
+      <p><a href="{% url 'registrations:register' poll.id %}">{% translate "S'inscrire pour voter" %}</a></p>
+      <p class="help">{% translate "Un bulletin peut aussi être remis sur papier à la mairie, qui le saisit." %}</p>
+    </section>
+  {% endif %}
+
+  {% if participation %}
+    {% comment %} R-11.5: shown only because ``show_live_participation`` is set on this
+       poll. Counted from the registrations' voting channel, never from ballots
+       (INV-5), and never broken down further than the two channels. {% endcomment %}
+    <section aria-labelledby="participation">
+      <h2 id="participation">{% translate "Participation" %}</h2>
+      <dl class="facts">
+        <dt>{% translate "Bulletins déposés" %}</dt><dd>{{ participation.voted_total }}</dd>
+        <dt>{% translate "dont en ligne" %}</dt><dd>{{ participation.voted_online }}</dd>
+        <dt>{% translate "dont sur papier" %}</dt><dd>{{ participation.voted_paper }}</dd>
+        <dt>{% translate "Inscrits n'ayant pas encore voté" %}</dt><dd>{{ participation.not_voted }}</dd>
+      </dl>
+    </section>
+  {% endif %}
+
+  <section aria-labelledby="portee" class="legal">
+    <h2 id="portee">{% translate "Portée de la consultation" %}</h2>
+    {% comment %} R-1.4: the public page states expressly that the result does not bind
+       the council and that the poll is not a *consultation des électeurs* within
+       the meaning of the CGCT. The footer carries the short form on every page;
+       the full statement with the article reference belongs on the poll itself. {% endcomment %}
+    <p>{% blocktranslate %}Cette consultation est consultative. Son résultat éclaire la délibération du conseil municipal sans la lier. Elle ne constitue pas une consultation des électeurs au sens des articles L1112-15 et suivants du code général des collectivités territoriales.{% endblocktranslate %}</p>
+  </section>
+{% endblock %}

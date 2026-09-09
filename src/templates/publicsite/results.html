@@ -1,6 +1,132 @@
-{% extends "base.html" %}{% load i18n %}
-{% comment %} SPDX-License-Identifier: 0BSD
-   TODO(scaffold): §9 artefacts — CSV and JSON ballot list, pairwise matrix,
-   derivation, frozen counts, closure_hash, opening_seed, tie-break computation,
-   and the per-ordering summary table (R-11.3). {% endcomment %}
-{% block content %}<h1>{{ poll.title }}</h1>{% endblock %}
+{% extends "base.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD — served only for a published, non-sandbox poll (§9). #}
+
+{% block title %}{% translate "Résultats" %} — {{ poll.title }}{% endblock %}
+
+{% block content %}
+  <h1>{% blocktranslate with title=poll.title %}Résultats : « {{ title }} »{% endblocktranslate %}</h1>
+  <p><a href="{% url 'publicsite:poll_detail' poll.id %}">{% translate "← Revenir à la page de la consultation" %}</a></p>
+
+  <section aria-labelledby="issue">
+    <h2 id="issue">{% translate "Issue" %}</h2>
+    <p class="outcome">
+      {% if view.winner %}
+        {% blocktranslate with label=view.winner.label %}Proposition retenue : {{ label }}.{% endblocktranslate %}
+      {% elif view.tied %}
+        {% translate "Le dépouillement rapporte une égalité." %}
+      {% else %}
+        {% translate "Aucun bulletin retenu : la consultation n'a pas produit de résultat." %}
+      {% endif %}
+    </p>
+    <dl class="facts">
+      <dt>{% translate "Méthode de dépouillement" %}</dt>
+      <dd>{{ poll.get_tally_method_display }} (v{{ view.document.tally_method_version }})</dd>
+      <dt>{% translate "Bulletins retenus" %}</dt>
+      <dd>{{ view.document.ballot_count }}</dd>
+    </dl>
+    {% if view.override_reason %}
+      {% comment %} §9 / T-19, T-32: closure was forced with pending_countersign ballots
+         outstanding. Those ballots are absent from the tally, the hash and the CSV,
+         and the reason travels into the publication. {% endcomment %}
+      <p class="notice">{% blocktranslate with reason=view.override_reason %}Clôture forcée par l'administration ; motif : {{ reason }}. Les bulletins en attente de contreseing à cet instant ne sont pas comptés.{% endblocktranslate %}</p>
+    {% endif %}
+  </section>
+
+  <section aria-labelledby="participation">
+    <h2 id="participation">{% translate "Participation, figée à la clôture" %}</h2>
+    {% comment %} §9: computed on entry to `closed` and stored, never re-derived — the
+       retention purge (§11) deletes the registrations a fresh count would read.
+       From Registration.channel, never from counting ballots (INV-5). {% endcomment %}
+    <dl class="facts">
+      <dt>{% translate "Inscrits" %}</dt><dd>{{ view.document.counts.registered }}</dd>
+      <dt>{% translate "Votes en ligne" %}</dt><dd>{{ view.document.counts.ballots_online }}</dd>
+      <dt>{% translate "Votes papier" %}</dt><dd>{{ view.document.counts.ballots_paper }}</dd>
+      <dt>{% translate "N'ont pas voté" %}</dt><dd>{{ view.document.counts.non_voters }}</dd>
+    </dl>
+  </section>
+
+  <section aria-labelledby="raisonnement">
+    <h2 id="raisonnement">{% translate "Le raisonnement" %}</h2>
+
+    <table>
+      <caption>{% translate "Matrice des préférences deux à deux — la ligne bat la colonne" %}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{% translate "bat" %}</th>
+          {% for option_id in view.option_ids %}<th scope="col">{{ option_id }}</th>{% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in view.matrix_rows %}
+          <tr>
+            <th scope="row">{{ row.label }} <span class="help">({{ row.option_id }})</span></th>
+            {% for cell in row.cells %}
+              <td>{% if cell.value is None %}—{% else %}{{ cell.value }}{% endif %}</td>
+            {% endfor %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% if view.orderings %}
+      {% comment %} R-11.3: for a small option count, the count of ballots per distinct
+         ordering — enough on its own to recompute the result. {% endcomment %}
+      <table>
+        <caption>{% translate "Nombre de bulletins par ordre de classement (R-11.3)" %}</caption>
+        <thead>
+          <tr>
+            <th scope="col">{% translate "Classement" %}</th>
+            <th scope="col">{% translate "Bulletins" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ordering in view.orderings %}
+            <tr><td>{{ ordering.label }}</td><td>{{ ordering.count }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+
+    {% if view.tied %}
+      <h3>{% translate "Départage" %}</h3>
+      <p class="help">
+        {% translate "Propositions à égalité :" %}
+        {% for option in view.tied %}{{ option.label }} ({{ option.option_id }}){% if not forloop.last %}, {% endif %}{% endfor %}
+      </p>
+      {% if view.tiebreak_order %}
+        <p>{% blocktranslate with rule=poll.get_tiebreak_rule_display %}Règle : {{ rule }}. Ordre retenu :{% endblocktranslate %}</p>
+        <ol>
+          {% for option in view.tiebreak_order %}<li>{{ option.label }} <span class="help">({{ option.option_id }})</span></li>{% endfor %}
+        </ol>
+      {% endif %}
+    {% endif %}
+  </section>
+
+  <section aria-labelledby="verification">
+    <h2 id="verification">{% translate "Vérifier ce résultat" %}</h2>
+    {% comment %} R-11.4: any elector finds their tracking code in the published list and
+       checks their ballot; any third party recomputes the result from the published
+       data, with an independent implementation of the tally and the hash. {% endcomment %}
+    <dl class="facts">
+      <dt>{% translate "Empreinte de clôture (SHA-256)" %}</dt>
+      <dd><code>{{ view.document.closure_hash }}</code></dd>
+      <dt>{% translate "Graine d'ouverture" %}</dt>
+      <dd><code>{{ view.document.opening_seed }}</code></dd>
+    </dl>
+    <ul>
+      <li><a href="?format=csv">{% translate "Liste anonymisée des bulletins (CSV)" %}</a> —
+        {% translate "exactement les bulletins retenus ; l'empreinte de clôture se recalcule à partir de ce seul fichier." %}</li>
+      <li><a href="?format=json">{% translate "Document de publication complet (JSON)" %}</a> —
+        {% translate "matrice, raisonnement, comptes figés, empreinte, graine, départage." %}</li>
+    </ul>
+    <p class="help">{% blocktranslate %}Chaque bulletin porte un code de suivi remis à l'électeur au moment du vote. Retrouvez le vôtre dans la liste publiée pour confirmer qu'il a été enregistré tel que vous l'avez exprimé. Un vérificateur indépendant, écrit séparément, recalcule la matrice, le vainqueur, le départage et l'empreinte à partir du seul fichier CSV.{% endblocktranslate %}</p>
+  </section>
+
+  <section aria-labelledby="portee" class="legal">
+    <h2 id="portee">{% translate "Portée de la consultation" %}</h2>
+    {% comment %} R-1.4: consultative status, stated with the CGCT article reference on
+       the poll's own pages and not only in the footer's short form. {% endcomment %}
+    <p>{% blocktranslate %}Cette consultation est consultative. Son résultat éclaire la délibération du conseil municipal sans la lier. Elle ne constitue pas une consultation des électeurs au sens des articles L1112-15 et suivants du code général des collectivités territoriales.{% endblocktranslate %}</p>
+  </section>
+{% endblock %}

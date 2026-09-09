@@ -1,18 +1,24 @@
 # SPDX-License-Identifier: 0BSD
-"""The read model behind screen 9, clôture et publication (§6.5.9).
+"""The read model behind a closed poll's result — screen 9 (§6.5.9) and the
+public results page (§6.6, §9).
 
-Screen 9 shows the closure hash, the tally derivation, the tie-break where one
-applies, and offers the publication action. Every value here is derived from the
-live ballot set and the frozen counts — there is no elector data on this screen
-and no join to one (INV-1): the counts come from ``Poll.frozen_counts``, frozen
-at closure, and everything else from ``elections.closure``, which recomputes the
-tally as the pure function of §8 it is.
+Both pages show the same thing: the closure hash, the tally derivation, the
+tie-break where one applies, the frozen participation counts. Screen 9 adds the
+publication *action* on top; the public page is the read-only view of an
+already-published poll. The shaping is identical, so it lives here — beside
+``elections.closure``, which it calls — rather than inside either app's views.
+
+Every value is derived from the live ballot set and the frozen counts: there is
+no elector data here and no join to one (INV-1). The counts come from
+``Poll.frozen_counts``, frozen at closure; everything else from
+``elections.closure``, which recomputes the tally as the pure function of §8 it
+is.
 
 The shaping done here is for the template's sake. Django's template language
 cannot index a mapping by a variable key, so the pairwise matrix is turned into
 rows of cells and the per-ordering summary is relabelled into readable French
-before it reaches the page — the same limit ``auditlog.resolve_refs`` and the
-roll-import review work around.
+before it reaches the page — the same limit ``backoffice.auditlog.resolve_refs``
+and the roll-import review work around.
 """
 
 from __future__ import annotations
@@ -51,7 +57,7 @@ class Ordering:
 
 
 @dataclass(frozen=True)
-class Screen9:
+class ResultView:
     """Everything the template iterates. ``document`` is the §9 publication
     document verbatim (``elections.closure.publication``); the rest is it,
     reshaped."""
@@ -91,9 +97,9 @@ def _relabel_ordering(key: str, labels: dict[str, str]) -> str:
     return " > ".join(groups)
 
 
-def screen9(poll: Poll) -> Screen9:
-    """The read model. Assumes the poll is ``closed`` or ``published`` — the
-    view keeps the earlier states on a different branch."""
+def result_view(poll: Poll) -> ResultView:
+    """The read model. Assumes the poll is ``closed`` or ``published`` — each
+    caller keeps the earlier states on a different branch."""
     document = closure.publication(poll)
     labels = _labels(poll)
     _ballots, options, result = closure.tallied(poll)
@@ -135,7 +141,7 @@ def screen9(poll: Poll) -> Screen9:
         for key, count in (orderings_raw.items() if isinstance(orderings_raw, dict) else [])
     ]
 
-    return Screen9(
+    return ResultView(
         poll=poll,
         published=poll.state == PollState.PUBLISHED,
         document=document,

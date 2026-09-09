@@ -1,15 +1,36 @@
 # SPDX-License-Identifier: 0BSD
-"""Public pages (§6.6) and the health endpoint (§14)."""
+"""Public pages (§6.6, §9) and the health endpoint (§14).
+
+Nothing here is behind a login. Two rules shape it:
+
+* **INV-1 / R-11.5.** A running count is disclosed only where
+  ``show_live_participation`` is set, and even then only from
+  ``Registration.channel`` — never by counting ballots (INV-5). When the flag
+  is off, no branch here counts anything: not the page, not a header, not the
+  JSON (T-20).
+* **§9 / R-11.4.** The results page and its CSV/JSON are exactly the live
+  ballot set and the published document, so a third party recomputes the
+  closure hash from the CSV alone. The shaping is
+  ``elections.results_view``, shared with back-office screen 9.
+"""
 
 from __future__ import annotations
 
 from django.conf import settings
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
-from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render
+from django.utils.dateparse import parse_datetime
 
+from apps.audit.models import Action, AuditEvent, Reason
+from apps.elections import closure, results_view
 from apps.elections.models import Poll, PollState
+from apps.registrations.models import Channel, Registration, RegistrationState
+
+#: The states a poll is visible to the public in at all: a ``draft`` poll is
+#: not yet a poll anyone may see (§6.6 speaks only of open and published).
+_PUBLIC_STATES = (PollState.OPEN, PollState.CLOSED, PollState.PUBLISHED)
 
 
 def health(request: HttpRequest) -> JsonResponse:
@@ -26,26 +47,114 @@ def health(request: HttpRequest) -> JsonResponse:
 
 def poll_list(request: HttpRequest) -> HttpResponse:
     """INV-8: sandbox polls never appear in public listings (T-15)."""
-    polls = Poll.objects.filter(is_sandbox=False).exclude(state=PollState.DRAFT)
+    polls = Poll.objects.filter(is_sandbox=False, state__in=_PUBLIC_STATES).order_by("-opens_at")
     return render(request, "publicsite/poll_list.html", {"polls": polls})
+
+
+def _extensions(poll: Poll) -> list[dict[str, object]]:
+    """Every logged extension of ``closes_at`` (R-3.4), oldest first.
+
+    R-3.4 requires the extension to appear on the public page. The audit event
+    carries the before/after instants and a reason **code** (§10); the operator
+    who made it is not shown here — the public interest is that the date moved,
+    when, and why, not who keyed it.
+    """
+    events = AuditEvent.objects.filter(poll=poll, action=Action.POLL_CLOSES_AT_EXTENDED).order_by(
+        "at"
+    )
+    reason_label = dict(Reason.choices)
+    return [
+        {
+            "at": event.at,
+            "old": parse_datetime(event.before.get("closes_at", "")),
+            "new": parse_datetime(event.after.get("closes_at", "")),
+            "reason": reason_label.get(event.reason, event.reason),
+        }
+        for event in events
+    ]
+
+
+def _live_participation(poll: Poll) -> dict[str, int] | None:
+    """Turnout for an open poll, or ``None`` when it must not be shown.
+
+    R-11.5: only where ``show_live_participation`` is set, and only while the
+    poll is open — once it is closed the figures are the ones frozen at closure
+    and belong to the publication, not this page. Counted from
+    ``Registration.channel`` (INV-5), never from ballots, and never broken down
+    further than the two channels.
+    """
+    if not (poll.show_live_participation and poll.state == PollState.OPEN):
+        return None
+    active = Registration.objects.filter(poll=poll, state=RegistrationState.ACTIVE)
+    online = active.filter(channel=Channel.ONLINE).count()
+    paper = active.filter(channel=Channel.PAPER).count()
+    confirmed = active.count()
+    return {
+        "voted_online": online,
+        "voted_paper": paper,
+        "voted_total": online + paper,
+        "not_voted": confirmed - online - paper,
+    }
 
 
 def poll_detail(request: HttpRequest, poll_id: str) -> HttpResponse:
     """The public poll page (§6.6).
 
-    Shows the propositions, the closing instant, the paper keying deadline
-    where one is configured, any logged extension (R-3.4) and the
-    consultative-status notice (R-1.4). Participation figures appear only if
-    ``show_live_participation`` is set; when it is off no page, endpoint or
-    header exposes a running count (T-20), which is why nothing is counted here.
+    The propositions, the closing instant, the paper keying deadline where one
+    is configured (§6.4), any logged extension (R-3.4) and the
+    consultative-status notice (R-1.4, rendered by ``base.html`` on every
+    page). Participation appears only through ``_live_participation``, which
+    returns ``None`` unless the poll is open and configured for it (T-20).
     """
-    poll = get_object_or_404(Poll.objects.filter(is_sandbox=False), pk=poll_id)
-    return render(request, "publicsite/poll_detail.html", {"poll": poll})
+    poll = get_object_or_404(
+        Poll.objects.filter(is_sandbox=False, state__in=_PUBLIC_STATES), pk=poll_id
+    )
+    language = request.LANGUAGE_CODE
+    return render(
+        request,
+        "publicsite/poll_detail.html",
+        {
+            "poll": poll,
+            "title": poll.title(language),
+            "description": poll.description(language),
+            "options": [
+                {"option_id": option.option_id, "label": option.label(language)}
+                for option in poll.options.all()
+            ],
+            "has_paper_window": poll.paper_entry_deadline > poll.closes_at,
+            "extensions": _extensions(poll),
+            "participation": _live_participation(poll),
+            "is_open": poll.state == PollState.OPEN,
+            "is_published": poll.state == PollState.PUBLISHED,
+        },
+    )
 
 
 def results(request: HttpRequest, poll_id: str) -> HttpResponse:
-    """The artefacts of §9, once the poll is ``published``."""
+    """The artefacts of §9, once the poll is ``published`` (R-11.2, R-11.4).
+
+    ``?format=csv`` is the anonymised ballot list — exactly the live set, so
+    the closure hash recomputes from it alone; ``?format=json`` is the
+    publication document verbatim. Otherwise the page renders the derivation,
+    the pairwise matrix, the frozen counts, the tie-break where one applies and
+    the per-ordering table (R-11.3), all from ``elections.results_view``.
+    """
     poll = get_object_or_404(
         Poll.objects.filter(is_sandbox=False, state=PollState.PUBLISHED), pk=poll_id
     )
-    return render(request, "publicsite/results.html", {"poll": poll})
+
+    fmt = request.GET.get("format")
+    if fmt == "csv":
+        response = HttpResponse(closure.published_csv(poll), content_type="text/csv; charset=utf-8")
+        response["Content-Disposition"] = f'attachment; filename="bulletins-{poll.pk}.csv"'
+        return response
+    if fmt == "json":
+        return JsonResponse(closure.publication(poll), json_dumps_params={"ensure_ascii": False})
+    if fmt is not None:
+        raise Http404
+
+    return render(
+        request,
+        "publicsite/results.html",
+        {"poll": poll, "view": results_view.result_view(poll)},
+    )

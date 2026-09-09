@@ -1,6 +1,30 @@
-{% extends "base.html" %}{% load i18n %}
-{# SPDX-License-Identifier: 0BSD — sandbox polls are excluded in the view (INV-8). #}
+{% extends "base.html" %}
+{% load i18n tz %}
+{# SPDX-License-Identifier: 0BSD — sandbox and draft polls are excluded in the view (INV-8). #}
+
+{% block title %}{% translate "Consultations" %}{% endblock %}
+
 {% block content %}
   <h1>{% translate "Consultations" %}</h1>
-  <ul>{% for poll in polls %}<li><a href="{% url 'publicsite:poll_detail' poll.id %}">{{ poll.title }}</a></li>{% endfor %}</ul>
+
+  {% if polls %}
+    <ul class="poll-index">
+      {% for poll in polls %}
+        <li>
+          <a href="{% url 'publicsite:poll_detail' poll.id %}">{{ poll.title }}</a>
+          <span class="help">
+            {% if poll.state == "open" %}
+              {% blocktranslate with when=poll.closes_at|timezone:poll.timezone|date:"DATETIME_FORMAT" %}ouverte — clôture le {{ when }}{% endblocktranslate %}
+            {% elif poll.state == "published" %}
+              {% translate "close — résultats publiés" %}
+            {% else %}
+              {% translate "close — dépouillement en cours" %}
+            {% endif %}
+          </span>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>{% translate "Aucune consultation pour le moment." %}</p>
+  {% endif %}
 {% endblock %}
