@@ -17,9 +17,7 @@
   <article class="receipt">
     <p class="receipt__poll">{{ poll.title }}</p>
 
-    {% if not_in_force %}
-      <p class="receipt__notice" role="alert">{% translate "Ce bulletin papier n'est pas décompté : un vote en ligne a déjà été enregistré pour cet électeur, et c'est celui-ci qui compte. Ce reçu vaut trace de la démarche." %}</p>
-    {% elif pending_countersign %}
+    {% if pending_countersign %}
       <p class="receipt__notice">{% translate "Ce bulletin est en attente de contreseing par un second opérateur. Il ne sera décompté qu'une fois contresigné." %}</p>
     {% endif %}
 

@@ -123,22 +123,6 @@ def test_t56_paper_keying_window_outlives_online_voting(open_window_poll: Poll) 
     paper.save(update_fields=["status"])
 
 
-def test_t24_not_in_force_collision_ballot_is_immutable(open_window_poll: Poll) -> None:
-    """D4: the R-9.3 override entry is a permanent, uncounted record (§6.4)."""
-    ballot = Ballot.objects.create(
-        poll=open_window_poll,
-        tracking_code=new_tracking_code(),
-        ranking=[["a"], ["b"], ["c"]],
-        source=BallotSource.PAPER,
-        status=BallotStatus.NOT_IN_FORCE_COLLISION,
-    )
-    with pytest.raises(Exception, match="INV-3"), transaction.atomic():
-        raw("UPDATE ballots_ballot SET status = 'live' WHERE id = %s", [pk(ballot)])
-    with pytest.raises(Exception, match="INV-3"), transaction.atomic():
-        raw("DELETE FROM ballots_ballot WHERE id = %s", [pk(ballot)])
-    assert Ballot.objects.filter(pk=ballot.pk).exists()
-
-
 def test_paper_channel_registration_moves_in_the_keying_window(open_window_poll: Poll) -> None:
     """D1 / §6.4: a paper voter's channel indicator tracks the *ballot* window,
     so it may be created and moved after ``closes_at`` and until

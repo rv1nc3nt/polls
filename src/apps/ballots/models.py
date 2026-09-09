@@ -9,14 +9,13 @@ the operator confirmed at keying — and the retention job deletes it.
 
 Append-only. A modification inserts ``version + 1`` and marks the prior row
 ``superseded``; a trigger refuses every ``UPDATE`` on a row that is already
-superseded, deleted or not-in-force (INV-3, T-24).
+superseded or deleted (INV-3, T-24).
 
-``not_in_force_collision`` is the one status that is not part of a version
-chain: a paper ballot keyed under the R-9.3 override for an elector who has
-already voted online is recorded — with its ``PaperBallotLink`` for
-traceability — but never counted, because §7 makes the online ballot
-unlocatable from the registration and so it cannot be superseded. Such a row is
-``version = 1`` with nothing above it, and it is immutable from birth.
+An elector who has already voted online cannot also be keyed a paper ballot:
+``enter_paper`` refuses, because §7 makes the online ballot unlocatable from the
+registration, so a paper entry could neither replace it nor be counted beside it
+without double-counting the voter. This diverges from R-9.3 / T-8, which provide
+for a reasoned override — see ``docs/spec-divergences.md``.
 """
 
 from __future__ import annotations
@@ -37,12 +36,6 @@ class BallotStatus(models.TextChoices):
     SUPERSEDED = "superseded", _("remplacé")
     DELETED = "deleted", _("supprimé")
     PENDING_COUNTERSIGN = "pending_countersign", _("en attente de contreseing")
-    # R-9.3 override: a paper entry for an elector who already voted online.
-    # Recorded, linked, never counted; the online ballot stands (§6.4, D4).
-    NOT_IN_FORCE_COLLISION = (
-        "not_in_force_collision",
-        _("non retenu : vote en ligne déjà enregistré"),
-    )
 
 
 class LiveBallotManager(models.Manager["Ballot"]):
@@ -78,7 +71,7 @@ class Ballot(models.Model):
 
     source = models.CharField(max_length=10, choices=BallotSource.choices)
     status = models.CharField(
-        max_length=24, choices=BallotStatus.choices, default=BallotStatus.LIVE
+        max_length=20, choices=BallotStatus.choices, default=BallotStatus.LIVE
     )
     created_at = models.DateTimeField(auto_now_add=True)
 

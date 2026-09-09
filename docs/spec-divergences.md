@@ -87,28 +87,40 @@ transcription of a vote cast before `closes_at`, not a vote in its own right.
 carry the same paper-channel carve-out the ballot window has, or state that the
 channel indicator for the paper channel is governed by `paper_entry_deadline`.
 
-## 5. R-9.3 override records the paper ballot without displacing the online one
+## 5. Paper entry is refused outright when an online ballot exists
 
 **Specification, §6.4 / R-9.3, T-8.** Where an elector has already voted online,
-the operator may key a paper ballot after an express confirmation and a
-mandatory reason, "both being recorded". The specification does not say what
-becomes of the online ballot, and INV-5 allows only one live ballot per voter
-across both channels.
+the operator may key a paper ballot "only after express confirmation and entry
+of a mandatory reason, both being recorded" — a reasoned override. T-8 asserts
+the same: *proceeds only with confirmation and reason; both logged.*
 
-**What the code does.** The override proceeds: the paper ballot is written with
-status `not_in_force_collision` (a `BallotStatus` value added for this), with
-its `PaperBallotLink` for traceability and later deletion-on-request
-(R-8.2 bis), but it is excluded from the live set — so the tally, closure hash
-and published CSV are unchanged, and `Registration.channel` stays `online`. The
-online ballot remains the vote that counts. `Action.CHANNEL_COLLISION_OVERRIDE`
-is logged with the reason code.
+**What the code does.** `enter_paper` refuses. There is no override path: the
+elector's online vote stands, and screen 5 is a dead end for them (a red notice,
+no form). Where the poll permits modification the notice points the elector to
+the online modification link; where it does not, it states that the online vote
+is final.
 
-The online ballot is not superseded because §7 makes it unlocatable from the
-registration: the operator holds a roll entry, not the token, and no server-side
-path maps a registration to its ballot. Writing the paper ballot `live` instead
-would leave two live ballots for one voter and break "live set = tally set".
+**Why.** R-9.3's override only makes sense if the paper ballot then *replaces*
+the online one, and that is not implementable. §7 makes an online ballot
+unlocatable from the registration — the operator holds a roll entry, not the
+token, and no server-side path maps a registration to its ballot (that is the
+anonymity guarantee, not an omission). So the override could only either:
 
-**To settle:** record in §6.4 that a collision-override paper entry is filed
-not-in-force and that R-9.3's "may proceed" means the entry is made and logged,
-not that it replaces the online ballot; the preferred resolution remains the
-one R-9.3 already names — the elector modifies their own ballot online.
+- write the paper ballot `live` alongside the un-findable online one → two live
+  ballots for one voter, double-counted in the tally, breaking INV-5 and
+  "live set = tally set"; or
+- write it not-in-force → recorded but never counted, which is a confusing
+  artefact that changes nothing about the outcome.
+
+Refusing is the honest option. It also matches the spec's own intent for the
+common case: a poll with `allow_ballot_modification` off has deliberately made
+an online vote final (§7), and an override that counted would be a back door
+around exactly that. The rarer case — a compromised online vote — has no remedy
+under §7 regardless (R-7.6: token loss is unrecoverable by anyone), so the
+override could not have helped there either.
+
+**To settle:** amend R-9.3 and T-8. Either drop the override (recording that a
+paper ballot cannot displace an anonymous online one), or, if an in-person
+change path is wanted for `allow_ballot_modification`-off polls, specify it as
+*the elector presents their tracking code* and the paper ballot is keyed as a
+new version of that ballot chain — the one handle that exists.

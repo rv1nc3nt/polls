@@ -41,18 +41,20 @@
       </dl>
 
       {% if channel == "online" %}
-        {% comment %} R-9.3: blocking interstitial, in red, express confirmation and a
-           mandatory reason. Where the poll permits it, the elector should modify
-           their own ballot online instead. {% endcomment %}
+        {% comment %} The elector has already voted online. §7 makes that ballot
+           unlocatable from the registration, so a paper entry could neither
+           replace it nor be counted beside it — the screen is a dead end.
+           Diverges from R-9.3 / T-8; see docs/spec-divergences.md. {% endcomment %}
         <div class="collision" role="alert">
-          <p class="collision__title">{% translate "Attention : cet électeur a déjà voté en ligne." %}</p>
+          <p class="collision__title">{% translate "Cet électeur a déjà voté en ligne." %}</p>
+          <p>{% translate "Ce vote fait foi. Il ne peut pas être remplacé par un bulletin papier, ni être supprimé — perdre le lien de vote est définitif." %}</p>
           {% if poll.allow_ballot_modification %}
-            <p>{% translate "Invitez d'abord l'électeur à modifier lui-même son bulletin en ligne. N'enregistrez un bulletin papier que si ce n'est pas possible." %}</p>
+            <p>{% translate "Pour changer son vote, l'électeur modifie lui-même son bulletin en ligne à partir du lien reçu par courriel." %}</p>
+          {% else %}
+            <p>{% translate "Ce scrutin n'autorise pas la modification d'un bulletin : le vote en ligne est définitif." %}</p>
           {% endif %}
-          <p>{% translate "Le bulletin en ligne reste celui qui compte : le bulletin papier saisi ici est enregistré et classé, mais non décompté." %}</p>
         </div>
-      {% endif %}
-
+      {% else %}
       <form method="post" class="paper-form">
         {% csrf_token %}
         <input type="hidden" name="roll_entry" value="{{ entry.pk }}">
@@ -63,29 +65,10 @@
           {% include "ballots/_ranking_field.html" %}
         </fieldset>
 
-        {% if channel == "online" %}
-          <fieldset class="collision__confirm">
-            <legend>{% translate "Confirmation requise (R-9.3)" %}</legend>
-            <p>
-              <input type="checkbox" id="collision_ack" name="collision_ack" value="1">
-              <label for="collision_ack">{% translate "Je confirme enregistrer ce bulletin papier alors qu'un vote en ligne existe déjà." %}</label>
-            </p>
-            <p>
-              <label for="collision_reason">{% translate "Motif" %}</label>
-              <select id="collision_reason" name="collision_reason">
-                <option value="">{% translate "— choisir —" %}</option>
-                {% for value, label in collision_reasons %}
-                  <option value="{{ value }}">{{ label }}</option>
-                {% endfor %}
-              </select>
-            </p>
-          </fieldset>
-        {% else %}
-          <p>
-            <input type="checkbox" id="identity_confirmed" name="identity_confirmed" value="1">
-            <label for="identity_confirmed">{% translate "Identité confirmée avec l'électeur présent (entrées de la liste indistinguables)." %}</label>
-          </p>
-        {% endif %}
+        <p>
+          <input type="checkbox" id="identity_confirmed" name="identity_confirmed" value="1">
+          <label for="identity_confirmed">{% translate "Identité confirmée avec l'électeur présent (entrées de la liste indistinguables)." %}</label>
+        </p>
 
         <p class="field">
           <label for="note">{% translate "Note (facultative)" %}</label>
@@ -95,6 +78,7 @@
 
         <button type="submit" name="action" value="record">{% translate "Enregistrer le bulletin papier" %}</button>
       </form>
+      {% endif %}
     </section>
 
   {% elif matches is not None %}

@@ -109,16 +109,14 @@ BEGIN
 END;
 """
 
-# A superseded, deleted or not-in-force ballot row is history: it may not be
-# edited, and no ballot row is ever physically removed (§3.4, R-8.5).
-# ``not_in_force_collision`` is immutable from birth — the R-9.3 override entry
-# is a permanent record of a paper ballot that was never counted (§6.4, D4).
+# A superseded or deleted ballot version is history: it may not be edited, and
+# no ballot row is ever physically removed (§3.4, R-8.5).
 BALLOT_HISTORY_IMMUTABLE = """
 CREATE TRIGGER inv3_ballot_history_no_update
 BEFORE UPDATE ON ballots_ballot
-FOR EACH ROW WHEN OLD.status IN ('superseded', 'deleted', 'not_in_force_collision')
+FOR EACH ROW WHEN OLD.status IN ('superseded', 'deleted')
 BEGIN
-    SELECT RAISE(ABORT, 'INV-3: superseded, deleted and not-in-force ballot rows are immutable');
+    SELECT RAISE(ABORT, 'INV-3: superseded and deleted ballot versions are immutable');
 END;
 
 CREATE TRIGGER inv3_ballot_no_delete

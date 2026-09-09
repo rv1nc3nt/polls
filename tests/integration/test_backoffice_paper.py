@@ -79,7 +79,7 @@ def test_the_auditor_role_cannot_reach_the_entry_screen(
     assert client.get(f"{_base(open_paper_poll)}/bulletin-papier/").status_code == 403
 
 
-def test_the_collision_interstitial_blocks_until_confirmed(
+def test_an_online_ballot_makes_the_entry_screen_a_dead_end(
     client: Client, open_paper_poll: Poll, op: User
 ) -> None:
     _grant(open_paper_poll, op)
@@ -97,31 +97,17 @@ def test_the_collision_interstitial_blocks_until_confirmed(
     )
 
     shown = client.post(f"{_base(open_paper_poll)}/bulletin-papier/", {"roll_entry": str(entry.pk)})
-    assert "déjà voté en ligne" in shown.content.decode()
+    body = shown.content.decode()
+    assert "déjà voté en ligne" in body
+    assert 'name="action" value="record"' not in body  # no way through
 
-    # Ranking valid but no confirmation box / reason → refused, nothing written.
-    blocked = client.post(
+    # Even a hand-crafted POST is refused server-side, nothing written.
+    forced = client.post(
         f"{_base(open_paper_poll)}/bulletin-papier/",
         {"roll_entry": str(entry.pk), "action": "record", **STRICT},
     )
-    assert "Confirmez" in blocked.content.decode()
+    assert "déjà voté en ligne" in forced.content.decode()
     assert not Ballot.objects.filter(poll=open_paper_poll).exists()
-
-    # With the box and a reason it goes through, not counted.
-    client.post(
-        f"{_base(open_paper_poll)}/bulletin-papier/",
-        {
-            "roll_entry": str(entry.pk),
-            "action": "record",
-            "collision_ack": "1",
-            "collision_reason": "voted_online_already",
-            **STRICT,
-        },
-        follow=True,
-    )
-    ballot = Ballot.objects.get(poll=open_paper_poll)
-    assert ballot.status == BallotStatus.NOT_IN_FORCE_COLLISION
-    assert not Ballot.live.filter(poll=open_paper_poll).exists()
 
 
 def test_entry_screen_hands_off_to_screen_6_when_a_paper_ballot_exists(

@@ -140,7 +140,7 @@ def test_enter_paper_still_works_after_online_voting_closes(
     assert Registration.objects.get(poll=open_paper_poll).channel == Channel.PAPER
 
 
-# --- enter_paper: the R-9.3 collision override ------------------------------
+# --- enter_paper: an online ballot blocks paper entry ---------------------
 
 
 def _voted_online(poll: Poll, entry: RollEntry) -> Registration:
@@ -157,45 +157,20 @@ def _voted_online(poll: Poll, entry: RollEntry) -> Registration:
     )
 
 
-def test_collision_override_is_refused_without_a_reason(
-    open_paper_poll: Poll, operator: User
-) -> None:
-    entry = _entry(open_paper_poll)
-    _voted_online(open_paper_poll, entry)
-    with pytest.raises(BallotRefused, match="déjà voté en ligne"):
-        services.enter_paper(open_paper_poll, str(entry.pk), STRICT, str(operator.pk), "fr")
-
-
-def test_collision_override_records_but_does_not_count_the_paper_ballot(
-    open_paper_poll: Poll, operator: User
-) -> None:
+def test_an_online_ballot_refuses_a_paper_entry(open_paper_poll: Poll, operator: User) -> None:
+    """§7 makes the online ballot unlocatable, so it can neither be replaced nor
+    counted beside a paper one — the entry is refused outright (divergence from
+    R-9.3 / T-8, docs/spec-divergences.md)."""
     entry = _entry(open_paper_poll)
     registration = _voted_online(open_paper_poll, entry)
 
-    ballot = services.enter_paper(
-        open_paper_poll,
-        str(entry.pk),
-        STRICT,
-        str(operator.pk),
-        "fr",
-        collision_reason=Reason.VOTED_ONLINE_ALREADY,
-        note="électeur insistant, formulaire papier classé",
-    )
+    with pytest.raises(BallotRefused, match="déjà voté en ligne"):
+        services.enter_paper(open_paper_poll, str(entry.pk), STRICT, str(operator.pk), "fr")
 
-    assert ballot.status == BallotStatus.NOT_IN_FORCE_COLLISION
-    assert not Ballot.live.filter(poll=open_paper_poll).exists()
+    assert not Ballot.objects.filter(poll=open_paper_poll).exists()
+    assert not PaperBallotLink.objects.filter(poll=open_paper_poll).exists()
     registration.refresh_from_db()
-    assert registration.channel == Channel.ONLINE  # the online ballot still stands
-
-    (event,) = _events(open_paper_poll, Action.CHANNEL_COLLISION_OVERRIDE)
-    assert event.reason == Reason.VOTED_ONLINE_ALREADY
-    assert event.object_ref == f"ballot:{ballot.pk}"
-    # §10: prose lives on the row the purge takes, not on the event.
-    assert "insistant" not in str(event.before) + str(event.after)
-    assert (
-        PaperBallotLink.objects.get(ballot=ballot).note
-        == "électeur insistant, formulaire papier classé"
-    )
+    assert registration.channel == Channel.ONLINE  # untouched
 
 
 # --- correct_paper ---------------------------------------------------------

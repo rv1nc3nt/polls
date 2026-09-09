@@ -508,9 +508,9 @@ def paper_entry(request: HttpRequest, poll: Poll) -> HttpResponse:
 
     One page: a search step until a snapshot entry is chosen, then the ranking
     form. Where the elector already has a paper ballot the operator is sent to
-    screen 6; where they have voted online (R-9.3) the ranking form is preceded
-    by the blocking interstitial, and the entry proceeds only with the
-    confirmation box and a reason, both passed to ``enter_paper`` and logged.
+    screen 6; where they have already voted online the screen is a dead end —
+    that vote stands and cannot be replaced by a paper one (see
+    ``docs/spec-divergences.md``).
     """
     if poll.state != PollState.OPEN:
         messages.error(
@@ -536,29 +536,18 @@ def paper_entry(request: HttpRequest, poll: Poll) -> HttpResponse:
                 "backoffice:paper_ballot", poll_id=str(poll.pk), ballot_id=str(existing.pk)
             )
 
+    context.update({"entry": entry, "channel": channel})
+    if channel == Channel.ONLINE:
+        # Dead end: no form, no way through. The online vote is final.
+        return render(request, "backoffice/paper_entry.html", context)
+
     submitting = request.POST.get("action") == "record"
     form = RankingForm(
         request.POST if submitting else None, poll=poll, language=request.LANGUAGE_CODE
     )
-    context.update({"entry": entry, "channel": channel, "form": form})
-    if channel == Channel.ONLINE:
-        context["collision_reasons"] = paper.choices(paper.COLLISION_REASONS)
+    context["form"] = form
 
     if submitting and form.is_valid():
-        collision_reason = ""
-        if channel == Channel.ONLINE:
-            if not request.POST.get("collision_ack"):
-                messages.error(
-                    request,
-                    _("Confirmez explicitement pour enregistrer malgré le vote en ligne."),
-                )
-                return render(request, "backoffice/paper_entry.html", context)
-            collision_reason = _validated_reason(
-                request.POST.get("collision_reason", ""), paper.COLLISION_REASONS
-            )
-            if not collision_reason:
-                messages.error(request, _("Un motif est obligatoire."))
-                return render(request, "backoffice/paper_entry.html", context)
         try:
             ballot = ballots.enter_paper(
                 poll,
@@ -567,7 +556,6 @@ def paper_entry(request: HttpRequest, poll: Poll) -> HttpResponse:
                 str(current_operator(request).pk),
                 request.LANGUAGE_CODE,
                 identity_confirmed=bool(request.POST.get("identity_confirmed")),
-                collision_reason=collision_reason,
                 note=request.POST.get("note", "").strip(),
             )
         except (BallotRefused, WindowClosed) as refused:
@@ -604,7 +592,6 @@ def paper_receipt(request: HttpRequest, poll: Poll, ballot_id: str) -> HttpRespo
                 [labels.get(option_id, option_id) for option_id in group]
                 for group in ballot.ranking
             ],
-            "not_in_force": ballot.status == BallotStatus.NOT_IN_FORCE_COLLISION,
             "pending_countersign": ballot.status == BallotStatus.PENDING_COUNTERSIGN,
             "show_identity_notice": not poll.paper_requires_signed_form,
         },

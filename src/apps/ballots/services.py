@@ -143,7 +143,6 @@ def enter_paper(
     language: str,
     *,
     identity_confirmed: bool = False,
-    collision_reason: str = "",
     note: str = "",
 ) -> Ballot:
     """Operator keying (§6.4, R-8.1–8.4).
@@ -154,10 +153,12 @@ def enter_paper(
 
     * a live or pending paper ballot already exists → refuse; correcting it is
       screen 6's job, not a second entry;
-    * the elector has voted online (R-9.3) → the override: written
-      ``not_in_force_collision`` so it is recorded and linked but never counted,
-      the online ballot standing (§7 makes it unlocatable, so it cannot be
-      superseded). Proceeds only with ``collision_reason``, logged;
+    * the elector has already voted online → refuse. §7 makes that ballot
+      unlocatable from the registration, so a paper entry could neither replace
+      it nor be counted beside it without double-counting the voter. This
+      diverges from R-9.3 / T-8, which provide for a reasoned override —
+      recorded in ``docs/spec-divergences.md``. Where the poll permits
+      modification the elector changes their own ballot online instead;
     * otherwise → written ``live``, or ``pending_countersign`` where the poll
       requires a second operator (R-8.7), and the elector's channel indicator is
       set to ``paper``.
@@ -177,24 +178,12 @@ def enter_paper(
     registration_id, channel = registrations.ensure_paper_registration(poll, roll_entry_id)
 
     if channel == _CHANNEL_ONLINE:
-        if not collision_reason:
-            raise BallotRefused(
-                _(
-                    "Cet électeur a déjà voté en ligne : confirmez et indiquez un motif "
-                    "pour enregistrer tout de même un bulletin papier."
-                )
+        raise BallotRefused(
+            _(
+                "Cet électeur a déjà voté en ligne ; ce vote fait foi et ne peut pas être "
+                "remplacé par un bulletin papier."
             )
-        ballot = _insert(poll, ranking, BallotStatus.NOT_IN_FORCE_COLLISION)
-        _link(poll, ballot, entry, operator, language, note)
-        audit.record(
-            action=Action.CHANNEL_COLLISION_OVERRIDE,
-            poll=poll,
-            actor=operator,
-            object_ref=audit.ref(ballot),
-            after={"status": ballot.status, "source": ballot.source, "counted": False},
-            reason=collision_reason,
         )
-        return ballot
 
     status = (
         BallotStatus.PENDING_COUNTERSIGN if poll.paper_requires_countersign else BallotStatus.LIVE

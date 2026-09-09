@@ -25,8 +25,8 @@ from apps.core.names import name_tokens, parse_dob
 from apps.elections.models import Poll, RollEntry
 from apps.registrations.models import Channel, Registration, RegistrationState
 
-#: Screen 5's R-9.3 override, screen 6's correction and deletion (R-8.5).
-COLLISION_REASONS = (Reason.VOTED_ONLINE_ALREADY, Reason.OTHER)
+#: Screen 6's correction and deletion (R-8.5). Screen 5 needs no vocabulary:
+#: a keyed ballot is either recorded or refused, never conditionally recorded.
 CORRECTION_REASONS = (Reason.KEYING_ERROR, Reason.VOTER_REQUEST, Reason.OTHER)
 DELETION_REASONS = (Reason.VOTER_REQUEST, Reason.KEYING_ERROR, Reason.OTHER)
 

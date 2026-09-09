@@ -159,12 +159,11 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 .ranking__row { padding: 0.35rem 0; }
 .ranking__row label { margin-right: 0.5rem; }
 
-/* R-9.3: the collision interstitial. Red, and also announced in words — the
-   heading says "Attention" and role="alert" carries it to a screen reader, so
-   the colour is never the only signal (R-14.1). */
+/* The dead end when the elector has already voted online (§6.4). Red, and also
+   announced in words — the heading names the situation and role="alert" carries
+   it to a screen reader, so the colour is never the only signal (R-14.1). */
 .collision { border: 2px solid var(--focus); padding: 0.75rem 1rem; margin: 1rem 0; }
 .collision__title { font-weight: 700; color: var(--focus); margin-top: 0; }
-.collision__confirm { border: 1px solid var(--focus); padding: 0.75rem; }
 
 /* --- The paper receipt (R-8.4) ----------------------------------------- */
 
