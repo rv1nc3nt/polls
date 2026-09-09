@@ -29,8 +29,12 @@
       <ul class="bo-side__list" aria-labelledby="bo-grp-{{ forloop.counter }}">
         {% for item in group.items %}
           <li>
-            <a class="bo-side__link{% if item.current %} is-current{% endif %}"
-               href="{{ item.url }}"{% if item.current %} aria-current="page"{% endif %}>{{ item.label }}</a>
+            {% comment %} `needs_grant`: a commune admin who does not yet hold the role this
+               screen needs. The link goes to the role-assignment screen for this poll;
+               the words say why, so it does not rely on the quieter colour (R-14.1). {% endcomment %}
+            <a class="bo-side__link{% if item.current %} is-current{% endif %}{% if item.needs_grant %} needs-grant{% endif %}"
+               href="{{ item.url }}"{% if item.current %} aria-current="page"{% endif %}>{{ item.label }}{% if item.needs_grant %}
+              <span class="bo-side__grant">{% translate "rôle à s’attribuer" %}</span>{% endif %}</a>
           </li>
         {% endfor %}
       </ul>

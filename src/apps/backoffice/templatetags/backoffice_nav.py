@@ -19,7 +19,11 @@ The menu has two parts, and the first never changes:
 The rules this keeps:
 
 * an entry the operator's role does not open is **absent**, not greyed — nothing
-  carries meaning by colour or state alone (R-14.1);
+  carries meaning by colour or state alone (R-14.1). The one exception is the
+  commune admin, who assigns the per-poll roles anyway (§3.7): they see every
+  poll entry, and the ones they do not yet hold a role for point at the
+  role-assignment screen instead of 403-ing. The flag still opens no screen on
+  its own (access.py);
 * the active entry is marked, and the breadcrumb leaf is the *same* label
   (``bo_current_label``), so the menu and the breadcrumb cannot disagree;
 * a screen reached from within a section but not itself in the menu — the roll
@@ -166,12 +170,21 @@ def _resolve(context: template.Context) -> _Resolved:
     poll_groups: list[dict[str, object]] = []
     if poll is not None:
         roles = poll_roles(user, poll)
+        # A commune admin assigns the per-poll roles (§3.7), so hiding an entry
+        # from them is pointless — they would just grant themselves the role.
+        # They see every entry; the ones they do not yet hold a role for lead to
+        # the role-assignment screen for this poll rather than to a 403. The flag
+        # still opens nothing on its own: reaching a screen that shows a voter
+        # beside a ballot follows the audited grant, never the flag (see
+        # access.py). Every other role sees only what its grant opens.
+        grant_url = f"{reverse('backoffice:role_admin')}?scrutin={poll.pk}"
         for group in _POLL_MENU:
             entries = []
             for item in group.items:
                 if item.needs_countersign and not poll.paper_requires_countersign:
                     continue
-                if item.roles and not (roles & set(item.roles)):
+                held = not item.roles or bool(roles & set(item.roles))
+                if not held and not commune_admin:
                     continue
                 active = item.lit_by(url_name)
                 if active:
@@ -179,8 +192,11 @@ def _resolve(context: template.Context) -> _Resolved:
                 entries.append(
                     {
                         "label": item.label,
-                        "url": reverse(f"backoffice:{item.url_name}", args=[poll.pk]),
+                        "url": reverse(f"backoffice:{item.url_name}", args=[poll.pk])
+                        if held
+                        else grant_url,
                         "current": active,
+                        "needs_grant": not held,
                     }
                 )
             if entries:

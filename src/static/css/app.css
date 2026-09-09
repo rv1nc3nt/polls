@@ -282,6 +282,16 @@ body.bo main { padding: 0; }
   border-left-color: var(--accent);
 }
 
+/* A commune admin's entry for a role they have not granted themselves yet: the
+   link leads to the role screen, and the sub-label — not the colour — says so. */
+.bo-side__link.needs-grant { color: var(--ink-quiet); }
+.bo-side__grant {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--ink-quiet);
+}
+
 /* Breadcrumb: sticky, so "where am I" survives a long journal or tally. */
 .bo-crumb {
   position: sticky;

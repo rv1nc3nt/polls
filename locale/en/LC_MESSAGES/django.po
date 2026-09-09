@@ -1425,3 +1425,7 @@ msgstr "Breadcrumb"
 #: templates/backoffice/_nav.html
 msgid "Navigation de l’espace mairie"
 msgstr "Mairie area navigation"
+
+#: templates/backoffice/_nav.html
+msgid "rôle à s’attribuer"
+msgstr "role to assign yourself"
