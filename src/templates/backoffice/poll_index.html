@@ -10,6 +10,10 @@
     {% comment %} §3.7: the flag is commune-level. It lists every poll, and opens none of
        their screens — that needs a per-poll grant (§6.5.10). {% endcomment %}
     <p class="notice">{% translate "Vous administrez la commune : tous les scrutins sont listés. L'accès aux écrans d'un scrutin demande un rôle sur ce scrutin." %}</p>
+    <ul class="pollnav__links">
+      <li><a href="{% url 'backoffice:account_admin' %}">{% translate "Comptes opérateurs" %}</a></li>
+      <li><a href="{% url 'backoffice:role_admin' %}">{% translate "Rôles par scrutin" %}</a></li>
+    </ul>
   {% endif %}
 
   {% if polls %}

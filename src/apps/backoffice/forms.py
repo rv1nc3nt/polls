@@ -23,9 +23,11 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django import forms
 from django.conf import settings
+from django.contrib.auth import password_validation
 from django.utils.translation import gettext_lazy as _
 
 from apps.audit.models import Reason
+from apps.core.models import Role, User
 from apps.elections import config
 from apps.elections.models import ListType, Poll, TallyMethod, TiebreakRule
 
@@ -339,3 +341,59 @@ def option_initial(poll: Poll) -> list[dict[str, Any]]:
             row[f"label_{code}"] = text
         rows.append(row)
     return rows
+
+
+# --- Screen 10: comptes et rôles (§6.5.10) --------------------------------
+
+
+class NewAccountForm(forms.ModelForm):  # type: ignore[type-arg]  # not subscriptable at runtime
+    """A new named operator account (R-2.2).
+
+    Validates shape and — through the model's unique username — that the login
+    is free; ``accounts.create_account`` is the writer (§6.5). The password is
+    run past Django's configured validators here so a weak one is refused before
+    it reaches the service.
+    """
+
+    raw_password = forms.CharField(
+        label=_("Mot de passe initial"),
+        widget=forms.PasswordInput,
+        help_text=_("À remettre à la personne, qui le changera à la première connexion."),
+    )
+
+    class Meta:
+        model = User
+        fields = ("username", "full_name", "is_commune_admin")
+        labels = {
+            "username": _("Identifiant de connexion"),
+            "full_name": _("Nom complet"),
+            "is_commune_admin": _("Administrateur de la commune"),
+        }
+        help_texts = {
+            "is_commune_admin": _(
+                "Gère les comptes et crée les scrutins. Ne donne accès à aucun "
+                "écran d'un scrutin : cela demande un rôle sur ce scrutin (§3.7)."
+            ),
+        }
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        # ``blank=True`` on the model, required here: an account exists to name a
+        # natural person in the audit log (R-2.2), so it is given a name.
+        self.fields["full_name"].required = True
+
+    def clean_raw_password(self) -> str:
+        password: str = self.cleaned_data["raw_password"]
+        password_validation.validate_password(password)
+        return password
+
+
+class GrantRoleForm(forms.Form):
+    """Assign one per-poll role of §3.7 to an active account (R-2.1)."""
+
+    account = forms.ModelChoiceField(
+        label=_("Compte"),
+        queryset=User.objects.filter(is_active=True).order_by("username"),
+        empty_label=_("— choisir —"),
+    )
+    role = forms.ChoiceField(label=_("Rôle"), choices=Role.choices)

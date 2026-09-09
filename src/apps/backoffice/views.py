@@ -26,11 +26,16 @@ to see the gate on each one.
 
 Here so far, additionally: screen 9 (clôture et publication), whose read model
 is ``results.py`` and whose write paths are ``elections.closure`` (the physical
-tie-break) and ``elections.transitions.publish_poll``.
+tie-break) and ``elections.transitions.publish_poll``; and screen 10 (comptes et
+rôles), whose read model and write path are both ``accounts.py``. Screen 10 is
+commune-level — it goes through ``require_commune_admin``, not
+``require_poll_role``, and neither of its views takes a ``poll`` argument, so the
+per-poll roles it *assigns* are still not access to a poll's screens for the
+commune admin who assigns them (§3.7).
 
-TODO(scaffold): screens 10–11 of §6.5 — accounts and roles, first-run wizard.
-Both are commune-level, not poll-scoped, and go through ``require_commune_admin``
-rather than ``require_poll_role``.
+TODO(scaffold): screen 11 of §6.5 — première installation, the first-run wizard.
+Commune-level like screen 10, but runs before any account exists, so it cannot
+be behind ``require_commune_admin``.
 """
 
 from __future__ import annotations
@@ -38,12 +43,15 @@ from __future__ import annotations
 from datetime import datetime
 
 from django.contrib import messages
+from django.contrib.auth import password_validation
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, LogoutView
+from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils.dateparse import parse_date
 from django.utils.timezone import get_current_timezone
 from django.utils.translation import gettext as _
@@ -55,7 +63,7 @@ from apps.ballots.forms import RankingForm
 from apps.ballots.models import Ballot, BallotSource, BallotStatus, PaperBallotLink
 from apps.ballots.ranking import BallotRefused
 from apps.core.codes import format_tracking_code
-from apps.core.models import Role
+from apps.core.models import PollRole, Role, User
 from apps.core.types import TrackingCode
 from apps.elections import closure, config, rollimport
 from apps.elections.models import Poll, PollState, RollEntry
@@ -65,16 +73,19 @@ from apps.registrations import mail as registration_mail
 from apps.registrations import services as registrations
 from apps.registrations.models import Channel, Registration
 
-from . import auditlog, dashboard, paper, results, review
+from . import accounts, auditlog, dashboard, paper, results, review
 from .access import (
     accessible_polls,
     current_operator,
     is_commune_admin,
     poll_roles,
+    require_commune_admin,
     require_poll_role,
 )
 from .forms import (
     ExtensionForm,
+    GrantRoleForm,
+    NewAccountForm,
     OptionFormSet,
     PollConfigForm,
     config_initial,
@@ -794,4 +805,129 @@ def results_publish(request: HttpRequest, poll: Poll) -> HttpResponse:
         request,
         "backoffice/results_publish.html",
         {"poll": poll, "screen9": results.screen9(poll)},
+    )
+
+
+# --- Screen 10: comptes et rôles (§6.5.10) -------------------------------
+#
+# Commune-level, so ``require_commune_admin`` and no ``poll`` argument — a
+# ``poll`` parameter here would (rightly) trip
+# ``test_every_poll_scoped_view_is_gated``. The role-assignment screen still
+# works on one poll; it takes it from the query string and resolves it itself,
+# gated on the flag either way (§3.7).
+
+
+@require_commune_admin
+def account_admin(request: HttpRequest) -> HttpResponse:
+    """Screen 10, part one — the operator accounts (R-2.2, §6.5.10).
+
+    Create a named account, reset a password, deactivate one (which ends its
+    access on the next request, not just at the next login — see ``access``),
+    and grant or withdraw the commune-admin flag. All of it posts through
+    ``accounts``; this view chooses the branch and carries the message.
+    """
+    creating = request.POST.get("action") == "create"
+    form = NewAccountForm(request.POST if creating else None)
+
+    if request.method == "POST":
+        operator = current_operator(request)
+        action = request.POST.get("action", "")
+        try:
+            if creating:
+                if form.is_valid():
+                    accounts.create_account(
+                        username=form.cleaned_data["username"],
+                        full_name=form.cleaned_data["full_name"],
+                        raw_password=form.cleaned_data["raw_password"],
+                        is_commune_admin=form.cleaned_data["is_commune_admin"],
+                    )
+                    messages.success(
+                        request,
+                        _("Compte créé : %(name)s.") % {"name": form.cleaned_data["username"]},
+                    )
+                    return redirect("backoffice:account_admin")
+            else:
+                account = get_object_or_404(User, pk=request.POST.get("account", ""))
+                if action in {"activate", "deactivate"}:
+                    accounts.set_active(account, active=action == "activate", actor=operator)
+                    messages.success(
+                        request,
+                        _("Compte réactivé.")
+                        if action == "activate"
+                        else _("Compte désactivé : l'accès cesse à la prochaine requête."),
+                    )
+                    return redirect("backoffice:account_admin")
+                if action in {"promote", "demote"}:
+                    accounts.set_commune_admin(account, flag=action == "promote", actor=operator)
+                    messages.success(request, _("Rôle d'administration de la commune mis à jour."))
+                    return redirect("backoffice:account_admin")
+                if action == "set_password":
+                    raw = request.POST.get("raw_password", "")
+                    try:
+                        password_validation.validate_password(raw, user=account)
+                    except ValidationError as weak:
+                        messages.error(request, " ".join(weak.messages))
+                    else:
+                        accounts.set_password(account, raw_password=raw, actor=operator)
+                        messages.success(request, _("Mot de passe réinitialisé."))
+                    return redirect("backoffice:account_admin")
+                messages.error(request, _("Action inconnue."))
+        except accounts.AccountActionRefused as refused:
+            messages.error(request, str(refused))
+
+    return render(
+        request,
+        "backoffice/account_admin.html",
+        {"rows": accounts.accounts(), "form": form},
+    )
+
+
+@require_commune_admin
+def role_admin(request: HttpRequest) -> HttpResponse:
+    """Screen 10, part two — per-poll role assignment (R-2.1, §3.7, §6.5.10).
+
+    One poll at a time, chosen from the list (``?scrutin=`` on the way back).
+    Granting and revoking go through ``accounts``, which writes the
+    ``ROLE_ASSIGNED`` / ``ROLE_REVOKED`` event of §10; nothing here touches the
+    ORM. The commune admin doing the assigning gains no access to the poll's
+    screens by it — that is the whole point of §3.7's split.
+    """
+    poll_id = request.POST.get("poll") or request.GET.get("scrutin") or ""
+    poll = get_object_or_404(Poll, pk=poll_id) if poll_id else None
+    granting = request.POST.get("action") == "grant"
+    grant_form = GrantRoleForm(request.POST if granting else None)
+
+    if request.method == "POST" and poll is not None:
+        operator = current_operator(request)
+        back = f"{reverse('backoffice:role_admin')}?scrutin={poll.pk}"
+        try:
+            if granting:
+                if grant_form.is_valid():
+                    accounts.grant_role(
+                        poll,
+                        grant_form.cleaned_data["account"],
+                        grant_form.cleaned_data["role"],
+                        actor=operator,
+                    )
+                    messages.success(request, _("Rôle attribué."))
+                    return redirect(back)
+            elif request.POST.get("action") == "revoke":
+                grant = get_object_or_404(PollRole, pk=request.POST.get("grant", ""), poll=poll)
+                accounts.revoke_role(grant, actor=operator)
+                messages.success(request, _("Rôle retiré."))
+                return redirect(back)
+            else:
+                messages.error(request, _("Action inconnue."))
+        except accounts.AccountActionRefused as refused:
+            messages.error(request, str(refused))
+
+    return render(
+        request,
+        "backoffice/role_admin.html",
+        {
+            "polls": Poll.objects.order_by("-created_at"),
+            "selected_poll": poll,
+            "holders": accounts.role_holders(poll) if poll is not None else [],
+            "grant_form": grant_form,
+        },
     )

@@ -1,0 +1,85 @@
+{% extends "backoffice/base.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD #}
+
+{% block screen_title %}{% translate "Rôles par scrutin" %}{% endblock %}
+{% block heading %}{% translate "Rôles par scrutin" %}{% endblock %}
+
+{% block screen %}
+  <p><a href="{% url 'backoffice:poll_index' %}">{% translate "← Retour aux scrutins" %}</a>
+     · <a href="{% url 'backoffice:account_admin' %}">{% translate "Comptes opérateurs" %}</a></p>
+
+  {% comment %}
+    R-2.1: les rôles poll_admin, entry_operator et auditor sont attribués
+    scrutin par scrutin (§3.7). Chaque attribution et chaque retrait écrit un
+    événement au journal d'audit du scrutin (§10).
+  {% endcomment %}
+  <p class="notice">{% translate "Les rôles sont attribués scrutin par scrutin. Chaque attribution et chaque retrait est inscrit au journal d'audit du scrutin." %}</p>
+
+  <form method="get" class="pollpicker">
+    <label for="scrutin">{% translate "Scrutin" %}</label>
+    <select id="scrutin" name="scrutin">
+      <option value="">{% translate "— choisir —" %}</option>
+      {% for poll in polls %}
+        <option value="{{ poll.pk }}"{% if selected_poll and poll.pk == selected_poll.pk %} selected{% endif %}>
+          {{ poll.title }} — {{ poll.get_state_display }}
+        </option>
+      {% endfor %}
+    </select>
+    <button type="submit">{% translate "Afficher" %}</button>
+  </form>
+
+  {% if selected_poll %}
+    <h2>{{ selected_poll.title }}</h2>
+
+    <table>
+      <caption>{% translate "Rôles attribués sur ce scrutin" %}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{% translate "Compte" %}</th>
+          <th scope="col">{% translate "Rôle" %}</th>
+          <th scope="col">{% translate "Attribué par" %}</th>
+          <th scope="col">{% translate "Le" %}</th>
+          <th scope="col">{% translate "Retirer" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for grant in holders %}
+          <tr>
+            <td>{{ grant.user.username }}{% if not grant.user.is_active %} <span class="tag">{% translate "désactivé" %}</span>{% endif %}</td>
+            <td>{{ grant.get_role_display }}</td>
+            <td>{{ grant.granted_by.username|default:"—" }}</td>
+            <td>{{ grant.granted_at }}</td>
+            <td>
+              <form method="post" class="inline danger">
+                {% csrf_token %}
+                <input type="hidden" name="poll" value="{{ selected_poll.pk }}">
+                <input type="hidden" name="grant" value="{{ grant.pk }}">
+                <button type="submit" name="action" value="revoke">{% translate "Retirer ce rôle" %}</button>
+              </form>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5">{% translate "Aucun rôle attribué sur ce scrutin." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <h3>{% translate "Attribuer un rôle" %}</h3>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="poll" value="{{ selected_poll.pk }}">
+      <input type="hidden" name="action" value="grant">
+      {% for field in grant_form %}
+        <p class="field">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+        </p>
+      {% endfor %}
+      <button type="submit">{% translate "Attribuer" %}</button>
+    </form>
+  {% else %}
+    <p>{% translate "Choisissez un scrutin pour voir et modifier ses rôles." %}</p>
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,108 @@
+{% extends "backoffice/base.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD #}
+
+{% block screen_title %}{% translate "Comptes" %}{% endblock %}
+{% block heading %}{% translate "Comptes opérateurs" %}{% endblock %}
+
+{% block screen %}
+  <p><a href="{% url 'backoffice:poll_index' %}">{% translate "← Retour aux scrutins" %}</a>
+     · <a href="{% url 'backoffice:role_admin' %}">{% translate "Rôles par scrutin" %}</a></p>
+
+  {% comment %}
+    R-2.2: one named account per natural person, no shared login. §3.7: the
+    commune-admin flag gère les comptes et crée les scrutins, et n'ouvre aucun
+    écran d'un scrutin — cela demande un rôle attribué sur ce scrutin, écran
+    « Rôles par scrutin ».
+  {% endcomment %}
+  <p class="notice">{% translate "Chaque personne a son propre compte nominatif : le journal d'audit en dépend. Le rôle « administrateur de la commune » gère les comptes et crée les scrutins ; il n'ouvre aucun écran d'un scrutin." %}</p>
+
+  <h2>{% translate "Créer un compte" %}</h2>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="create">
+    {% for field in form %}
+      <p class="field">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {% if field.help_text %}<span class="help">{{ field.help_text }}</span>{% endif %}
+        {{ field }}
+        {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+      </p>
+    {% endfor %}
+    <button type="submit">{% translate "Créer le compte" %}</button>
+  </form>
+
+  <h2>{% translate "Comptes existants" %}</h2>
+  <table>
+    <caption>{% translate "Tous les comptes opérateurs" %}</caption>
+    <thead>
+      <tr>
+        <th scope="col">{% translate "Identifiant" %}</th>
+        <th scope="col">{% translate "Nom complet" %}</th>
+        <th scope="col">{% translate "Administrateur de la commune" %}</th>
+        <th scope="col">{% translate "État" %}</th>
+        <th scope="col">{% translate "Rôles par scrutin" %}</th>
+        <th scope="col">{% translate "Gérer" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+        <tr>
+          <td>{{ row.account.username }}</td>
+          <td>{{ row.account.full_name|default:"—" }}</td>
+          <td>{% if row.account.is_commune_admin %}{% translate "oui" %}{% else %}{% translate "non" %}{% endif %}</td>
+          <td>{% if row.account.is_active %}{% translate "actif" %}{% else %}{% translate "désactivé" %}{% endif %}</td>
+          <td>
+            {% if row.roles %}
+              <ul class="rolelist">
+                {% for grant in row.roles %}
+                  <li>{{ grant.poll.title }} — {{ grant.get_role_display }}</li>
+                {% endfor %}
+              </ul>
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% comment %}
+              R-2.4: the destructive action (désactiver) must not sit flush
+              beside the routine ones. It is inside this disclosure, after them,
+              and named for what it does.
+            {% endcomment %}
+            <details>
+              <summary>{% translate "Gérer ce compte" %}</summary>
+
+              <form method="post" class="inline">
+                {% csrf_token %}
+                <input type="hidden" name="account" value="{{ row.account.pk }}">
+                {% if row.account.is_commune_admin %}
+                  <button type="submit" name="action" value="demote">{% translate "Retirer l'administration de la commune" %}</button>
+                {% else %}
+                  <button type="submit" name="action" value="promote">{% translate "Faire administrateur de la commune" %}</button>
+                {% endif %}
+              </form>
+
+              <form method="post" class="inline">
+                {% csrf_token %}
+                <input type="hidden" name="account" value="{{ row.account.pk }}">
+                <label for="pw-{{ row.account.pk }}">{% translate "Nouveau mot de passe" %}</label>
+                <input id="pw-{{ row.account.pk }}" type="password" name="raw_password" autocomplete="new-password">
+                <button type="submit" name="action" value="set_password">{% translate "Réinitialiser le mot de passe" %}</button>
+              </form>
+
+              <form method="post" class="inline danger">
+                {% csrf_token %}
+                <input type="hidden" name="account" value="{{ row.account.pk }}">
+                {% if row.account.is_active %}
+                  <button type="submit" name="action" value="deactivate">{% translate "Désactiver le compte" %}</button>
+                {% else %}
+                  <button type="submit" name="action" value="activate">{% translate "Réactiver le compte" %}</button>
+                {% endif %}
+              </form>
+            </details>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6">{% translate "Aucun compte." %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}
