@@ -51,6 +51,11 @@ def save(name: str, html: str) -> None:
     # stand-alone capture has no server to load it from and does not need it —
     # the control stays hidden and the OS theme drives the page, as designed.
     html = re.sub(r'\s*<script src="[^"]*theme\.js[^"]*"></script>', "", html)
+    # Drop `autofocus` (login username, paper-entry search): the headless render
+    # would freeze that field focused, drawing a :focus-visible ring on one
+    # control and making the form look lopsided. A capture shows the resting
+    # state.
+    html = re.sub(r"\s+autofocus(?=[\s/>])", "", html)
     (OUT / name).write_text(html, encoding="utf-8")
     print("  ", name, len(html))
 
