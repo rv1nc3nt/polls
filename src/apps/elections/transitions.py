@@ -233,12 +233,42 @@ def _close_poll_locked(
 
 @transaction.atomic
 def publish_poll(poll: Poll, actor: User) -> Poll:
-    """``closed → published``. The artefacts of §9 become public."""
+    """``closed → published``. The artefacts of §9 become public.
+
+    Refused while a ``physical`` tie-break is unresolved (§8.3): the tally
+    reports the tie and stops for a human, and there is no winner to publish
+    until the poll admin records the draw on screen 9. The tally itself is a
+    pure function of the live set (§8) and is logged here, at the instant its
+    derivation is frozen into the public record, rather than on every screen
+    view.
+    """
+    from .closure import tallied, unresolved_physical_tiebreak  # local: closure imports the tally
+
     poll = Poll.objects.select_for_update().get(pk=poll.pk)
     if poll.state != PollState.CLOSED:
         raise TransitionRefused(_("Seul un scrutin clos peut être publié."), ["not_closed"])
     if poll.closure_hash is None:
         raise TransitionRefused(_("Aucune empreinte de clôture."), ["no_closure_hash"])
+    if unresolved_physical_tiebreak(poll):
+        raise TransitionRefused(
+            _("Départage par tirage au sort physique non saisi."), ["tiebreak_pending"]
+        )
+
+    _ballots, _options, result = tallied(poll)
+    audit.record(
+        action=Action.TALLY_RUN,
+        poll=poll,
+        actor=actor,
+        object_ref=audit.ref(poll),
+        after={
+            "method": poll.tally_method,
+            "method_version": result.method_version,
+            "ballot_count": result.ballot_count,
+            "winner": result.winner,
+            "tied": list(result.tied),
+        },
+    )
+
     poll.state = PollState.PUBLISHED
     poll.save(update_fields=["state"])
     audit.record(

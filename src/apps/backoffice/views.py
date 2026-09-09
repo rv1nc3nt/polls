@@ -24,8 +24,13 @@ contreseing des bulletins papier) and screen 8 (journal d'audit). The gate is
 ``registrations.services``, ``ballots.services``), so the views stay thin enough
 to see the gate on each one.
 
-TODO(scaffold): screens 9–11 of §6.5 — closure and publication, accounts and
-roles, first-run wizard. Screen 9 waits on the closure/tally pieces.
+Here so far, additionally: screen 9 (clôture et publication), whose read model
+is ``results.py`` and whose write paths are ``elections.closure`` (the physical
+tie-break) and ``elections.transitions.publish_poll``.
+
+TODO(scaffold): screens 10–11 of §6.5 — accounts and roles, first-run wizard.
+Both are commune-level, not poll-scoped, and go through ``require_commune_admin``
+rather than ``require_poll_role``.
 """
 
 from __future__ import annotations
@@ -37,7 +42,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, LogoutView
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.http import Http404, HttpRequest, HttpResponse
+from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.dateparse import parse_date
 from django.utils.timezone import get_current_timezone
@@ -52,15 +57,15 @@ from apps.ballots.ranking import BallotRefused
 from apps.core.codes import format_tracking_code
 from apps.core.models import Role
 from apps.core.types import TrackingCode
-from apps.elections import config, rollimport
+from apps.elections import closure, config, rollimport
 from apps.elections.models import Poll, PollState, RollEntry
-from apps.elections.transitions import TransitionRefused, extend_closes_at
+from apps.elections.transitions import TransitionRefused, extend_closes_at, publish_poll
 from apps.elections.windows import WindowClosed
 from apps.registrations import mail as registration_mail
 from apps.registrations import services as registrations
 from apps.registrations.models import Channel, Registration
 
-from . import auditlog, dashboard, paper, review
+from . import auditlog, dashboard, paper, results, review
 from .access import (
     accessible_polls,
     current_operator,
@@ -721,3 +726,72 @@ def countersign_queue(request: HttpRequest, poll: Poll) -> HttpResponse:
         .order_by("created_at")
     )
     return render(request, "backoffice/countersign_queue.html", {"poll": poll, "links": links})
+
+
+# --- Screen 9: clôture et publication (§6.5.9, §9) ------------------------
+
+
+@require_poll_role(Role.POLL_ADMIN)
+def results_publish(request: HttpRequest, poll: Poll) -> HttpResponse:
+    """Screen 9 — closure hash, tally derivation, tie-break, publication (§9).
+
+    Poll admin only: publication is the admin's, not the entry operator's
+    (§3.7). No elector identity appears here — the counts are the ones frozen at
+    closure (§9) and the derivation is the pure tally of §8.
+
+    Before the poll is ``closed`` the screen only says why not and when it will
+    close (the scheduled ``close_poll`` runs at ``paper_entry_deadline``, §4).
+    Once ``closed`` it shows the derivation and offers, in order:
+
+    * the ``physical`` draw entry (§8.3), where the tally reports a tie the
+      computed rule does not resolve — posted through ``elections.closure``;
+    * the publication action, ``transitions.publish_poll``, refused while a
+      physical draw is still owed.
+
+    ``?format=csv`` and ``?format=json`` return the R-11.2 artefacts for
+    preview and for the published page to serve; they are exactly the live set
+    and the §9 document, so a third party recomputes the closure hash from the
+    CSV alone.
+    """
+    if poll.state not in (PollState.CLOSED, PollState.PUBLISHED):
+        return render(
+            request,
+            "backoffice/results_publish.html",
+            {"poll": poll, "not_closed": True, "blockers": dashboard.blockers(poll)},
+        )
+
+    fmt = request.GET.get("format")
+    if fmt == "csv":
+        response = HttpResponse(closure.published_csv(poll), content_type="text/csv; charset=utf-8")
+        response["Content-Disposition"] = f'attachment; filename="bulletins-{poll.pk}.csv"'
+        return response
+    if fmt == "json":
+        return JsonResponse(closure.publication(poll), json_dumps_params={"ensure_ascii": False})
+
+    if request.method == "POST":
+        action = request.POST.get("action", "")
+        if action == "record_tiebreak":
+            order = request.POST.getlist("order")
+            try:
+                closure.record_physical_tiebreak(poll, order, current_operator(request))
+            except closure.TiebreakRefused as refused:
+                messages.error(request, str(refused))
+            else:
+                messages.success(request, _("Résultat du tirage au sort enregistré."))
+                return redirect("backoffice:results_publish", poll_id=str(poll.pk))
+        elif action == "publish":
+            try:
+                publish_poll(poll, current_operator(request))
+            except TransitionRefused as refused:
+                messages.error(request, str(refused))
+            else:
+                messages.success(request, _("Résultats publiés."))
+                return redirect("backoffice:results_publish", poll_id=str(poll.pk))
+        else:
+            messages.error(request, _("Action inconnue."))
+
+    return render(
+        request,
+        "backoffice/results_publish.html",
+        {"poll": poll, "screen9": results.screen9(poll)},
+    )

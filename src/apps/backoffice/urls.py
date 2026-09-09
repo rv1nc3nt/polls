@@ -5,9 +5,10 @@ from . import views
 
 app_name = "backoffice"
 
-# TODO(scaffold): screens 9–11 of §6.5 land here. Poll-scoped routes carry
-# ``<uuid:poll_id>``, which ``access.require_poll_role`` resolves and gates — a
-# route that does not is a screen open to anyone signed in.
+# TODO(scaffold): screens 10–11 of §6.5 land here — commune-level, so they go
+# through ``access.require_commune_admin`` and carry no ``<uuid:poll_id>``.
+# Poll-scoped routes carry ``<uuid:poll_id>``, which ``access.require_poll_role``
+# resolves and gates — a route that does not is a screen open to anyone signed in.
 urlpatterns = [
     path("", views.poll_index, name="poll_index"),
     path("connexion/", views.OperatorLoginView.as_view(), name="login"),
@@ -59,5 +60,10 @@ urlpatterns = [
         "scrutin/<uuid:poll_id>/contreseing/",
         views.countersign_queue,
         name="countersign_queue",
+    ),
+    path(
+        "scrutin/<uuid:poll_id>/depouillement/",
+        views.results_publish,
+        name="results_publish",
     ),
 ]

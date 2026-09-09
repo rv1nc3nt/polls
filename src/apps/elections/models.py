@@ -131,6 +131,11 @@ class Poll(models.Model):
     # registrations they count are deleted by the retention job (§11).
     frozen_counts = models.JSONField(default=dict, blank=True)
     closure_override_reason = models.CharField(max_length=100, blank=True)
+    # §8.3: where the tally reports a tie and ``tiebreak_rule`` is ``physical``,
+    # the poll admin enters the outcome of the physical draw on screen 9 and it
+    # is logged. An ordering of the tied option ids; empty until entered. A
+    # lifecycle field, not configuration — set once, after closure.
+    physical_tiebreak_order = models.JSONField(default=list, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
 

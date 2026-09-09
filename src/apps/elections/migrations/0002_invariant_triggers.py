@@ -23,7 +23,7 @@ from django.db import migrations
 # closes_at and paper_entry_deadline are absent from the list: they move
 # together through the reasoned extension of R-3.4. The lifecycle fields
 # (state, opening_seed, closure_hash, closed_at, frozen_counts,
-# closure_override_reason) are not configuration.
+# closure_override_reason, physical_tiebreak_order) are not configuration.
 POLL_CONFIG_FROZEN = """
 CREATE TRIGGER inv6_poll_config_frozen
 BEFORE UPDATE ON elections_poll

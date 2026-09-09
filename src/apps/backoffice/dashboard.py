@@ -201,7 +201,21 @@ def _actions_for_state(poll: Poll) -> list[PermittedAction]:
                 )
             return actions
         case PollState.CLOSED:
-            return [PermittedAction(_("Dépouiller et publier"), (Role.POLL_ADMIN,))]
+            return [
+                PermittedAction(
+                    _("Dépouiller et publier"),
+                    (Role.POLL_ADMIN,),
+                    url_name="backoffice:results_publish",
+                )
+            ]
+        case PollState.PUBLISHED:
+            return [
+                PermittedAction(
+                    _("Consulter le dépouillement et la publication"),
+                    (Role.POLL_ADMIN,),
+                    url_name="backoffice:results_publish",
+                )
+            ]
         case _:
             return []
 

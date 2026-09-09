@@ -1,0 +1,208 @@
+{% extends "backoffice/base.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD #}
+
+{% block screen_title %}{% translate "Clôture et publication" %}{% endblock %}
+{% block heading %}{% translate "Clôture et publication" %}{% endblock %}
+
+{% block pollnav %}
+  <ul class="pollnav__links">
+    <li><a href="{% url 'backoffice:dashboard' poll.pk %}">{% translate "Tableau de bord" %}</a></li>
+    <li><a href="{% url 'backoffice:results_publish' poll.pk %}" aria-current="page">{% translate "Dépouillement" %}</a></li>
+    <li><a href="{% url 'backoffice:audit_log' poll.pk %}">{% translate "Journal d'audit" %}</a></li>
+  </ul>
+{% endblock %}
+
+{% block screen %}
+
+{% if not_closed %}
+  {% comment %}
+    §4: online voting stops at closes_at on the write path whatever the state
+    says; the scheduled close_poll flips the state at paper_entry_deadline. This
+    screen has nothing to derive until then.
+  {% endcomment %}
+  <p class="notice">{% translate "Le scrutin n'est pas encore clos. Le dépouillement et la publication seront possibles après la clôture." %}</p>
+  <dl class="facts">
+    <dt>{% translate "État" %}</dt><dd>{{ poll.get_state_display }}</dd>
+    <dt>{% translate "Clôture du vote en ligne" %}</dt><dd>{{ poll.closes_at }}</dd>
+    <dt>{% translate "Clôture automatique" %}</dt><dd>{{ poll.paper_entry_deadline }}</dd>
+  </dl>
+  {% if blockers %}
+    <section aria-labelledby="blocages">
+      <h2 id="blocages">{% translate "Ce qui bloquerait la clôture" %}</h2>
+      <ul class="blockers">
+        {% for blocker in blockers %}<li class="blocker">{{ blocker }}</li>{% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+
+{% else %}
+
+  {% comment %} `screen9` is the read model of apps/backoffice/results.py;
+     `screen9.document` is the §9 publication document verbatim. {% endcomment %}
+  <section aria-labelledby="cloture">
+    <h2 id="cloture">{% translate "Clôture" %}</h2>
+    <dl class="facts">
+      <dt>{% translate "État" %}</dt><dd>{{ poll.get_state_display }}</dd>
+      <dt>{% translate "Clôturé le" %}</dt><dd>{{ poll.closed_at }}</dd>
+      <dt>{% translate "Empreinte de clôture (SHA-256)" %}</dt><dd><code>{{ screen9.document.closure_hash }}</code></dd>
+      <dt>{% translate "Graine d'ouverture" %}</dt><dd><code>{{ screen9.document.opening_seed }}</code></dd>
+      {% if screen9.override_reason %}
+        {% comment %}
+          §9 / T-19, T-32: closure was forced with pending_countersign ballots
+          outstanding. The code is shown here and travels into the publication;
+          those ballots are absent from the tally, the hash and the CSV.
+        {% endcomment %}
+        <dt>{% translate "Clôture forcée, motif" %}</dt><dd>{{ screen9.override_reason }}</dd>
+      {% endif %}
+    </dl>
+    <p class="help">{% translate "L'empreinte couvre exactement les bulletins retenus, sérialisés par code de suivi et identifiants de proposition. Un tiers la recalcule à partir du seul fichier CSV publié." %}</p>
+  </section>
+
+  <section aria-labelledby="participation">
+    <h2 id="participation">{% translate "Participation figée à la clôture" %}</h2>
+    {% comment %}
+      §9: computed on entry to `closed` and stored, never re-derived — the
+      retention purge (§11) deletes the registrations a fresh count would read.
+      These come from Registration.channel, never from counting ballots (INV-5).
+    {% endcomment %}
+    <dl class="facts">
+      <dt>{% translate "Inscrits (inscriptions actives)" %}</dt><dd>{{ screen9.document.counts.registered }}</dd>
+      <dt>{% translate "Votes en ligne" %}</dt><dd>{{ screen9.document.counts.ballots_online }}</dd>
+      <dt>{% translate "Votes papier" %}</dt><dd>{{ screen9.document.counts.ballots_paper }}</dd>
+      <dt>{% translate "N'ont pas voté" %}</dt><dd>{{ screen9.document.counts.non_voters }}</dd>
+    </dl>
+  </section>
+
+  <section aria-labelledby="depouillement">
+    <h2 id="depouillement">{% translate "Dépouillement" %}</h2>
+    <dl class="facts">
+      <dt>{% translate "Méthode" %}</dt><dd>{{ poll.get_tally_method_display }} (v{{ screen9.document.tally_method_version }})</dd>
+      <dt>{% translate "Bulletins retenus" %}</dt><dd>{{ screen9.document.ballot_count }}</dd>
+      <dt>{% translate "Issue" %}</dt>
+      <dd>
+        {% if screen9.winner %}{{ screen9.winner.label }}
+        {% elif screen9.tied %}{% translate "égalité — départage requis" %}
+        {% else %}{% translate "aucune (aucun bulletin)" %}{% endif %}
+      </dd>
+    </dl>
+
+    <table>
+      <caption>{% translate "Matrice des préférences deux à deux — lignes battant colonnes" %}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{% translate "battent" %}</th>
+          {% for option_id in screen9.option_ids %}<th scope="col">{{ option_id }}</th>{% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in screen9.matrix_rows %}
+          <tr>
+            <th scope="row">{{ row.label }} <span class="help">({{ row.option_id }})</span></th>
+            {% for cell in row.cells %}
+              <td>{% if cell.value is None %}—{% else %}{{ cell.value }}{% endif %}</td>
+            {% endfor %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% if screen9.orderings %}
+      <table>
+        <caption>{% translate "Récapitulatif par ordre de classement (R-11.3)" %}</caption>
+        <thead>
+          <tr>
+            <th scope="col">{% translate "Classement" %}</th>
+            <th scope="col">{% translate "Bulletins" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ordering in screen9.orderings %}
+            <tr><td>{{ ordering.label }}</td><td>{{ ordering.count }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+  </section>
+
+  {% if screen9.tied %}
+    <section aria-labelledby="departage">
+      <h2 id="departage">{% translate "Départage" %}</h2>
+      <p>
+        {% blocktranslate with rule=poll.get_tiebreak_rule_display %}Le dépouillement rapporte une égalité. Règle configurée : {{ rule }}.{% endblocktranslate %}
+      </p>
+      <p class="help">
+        {% translate "Propositions à égalité :" %}
+        {% for option in screen9.tied %}{{ option.label }} ({{ option.option_id }}){% if not forloop.last %}, {% endif %}{% endfor %}
+      </p>
+
+      {% if screen9.tiebreak_order %}
+        {% comment %} §8.3: the computed order is the hash chain of the opening seed and
+           the closure hash; the physical order is what the admin entered below. {% endcomment %}
+        <p>{% translate "Ordre de départage retenu :" %}</p>
+        <ol>
+          {% for option in screen9.tiebreak_order %}<li>{{ option.label }} <span class="help">({{ option.option_id }})</span></li>{% endfor %}
+        </ol>
+      {% endif %}
+
+      {% if screen9.pending_physical_tiebreak %}
+        {% comment %}
+          §8.3: the tally reports the tie and stops for a human. The poll admin
+          runs the physical draw and records its outcome here; it is logged as
+          TIEBREAK_ENTERED and publication is refused until it is entered.
+        {% endcomment %}
+        <p class="notice">{% translate "Effectuez le tirage au sort physique, puis saisissez son résultat. La publication est bloquée tant qu'il n'est pas saisi." %}</p>
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="record_tiebreak">
+          <fieldset>
+            <legend>{% translate "Ordre du tirage au sort (1 = gagnant)" %}</legend>
+            {% for option in screen9.tied %}
+              <p class="field">
+                <label for="order-{{ forloop.counter }}">{% blocktranslate with n=forloop.counter %}Rang {{ n }}{% endblocktranslate %}</label>
+                <select id="order-{{ forloop.counter }}" name="order" required>
+                  <option value="">{% translate "— choisir —" %}</option>
+                  {% for choice in screen9.tied %}
+                    <option value="{{ choice.option_id }}">{{ choice.label }} ({{ choice.option_id }})</option>
+                  {% endfor %}
+                </select>
+              </p>
+            {% endfor %}
+          </fieldset>
+          <button type="submit">{% translate "Enregistrer le résultat du tirage" %}</button>
+        </form>
+      {% endif %}
+    </section>
+  {% endif %}
+
+  <section aria-labelledby="publication">
+    <h2 id="publication">{% translate "Publication" %}</h2>
+    {% if screen9.published %}
+      <p class="notice">{% translate "Les résultats sont publiés." %}</p>
+      <ul>
+        <li><a href="{% url 'publicsite:results' poll.pk %}">{% translate "Page publique des résultats" %}</a></li>
+        <li><a href="?format=csv">{% translate "Télécharger la liste des bulletins (CSV)" %}</a></li>
+        <li><a href="?format=json">{% translate "Télécharger le document de publication (JSON)" %}</a></li>
+      </ul>
+    {% else %}
+      <p class="help">{% translate "Prévisualisez les artefacts avant publication :" %}</p>
+      <ul>
+        <li><a href="?format=csv">{% translate "Liste des bulletins (CSV)" %}</a></li>
+        <li><a href="?format=json">{% translate "Document de publication (JSON)" %}</a></li>
+      </ul>
+      {% if screen9.pending_physical_tiebreak %}
+        <p class="notice">{% translate "Publication impossible : le résultat du tirage au sort physique n'est pas saisi." %}</p>
+      {% else %}
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="publish">
+          <p class="help">{% translate "La publication est définitive et rend les artefacts de la §9 accessibles publiquement. Elle est inscrite au journal d'audit." %}</p>
+          <button type="submit">{% translate "Publier les résultats" %}</button>
+        </form>
+      {% endif %}
+    {% endif %}
+  </section>
+
+{% endif %}
+
+{% endblock %}
