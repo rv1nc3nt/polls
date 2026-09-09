@@ -10,6 +10,7 @@ work from (T-21).
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 from datetime import timedelta
 from typing import Any
@@ -21,8 +22,9 @@ from django.utils import timezone
 
 from apps.ballots import services as ballot_services
 from apps.ballots.models import Ballot, BallotSource, BallotStatus
+from apps.core.codes import format_tracking_code
 from apps.core.models import User
-from apps.core.types import Token
+from apps.core.types import Token, TrackingCode
 from apps.elections.models import Poll, PollOption, RollEntry, WorkingRollEntry
 from apps.elections.transitions import open_poll
 from apps.registrations import services
@@ -312,3 +314,57 @@ def test_t30_the_option_order_is_shuffled_per_voter(live_poll: Poll) -> None:
 
     seen = {tuple(RankingForm(poll=live_poll, language="fr")._display_order) for _ in range(20)}
     assert len(seen) > 1, "20 renders should not all share one order"
+
+
+# --- Keyboard / screen-reader completability (R-6.3, R-14.1, T-13) -------------
+
+
+def test_t13_the_ballot_is_completable_by_keyboard_and_screen_reader_alone(
+    client: Client,
+    live_poll: Poll,
+    django_capture_on_commit_callbacks: Callable[..., Any],
+) -> None:
+    """T-13: the automatable half. The ranking is native ``<select>`` controls,
+    one per proposition, each with its own ``<label>``; the page carries no
+    script and no drag affordance, so a keyboard or screen-reader user depends
+    on neither. A plain POST of the values the page offers writes the ballot.
+    The assistive-technology pass itself stays a manual step (§12).
+    """
+    _registration, token = _register(live_poll)
+    page = client.get(_access_url(live_poll, token)).content.decode()
+
+    # No pointer-only affordance and no scripting to depend on.
+    assert "<script" not in page
+    assert "draggable" not in page
+    assert 'type="range"' not in page
+
+    # One labelled native select per option, plus the pinned-order hidden field.
+    select_names = sorted(re.findall(r'<select[^>]*\bname="(rank_[a-z]+)"', page))
+    assert select_names == ["rank_a", "rank_b", "rank_c"]
+    for name in select_names:
+        field_id = f"id_{name}"
+        assert f'<label for="{field_id}">' in page
+        assert f'id="{field_id}"' in page
+    assert re.search(r'<input[^>]*type="hidden"[^>]*name="order"', page) is not None
+
+    # Complete it using only what the page presents: the shuffled display order
+    # from the hidden field, each option ranked by its position in it.
+    order_match = re.search(r'name="order"[^>]*\bvalue="([^"]*)"', page)
+    assert order_match is not None
+    display_order = order_match.group(1).split(",")
+    assert sorted(display_order) == ["a", "b", "c"]
+    data = {"order": ",".join(display_order)}
+    for rank, option_id in enumerate(display_order, start=1):
+        data[f"rank_{option_id}"] = str(rank)
+
+    with django_capture_on_commit_callbacks(execute=True):
+        response = client.post(_access_url(live_poll, token), data)
+    assert response.status_code == 302
+
+    ballot = Ballot.live.get(poll=live_poll)
+    assert ballot.ranking == [[option_id] for option_id in display_order]
+
+    receipt = client.get(response["Location"]).content.decode()
+    assert "enregistré" in receipt
+    assert format_tracking_code(TrackingCode(ballot.tracking_code)) in receipt
+    assert "<script" not in receipt
