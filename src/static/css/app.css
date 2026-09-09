@@ -4,13 +4,19 @@
    no build step (§14): an adopting commune's IT department reads this file in
    one sitting.
 
-   Three rules this file keeps and every later screen must keep too:
+   Four rules this file keeps and every later screen must keep too:
    - nothing carries meaning by colour alone (3.1) — states and message levels
      are written in words, and the colour is decoration on top of the word;
    - the focus indicator is never removed and never relies on colour alone (10.7);
-   - sizes are in rem, so the page survives a 200 % zoom (10.4). */
+   - sizes are in rem, so the page survives a 200 % zoom (10.4);
+   - light and dark are a token swap and nothing else. Every rule below styles
+     through the seven variables; the two blocks after :root redefine only
+     those, keeping the same contrasts, so a dark viewer gets the same page in
+     the other key. `prefers-color-scheme` is honoured, and `data-theme` on the
+     root wins over it in either direction. */
 
 :root {
+  color-scheme: light;
   --ink: #1b1b1b;
   --ink-quiet: #4a4a4a;
   --paper: #ffffff;
@@ -18,6 +24,30 @@
   --rule: #767676;          /* 4.5:1 on --paper */
   --link: #1a4fa0;          /* 7.4:1 on --paper */
   --focus: #b8003f;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --ink: #ececef;          /* 15:1 on --paper */
+    --ink-quiet: #a9abb2;    /* 6.5:1 on --paper */
+    --paper: #17181b;
+    --paper-quiet: #202227;
+    --rule: #7d7f87;         /* 4.2:1 on --paper */
+    --link: #7db3ff;         /* 8:1 on --paper */
+    --focus: #ff5a7c;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ink: #ececef;
+  --ink-quiet: #a9abb2;
+  --paper: #17181b;
+  --paper-quiet: #202227;
+  --rule: #7d7f87;
+  --link: #7db3ff;
+  --focus: #ff5a7c;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
