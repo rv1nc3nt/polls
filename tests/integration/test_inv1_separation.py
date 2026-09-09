@@ -17,10 +17,10 @@ from apps.registrations.models import Registration
 SRC = Path(__file__).resolve().parents[2] / "src"
 
 
-def test_ballot_carries_no_voter_registration_or_nne_reference() -> None:
+def test_ballot_carries_no_voter_registration_or_roll_entry_reference() -> None:
     """§5: adding one to satisfy INV-5 would destroy INV-1."""
     names = {field.name for field in Ballot._meta.get_fields()}
-    assert not names & {"voter", "registration", "nne", "voter_hash", "email"}
+    assert not names & {"voter", "registration", "roll_entry", "nne", "voter_hash", "email"}
 
     relations = {
         field.related_model

@@ -29,7 +29,7 @@ from apps.registrations.models import Channel, Registration, RegistrationState
 FORM = {
     "last_name": "Dupont",
     "first_names": "Émile",
-    "nne": "12345678",
+    "date_of_birth": "12/05/1970",
     "email": "emile.dupont@example.fr",
     "declared_on_honour": "on",
 }
@@ -55,14 +55,14 @@ def admin_user(db: None) -> User:
 # --- The voter's three pages -------------------------------------------------
 
 
-def test_the_form_states_the_privacy_notice_and_the_nne_help(
+def test_the_form_states_the_privacy_notice_and_the_name_help(
     client: Client, live_poll: Poll
 ) -> None:
-    """R-13.2 at the point of collection, and §6.2 step 1's help text: an
-    elector who does not know what an NNE is cannot register without it."""
+    """R-13.2 at the point of collection, and §6.2 step 1's help text: either
+    the birth surname or the name in use is accepted (R-5.3)."""
     body = client.get(f"/fr/inscription/{live_poll.pk}/").content.decode()
     assert "carte électorale" in body
-    assert "Interroger sa situation électorale" in body
+    assert "nom d&#x27;usage" in body
     assert "deux mois après la clôture" in body
 
 
@@ -85,6 +85,38 @@ def test_a_divergent_name_is_told_a_human_will_look(client: Client, live_poll: P
     )
     assert "sera examinée" in response.content.decode()
     assert django_mail.outbox == [], "no token before a human has looked"
+
+
+def test_t61_an_ineligible_list_type_is_told_so_plainly(
+    client: Client, open_window_poll: Poll
+) -> None:
+    """R-4.7: found on the roll, but on a list that confers no standing here."""
+    from apps.elections.models import WorkingRollEntry
+    from apps.elections.transitions import open_poll
+
+    WorkingRollEntry.objects.all().delete()
+    WorkingRollEntry.objects.create(
+        birth_name="Zampieri",
+        first_names="Églantine",
+        date_of_birth="08/01/1983",
+        date_of_birth_parsed="1983-01-08",
+        list_types=["complementaire_europeenne"],
+    )
+    open_poll(open_window_poll)
+
+    response = client.post(
+        f"/fr/inscription/{open_window_poll.pk}/",
+        {
+            "last_name": "Zampieri",
+            "first_names": "Églantine",
+            "date_of_birth": "08/01/1983",
+            "email": "eglantine@example.fr",
+            "declared_on_honour": "on",
+        },
+        follow=True,
+    )
+    assert "pas concerné par cette consultation" in response.content.decode()
+    assert django_mail.outbox == []
 
 
 def test_a_duplicate_sees_the_neutral_message_and_no_detail(
@@ -194,11 +226,11 @@ def test_r58_the_registration_endpoint_is_rate_limited(
         for index in range(2):
             client.post(
                 f"/fr/inscription/{live_poll.pk}/",
-                {**FORM, "nne": f"1234567{index}", "email": f"{index}@example.fr"},
+                {**FORM, "last_name": f"Nom{index}", "email": f"{index}@example.fr"},
             )
         blocked = client.post(
             f"/fr/inscription/{live_poll.pk}/",
-            {**FORM, "nne": "87654321", "email": "third@example.fr"},
+            {**FORM, "last_name": "Autre", "email": "third@example.fr"},
         )
 
     assert "adresser à la mairie" in blocked.content.decode()
@@ -234,7 +266,7 @@ def test_the_queue_shows_pending_registrations_with_near_matches(
     body = client.get(f"/fr/mairie/scrutin/{live_poll.pk}/inscriptions/").content.decode()
     assert "Dupond" in body, "the declaration"
     assert "Dupont" in body, "the roll entry to compare it against"
-    assert "NNE identique" in body
+    assert "date identique" in body
 
 
 def test_approving_from_the_queue_mails_the_link_and_logs_the_decision(
@@ -244,7 +276,10 @@ def test_approving_from_the_queue_mails_the_link_and_logs_the_decision(
     django_capture_on_commit_callbacks: Callable[..., Any],
 ) -> None:
     """T-18: ``pending_review → pending_email``, never straight to ``active``."""
+    from apps.elections.models import RollEntry
+
     registration, _ = services.register(live_poll, {**FORM, "last_name": "Dupond"}, language="fr")
+    entry = RollEntry.objects.get(poll=live_poll, birth_name="Dupont")
     _grant_admin(live_poll, admin_user)
     client.force_login(admin_user)
 
@@ -253,6 +288,7 @@ def test_approving_from_the_queue_mails_the_link_and_logs_the_decision(
             f"/fr/mairie/scrutin/{live_poll.pk}/inscriptions/decision/",
             {
                 "registration": str(registration.pk),
+                "roll_entry": str(entry.pk),
                 "decision": "approve",
                 "approve_reason": "identity_confirmed_at_mairie",
                 "note": "vu au guichet",
@@ -339,21 +375,21 @@ def test_the_queue_of_another_poll_is_not_reachable(
 
 
 def test_t37_reminders_go_once_to_active_non_voters_only(live_poll: Poll) -> None:
-    def make(nne: str, state: str, channel: str) -> Registration:
+    def make(tag: str, state: str, channel: str) -> Registration:
         return Registration.objects.create(
             poll=live_poll,
-            nne=nne,
-            last_name="D",
-            first_names="E",
-            email=f"{nne}@example.fr",
-            email_canonical=f"{nne}@example.fr",
+            declared_last_name="D",
+            declared_first_names="E",
+            declared_dob="01/01/1970",
+            email=f"{tag}@example.fr",
+            email_canonical=f"{tag}@example.fr",
             state=state,
             channel=channel,
         )
 
-    due = make("10000001", RegistrationState.ACTIVE, Channel.NONE)
-    make("10000002", RegistrationState.ACTIVE, Channel.ONLINE)
-    make("10000003", RegistrationState.PENDING_EMAIL, Channel.NONE)
+    due = make("one", RegistrationState.ACTIVE, Channel.NONE)
+    make("two", RegistrationState.ACTIVE, Channel.ONLINE)
+    make("three", RegistrationState.PENDING_EMAIL, Channel.NONE)
 
     call_command("send_reminders")
     assert [message.to for message in django_mail.outbox] == [[due.email]]

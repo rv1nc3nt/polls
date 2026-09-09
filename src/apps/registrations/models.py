@@ -41,10 +41,25 @@ class Registration(models.Model):
         "elections.Poll", on_delete=models.CASCADE, related_name="registrations"
     )
 
-    # Identity, deleted by the retention job two months after closure (§11).
-    nne = models.CharField(max_length=9)
-    last_name = models.CharField(max_length=200)
-    first_names = models.CharField(max_length=200)
+    # The snapshot entry this registration is bound to (§3.3, R-5.9). Set when a
+    # single unambiguous match is found (→ ``pending_email``) or when a poll
+    # admin resolves a review; null while ``pending_review`` is unresolved and
+    # for ``rejected``. ``SET_NULL`` because the retention purge deletes the
+    # roll snapshot and a registration must never be cascaded away with it.
+    roll_entry = models.ForeignKey(
+        "elections.RollEntry",
+        on_delete=models.SET_NULL,
+        related_name="registrations",
+        null=True,
+        blank=True,
+    )
+
+    # What the person typed, kept for the review queue and deleted by the
+    # retention job two months after closure (§11). Not the roll's own values —
+    # the match against the roll is via ``roll_entry``.
+    declared_last_name = models.CharField(max_length=200)
+    declared_first_names = models.CharField(max_length=200)
+    declared_dob = models.CharField(max_length=40, blank=True)
     email = models.EmailField()
     email_canonical = models.EmailField(
         help_text=_("Adresse en minuscules, sans autre normalisation (§3.3).")
@@ -74,8 +89,16 @@ class Registration(models.Model):
         verbose_name = _("inscription")
         verbose_name_plural = _("inscriptions")
         constraints = [
-            # INV-4 (R-5.9) and INV-10 (§6.2), as database constraints.
-            models.UniqueConstraint(fields=["poll", "nne"], name="uniq_registration_poll_nne"),
+            # INV-4 (R-5.9): one roll entry, one registration per poll — a
+            # partial constraint over the rows that are actually bound and not
+            # rejected, so it does not touch the still-unbound ``pending_review``
+            # rows. INV-10 (§6.2) is the address one.
+            models.UniqueConstraint(
+                fields=["poll", "roll_entry"],
+                condition=models.Q(roll_entry__isnull=False)
+                & ~models.Q(state=RegistrationState.REJECTED),
+                name="uniq_registration_poll_roll_entry",
+            ),
             models.UniqueConstraint(
                 fields=["poll", "email_canonical"], name="uniq_registration_poll_email"
             ),
@@ -86,7 +109,7 @@ class Registration(models.Model):
         ]
 
     def __str__(self) -> str:
-        return f"{self.last_name} {self.first_names}"
+        return f"{self.declared_last_name} {self.declared_first_names}"
 
     @property
     def has_voted(self) -> bool:
@@ -95,7 +118,7 @@ class Registration(models.Model):
 
 
 class DuplicateAttempt(models.Model):
-    """A refused registration on an already-registered NNE (R-5.9).
+    """A refused registration against an already-registered roll entry (R-5.9).
 
     Flagged to the poll admin while the poll is open. It references the
     *existing* registration and records nothing about the attempter (§10): the
@@ -114,4 +137,4 @@ class DuplicateAttempt(models.Model):
     acknowledged_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self) -> str:
-        return f"doublon NNE sur {self.existing_registration_id}"
+        return f"tentative de doublon sur {self.existing_registration_id}"

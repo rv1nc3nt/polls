@@ -1,21 +1,32 @@
 # SPDX-License-Identifier: 0BSD
-"""Roll import (§6.1, R-4.2, R-4.5): parsing, mapping, validation, and the
-transactional apply.
+"""Roll import (§6.1, R-4.2, R-4.5): parsing, mapping, validation, collapse, and
+the transactional apply.
 
-Parsing and validation are pure — a byte string in, a dataclass out — so they
-are testable without a request, an uploaded file or a database (§12.1). The one
-function that writes, ``apply_import``, is the service screen 3 and the
+Parsing, validation and collapse are pure — a byte string in, dataclasses out —
+so they are testable without a request, an uploaded file or a database (§12.1).
+The one function that writes, ``apply_import``, is the service screen 3 and the
 ``import_roll`` command both call: sharing it is what keeps "all-or-nothing"
-(T-11) and "replaces the working roll entirely" (T-26) meaning the same thing
-in the UI and on the terminal.
+(T-11) and "replaces the working roll entirely" (T-26) meaning the same thing in
+the UI and on the terminal.
+
+**The report informs; it does not gate (R-4.5).** Only a structurally unusable
+file is refused, and then nothing is written: a mandatory column left unmapped,
+or a row carrying no name at all. Everything else — an unparseable date of birth
+(R-4.9), a row with no list type, rows that collapse together, two entries that
+share a normalised name and date of birth but do not collapse — is reported and
+imported, because it is judgement for a human and not a defect in the file.
+
+**Collapsing (R-4.6).** The export carries one row per elector *per list type*.
+Rows that share a normalised identity — birth name, name in use, forenames — and
+a parsed date of birth, and that differ only in their list type, are merged into
+one entry holding the union of those list types. Rows identical *including* the
+list type are left as separate entries and reported: they are either a duplicate
+line or genuine homonyms, and only a human can tell (§6.2). A row whose date of
+birth will not parse is never collapsed on a parsed value (R-4.9).
 
 ``WorkingRollEntry`` is commune-wide, not poll-scoped (§3.2): screen 3 is
 reached from one poll's back-office, gated by that poll's roles, but what it
-replaces is shared by every poll still in ``draft``. That is the design — a
-second import a week later should not require re-entering electors who have not
-changed — and the confirmation screen says so, since a consequence reaching
-outside the poll the operator is looking at is exactly what an explicit
-confirmation (R-4.5) exists to surface.
+replaces is shared by every poll still in ``draft``.
 """
 
 from __future__ import annotations
@@ -23,7 +34,9 @@ from __future__ import annotations
 import csv
 import hashlib
 import io
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
+from datetime import date
 from typing import Any
 
 import openpyxl
@@ -34,35 +47,66 @@ from django.utils.translation import gettext_lazy as _lazy
 from apps.audit import services as audit
 from apps.audit.models import Action
 from apps.core.models import User
-from apps.core.names import is_valid_nne, name_tokens, normalise_nne, strip_diacritics
+from apps.core.names import name_tokens, parse_dob, strip_diacritics
 
-from .models import RollImport, WorkingRollEntry
+from .models import ListType, RollImport, WorkingRollEntry
 
-#: The three fields §6.1's column mapping UI resolves. Order is display order.
-FIELDS: tuple[str, ...] = ("last_name", "first_names", "nne")
+#: The fields §6.1's column mapping UI resolves. Order is display order.
+FIELDS: tuple[str, ...] = (
+    "birth_name",
+    "usual_name",
+    "first_names",
+    "date_of_birth",
+    "list_type",
+)
+#: Of those, the ones whose column must be mapped or the import is refused
+#: (R-4.5). ``usual_name`` is often blank and its column may be genuinely
+#: absent, so it is optional.
+MANDATORY_FIELDS: tuple[str, ...] = ("birth_name", "first_names", "date_of_birth", "list_type")
+
 FIELD_LABELS = {
-    "last_name": _lazy("Nom"),
+    "birth_name": _lazy("Nom de naissance"),
+    "usual_name": _lazy("Nom d'usage"),
     "first_names": _lazy("Prénoms"),
-    "nne": _lazy("NNE"),
+    "date_of_birth": _lazy("Date de naissance"),
+    "list_type": _lazy("Type de liste"),
 }
 
 #: Header text (accent- and case-insensitive) guessed against each field, for
-#: convenience only (§6.1's mapping UI). A miss is not an error — it just
-#: leaves that field for the operator to map by hand.
+#: convenience only (§6.1's mapping UI). A miss is not an error — it just leaves
+#: that field for the operator to map by hand.
 _GUESS_HEADERS: dict[str, frozenset[str]] = {
-    "last_name": frozenset({"nom", "nom de famille", "last name", "last_name", "surname"}),
-    "first_names": frozenset(
-        {"prenom", "prenoms", "prénom", "prénoms", "first name", "first names", "first_names"}
+    "birth_name": frozenset(
+        {"nom de naissance", "nom", "nom de famille", "birth name", "last name", "surname"}
     ),
-    "nne": frozenset(
+    "usual_name": frozenset(
+        {"nom d'usage", "nom d usage", "usual name", "name in use", "married name"}
+    ),
+    "first_names": frozenset(
+        {"prenom", "prenoms", "prénom", "prénoms", "first name", "first names", "forenames"}
+    ),
+    "date_of_birth": frozenset(
+        {"date de naissance", "date of birth", "dob", "birth date", "naissance"}
+    ),
+    "list_type": frozenset(
         {
-            "nne",
-            "numero national electeur",
-            "numéro national électeur",
-            "national elector number",
+            "libelle du type de liste",
+            "libellé du type de liste",
+            "type de liste",
+            "list type",
+            "liste",
         }
     ),
 }
+
+#: How a REU export's free-text list label maps to a ``ListType`` (R-4.7). The
+#: label is compared after diacritic stripping and case folding; an unrecognised
+#: label leaves the row with no list type, which the report flags as incomplete.
+_LIST_TYPE_MARKERS: tuple[tuple[str, str], ...] = (
+    ("principale", ListType.PRINCIPALE),
+    ("municipale", ListType.COMPLEMENTAIRE_MUNICIPALE),
+    ("europ", ListType.COMPLEMENTAIRE_EUROPEENNE),
+)
 
 
 class UnreadableFile(ValueError):
@@ -70,15 +114,14 @@ class UnreadableFile(ValueError):
 
 
 class RollImportRefused(Exception):
-    """``apply_import`` refused: the file failed validation (T-11).
+    """``apply_import`` refused: the file is structurally unusable (T-11).
 
     Carries the report rather than a formatted message, so a caller — the
-    command or the back-office view — decides how to show it; neither is
-    forced through the other's rendering.
+    command or the back-office view — decides how to show it.
     """
 
     def __init__(self, report: ValidationReport) -> None:
-        super().__init__(_("Le fichier contient des lignes invalides."))
+        super().__init__(_("Le fichier est inexploitable en l'état."))
         self.report = report
 
 
@@ -174,18 +217,20 @@ def guess_mapping(headers: list[str]) -> dict[str, str]:
 
 @dataclass(frozen=True)
 class MappedRow:
-    """One row, resolved to the three fields the roll needs."""
+    """One row, resolved to the fields the roll needs. Values are still raw."""
 
     #: 1-based, matching the row number a spreadsheet would show the operator
     #: (the header is row 1).
     index: int
-    last_name: str
-    first_names: str
-    nne: str
+    birth_name: str = ""
+    usual_name: str = ""
+    first_names: str = ""
+    date_of_birth: str = ""
+    list_type: str = ""
 
 
-def apply_mapping(table: Table, mapping: dict[str, str]) -> list[MappedRow]:
-    """Extract the three fields using the operator's column choices."""
+def apply_mapping(table: Table, mapping: Mapping[str, str]) -> list[MappedRow]:
+    """Extract the fields using the operator's column choices."""
     columns = {name: table.headers.index(mapping[name]) for name in FIELDS if name in mapping}
 
     def cell(row: list[str], field_name: str) -> str:
@@ -197,95 +242,215 @@ def apply_mapping(table: Table, mapping: dict[str, str]) -> list[MappedRow]:
     return [
         MappedRow(
             index=offset + 2,
-            last_name=cell(row, "last_name"),
+            birth_name=cell(row, "birth_name"),
+            usual_name=cell(row, "usual_name"),
             first_names=cell(row, "first_names"),
-            nne=normalise_nne(cell(row, "nne")),
+            date_of_birth=cell(row, "date_of_birth"),
+            list_type=cell(row, "list_type"),
         )
         for offset, row in enumerate(table.rows)
     ]
 
 
+def list_type_of(label: str) -> str | None:
+    """A REU list label (`Liste complémentaire municipale`, …) as a ``ListType``
+    value, or ``None`` where the label is empty or unrecognised (R-4.7)."""
+    normalised = strip_diacritics(label).casefold()
+    for marker, value in _LIST_TYPE_MARKERS:
+        if marker in normalised:
+            return value
+    return None
+
+
+@dataclass(frozen=True)
+class Entry:
+    """One elector, after parsing and collapse — the shape ``apply_import``
+    writes and the preview shows."""
+
+    birth_name: str
+    usual_name: str
+    first_names: str
+    #: The date of birth verbatim, exactly as the file gave it (R-4.9).
+    date_of_birth: str
+    date_of_birth_parsed: date | None
+    date_uncertain: bool
+    list_types: tuple[str, ...]
+    #: The 1-based file rows this entry was built from; one unless collapsed.
+    source_rows: tuple[int, ...]
+
+
+def _identity_key(row: MappedRow) -> tuple[str, ...]:
+    return (
+        "".join(sorted(name_tokens(row.birth_name))),
+        "".join(sorted(name_tokens(row.usual_name))),
+        "".join(sorted(name_tokens(row.first_names))),
+    )
+
+
+@dataclass(frozen=True)
+class CollapseResult:
+    entries: list[Entry]
+    #: Entries built from more than one row, merged across list types (R-4.6).
+    collapsed: list[Entry]
+    #: Groups that share a normalised name and date of birth but were *not*
+    #: collapsed — a repeated list type means either a duplicate line or genuine
+    #: homonyms, and only a human can tell (§6.2). Flat list of the entries.
+    indistinguishable: list[Entry]
+
+
+def collapse(rows: Iterable[MappedRow]) -> CollapseResult:
+    """Parse dates and merge one-row-per-list-type into one entry (R-4.6, R-4.9)."""
+    groups: dict[tuple[Any, ...], list[MappedRow]] = {}
+    for row in rows:
+        parsed = parse_dob(row.date_of_birth)
+        if parsed is None:
+            # R-4.9: never collapsed on a parsed value — its own group, keyed
+            # on the file row so two uncertain rows never merge.
+            key: tuple[Any, ...] = ("uncertain", row.index)
+        else:
+            key = (_identity_key(row), parsed)
+        groups.setdefault(key, []).append(row)
+
+    entries: list[Entry] = []
+    collapsed: list[Entry] = []
+    indistinguishable: list[Entry] = []
+
+    for group in groups.values():
+        parsed = parse_dob(group[0].date_of_birth)
+        uncertain = parsed is None
+        types = [list_type_of(r.list_type) for r in group]
+        named = [t for t in types if t]
+        homonyms = len(named) != len(set(named))
+
+        if uncertain or homonyms:
+            group_entries = [
+                Entry(
+                    birth_name=r.birth_name,
+                    usual_name=r.usual_name,
+                    first_names=r.first_names,
+                    date_of_birth=r.date_of_birth,
+                    date_of_birth_parsed=parse_dob(r.date_of_birth),
+                    date_uncertain=parse_dob(r.date_of_birth) is None,
+                    list_types=tuple(t for t in (list_type_of(r.list_type),) if t),
+                    source_rows=(r.index,),
+                )
+                for r in group
+            ]
+            entries.extend(group_entries)
+            if homonyms:
+                indistinguishable.extend(group_entries)
+            continue
+
+        merged = Entry(
+            birth_name=group[0].birth_name,
+            usual_name=group[0].usual_name,
+            first_names=group[0].first_names,
+            date_of_birth=group[0].date_of_birth,
+            date_of_birth_parsed=parsed,
+            date_uncertain=False,
+            list_types=tuple(sorted(set(named))),
+            source_rows=tuple(r.index for r in group),
+        )
+        entries.append(merged)
+        if len(group) > 1:
+            collapsed.append(merged)
+
+    entries.sort(key=lambda e: e.source_rows[0])
+    return CollapseResult(entries=entries, collapsed=collapsed, indistinguishable=indistinguishable)
+
+
 @dataclass(frozen=True)
 class ValidationReport:
-    """§6.1's report, minus the personal data staying only on screen: nothing
-    here is logged — the audit event records a count, never a row (§10)."""
+    """§6.1's report. Nothing here is logged — the audit event records a count,
+    never a row (§10). The first two categories block; the rest are advisory."""
 
-    missing_fields: list[MappedRow] = field(default_factory=list)
-    malformed_nne: list[MappedRow] = field(default_factory=list)
-    duplicate_nne: list[MappedRow] = field(default_factory=list)
-    #: Same normalised name, different NNE across two rows. Informational: two
-    #: electors can share a name, so this is judgement for the operator, the
-    #: same way a divergent registration is (R-5.4) — never a block.
-    duplicate_name_nne_mismatch: list[tuple[MappedRow, MappedRow]] = field(default_factory=list)
+    #: Mandatory columns the operator has not mapped (R-4.5). Blocking.
+    missing_columns: list[str] = field(default_factory=list)
+    #: Rows with neither a birth name nor a name in use (R-4.5). Blocking.
+    nameless_rows: list[MappedRow] = field(default_factory=list)
+    #: Entries whose date of birth would not parse, kept verbatim (R-4.9).
+    date_uncertain: list[Entry] = field(default_factory=list)
+    #: Entries left with no list type at all.
+    incomplete: list[Entry] = field(default_factory=list)
+    #: Entries merged across list types (R-4.6).
+    collapsed: list[Entry] = field(default_factory=list)
+    #: Entries sharing a normalised name and date of birth that did not
+    #: collapse — judgement for a human, never a refusal.
+    indistinguishable: list[Entry] = field(default_factory=list)
 
     @property
     def blocking(self) -> bool:
-        """§6.1: any of these rejects the whole import outright (T-11)."""
-        return bool(self.missing_fields or self.malformed_nne or self.duplicate_nne)
+        """§6.1, R-4.5: only a structurally unusable file is refused (T-11)."""
+        return bool(self.missing_columns or self.nameless_rows)
 
     @property
     def clean(self) -> bool:
         return not (
-            self.missing_fields
-            or self.malformed_nne
-            or self.duplicate_nne
-            or self.duplicate_name_nne_mismatch
+            self.missing_columns
+            or self.nameless_rows
+            or self.date_uncertain
+            or self.incomplete
+            or self.collapsed
+            or self.indistinguishable
         )
 
 
-def validate(rows: list[MappedRow]) -> ValidationReport:
-    missing = [r for r in rows if not (r.last_name and r.first_names and r.nne)]
-    # Blank NNEs are ``missing``, not ``malformed`` — the two categories must
-    # not double-count the same row.
-    malformed = [r for r in rows if r.nne and not is_valid_nne(r.nne)]
+def validate(rows: list[MappedRow], mapped_fields: Iterable[str]) -> ValidationReport:
+    """Build the report (§6.1). ``mapped_fields`` is the set of ``FIELDS`` the
+    operator has assigned a column to; a missing mandatory one blocks."""
+    mapped = set(mapped_fields)
+    missing_columns = [f for f in MANDATORY_FIELDS if f not in mapped]
+    nameless = [r for r in rows if not (r.birth_name or r.usual_name)]
 
-    by_nne: dict[str, list[MappedRow]] = {}
-    for r in rows:
-        if r.nne:
-            by_nne.setdefault(r.nne, []).append(r)
-    duplicate_nne = [r for group in by_nne.values() if len(group) > 1 for r in group]
-
-    by_name: dict[frozenset[str], list[MappedRow]] = {}
-    for r in rows:
-        key = name_tokens(r.last_name) | name_tokens(r.first_names)
-        if key:
-            by_name.setdefault(key, []).append(r)
-    mismatches = [
-        (group[i], group[j])
-        for group in by_name.values()
-        if len(group) > 1
-        for i in range(len(group))
-        for j in range(i + 1, len(group))
-        if group[i].nne != group[j].nne
-    ]
-
+    result = collapse(rows)
     return ValidationReport(
-        missing_fields=missing,
-        malformed_nne=malformed,
-        duplicate_nne=duplicate_nne,
-        duplicate_name_nne_mismatch=mismatches,
+        missing_columns=missing_columns,
+        nameless_rows=nameless,
+        date_uncertain=[e for e in result.entries if e.date_uncertain],
+        incomplete=[e for e in result.entries if not e.list_types],
+        collapsed=result.collapsed,
+        indistinguishable=result.indistinguishable,
     )
 
 
 @transaction.atomic
 def apply_import(
-    rows: list[MappedRow], *, filename: str, file_sha256: bytes, operator: User
+    rows: list[MappedRow],
+    mapped_fields: Iterable[str],
+    *,
+    filename: str,
+    file_sha256: bytes,
+    operator: User,
 ) -> RollImport:
     """The write (§6.1), shared by screen 3 and ``import_roll``.
 
-    All-or-nothing: refuses outright on a blocking issue, so a bad file writes
-    nothing (T-11). Replaces ``WorkingRollEntry`` entirely; it never touches
-    ``RollEntry``, the frozen snapshot an already-open poll took at ``draft →
-    open`` — the two live in different apps, and nothing here imports the one
-    that holds it (T-26).
+    All-or-nothing: refuses outright on a structurally unusable file, so a bad
+    file writes nothing (T-11, R-4.5). Replaces ``WorkingRollEntry`` entirely;
+    it never touches ``RollEntry``, the frozen snapshot an already-open poll
+    took at ``draft → open`` — the two live in different apps, and nothing here
+    imports the one that holds it (T-26).
+
+    ``row_count`` logged is the number of rows read, not the number of entries
+    created after collapse (§6.1).
     """
-    report = validate(rows)
+    mapped = list(mapped_fields)
+    report = validate(rows, mapped)
     if report.blocking:
         raise RollImportRefused(report)
 
+    entries = collapse(rows).entries
     WorkingRollEntry.objects.all().delete()
     WorkingRollEntry.objects.bulk_create(
-        WorkingRollEntry(last_name=r.last_name, first_names=r.first_names, nne=r.nne) for r in rows
+        WorkingRollEntry(
+            birth_name=e.birth_name,
+            usual_name=e.usual_name,
+            first_names=e.first_names,
+            date_of_birth=e.date_of_birth,
+            date_of_birth_parsed=e.date_of_birth_parsed,
+            date_uncertain=e.date_uncertain,
+            list_types=list(e.list_types),
+        )
+        for e in entries
     )
     roll_import = RollImport.objects.create(
         filename=filename, file_sha256=file_sha256, row_count=len(rows), imported_by=operator
@@ -300,6 +465,7 @@ def apply_import(
             "filename": filename,
             "file_sha256": file_sha256.hex(),
             "row_count": len(rows),
+            "entry_count": len(entries),
         },
     )
     return roll_import

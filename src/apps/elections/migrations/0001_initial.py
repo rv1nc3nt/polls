@@ -7,6 +7,7 @@ from django.conf import settings
 from django.db import migrations, models
 
 import apps.core.crypto
+import apps.elections.models
 
 
 class Migration(migrations.Migration):
@@ -74,6 +75,10 @@ class Migration(migrations.Migration):
                 ("paper_requires_countersign", models.BooleanField(default=False)),
                 ("paper_requires_reconciliation", models.BooleanField(default=False)),
                 ("allow_ballot_modification", models.BooleanField(default=True)),
+                (
+                    "eligible_list_types",
+                    models.JSONField(default=apps.elections.models.default_eligible_list_types),
+                ),
                 ("show_live_participation", models.BooleanField(default=False)),
                 ("is_sandbox", models.BooleanField(default=False)),
                 (
@@ -140,14 +145,24 @@ class Migration(migrations.Migration):
                         default=uuid.uuid4, editable=False, primary_key=True, serialize=False
                     ),
                 ),
-                ("last_name", models.CharField(max_length=200)),
-                ("first_names", models.CharField(max_length=200)),
-                ("nne", models.CharField(max_length=9, unique=True)),
+                ("birth_name", models.CharField(max_length=200, verbose_name="nom de naissance")),
+                (
+                    "usual_name",
+                    models.CharField(blank=True, max_length=200, verbose_name="nom d'usage"),
+                ),
+                ("first_names", models.CharField(max_length=200, verbose_name="prénoms")),
+                (
+                    "date_of_birth",
+                    models.CharField(blank=True, max_length=40, verbose_name="date de naissance"),
+                ),
+                ("date_of_birth_parsed", models.DateField(blank=True, null=True)),
+                ("date_uncertain", models.BooleanField(default=False)),
+                ("list_types", models.JSONField(default=list)),
                 ("imported_at", models.DateTimeField(auto_now_add=True)),
             ],
             options={
                 "indexes": [
-                    models.Index(fields=["last_name"], name="elections_w_last_na_15bc43_idx")
+                    models.Index(fields=["birth_name"], name="elections_w_birth_n_65078a_idx")
                 ],
             },
         ),
@@ -190,9 +205,19 @@ class Migration(migrations.Migration):
                         default=uuid.uuid4, editable=False, primary_key=True, serialize=False
                     ),
                 ),
-                ("last_name", models.CharField(max_length=200)),
-                ("first_names", models.CharField(max_length=200)),
-                ("nne", models.CharField(max_length=9)),
+                ("birth_name", models.CharField(max_length=200, verbose_name="nom de naissance")),
+                (
+                    "usual_name",
+                    models.CharField(blank=True, max_length=200, verbose_name="nom d'usage"),
+                ),
+                ("first_names", models.CharField(max_length=200, verbose_name="prénoms")),
+                (
+                    "date_of_birth",
+                    models.CharField(blank=True, max_length=40, verbose_name="date de naissance"),
+                ),
+                ("date_of_birth_parsed", models.DateField(blank=True, null=True)),
+                ("date_uncertain", models.BooleanField(default=False)),
+                ("list_types", models.JSONField(default=list)),
                 (
                     "poll",
                     models.ForeignKey(
@@ -207,11 +232,8 @@ class Migration(migrations.Migration):
                 "verbose_name_plural": "liste électorale figée",
                 "indexes": [
                     models.Index(
-                        fields=["poll", "last_name"], name="elections_r_poll_id_7ffa56_idx"
+                        fields=["poll", "birth_name"], name="elections_r_poll_id_6fbf3b_idx"
                     )
-                ],
-                "constraints": [
-                    models.UniqueConstraint(fields=("poll", "nne"), name="uniq_rollentry_poll_nne")
                 ],
             },
         ),

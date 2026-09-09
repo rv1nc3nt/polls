@@ -17,7 +17,20 @@ from .models import Action, AuditEvent, Reason
 # Keys that may never appear in ``before``/``after``. The scan of T-55 is the
 # real check; this is the cheap one that catches a mistake at write time.
 FORBIDDEN_KEYS = frozenset(
-    {"name", "last_name", "first_names", "nne", "email", "email_canonical", "review_reason"}
+    {
+        "name",
+        "last_name",
+        "first_names",
+        "birth_name",
+        "usual_name",
+        "declared_last_name",
+        "declared_first_names",
+        "declared_dob",
+        "date_of_birth",
+        "email",
+        "email_canonical",
+        "review_reason",
+    }
 )
 
 

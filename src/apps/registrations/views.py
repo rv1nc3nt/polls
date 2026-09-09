@@ -43,7 +43,8 @@ def register(request: HttpRequest, poll_id: str) -> HttpResponse:
     if request.method == "POST":
         if not ratelimit.allow("registration", request, ratelimit.registration_limit()):
             # R-5.8. Deliberately the same neutral wording as a duplicate: an
-            # attacker probing NNEs learns nothing from being throttled either.
+            # attacker probing names and dates of birth learns nothing from
+            # being throttled either.
             error = str(services.NEUTRAL_REFUSAL())
         elif form.is_valid():
             try:
@@ -72,11 +73,10 @@ def _submit(request: HttpRequest, poll: Poll, data: dict[str, str]) -> HttpRespo
     if token is not None:
         transaction.on_commit(lambda: mail.send_confirmation(registration, token))
 
-    outcome = (
-        "pending_email"
-        if registration.state == RegistrationState.PENDING_EMAIL
-        else "pending_review"
-    )
+    outcome = {
+        str(RegistrationState.PENDING_EMAIL): "pending_email",
+        str(RegistrationState.REJECTED): "ineligible",
+    }.get(str(registration.state), "pending_review")
     return redirect("registrations:submitted", poll_id=str(poll.pk), outcome=outcome)
 
 
@@ -86,9 +86,11 @@ def submitted(request: HttpRequest, poll_id: str, outcome: str) -> HttpResponse:
     It tells the applicant what happens next, which is about their own request
     and discloses nothing about anybody else's. The two duplicate cases never
     reach here: they are refused on the form with one shared message (T-2, T-17).
+    An ``ineligible`` outcome is R-4.7 — a single match whose electoral-list type
+    confers no standing on this poll (T-61).
     """
     poll = _open_poll_or_404(poll_id)
-    if outcome not in {"pending_email", "pending_review"}:
+    if outcome not in {"pending_email", "pending_review", "ineligible"}:
         raise Http404
     return render(request, "registrations/submitted.html", {"poll": poll, "outcome": outcome})
 

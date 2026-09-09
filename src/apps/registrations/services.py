@@ -11,15 +11,24 @@ to ``pending_email``, from either path, and immediately forgotten: only
 plaintext is written out. Losing it is unrecoverable by anyone, administrators
 included (R-7.6).
 
-Two refusals share one message and one silence. An NNE already registered
+Two refusals share one message and one silence. A roll entry already registered
 (case 6) and an address already used (case 3) both answer with
 ``NEUTRAL_REFUSAL`` and disclose nothing about the registration that caused
 them (T-2, T-17): the person at the keyboard may not be the person already
 registered, and telling them apart is what an enumeration oracle is.
+
+There is no national identifier any more (R-4.8). A match is a normalised name
+tried against the roll's birth surname and its name in use, plus the date of
+birth, which carries most of the discriminating power (R-5.3). An entry flagged
+``date_uncertain`` (R-4.9) never matches here. A single match whose list types
+fall outside ``poll.eligible_list_types`` (R-4.7) is refused as ineligible, not
+sent to review; no match, several matches, or a match only against an uncertain
+date go to ``pending_review``.
 """
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any
 
 from django.db import IntegrityError, transaction
@@ -30,7 +39,7 @@ from apps.audit import services as audit
 from apps.audit.models import Action, Reason
 from apps.core.crypto import new_token, voter_hash
 from apps.core.models import User
-from apps.core.names import canonical_email, is_valid_nne, names_match, normalise_nne
+from apps.core.names import canonical_email, names_match, parse_dob
 from apps.core.types import Token, TokenSalt
 from apps.elections.models import Poll, RollEntry
 from apps.elections.windows import check_registration_window
@@ -41,9 +50,9 @@ from .models import Channel, DuplicateAttempt, Registration, RegistrationState
 class RegistrationRefused(Exception):
     """Shown to the visitor as a neutral message.
 
-    Cases 3 and 6 of §6.2 — address already used, NNE already registered — get
-    the *same* message and disclose no detail of the existing registration
-    (T-2, T-17).
+    Cases 3 and 6 of §6.2 — address already used, roll entry already registered
+    — get the *same* message and disclose no detail of the existing
+    registration (T-2, T-17).
     """
 
 
@@ -60,28 +69,70 @@ def NEUTRAL_REFUSAL() -> str:
     )
 
 
-def find_roll_entry(poll: Poll, nne: str) -> RollEntry | None:
-    """Step 2: match on NNE against the frozen snapshot (R-5.3)."""
-    return RollEntry.objects.filter(poll=poll, nne=nne).first()
+def match_roll_entries(
+    poll: Poll, declared_last: str, declared_first: str, declared_dob: str
+) -> list[RollEntry]:
+    """Step 2 (R-5.3): snapshot entries consistent with the declaration.
 
-
-def _resolve_state(poll: Poll, nne: str, last_name: str, first_names: str) -> str:
-    """Step 4's routing (R-5.4).
-
-    NNE found and name consistent → ``pending_email``. Everything else —
-    divergent name, malformed NNE, blank NNE, NNE absent from the roll — goes to
-    ``pending_review`` rather than being refused (T-28). A false negative here
-    costs a human review; a false positive lets someone vote as somebody else,
-    which is why ``names_match`` is deliberately the strict side of the trade.
+    The date of birth carries the discriminating power, so the query is pinned
+    to it and the name comparison — done in Python, against both the birth
+    surname and the name in use — stays lenient. Empty when the declared date
+    will not parse or nothing lines up; the caller routes both to review. An
+    entry flagged ``date_uncertain`` (R-4.9) is excluded and can only be bound
+    by a poll admin.
     """
-    if not nne or not is_valid_nne(nne):
-        return RegistrationState.PENDING_REVIEW
-    entry = find_roll_entry(poll, nne)
-    if entry is None:
-        return RegistrationState.PENDING_REVIEW
-    if names_match(last_name, first_names, entry.last_name, entry.first_names):
-        return RegistrationState.PENDING_EMAIL
-    return RegistrationState.PENDING_REVIEW
+    parsed = parse_dob(declared_dob)
+    if parsed is None:
+        return []
+    candidates = RollEntry.objects.filter(
+        poll=poll, date_uncertain=False, date_of_birth_parsed=parsed
+    )
+    return [
+        entry
+        for entry in candidates
+        if names_match(
+            declared_last, declared_first, entry.birth_name, entry.usual_name, entry.first_names
+        )
+    ]
+
+
+@dataclass(frozen=True)
+class _Outcome:
+    """Step 4's decision (R-5.4): the state to create the registration in, the
+    single matched entry where there was one, and the code to log on a refusal
+    for an ineligible list type."""
+
+    state: str
+    matched_entry: RollEntry | None = None
+    reject_reason: Reason | None = None
+
+    @property
+    def bound_entry(self) -> RollEntry | None:
+        """The entry written onto ``Registration.roll_entry``: only where the
+        match is single and eligible (§3.3 — null for review and rejected)."""
+        return self.matched_entry if self.state == RegistrationState.PENDING_EMAIL else None
+
+
+def _resolve(poll: Poll, last_name: str, first_names: str, dob: str) -> _Outcome:
+    """Step 4's routing (R-5.4, R-4.7).
+
+    - exactly one match, list types eligible for this poll → ``pending_email``,
+      bound to that entry;
+    - exactly one match, list types conferring no eligibility here → ``rejected``
+      with a reason, the person told they are not eligible (T-61);
+    - no match, several matches, or a match only against a ``date_uncertain``
+      entry → ``pending_review`` (T-28, T-62).
+
+    A false negative costs a human review; a false positive lets someone vote as
+    somebody else, which is why ``names_match`` is the strict side of the trade.
+    """
+    matches = match_roll_entries(poll, last_name, first_names, dob)
+    if len(matches) != 1:
+        return _Outcome(RegistrationState.PENDING_REVIEW)
+    entry = matches[0]
+    if not (set(entry.list_types) & set(poll.eligible_list_types)):
+        return _Outcome(RegistrationState.REJECTED, entry, Reason.INELIGIBLE_LIST_TYPE)
+    return _Outcome(RegistrationState.PENDING_EMAIL, entry)
 
 
 def issue_token(registration: Registration) -> Token:
@@ -100,15 +151,21 @@ def issue_token(registration: Registration) -> Token:
 
 @transaction.atomic
 def _create(
-    poll: Poll, fields: dict[str, Any], state: str, language: str
+    poll: Poll, fields: dict[str, Any], outcome: _Outcome, language: str
 ) -> tuple[Registration, Token | None]:
     """The write half of ``register``, and the only part that is a transaction.
 
     The token is minted inside it, so a registration can never exist without the
     ``voter_hash`` that lets its owner reach it.
     """
-    registration = Registration.objects.create(poll=poll, state=state, language=language, **fields)
-    token = issue_token(registration) if state == RegistrationState.PENDING_EMAIL else None
+    registration = Registration.objects.create(
+        poll=poll,
+        state=outcome.state,
+        language=language,
+        roll_entry=outcome.bound_entry,
+        **fields,
+    )
+    token = issue_token(registration) if outcome.state == RegistrationState.PENDING_EMAIL else None
     return registration, token
 
 
@@ -133,67 +190,101 @@ def register(
     """
     check_registration_window(poll)
 
-    nne = normalise_nne(form_data.get("nne", ""))
     fields: dict[str, Any] = {
-        "nne": nne,
-        "last_name": form_data["last_name"].strip(),
-        "first_names": form_data["first_names"].strip(),
+        "declared_last_name": form_data["last_name"].strip(),
+        "declared_first_names": form_data["first_names"].strip(),
+        "declared_dob": form_data.get("date_of_birth", "").strip(),
         "email": form_data["email"].strip(),
         "email_canonical": canonical_email(form_data["email"]),
         "declared_on_honour": bool(form_data.get("declared_on_honour")),
     }
 
-    duplicate_of = _existing_for_nne(poll, nne)
+    outcome = _resolve(
+        poll, fields["declared_last_name"], fields["declared_first_names"], fields["declared_dob"]
+    )
+    duplicate_of = _existing_for_roll_entry(poll, outcome.bound_entry)
     address_taken = Registration.objects.filter(
         poll=poll, email_canonical=fields["email_canonical"]
     ).exists()
 
     if duplicate_of is None and not address_taken:
-        state = _resolve_state(poll, nne, fields["last_name"], fields["first_names"])
         try:
-            return _create(poll, fields, state, language)
+            registration, token = _create(poll, fields, outcome, language)
         except IntegrityError:
-            # Lost a race with a concurrent submission. INV-4 and INV-10 are
-            # database constraints precisely so that the winner is decided here
-            # and not by the check above; re-read to see which one bit.
-            duplicate_of = _existing_for_nne(poll, nne)
+            # Lost a race with a concurrent submission. The partial unique on
+            # (poll, roll_entry) and the address constraint are what actually
+            # decide the winner, not the checks above; re-read to see which bit.
+            duplicate_of = _existing_for_roll_entry(poll, outcome.bound_entry)
+        else:
+            if outcome.state == RegistrationState.REJECTED and outcome.matched_entry is not None:
+                _log_ineligible(registration, outcome.matched_entry)
+            return registration, token
 
     if duplicate_of is not None:
         _flag_duplicate(poll, duplicate_of)
     raise RegistrationRefused(NEUTRAL_REFUSAL())
 
 
-def _existing_for_nne(poll: Poll, nne: str) -> Registration | None:
-    """Case 6 (R-5.9): is this NNE already registered for this poll?"""
-    if not nne:
+def _existing_for_roll_entry(poll: Poll, entry: RollEntry | None) -> Registration | None:
+    """Case 6 (R-5.9): does this roll entry already carry a live registration?
+
+    Rejected registrations do not count — the entry is free again — which is why
+    the partial unique constraint excludes them too.
+    """
+    if entry is None:
         return None
-    return Registration.objects.filter(poll=poll, nne=nne).first()
+    return (
+        Registration.objects.filter(poll=poll, roll_entry=entry)
+        .exclude(state=RegistrationState.REJECTED)
+        .first()
+    )
 
 
 def _flag_duplicate(poll: Poll, existing: Registration) -> None:
-    """R-5.9: log the attempt and flag it to the poll admin."""
+    """R-5.9: log the attempt and flag it to the poll admin. The event
+    references the *existing* registration and records nothing about the
+    attempter (§10)."""
     DuplicateAttempt.objects.create(poll=poll, existing_registration=existing)
     audit.record(
-        action=Action.REGISTRATION_DUPLICATE_NNE,
+        action=Action.REGISTRATION_DUPLICATE,
         poll=poll,
         object_ref=audit.ref(existing),
         actor_label="public",
     )
 
 
+def _log_ineligible(registration: Registration, entry: RollEntry) -> None:
+    """T-61, §10: a registration refused for an ineligible list type is logged,
+    referencing the new (rejected) row. The list types are non-identifying
+    state; nothing about the person is recorded."""
+    audit.record(
+        action=Action.REGISTRATION_INELIGIBLE,
+        poll=registration.poll,
+        object_ref=audit.ref(registration),
+        after={"list_types": list(entry.list_types)},
+        actor_label="public",
+        reason=Reason.INELIGIBLE_LIST_TYPE,
+    )
+
+
 @transaction.atomic
 def approve(
     registration: Registration,
+    roll_entry: RollEntry | None,
     reason: Reason | str,
     actor: User | None = None,
     note: str = "",
 ) -> tuple[Registration, Token]:
     """Step 5: ``pending_review → pending_email``, never straight to ``active``.
 
-    The mailbox is confirmed in every path. §6.2 step 5 logs a reason on both
-    decisions, not only refusals, so ``reason`` is mandatory here too: an
-    approval recorded without one leaves the log saying that somebody was let in
-    and not why, which is the half of the record that matters later.
+    The admin picks the roll entry (R-5.4); ``roll_entry_id`` is bound here and
+    nowhere else on the review path. The mailbox is still confirmed in every
+    path. §6.2 step 5 logs a reason on both decisions, not only refusals, so
+    ``reason`` is mandatory here too: an approval recorded without one leaves the
+    log saying that somebody was let in and not why.
+
+    Step 6 (R-5.9): an admin-picked entry that already carries a live
+    registration is refused, exactly as an automatic match against it would be.
 
     ``note`` is prose and is stored on this row, where the retention purge takes
     it — never on the audit event, whose ``reason`` is a code (§10).
@@ -203,11 +294,21 @@ def approve(
         raise RegistrationRefused(_("Cette inscription n'est pas en attente d'examen."))
     if not reason:
         raise RegistrationRefused(_("Un motif est obligatoire."))
+    if roll_entry is None:
+        raise RegistrationRefused(_("Choisissez l'entrée de la liste électorale à rattacher."))
+    existing = _existing_for_roll_entry(registration.poll, roll_entry)
+    if existing is not None and existing.pk != registration.pk:
+        # The admin sees this directly; no DuplicateAttempt flag, which is the
+        # public path's way of surfacing R-5.9 to the very person now deciding.
+        raise RegistrationRefused(
+            _("Cette entrée de la liste électorale est déjà rattachée à une inscription.")
+        )
 
     before = registration.state
     registration.state = RegistrationState.PENDING_EMAIL
+    registration.roll_entry = roll_entry
     registration.review_reason = note
-    registration.save(update_fields=["state", "review_reason"])
+    registration.save(update_fields=["state", "roll_entry", "review_reason"])
     token = issue_token(registration)
 
     audit.record(

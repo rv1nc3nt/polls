@@ -62,6 +62,17 @@ class Migration(migrations.Migration):
                 to="elections.poll",
             ),
         ),
+        migrations.AddField(
+            model_name="paperballotlink",
+            name="roll_entry",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="paper_links",
+                to="elections.rollentry",
+            ),
+        ),
         migrations.AddIndex(
             model_name="ballot",
             index=models.Index(fields=["poll", "status"], name="ballots_bal_poll_id_23f1be_idx"),
@@ -86,6 +97,8 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="paperballotlink",
-            index=models.Index(fields=["poll", "nne"], name="ballots_pap_poll_id_db9383_idx"),
+            index=models.Index(
+                fields=["poll", "roll_entry"], name="ballots_pap_poll_id_db8bba_idx"
+            ),
         ),
     ]

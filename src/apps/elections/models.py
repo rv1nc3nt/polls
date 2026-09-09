@@ -24,6 +24,24 @@ class PollState(models.TextChoices):
     PUBLISHED = "published", _("publié")
 
 
+class ListType(models.TextChoices):
+    """The electoral-list types an elector may appear on (R-4.7).
+
+    An elector on the European complementary list only has no standing on a
+    municipal question; ``Poll.eligible_list_types`` is what each poll accepts.
+    """
+
+    PRINCIPALE = "principale", _("liste principale")
+    COMPLEMENTAIRE_MUNICIPALE = "complementaire_municipale", _("liste complémentaire municipale")
+    COMPLEMENTAIRE_EUROPEENNE = "complementaire_europeenne", _("liste complémentaire européenne")
+
+
+def default_eligible_list_types() -> list[str]:
+    """A municipal question takes the main list and the municipal complement
+    (R-4.7, §3.1). Deferred configuration (§13): a callable, not a constant."""
+    return [ListType.PRINCIPALE, ListType.COMPLEMENTAIRE_MUNICIPALE]
+
+
 class TallyMethod(models.TextChoices):
     SCHULZE = "schulze", _("Schulze")
     PLURALITY = "plurality", _("majoritaire")
@@ -54,6 +72,7 @@ FROZEN_CONFIG_FIELDS: frozenset[str] = frozenset(
         "paper_requires_countersign",
         "paper_requires_reconciliation",
         "allow_ballot_modification",
+        "eligible_list_types",
         "languages",
         "show_live_participation",
         "is_sandbox",
@@ -98,6 +117,9 @@ class Poll(models.Model):
     paper_requires_countersign = models.BooleanField(default=False)
     paper_requires_reconciliation = models.BooleanField(default=False)
     allow_ballot_modification = models.BooleanField(default=True)
+    # R-4.7: the electoral-list types conferring the right to register and vote
+    # in this poll. Frozen configuration (INV-6); a list of ``ListType`` values.
+    eligible_list_types = models.JSONField(default=default_eligible_list_types)
     show_live_participation = models.BooleanField(default=False)
     is_sandbox = models.BooleanField(default=False)
 
@@ -214,50 +236,71 @@ class PollOption(models.Model):
         return self.poll.translate(self.label_i18n, language)
 
 
-class RollEntry(models.Model):
+class RollEntryFields(models.Model):
+    """The fields R-4.2 imports, shared by the working roll and the snapshot.
+
+    Identity is stored **in clear, not hashed** (R-4.4): the review queue
+    (§6.2), the operator search at paper entry (R-8.3) and R-4.4's auditor
+    access all read it. The retention purge (§11) is what bounds the exposure.
+    """
+
+    birth_name = models.CharField(_("nom de naissance"), max_length=200)
+    # Often blank (R-5.3); a married name, say. A registration match tries the
+    # declared surname against both this and ``birth_name``.
+    usual_name = models.CharField(_("nom d'usage"), max_length=200, blank=True)
+    first_names = models.CharField(_("prénoms"), max_length=200)
+    # Kept verbatim as the export gave it (R-4.9). ``date_of_birth_parsed`` is
+    # the value §6.1 derives and is null exactly when ``date_uncertain`` is set;
+    # an uncertain entry never matches a registration automatically.
+    date_of_birth = models.CharField(_("date de naissance"), max_length=40, blank=True)
+    date_of_birth_parsed = models.DateField(null=True, blank=True)
+    date_uncertain = models.BooleanField(default=False)
+    # The set of electoral-list types this elector appears on (R-4.6, R-4.7):
+    # one entry per elector, not one per list. A list of ``ListType`` values.
+    list_types = models.JSONField(default=list)
+
+    class Meta:
+        abstract = True
+
+    def __str__(self) -> str:
+        return f"{self.birth_name} {self.first_names}"
+
+
+class RollEntry(RollEntryFields):
     """The frozen snapshot taken at ``draft → open`` (§3.2, R-4.3).
 
     Immutable thereafter: INV-7's trigger refuses every ``UPDATE`` outright and
     permits ``DELETE`` only once the poll is ``published``, which is the
     retention purge (§11). A snapshot is frozen, not immortal.
+
+    There is **no natural unique key** (R-4.8): the roll's order number is
+    neither unique nor stable, and there is no national identifier. Apparent
+    duplicates that survive import are separated, if at all, by a human in the
+    review queue (§6.2), not by a constraint.
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     poll = models.ForeignKey(Poll, on_delete=models.CASCADE, related_name="roll_entries")
-    last_name = models.CharField(max_length=200)
-    first_names = models.CharField(max_length=200)
-    nne = models.CharField(max_length=9)
 
     class Meta:
         verbose_name = _("électeur inscrit")
         verbose_name_plural = _("liste électorale figée")
-        constraints = [
-            models.UniqueConstraint(fields=["poll", "nne"], name="uniq_rollentry_poll_nne")
-        ]
-        indexes = [models.Index(fields=["poll", "last_name"])]
-
-    def __str__(self) -> str:
-        return f"{self.last_name} {self.first_names}"
+        indexes = [models.Index(fields=["poll", "birth_name"])]
 
 
-class WorkingRollEntry(models.Model):
+class WorkingRollEntry(RollEntryFields):
     """The current roll, as imported (§6.1).
 
     Distinct from ``RollEntry``: a new import replaces this table entirely and
-    does not touch the snapshot of an already-open poll (T-26).
+    does not touch the snapshot of an already-open poll (T-26). Commune-wide,
+    not poll-scoped (§3.2).
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    last_name = models.CharField(max_length=200)
-    first_names = models.CharField(max_length=200)
-    nne = models.CharField(max_length=9, unique=True)
     imported_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        indexes = [models.Index(fields=["last_name"])]
-
-    def __str__(self) -> str:
-        return f"{self.last_name} {self.first_names}"
+        indexes = [models.Index(fields=["birth_name"])]
 
 
 class RollImport(models.Model):

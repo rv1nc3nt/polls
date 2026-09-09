@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: 0BSD
 """Roll import (§6.1), end to end: ``apply_import``, the CLI, and screen 3.
 
-The pure parsing and validation layer is pinned in
+The pure parsing, validation and collapse layer is pinned in
 ``tests/unit/test_rollimport.py``; this file covers what needs the database and
-the request/response cycle.
+the request/response cycle, and T-64 — the bundled fixture's expected outcome.
 """
 
 from __future__ import annotations
@@ -26,11 +26,36 @@ from apps.elections import rollimport
 from apps.elections.models import Poll, RollEntry, WorkingRollEntry
 from apps.elections.transitions import open_poll
 
-CLEAN_CSV = "Nom,Prénoms,NNE\nDupont,Émile,123456789\nMartin,Alice,987654321\n"
+HEADER = "Nom de naissance;Nom d'usage;Prénoms;Date de naissance;Type de liste"
+CLEAN_CSV = (
+    f"{HEADER}\n"
+    "Dupont;;Émile;14/03/1962;Liste principale\n"
+    "Martin;;Alice;01/01/1980;Liste principale\n"
+)
+MAPPING = {
+    "birth_name": "Nom de naissance",
+    "usual_name": "Nom d'usage",
+    "first_names": "Prénoms",
+    "date_of_birth": "Date de naissance",
+    "list_type": "Type de liste",
+}
+FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "roll-fixture.csv"
 
 
-def _row(nne: str = "123456789") -> rollimport.MappedRow:
-    return rollimport.MappedRow(index=2, last_name="Dupont", first_names="Émile", nne=nne)
+def _row(
+    index: int = 2,
+    birth_name: str = "Dupont",
+    first_names: str = "Émile",
+    date_of_birth: str = "14/03/1962",
+    list_type: str = "Liste principale",
+) -> rollimport.MappedRow:
+    return rollimport.MappedRow(
+        index=index,
+        birth_name=birth_name,
+        first_names=first_names,
+        date_of_birth=date_of_birth,
+        list_type=list_type,
+    )
 
 
 @pytest.fixture
@@ -42,52 +67,73 @@ def operator(db: None) -> User:
 
 
 def test_apply_import_replaces_the_working_roll(operator: User) -> None:
-    WorkingRollEntry.objects.create(last_name="Ancien", first_names="Électeur", nne="11111111")
+    WorkingRollEntry.objects.create(
+        birth_name="Ancien", first_names="Électeur", list_types=["principale"]
+    )
     rollimport.apply_import(
-        [_row()], filename="roll.csv", file_sha256=b"\x00" * 32, operator=operator
+        [_row()], MAPPING, filename="roll.csv", file_sha256=b"\x00" * 32, operator=operator
     )
     assert WorkingRollEntry.objects.count() == 1
-    assert WorkingRollEntry.objects.get().nne == "123456789"
+    entry = WorkingRollEntry.objects.get()
+    assert entry.birth_name == "Dupont"
+    assert entry.list_types == ["principale"]
 
 
 def test_t26_a_reimport_does_not_touch_an_open_polls_snapshot(
     operator: User, open_window_poll: Poll
 ) -> None:
-    """The frozen snapshot lives in a different table and a different app;
-    nothing in this module imports it."""
     open_poll(open_window_poll)
-    before = list(RollEntry.objects.filter(poll=open_window_poll).values_list("nne", flat=True))
-
-    rollimport.apply_import(
-        [_row(nne="999999999")], filename="roll.csv", file_sha256=b"\x00" * 32, operator=operator
+    before = list(
+        RollEntry.objects.filter(poll=open_window_poll).values_list("birth_name", flat=True)
     )
 
-    after = list(RollEntry.objects.filter(poll=open_window_poll).values_list("nne", flat=True))
+    rollimport.apply_import(
+        [_row(birth_name="Nouveau")],
+        MAPPING,
+        filename="roll.csv",
+        file_sha256=b"\x00" * 32,
+        operator=operator,
+    )
+
+    after = list(
+        RollEntry.objects.filter(poll=open_window_poll).values_list("birth_name", flat=True)
+    )
     assert before == after
-    assert WorkingRollEntry.objects.get().nne == "999999999"
+    assert WorkingRollEntry.objects.get().birth_name == "Nouveau"
 
 
-def test_t11_apply_import_refuses_and_writes_nothing_on_a_malformed_nne(
-    operator: User,
-) -> None:
-    WorkingRollEntry.objects.create(last_name="Ancien", first_names="Électeur", nne="11111111")
-    rows = [_row(), rollimport.MappedRow(index=3, last_name="X", first_names="Y", nne="12")]
+def test_t11_apply_import_refuses_and_writes_nothing_on_a_nameless_row(operator: User) -> None:
+    WorkingRollEntry.objects.create(
+        birth_name="Ancien", first_names="Électeur", list_types=["principale"]
+    )
+    rows = [_row(), rollimport.MappedRow(index=3, first_names="Y", date_of_birth="01/01/1990")]
 
     with pytest.raises(rollimport.RollImportRefused) as excinfo:
         rollimport.apply_import(
-            rows, filename="roll.csv", file_sha256=b"\x00" * 32, operator=operator
+            rows, MAPPING, filename="roll.csv", file_sha256=b"\x00" * 32, operator=operator
         )
 
-    assert excinfo.value.report.malformed_nne
+    assert excinfo.value.report.nameless_rows
     assert WorkingRollEntry.objects.count() == 1
-    assert WorkingRollEntry.objects.get().nne == "11111111", "nothing written, old roll intact"
+    assert WorkingRollEntry.objects.get().birth_name == "Ancien", "nothing written"
+
+
+def test_t11_apply_import_refuses_on_an_unmapped_mandatory_column(operator: User) -> None:
+    with pytest.raises(rollimport.RollImportRefused) as excinfo:
+        rollimport.apply_import(
+            [_row()],
+            {"birth_name": "Nom de naissance", "first_names": "Prénoms"},
+            filename="roll.csv",
+            file_sha256=b"\x00" * 32,
+            operator=operator,
+        )
+    assert "date_of_birth" in excinfo.value.report.missing_columns
 
 
 def test_apply_import_logs_filename_hash_and_row_count_never_a_row(operator: User) -> None:
-    """§6.1: "Log filename, SHA-256 of the file, row count, operator." Nothing
-    about an individual elector belongs here (§10)."""
     rollimport.apply_import(
-        [_row(), _row(nne="222222222")],
+        [_row(), _row(index=3, birth_name="Martin", first_names="Alice")],
+        MAPPING,
         filename="liste_2026.csv",
         file_sha256=b"\xab" * 32,
         operator=operator,
@@ -98,6 +144,40 @@ def test_apply_import_logs_filename_hash_and_row_count_never_a_row(operator: Use
     assert event.after["file_sha256"] == "ab" * 32
     assert event.after["row_count"] == 2
     assert "Dupont" not in str(event.after)
+
+
+# --- T-64: the bundled fixture ---------------------------------------------
+
+
+def test_t64_the_fixture_imports_to_the_documented_outcome(operator: User) -> None:
+    """``tests/fixtures/roll-fixture.csv`` → 58 entries from 60 rows; 57
+    eligible; the European-list-only entry ineligible; 2 flagged
+    ``date_uncertain``; one indistinguishable pair (per the fixture README)."""
+    data = FIXTURE.read_bytes()
+    table = rollimport.read_table(data, FIXTURE.name)
+    mapping = rollimport.guess_mapping(table.headers)
+    rows = rollimport.apply_mapping(table, mapping)
+
+    assert len(rows) == 60
+    result = rollimport.collapse(rows)
+    assert len(result.entries) == 58, "two electors collapsed across list types"
+
+    report = rollimport.validate(rows, mapping)
+    assert not report.blocking
+    assert len(report.date_uncertain) == 2
+    assert len(report.indistinguishable) == 2, "the NOIRTIER Victorin pair"
+
+    eligible = {"principale", "complementaire_municipale"}
+    eligible_entries = [e for e in result.entries if set(e.list_types) & eligible]
+    assert len(eligible_entries) == 57
+    ineligible = [e for e in result.entries if e.list_types and not set(e.list_types) & eligible]
+    assert len(ineligible) == 1
+    assert set(ineligible[0].list_types) == {"complementaire_europeenne"}
+
+    rollimport.apply_import(
+        rows, mapping, filename=FIXTURE.name, file_sha256=b"\x00" * 32, operator=operator
+    )
+    assert WorkingRollEntry.objects.count() == 58
 
 
 # --- The CLI --------------------------------------------------------------
@@ -120,11 +200,20 @@ def test_the_command_imports_a_clean_csv(operator: User) -> None:
     assert WorkingRollEntry.objects.count() == 2
 
 
-def test_the_command_refuses_and_writes_nothing_on_a_malformed_nne(operator: User) -> None:
-    with tempfile_csv("Nom,Prénoms,NNE\nDupont,Émile,12\n") as path:
+def test_the_command_refuses_and_writes_nothing_on_a_nameless_row(operator: User) -> None:
+    with tempfile_csv(f"{HEADER}\n;;Émile;14/03/1962;Liste principale\n") as path:
         with pytest.raises(CommandError):
             call_command("import_roll", path, "--operator", operator.username)
     assert WorkingRollEntry.objects.count() == 0
+
+
+def test_the_command_imports_unparseable_dates_rather_than_refusing(operator: User) -> None:
+    """R-4.5: a bad date is reported and imported, not a blocker."""
+    with tempfile_csv(f"{HEADER}\nDupont;;Émile;00/00/1953;Liste principale\n") as path:
+        call_command("import_roll", path, "--operator", operator.username)
+    entry = WorkingRollEntry.objects.get()
+    assert entry.date_uncertain
+    assert entry.date_of_birth == "00/00/1953"
 
 
 def test_the_command_dry_run_writes_nothing(operator: User) -> None:
@@ -139,10 +228,8 @@ def test_the_command_refuses_an_unknown_operator(db: None) -> None:
             call_command("import_roll", path, "--operator", "personne")
 
 
-def test_the_command_refuses_unrecognised_headers_and_points_at_screen_3(
-    operator: User,
-) -> None:
-    with tempfile_csv("A,B,C\nx,y,z\n") as path:
+def test_the_command_refuses_unrecognised_headers_and_points_at_screen_3(operator: User) -> None:
+    with tempfile_csv("A;B;C\nx;y;z\n") as path:
         with pytest.raises(CommandError) as excinfo:
             call_command("import_roll", path, "--operator", operator.username)
     assert "écran" in str(excinfo.value)
@@ -166,6 +253,16 @@ def _xlsx_bytes(rows: list[list[str]]) -> bytes:
     return buffer.getvalue()
 
 
+_CONFIRM = {
+    "col_birth_name": "Nom de naissance",
+    "col_usual_name": "Nom d'usage",
+    "col_first_names": "Prénoms",
+    "col_date_of_birth": "Date de naissance",
+    "col_list_type": "Type de liste",
+    "action": "confirm",
+}
+
+
 def test_the_upload_step_stores_a_draft_and_redirects_to_review(
     client: Client, open_window_poll: Poll, operator: User
 ) -> None:
@@ -179,8 +276,7 @@ def test_the_upload_step_stores_a_draft_and_redirects_to_review(
 
     assert response.status_code == 302
     assert response["Location"].endswith("/verification/")
-    # The fixture's own entry, untouched: nothing is written before confirmation.
-    assert WorkingRollEntry.objects.count() == 1
+    assert WorkingRollEntry.objects.count() == 1  # the fixture's own row, untouched
 
 
 def test_an_unreadable_upload_is_reported_and_writes_nothing(
@@ -197,7 +293,7 @@ def test_an_unreadable_upload_is_reported_and_writes_nothing(
     assert "illisible" in response.content.decode()
 
 
-def test_the_review_step_shows_the_guessed_mapping_and_the_report(
+def test_the_review_step_shows_the_preview_and_the_report(
     client: Client, open_window_poll: Poll, operator: User
 ) -> None:
     _grant(open_window_poll, operator)
@@ -208,7 +304,7 @@ def test_the_review_step_shows_the_guessed_mapping_and_the_report(
     body = client.get(
         f"/fr/mairie/scrutin/{open_window_poll.pk}/liste-electorale/verification/"
     ).content.decode()
-    assert "Dupont" in body, "preview row"
+    assert "Dupont" in body
     assert "2 lignes à traiter" in body
 
 
@@ -221,16 +317,7 @@ def test_confirming_applies_the_import_and_clears_the_draft(
     client.post(f"/fr/mairie/scrutin/{open_window_poll.pk}/liste-electorale/", {"file": upload})
 
     review_url = f"/fr/mairie/scrutin/{open_window_poll.pk}/liste-electorale/verification/"
-    response = client.post(
-        review_url,
-        {
-            "col_last_name": "Nom",
-            "col_first_names": "Prénoms",
-            "col_nne": "NNE",
-            "action": "confirm",
-        },
-        follow=True,
-    )
+    response = client.post(review_url, _CONFIRM, follow=True)
 
     assert response.status_code == 200
     assert WorkingRollEntry.objects.count() == 2
@@ -241,26 +328,15 @@ def test_confirming_applies_the_import_and_clears_the_draft(
 def test_confirming_a_blocking_report_is_refused_and_writes_nothing(
     client: Client, open_window_poll: Poll, operator: User
 ) -> None:
-    """The disabled attribute on the confirm button is UI only; the view must
-    refuse the POST itself, since a form can be submitted directly."""
     _grant(open_window_poll, operator)
     client.force_login(operator)
-    bad = "Nom,Prénoms,NNE\nDupont,Émile,12\n"
+    bad = f"{HEADER}\n;;Émile;14/03/1962;Liste principale\n"
     upload = SimpleUploadedFile("roll.csv", bad.encode(), content_type="text/csv")
     client.post(f"/fr/mairie/scrutin/{open_window_poll.pk}/liste-electorale/", {"file": upload})
 
     review_url = f"/fr/mairie/scrutin/{open_window_poll.pk}/liste-electorale/verification/"
-    client.post(
-        review_url,
-        {
-            "col_last_name": "Nom",
-            "col_first_names": "Prénoms",
-            "col_nne": "NNE",
-            "action": "confirm",
-        },
-    )
-    # The fixture's own entry, untouched: a blocking report writes nothing.
-    assert WorkingRollEntry.objects.count() == 1
+    client.post(review_url, _CONFIRM)
+    assert WorkingRollEntry.objects.count() == 1  # the fixture's own row, untouched
 
 
 def test_review_with_no_draft_sends_back_to_upload(
@@ -280,22 +356,19 @@ def test_xlsx_upload_works_end_to_end(
 ) -> None:
     _grant(open_window_poll, operator)
     client.force_login(operator)
-    data = _xlsx_bytes([["Nom", "Prénoms", "NNE"], ["Dupont", "Émile", "123456789"]])
+    data = _xlsx_bytes(
+        [
+            ["Nom de naissance", "Nom d'usage", "Prénoms", "Date de naissance", "Type de liste"],
+            ["Dupont", "", "Émile", "14/03/1962", "Liste principale"],
+        ]
+    )
     upload = SimpleUploadedFile(
         "roll.xlsx", data, content_type="application/vnd.openxmlformats-officedocument"
     )
     client.post(f"/fr/mairie/scrutin/{open_window_poll.pk}/liste-electorale/", {"file": upload})
 
     review_url = f"/fr/mairie/scrutin/{open_window_poll.pk}/liste-electorale/verification/"
-    client.post(
-        review_url,
-        {
-            "col_last_name": "Nom",
-            "col_first_names": "Prénoms",
-            "col_nne": "NNE",
-            "action": "confirm",
-        },
-    )
+    client.post(review_url, _CONFIRM)
     assert WorkingRollEntry.objects.count() == 1
 
 

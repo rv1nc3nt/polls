@@ -59,7 +59,6 @@ class Migration(migrations.Migration):
                         default=uuid.uuid4, editable=False, primary_key=True, serialize=False
                     ),
                 ),
-                ("nne", models.CharField(max_length=9)),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
             ],
         ),

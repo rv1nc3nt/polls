@@ -25,5 +25,11 @@ def open_window_poll(db: None) -> Poll:
         PollOption.objects.create(
             poll=poll, option_id=option_id, label_i18n={"fr": option_id.upper()}, position=position
         )
-    WorkingRollEntry.objects.create(last_name="Dupont", first_names="Émile", nne="12345678")
+    WorkingRollEntry.objects.create(
+        birth_name="Dupont",
+        first_names="Émile",
+        date_of_birth="12/05/1970",
+        date_of_birth_parsed="1970-05-12",
+        list_types=["principale"],
+    )
     return poll

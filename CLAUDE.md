@@ -16,7 +16,7 @@ tests (§12).
 ```sh
 uv sync                                   # Python 3.13, Django 5.2 LTS
 uv run python manage.py migrate           # settings default to config.settings.dev
-uv run pytest -q                          # 51 tests, fast; no network
+uv run pytest -q                          # fast; no network
 uv run ruff check . && uv run ruff format --check .
 uv run mypy src tests                     # --strict, must stay clean
 cargo test --manifest-path verifier/Cargo.toml
@@ -52,11 +52,11 @@ find a way round it.
 - **INV-1 / INV-5.** No column, view, index or query joins `Registration` to an
   online `Ballot`. "Has this person voted" is answered by
   `Registration.channel`, never by counting ballots. `Ballot` carries no voter,
-  registration or NNE reference, and the two apps' modules do not import each
-  other. `tests/integration/test_inv1_separation.py` asserts all of this.
+  registration or roll-entry reference, and the two apps' modules do not import
+  each other. `tests/integration/test_inv1_separation.py` asserts all of this.
 - **INV-3.** `AuditEvent` has no update or delete path, in the application or
   the database. Events store a reference plus non-identifying state — never a
-  name, NNE or email; `reason` is a code from `audit.models.Reason`, never
+  name, date of birth or email; `reason` is a code from `audit.models.Reason`, never
   prose. Operator prose belongs on the referenced row, where the retention
   purge takes it (§10).
 - **The closure hash** covers exactly the `status = live` ballots, serialised
@@ -124,8 +124,9 @@ taken — that costs more than it saves.
   trigger never fires.
 - An audit event written inside a transaction that then raises is rolled back
   with it. Refusals are logged *after* the rollback — see `open_poll`, and
-  `registrations.services.register`, where the duplicate-NNE flag of R-5.9 is
-  written outside the transaction the refusal aborts.
+  `registrations.services.register`, where the duplicate flag of R-5.9 (an
+  attempt against an already-bound roll entry) is written outside the
+  transaction the refusal aborts.
 - Mail is sent from `transaction.on_commit`, so a rolled-back registration
   cannot produce a delivered message. Tests must wrap the call in
   pytest-django's `django_capture_on_commit_callbacks(execute=True)` or the

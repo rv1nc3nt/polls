@@ -23,9 +23,9 @@ class Migration(migrations.Migration):
                         default=uuid.uuid4, editable=False, primary_key=True, serialize=False
                     ),
                 ),
-                ("nne", models.CharField(max_length=9)),
-                ("last_name", models.CharField(max_length=200)),
-                ("first_names", models.CharField(max_length=200)),
+                ("declared_last_name", models.CharField(max_length=200)),
+                ("declared_first_names", models.CharField(max_length=200)),
+                ("declared_dob", models.CharField(blank=True, max_length=40)),
                 ("email", models.EmailField(max_length=254)),
                 (
                     "email_canonical",
@@ -68,6 +68,16 @@ class Migration(migrations.Migration):
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="registrations",
                         to="elections.poll",
+                    ),
+                ),
+                (
+                    "roll_entry",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="registrations",
+                        to="elections.rollentry",
                     ),
                 ),
             ],
@@ -118,7 +128,9 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="registration",
             constraint=models.UniqueConstraint(
-                fields=("poll", "nne"), name="uniq_registration_poll_nne"
+                fields=("poll", "roll_entry"),
+                condition=models.Q(roll_entry__isnull=False) & ~models.Q(state="rejected"),
+                name="uniq_registration_poll_roll_entry",
             ),
         ),
         migrations.AddConstraint(

@@ -1,10 +1,11 @@
 # SPDX-License-Identifier: 0BSD
 """``Ballot`` and ``PaperBallotLink`` (§3.4, §3.5).
 
-``Ballot`` carries no voter, registration or NNE reference and must never
+``Ballot`` carries no voter, registration or roll-entry reference and must never
 acquire one: adding one to satisfy INV-5 would destroy INV-1 (§5). It does not
 import ``apps.registrations`` either. The only association that exists is
-``PaperBallotLink``, deliberately (R-8.2 bis), and the retention job deletes it.
+``PaperBallotLink``, deliberately (R-8.2 bis) — it points at the snapshot entry
+the operator confirmed at keying — and the retention job deletes it.
 
 Append-only. A modification inserts ``version + 1`` and marks the prior row
 ``superseded``; a trigger refuses every ``UPDATE`` on a row that is already
@@ -103,7 +104,16 @@ class PaperBallotLink(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     poll = models.ForeignKey("elections.Poll", on_delete=models.CASCADE, related_name="paper_links")
     ballot = models.OneToOneField(Ballot, on_delete=models.CASCADE, related_name="paper_link")
-    nne = models.CharField(max_length=9)
+    # The snapshot entry the operator confirmed at entry (§3.5, §6.4). SET_NULL
+    # because the retention purge deletes the roll snapshot and a paper link
+    # must not be cascaded away before its own scheduled deletion.
+    roll_entry = models.ForeignKey(
+        "elections.RollEntry",
+        on_delete=models.SET_NULL,
+        related_name="paper_links",
+        null=True,
+        blank=True,
+    )
     operator = models.ForeignKey(
         "core.User", on_delete=models.PROTECT, related_name="keyed_ballots"
     )
@@ -117,7 +127,7 @@ class PaperBallotLink(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        indexes = [models.Index(fields=["poll", "nne"])]
+        indexes = [models.Index(fields=["poll", "roll_entry"])]
 
     def __str__(self) -> str:
         return f"bulletin papier {self.ballot_id}"

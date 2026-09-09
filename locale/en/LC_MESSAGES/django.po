@@ -49,8 +49,12 @@ msgid "inscription examinée"
 msgstr "registration reviewed"
 
 #: apps/audit/models.py
-msgid "tentative de doublon NNE"
-msgstr "duplicate NNE attempt"
+msgid "tentative de doublon d'inscription"
+msgstr "duplicate registration attempt"
+
+#: apps/audit/models.py
+msgid "inscription refusée : type de liste non autorisé"
+msgstr "registration refused: ineligible electoral-list type"
 
 #: apps/audit/models.py
 msgid "bulletin papier saisi"
@@ -117,8 +121,12 @@ msgid "divergence de nom refusée"
 msgstr "name divergence refused"
 
 #: apps/audit/models.py
-msgid "NNE absent de la liste"
-msgstr "NNE absent from the roll"
+msgid "aucune correspondance dans la liste"
+msgstr "no match in the roll"
+
+#: apps/audit/models.py
+msgid "type de liste non autorisé pour ce scrutin"
+msgstr "electoral-list type not eligible for this poll"
 
 #: apps/audit/models.py
 msgid "identité confirmée en mairie"

@@ -15,9 +15,10 @@
 
 {% block screen %}
   {% comment %}
-    R-5.4: these reached the queue because the automatic match failed — a name
-    that diverges from the roll, an NNE absent from it, or none given. None of
-    that is a refusal; it is a decision for an agent (T-28).
+    R-5.4: these reached the queue because no single automatic match was found —
+    a name that diverges from the roll, a date of birth that will not match,
+    several possible entries. None of that is a refusal; it is a decision for an
+    agent, who picks the roll entry to bind (T-28).
   {% endcomment %}
   <p class="notice">{% translate "Ces demandes n'ont pas pu être rapprochées automatiquement de la liste électorale. Comparez la déclaration à la liste, puis acceptez ou refusez avec un motif." %}</p>
 
@@ -30,12 +31,12 @@
   {% for row in rows %}
     <article class="review" aria-labelledby="demande-{{ row.registration.pk }}">
       <h2 id="demande-{{ row.registration.pk }}">
-        {{ row.registration.last_name }} {{ row.registration.first_names }}
+        {{ row.registration.declared_last_name }} {{ row.registration.declared_first_names }}
       </h2>
 
       <dl class="facts">
-        <dt>{% translate "NNE déclaré" %}</dt>
-        <dd>{{ row.registration.nne|default:_("aucun") }}</dd>
+        <dt>{% translate "Date de naissance déclarée" %}</dt>
+        <dd>{{ row.registration.declared_dob|default:_("non renseignée") }}</dd>
         <dt>{% translate "Adresse électronique" %}</dt>
         <dd>{{ row.registration.email }}</dd>
         <dt>{% translate "Déclaration sur l'honneur" %}</dt>
@@ -44,43 +45,60 @@
         <dd>{{ row.registration.created_at }}</dd>
       </dl>
 
-      <h3>{% translate "Entrées proches de la liste électorale" %}</h3>
-      {% if row.matches %}
-        <table>
-          <caption>{% translate "À comparer à la déclaration ci-dessus" %}</caption>
-          <thead>
-            <tr>
-              <th scope="col">{% translate "Nom" %}</th>
-              <th scope="col">{% translate "Prénoms" %}</th>
-              <th scope="col">{% translate "NNE" %}</th>
-              <th scope="col">{% translate "Concordance" %}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for match in row.matches %}
-              <tr>
-                <td>{{ match.entry.last_name }}</td>
-                <td>{{ match.entry.first_names }}</td>
-                <td>{{ match.entry.nne }}</td>
-                {% comment %}
-                  Written out, never a colour or an icon alone (R-14.1).
-                {% endcomment %}
-                <td>
-                  {% if match.same_nne %}{% translate "NNE identique" %}{% endif %}
-                  {% if match.same_last_name %}{% translate "nom identique" %}{% endif %}
-                  {% if match.shared_first_names %}{% blocktranslate count n=match.shared_first_names %}{{ n }} prénom commun{% plural %}{{ n }} prénoms communs{% endblocktranslate %}{% endif %}
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      {% else %}
-        <p>{% translate "Aucune entrée proche. Vérifiez auprès de la personne, ou en mairie." %}</p>
-      {% endif %}
-
       <form method="post" action="{% url 'backoffice:registration_decide' poll.pk %}" class="decision">
         {% csrf_token %}
         <input type="hidden" name="registration" value="{{ row.registration.pk }}">
+
+        <h3>{% translate "Entrées proches de la liste électorale" %}</h3>
+        {% if row.matches %}
+          {% comment %}
+            R-5.4: acceptance binds a roll entry, so the choice of which one is
+            part of the decision. The radios are inside the form for that
+            reason; the concordance column is written out, never a colour or an
+            icon alone (R-14.1).
+          {% endcomment %}
+          <table>
+            <caption>{% translate "Choisir l'entrée à rattacher, puis accepter" %}</caption>
+            <thead>
+              <tr>
+                <th scope="col">{% translate "Rattacher" %}</th>
+                <th scope="col">{% translate "Nom de naissance" %}</th>
+                <th scope="col">{% translate "Nom d'usage" %}</th>
+                <th scope="col">{% translate "Prénoms" %}</th>
+                <th scope="col">{% translate "Date de naissance" %}</th>
+                <th scope="col">{% translate "Listes" %}</th>
+                <th scope="col">{% translate "Concordance" %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for match in row.matches %}
+                <tr>
+                  <td>
+                    <input type="radio" name="roll_entry" value="{{ match.entry.pk }}"
+                           id="re-{{ row.registration.pk }}-{{ match.entry.pk }}"
+                           {% if forloop.first %}checked{% endif %}>
+                  </td>
+                  <td><label for="re-{{ row.registration.pk }}-{{ match.entry.pk }}">{{ match.entry.birth_name }}</label></td>
+                  <td>{{ match.entry.usual_name|default:"—" }}</td>
+                  <td>{{ match.entry.first_names }}</td>
+                  <td>
+                    {{ match.entry.date_of_birth|default:"—" }}
+                    {% if match.date_uncertain %}<span class="warn">{% translate "(date incertaine)" %}</span>{% endif %}
+                  </td>
+                  <td>{{ match.entry.list_types|join:", "|default:"—" }}</td>
+                  <td>
+                    {% if match.same_dob %}{% translate "date identique" %}{% endif %}
+                    {% if match.same_surname %}{% translate "nom identique" %}{% endif %}
+                    {% if match.shared_first_names %}{% blocktranslate count n=match.shared_first_names %}{{ n }} prénom commun{% plural %}{{ n }} prénoms communs{% endblocktranslate %}{% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <p>{% translate "Aucune entrée proche. Vérifiez auprès de la personne, ou en mairie." %}</p>
+        {% endif %}
+
         <p>
           <label for="note-{{ row.registration.pk }}">{% translate "Note (facultative)" %}</label>
           {% comment %}

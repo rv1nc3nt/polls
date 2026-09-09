@@ -30,7 +30,7 @@ In particular, a change must never:
 
 * add a column, view, index or query that joins a registration to an online
   ballot (INV-1, INV-5) — voting status lives on `Registration.channel`;
-* write an elector's name, NNE or email into an audit event (§10);
+* write an elector's name, date of birth or email into an audit event (§10);
 * add an update or delete path to `AuditEvent` (INV-3);
 * make the closure hash depend on anything but option ids and tracking codes
   (§3.8, §9);

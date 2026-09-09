@@ -32,7 +32,14 @@ class Migration(migrations.Migration):
                             ("roll_imported", "liste électorale importée"),
                             ("roll_snapshot_taken", "copie figée prise"),
                             ("registration_reviewed", "inscription examinée"),
-                            ("registration_duplicate_nne", "tentative de doublon NNE"),
+                            (
+                                "registration_duplicate",
+                                "tentative de doublon d'inscription",
+                            ),
+                            (
+                                "registration_ineligible",
+                                "inscription refusée : type de liste non autorisé",
+                            ),
                             ("paper_ballot_created", "bulletin papier saisi"),
                             ("paper_ballot_corrected", "bulletin papier rectifié"),
                             ("paper_ballot_deleted", "bulletin papier supprimé"),
@@ -61,7 +68,11 @@ class Migration(migrations.Migration):
                         choices=[
                             ("name_divergence_accepted", "divergence de nom acceptée"),
                             ("name_divergence_refused", "divergence de nom refusée"),
-                            ("nne_absent_from_roll", "NNE absent de la liste"),
+                            ("no_roll_match", "aucune correspondance dans la liste"),
+                            (
+                                "ineligible_list_type",
+                                "type de liste non autorisé pour ce scrutin",
+                            ),
                             ("identity_confirmed_at_mairie", "identité confirmée en mairie"),
                             ("keying_error", "erreur de saisie"),
                             ("voter_request", "demande de l'électeur"),

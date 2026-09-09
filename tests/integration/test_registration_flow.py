@@ -29,10 +29,11 @@ from apps.registrations.models import (
     RegistrationState,
 )
 
+# The fixture snapshot holds Dupont Émile, born 12/05/1970, on the main list.
 FORM = {
     "last_name": "Dupont",
     "first_names": "Émile",
-    "nne": "12345678",
+    "date_of_birth": "12/05/1970",
     "email": "Emile.Dupont@example.fr",
     "declared_on_honour": "on",
 }
@@ -40,7 +41,7 @@ FORM = {
 
 @pytest.fixture
 def live_poll(open_window_poll: Poll) -> Poll:
-    """An open poll whose snapshot holds Dupont Émile, NNE 12345678."""
+    """An open poll whose snapshot holds Dupont Émile, born 12/05/1970."""
     open_poll(open_window_poll)
     return Poll.objects.get(pk=open_window_poll.pk)
 
@@ -71,16 +72,24 @@ def _sibling_poll(model: Poll, **config: object) -> Poll:
         PollOption.objects.create(
             poll=poll, option_id=option_id, label_i18n={"fr": option_id}, position=position
         )
-    RollEntry.objects.create(poll=poll, last_name="Dupont", first_names="Émile", nne="12345678")
+    RollEntry.objects.create(
+        poll=poll,
+        birth_name="Dupont",
+        first_names="Émile",
+        date_of_birth="12/05/1970",
+        date_of_birth_parsed="1970-05-12",
+        list_types=["principale"],
+    )
     return poll
 
 
-# --- Step 4's routing (R-5.4) ------------------------------------------------
+# --- Step 4's routing (R-5.4, R-4.7) ---------------------------------------
 
 
-def test_a_consistent_name_goes_straight_to_pending_email(live_poll: Poll) -> None:
+def test_a_consistent_name_and_date_go_straight_to_pending_email(live_poll: Poll) -> None:
     registration, token = _register(live_poll)
     assert registration.state == RegistrationState.PENDING_EMAIL
+    assert registration.roll_entry is not None
     assert token is not None
 
 
@@ -89,14 +98,15 @@ def test_t28_a_divergent_name_is_reviewed_not_refused(live_poll: Poll) -> None:
     entry is spelled differently from their own declaration."""
     registration, token = _register(live_poll, last_name="Dupond")
     assert registration.state == RegistrationState.PENDING_REVIEW
+    assert registration.roll_entry is None
     assert token is None, "no token before a human has looked"
 
 
-def test_an_absent_or_blank_nne_is_reviewed(live_poll: Poll) -> None:
-    absent, _ = _register(live_poll, nne="99999999", email="a@example.fr")
-    assert absent.state == RegistrationState.PENDING_REVIEW
-    blank, _ = _register(live_poll, nne="", email="b@example.fr")
-    assert blank.state == RegistrationState.PENDING_REVIEW
+def test_a_divergent_or_missing_date_of_birth_is_reviewed(live_poll: Poll) -> None:
+    wrong_date, _ = _register(live_poll, date_of_birth="01/01/1900", email="a@example.fr")
+    assert wrong_date.state == RegistrationState.PENDING_REVIEW
+    no_date, _ = _register(live_poll, date_of_birth="", email="b@example.fr")
+    assert no_date.state == RegistrationState.PENDING_REVIEW
 
 
 def test_diacritics_and_particles_do_not_make_a_divergence(live_poll: Poll) -> None:
@@ -105,10 +115,112 @@ def test_diacritics_and_particles_do_not_make_a_divergence(live_poll: Poll) -> N
     assert registration.state == RegistrationState.PENDING_EMAIL
 
 
+def test_the_name_in_use_is_accepted_in_place_of_the_birth_surname(
+    open_window_poll: Poll,
+) -> None:
+    """R-5.3: the declared surname is tried against both roll surnames."""
+    from apps.elections.models import WorkingRollEntry
+
+    WorkingRollEntry.objects.all().delete()
+    WorkingRollEntry.objects.create(
+        birth_name="Delavigne",
+        usual_name="Ravanel",
+        first_names="Apolline",
+        date_of_birth="14/03/1962",
+        date_of_birth_parsed="1962-03-14",
+        list_types=["principale"],
+    )
+    poll = Poll.objects.get(pk=open_window_poll.pk)
+    open_poll(poll)
+
+    registration, token = services.register(
+        Poll.objects.get(pk=poll.pk),
+        {
+            "last_name": "Ravanel",
+            "first_names": "Apolline",
+            "date_of_birth": "14/03/1962",
+            "email": "apolline@example.fr",
+            "declared_on_honour": "on",
+        },
+        language="fr",
+    )
+    assert registration.state == RegistrationState.PENDING_EMAIL
+    assert token is not None
+
+
+def test_t61_a_match_on_an_ineligible_list_type_is_rejected(open_window_poll: Poll) -> None:
+    """R-4.7: a single match whose list types confer no eligibility here is
+    refused as ineligible, not sent to review, and the attempt is logged."""
+    from apps.elections.models import WorkingRollEntry
+
+    WorkingRollEntry.objects.all().delete()
+    WorkingRollEntry.objects.create(
+        birth_name="Zampieri",
+        first_names="Églantine",
+        date_of_birth="08/01/1983",
+        date_of_birth_parsed="1983-01-08",
+        list_types=["complementaire_europeenne"],
+    )
+    open_poll(open_window_poll)
+    poll = Poll.objects.get(pk=open_window_poll.pk)
+
+    registration, token = services.register(
+        poll,
+        {
+            "last_name": "Zampieri",
+            "first_names": "Églantine",
+            "date_of_birth": "08/01/1983",
+            "email": "eglantine@example.fr",
+            "declared_on_honour": "on",
+        },
+        language="fr",
+    )
+    assert registration.state == RegistrationState.REJECTED
+    assert registration.roll_entry is None
+    assert token is None
+    event = AuditEvent.objects.get(action=Action.REGISTRATION_INELIGIBLE)
+    assert event.after["list_types"] == ["complementaire_europeenne"]
+    assert "Zampieri" not in str(event.after)
+
+
+def test_t62_a_match_only_against_a_date_uncertain_entry_is_reviewed(
+    open_window_poll: Poll,
+) -> None:
+    """R-4.9: an entry whose date of birth would not parse never auto-matches."""
+    from apps.elections.models import WorkingRollEntry
+
+    WorkingRollEntry.objects.all().delete()
+    WorkingRollEntry.objects.create(
+        birth_name="Orsatti",
+        first_names="Zéphirin",
+        date_of_birth="00/00/1953",
+        date_of_birth_parsed=None,
+        date_uncertain=True,
+        list_types=["principale"],
+    )
+    open_poll(open_window_poll)
+
+    registration, token = services.register(
+        Poll.objects.get(pk=open_window_poll.pk),
+        {
+            "last_name": "Orsatti",
+            "first_names": "Zéphirin",
+            "date_of_birth": "00/00/1953",
+            "email": "zephirin@example.fr",
+            "declared_on_honour": "on",
+        },
+        language="fr",
+    )
+    assert registration.state == RegistrationState.PENDING_REVIEW
+    assert token is None
+
+
 # --- Steps 3 and 6: the two duplicates (T-2, T-17) ---------------------------
 
 
-def test_t2_a_duplicate_nne_is_refused_logged_and_flagged(live_poll: Poll) -> None:
+def test_t2_a_registration_against_a_bound_roll_entry_is_refused_logged_and_flagged(
+    live_poll: Poll,
+) -> None:
     """R-5.9. The event references the *existing* registration and records
     nothing about the attempter (§10)."""
     first, _ = _register(live_poll)
@@ -116,7 +228,7 @@ def test_t2_a_duplicate_nne_is_refused_logged_and_flagged(live_poll: Poll) -> No
         _register(live_poll, email="autre@example.fr")
 
     assert DuplicateAttempt.objects.filter(existing_registration=first).count() == 1
-    event = AuditEvent.objects.get(action=Action.REGISTRATION_DUPLICATE_NNE)
+    event = AuditEvent.objects.get(action=Action.REGISTRATION_DUPLICATE)
     assert event.object_ref == f"registration:{first.pk}"
     assert event.before == {} and event.after == {}
 
@@ -124,7 +236,7 @@ def test_t2_a_duplicate_nne_is_refused_logged_and_flagged(live_poll: Poll) -> No
 def test_t17_a_duplicate_address_is_refused_whatever_its_case(live_poll: Poll) -> None:
     _register(live_poll)
     with pytest.raises(services.RegistrationRefused):
-        _register(live_poll, nne="87654321", email="EMILE.DUPONT@EXAMPLE.FR")
+        _register(live_poll, last_name="Autre", email="EMILE.DUPONT@EXAMPLE.FR")
 
 
 def test_both_duplicates_answer_with_the_same_words(live_poll: Poll) -> None:
@@ -132,15 +244,14 @@ def test_both_duplicates_answer_with_the_same_words(live_poll: Poll) -> None:
     anything about the registration that caused the refusal."""
     _register(live_poll)
 
-    with pytest.raises(services.RegistrationRefused) as by_nne:
+    with pytest.raises(services.RegistrationRefused) as by_entry:
         _register(live_poll, email="autre@example.fr")
     with pytest.raises(services.RegistrationRefused) as by_email:
-        _register(live_poll, nne="87654321")
+        _register(live_poll, last_name="Autre")
 
-    assert str(by_nne.value) == str(by_email.value)
-    for message in (str(by_nne.value), str(by_email.value)):
+    assert str(by_entry.value) == str(by_email.value)
+    for message in (str(by_entry.value), str(by_email.value)):
         assert "Dupont" not in message
-        assert "12345678" not in message
         assert "example.fr" not in message
 
 
@@ -163,8 +274,6 @@ def test_the_plaintext_token_is_never_stored(live_poll: Poll) -> None:
 
 
 def test_a_token_redacts_itself_everywhere(live_poll: Poll) -> None:
-    """§5.1: an accidental f-string in a log line is the failure the type
-    exists to prevent."""
     _, token = _register(live_poll)
     assert token is not None
     assert token.reveal() not in f"{token} {token!r} {token!s}"
@@ -181,7 +290,7 @@ def test_t25_the_confirmation_mail_carries_no_tracking_code(live_poll: Poll) -> 
     body = django_mail.outbox[0].body
     assert token.reveal() in body, "the ballot link must carry the token"
     assert "tracking" not in body.lower()
-    assert registration.nne not in body
+    assert registration.declared_dob not in body
 
 
 def test_the_mail_warns_that_losing_it_loses_modification(live_poll: Poll) -> None:
@@ -205,25 +314,46 @@ def test_the_mail_warns_that_losing_it_loses_modification(live_poll: Poll) -> No
 
 
 def test_t18_approval_reaches_pending_email_never_active(live_poll: Poll) -> None:
+    from apps.elections.models import RollEntry
+
     registration, _ = _register(live_poll, last_name="Dupond")
-    approved, token = services.approve(registration, reason="name_divergence_accepted")
+    entry = RollEntry.objects.get(poll=live_poll, birth_name="Dupont")
+    approved, token = services.approve(registration, entry, reason="name_divergence_accepted")
 
     assert approved.state == RegistrationState.PENDING_EMAIL
+    assert approved.roll_entry == entry
     assert token is not None
     assert AuditEvent.objects.filter(action=Action.REGISTRATION_REVIEWED).exists()
 
 
-def test_approval_also_needs_a_reason(live_poll: Poll) -> None:
-    """§6.2 step 5 logs a reason on both decisions. An approval without one
-    leaves the log saying somebody was let in and not why."""
+def test_approval_needs_a_reason_and_an_entry(live_poll: Poll) -> None:
+    from apps.elections.models import RollEntry
+
     registration, _ = _register(live_poll, last_name="Dupond")
+    entry = RollEntry.objects.get(poll=live_poll, birth_name="Dupont")
     with pytest.raises(services.RegistrationRefused):
-        services.approve(registration, reason="")
+        services.approve(registration, entry, reason="")
+    with pytest.raises(services.RegistrationRefused):
+        services.approve(registration, None, reason="name_divergence_accepted")
 
 
-def test_rejection_needs_a_reason_and_keeps_the_prose_off_the_event(
-    live_poll: Poll,
-) -> None:
+def test_approval_refuses_an_entry_already_bound(live_poll: Poll) -> None:
+    """Step 6 (R-5.9): the admin-picked entry already carries a live
+    registration."""
+    from apps.elections.models import RollEntry
+
+    _register(live_poll)  # binds the Dupont entry
+    entry = RollEntry.objects.get(poll=live_poll, birth_name="Dupont")
+    other, _ = services.register(
+        live_poll,
+        {**FORM, "last_name": "Dupond", "email": "other@example.fr"},
+        language="fr",
+    )
+    with pytest.raises(services.RegistrationRefused):
+        services.approve(other, entry, reason="name_divergence_accepted")
+
+
+def test_rejection_needs_a_reason_and_keeps_the_prose_off_the_event(live_poll: Poll) -> None:
     """§10: ``reason`` is a code; the note goes on the row the purge deletes."""
     registration, _ = _register(live_poll, last_name="Dupond")
     with pytest.raises(services.RegistrationRefused):
@@ -243,9 +373,7 @@ def test_rejection_needs_a_reason_and_keeps_the_prose_off_the_event(
     assert "Dupond" not in str(event.before) + str(event.after) + event.reason
 
 
-def test_t27_a_pending_email_registration_is_not_counted_and_not_active(
-    live_poll: Poll,
-) -> None:
+def test_t27_a_pending_email_registration_is_not_counted_and_not_active(live_poll: Poll) -> None:
     """R-5.5: it cannot reach a ballot and is excluded from turnout."""
     registration, _ = _register(live_poll)
     assert registration.state == RegistrationState.PENDING_EMAIL
@@ -255,9 +383,7 @@ def test_t27_a_pending_email_registration_is_not_counted_and_not_active(
     assert frozen_counts(live_poll)["registered"] == 0
 
 
-def test_confirming_the_mailbox_activates_once_and_is_idempotent(
-    live_poll: Poll,
-) -> None:
+def test_confirming_the_mailbox_activates_once_and_is_idempotent(live_poll: Poll) -> None:
     registration, _ = _register(live_poll)
     confirmed = services.confirm_mailbox(registration)
     assert confirmed.state == RegistrationState.ACTIVE
@@ -288,7 +414,6 @@ def test_t12_the_same_elector_in_two_polls_gets_unrelated_tokens(
     assert token_a.reveal() != token_b.reveal()
     assert first.voter_hash is not None and second.voter_hash is not None
     assert bytes(first.voter_hash) != bytes(second.voter_hash)
-    # And a token from one poll opens nothing in the other.
     assert services.find_by_token(other, token_a) is None
 
 
@@ -296,12 +421,6 @@ def test_t12_the_same_elector_in_two_polls_gets_unrelated_tokens(
 
 
 def test_registration_is_refused_after_closure(live_poll: Poll) -> None:
-    """INV-2: no registration write after ``closes_at``.
-
-    ``closes_at`` and ``paper_entry_deadline`` are the two fields that are not
-    frozen — they move together through the reasoned extension of R-3.4 — so
-    they are what a test may legitimately change on an open poll.
-    """
     past = timezone.now() - timedelta(minutes=1)
     Poll.objects.filter(pk=live_poll.pk).update(closes_at=past, paper_entry_deadline=past)
     with pytest.raises(WindowClosed):
@@ -309,10 +428,6 @@ def test_registration_is_refused_after_closure(live_poll: Poll) -> None:
 
 
 def test_registration_is_refused_before_opening(db: None) -> None:
-    """Not INV-2, which names only the closing bound, but a consequence of
-    R-5.3: matching is against the snapshot, and the snapshot is written at
-    ``draft → open`` (§4). Registering earlier would route everyone to
-    ``pending_review`` for want of a roll."""
     now = timezone.now()
     future = Poll.objects.create(
         title_i18n={"fr": "À venir"},

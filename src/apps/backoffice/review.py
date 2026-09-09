@@ -1,15 +1,17 @@
 # SPDX-License-Identifier: 0BSD
 """The read model behind screen 4, file d'attente des inscriptions (§6.5.4).
 
-Screen 4 shows a name beside a roll entry, which is the point: an agent decides
-whether the person who filled in the form is the person on the roll (R-5.4).
-That is identity beside identity, and never identity beside ballot content —
-the one screen permitted to show the latter is screen 5 (§6.5).
+Screen 4 shows a declaration beside roll entries, which is the point: an agent
+decides whether the person who filled in the form is the person on the roll, and
+picks the entry to bind (R-5.4). That is identity beside identity, and never
+identity beside ballot content — the one screen permitted to show the latter is
+screen 5 (§6.5).
 
 ``near_matches`` is why the screen is usable. The applicant reached
-``pending_review`` because the exact NNE match failed, so showing them nothing
-would leave the agent to search the roll by hand; showing them the entries that
-nearly match turns the decision into a comparison.
+``pending_review`` because no single automatic match was found, so showing them
+nothing would leave the agent to search the roll by hand; showing them the
+entries that nearly match — by date of birth, by either surname, by a shared
+forename — turns the decision into a comparison.
 """
 
 from __future__ import annotations
@@ -17,7 +19,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from apps.audit.models import Reason
-from apps.core.names import name_tokens, normalise_nne
+from apps.core.names import name_tokens, parse_dob, surname_matches
 from apps.elections.models import Poll, RollEntry
 from apps.registrations.models import Registration, RegistrationState
 
@@ -33,7 +35,8 @@ APPROVAL_REASONS = (
 )
 REFUSAL_REASONS = (
     Reason.NAME_DIVERGENCE_REFUSED,
-    Reason.NNE_ABSENT_FROM_ROLL,
+    Reason.NO_ROLL_MATCH,
+    Reason.INELIGIBLE_LIST_TYPE,
     Reason.ADMINISTRATIVE_DECISION,
     Reason.OTHER,
 )
@@ -54,9 +57,10 @@ class NearMatch:
     """A roll entry the agent should look at, and why it surfaced."""
 
     entry: RollEntry
-    same_nne: bool
-    same_last_name: bool
+    same_dob: bool
+    same_surname: bool
     shared_first_names: int
+    date_uncertain: bool
 
 
 def pending(poll: Poll) -> list[Registration]:
@@ -72,45 +76,55 @@ def near_matches(registration: Registration) -> list[NearMatch]:
     """Roll entries worth comparing against this applicant (R-8.3's idea, here
     serving R-5.4).
 
-    Three ways in, in descending order of confidence: the NNE matches exactly
-    (so the *name* is what diverged), the last name matches after
-    normalisation, or a first name is shared. Ranked, not filtered — an agent
-    who sees nothing cannot tell "no candidate" from "the search was too
-    narrow".
+    Three ways in, in descending order of confidence: the parsed date of birth
+    matches, either surname matches after normalisation, or a forename is
+    shared. Ranked, not filtered — an agent who sees nothing cannot tell "no
+    candidate" from "the search was too narrow".
     """
     poll = registration.poll
-    nne = normalise_nne(registration.nne)
-    declared_last = name_tokens(registration.last_name)
-    declared_first = name_tokens(registration.first_names)
+    declared_dob = parse_dob(registration.declared_dob)
+    declared_surname = name_tokens(registration.declared_last_name)
+    declared_first = name_tokens(registration.declared_first_names)
 
     candidates: dict[str, RollEntry] = {}
-    if nne:
-        for entry in RollEntry.objects.filter(poll=poll, nne=nne):
+    if declared_dob is not None:
+        for entry in RollEntry.objects.filter(poll=poll, date_of_birth_parsed=declared_dob):
             candidates[str(entry.pk)] = entry
-    # Last-name candidates are narrowed in the database by first letter, then
-    # compared properly in Python: normalisation strips diacritics, particles
-    # and hyphens, none of which SQL can do (§6.2 step 2).
-    if registration.last_name:
-        for entry in RollEntry.objects.filter(
-            poll=poll, last_name__istartswith=registration.last_name[:1]
-        )[:200]:
+    # Surname candidates are narrowed in the database by first letter of the
+    # birth name, then compared properly in Python: normalisation strips
+    # diacritics, particles and hyphens, none of which SQL can do (§6.2 step 2),
+    # and the comparison tries the name in use as well.
+    if registration.declared_last_name:
+        first_letter = registration.declared_last_name[:1]
+        for entry in RollEntry.objects.filter(poll=poll, birth_name__istartswith=first_letter)[
+            :200
+        ]:
+            candidates.setdefault(str(entry.pk), entry)
+        for entry in RollEntry.objects.filter(poll=poll, usual_name__istartswith=first_letter)[
+            :200
+        ]:
             candidates.setdefault(str(entry.pk), entry)
 
     scored = []
     for entry in candidates.values():
-        entry_last = name_tokens(entry.last_name)
         entry_first = name_tokens(entry.first_names)
         match = NearMatch(
             entry=entry,
-            same_nne=bool(nne) and entry.nne == nne,
-            same_last_name=entry_last == declared_last,
+            same_dob=declared_dob is not None
+            and not entry.date_uncertain
+            and entry.date_of_birth_parsed == declared_dob,
+            same_surname=bool(declared_surname)
+            and surname_matches(
+                registration.declared_last_name, entry.birth_name, entry.usual_name
+            ),
             shared_first_names=len(declared_first & entry_first),
+            date_uncertain=entry.date_uncertain,
         )
-        if match.same_nne or match.same_last_name or match.shared_first_names:
+        if match.same_dob or match.same_surname or match.shared_first_names:
             scored.append(match)
 
     scored.sort(
-        key=lambda m: (m.same_nne, m.same_last_name, m.shared_first_names),
+        key=lambda m: (m.same_dob, m.same_surname, m.shared_first_names),
         reverse=True,
     )
     return scored[:NEAR_MATCH_LIMIT]

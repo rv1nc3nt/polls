@@ -4,8 +4,8 @@
 Reference-only, decided before the model was written and not retrofittable:
 an event stores a *reference* and non-identifying state, never a copied personal
 value. ``object_ref`` names the row; ``before``/``after`` hold state, channel,
-status, role and rankings by option id. No elector's name, NNE or email is ever
-written here (T-55).
+status, role and rankings by option id. No elector's name, date of birth or
+email is ever written here (T-55).
 
 The identity therefore lives only in the referenced row, which the retention job
 deletes (§11). Afterwards the log still reads *registration 7f3a… moved
@@ -36,7 +36,11 @@ class Action(models.TextChoices):
     ROLL_IMPORTED = "roll_imported", _("liste électorale importée")
     ROLL_SNAPSHOT_TAKEN = "roll_snapshot_taken", _("copie figée prise")
     REGISTRATION_REVIEWED = "registration_reviewed", _("inscription examinée")
-    REGISTRATION_DUPLICATE_NNE = "registration_duplicate_nne", _("tentative de doublon NNE")
+    REGISTRATION_DUPLICATE = "registration_duplicate", _("tentative de doublon d'inscription")
+    REGISTRATION_INELIGIBLE = (
+        "registration_ineligible",
+        _("inscription refusée : type de liste non autorisé"),
+    )
     PAPER_BALLOT_CREATED = "paper_ballot_created", _("bulletin papier saisi")
     PAPER_BALLOT_CORRECTED = "paper_ballot_corrected", _("bulletin papier rectifié")
     PAPER_BALLOT_DELETED = "paper_ballot_deleted", _("bulletin papier supprimé")
@@ -64,7 +68,8 @@ class Reason(models.TextChoices):
 
     NAME_DIVERGENCE_ACCEPTED = "name_divergence_accepted", _("divergence de nom acceptée")
     NAME_DIVERGENCE_REFUSED = "name_divergence_refused", _("divergence de nom refusée")
-    NNE_ABSENT_FROM_ROLL = "nne_absent_from_roll", _("NNE absent de la liste")
+    NO_ROLL_MATCH = "no_roll_match", _("aucune correspondance dans la liste")
+    INELIGIBLE_LIST_TYPE = "ineligible_list_type", _("type de liste non autorisé pour ce scrutin")
     IDENTITY_CONFIRMED_AT_MAIRIE = "identity_confirmed_at_mairie", _("identité confirmée en mairie")
     KEYING_ERROR = "keying_error", _("erreur de saisie")
     VOTER_REQUEST = "voter_request", _("demande de l'électeur")

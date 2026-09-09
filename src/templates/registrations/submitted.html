@@ -9,10 +9,20 @@
     <h1>{% translate "Vérifiez votre boîte aux lettres" %}</h1>
     <p>{% translate "Nous vous avons envoyé un message contenant votre lien de vote. Ouvrez-le pour confirmer votre inscription et voter." %}</p>
     <p>{% translate "Si rien n'arrive dans les prochaines minutes, pensez à regarder dans les courriers indésirables, puis contactez la mairie." %}</p>
+  {% elif outcome == "ineligible" %}
+    {% comment %}
+      R-4.7 / T-61: the elector was found on the roll but on an electoral-list
+      type that confers no standing on this poll (a European complementary list
+      on a municipal question, say). They are told plainly, not sent to review.
+    {% endcomment %}
+    <h1>{% translate "Vous n'êtes pas concerné par cette consultation" %}</h1>
+    <p>{% translate "Vous figurez bien sur la liste électorale de la commune, mais sur une liste qui n'ouvre pas le droit de participer à cette consultation. Si vous pensez qu'il s'agit d'une erreur, adressez-vous à la mairie." %}</p>
   {% else %}
     {% comment %}
-      R-5.4: a divergent name, an absent NNE or a blank one is routed to a human
-      rather than refused, and the applicant is told so plainly (T-28).
+      R-5.4: a declaration that does not resolve to a single roll entry — a
+      divergent name, a date of birth that will not match, several possible
+      entries — is routed to a human rather than refused, and the applicant is
+      told so plainly (T-28).
     {% endcomment %}
     <h1>{% translate "Votre demande sera examinée" %}</h1>
     <p>{% translate "Nous n'avons pas pu rapprocher automatiquement votre demande de la liste électorale. Un agent de la mairie va l'examiner et vous recevrez ensuite votre lien de vote par courrier électronique." %}</p>

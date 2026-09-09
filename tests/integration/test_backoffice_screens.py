@@ -35,14 +35,14 @@ def _grant(poll: Poll, user: User, role: Role) -> None:
     PollRole.objects.create(poll=poll, user=user, role=role)
 
 
-def _register(poll: Poll, nne: str, *, state: str, channel: str = Channel.NONE) -> Registration:
+def _register(poll: Poll, tag: str, *, state: str, channel: str = Channel.NONE) -> Registration:
     return Registration.objects.create(
         poll=poll,
-        nne=nne,
-        last_name="Dupont",
-        first_names="Émile",
-        email=f"{nne}@example.fr",
-        email_canonical=f"{nne}@example.fr",
+        declared_last_name="Dupont",
+        declared_first_names="Émile",
+        declared_dob="12/05/1970",
+        email=f"{tag}@example.fr",
+        email_canonical=f"{tag}@example.fr",
         state=state,
         channel=channel,
     )

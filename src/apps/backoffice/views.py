@@ -44,7 +44,7 @@ from apps.audit import services as audit
 from apps.audit.models import Action, Reason
 from apps.core.models import Role
 from apps.elections import rollimport
-from apps.elections.models import Poll
+from apps.elections.models import Poll, RollEntry
 from apps.elections.windows import WindowClosed
 from apps.registrations import mail as registration_mail
 from apps.registrations import services as registrations
@@ -256,11 +256,25 @@ def registration_decide(request: HttpRequest, poll: Poll) -> HttpResponse:
     try:
         if decision == "approve":
             reason = _reason("approve_reason", review.APPROVAL_REASONS)
+            # R-5.4: the admin picks the roll entry to bind; it must belong to
+            # this poll's snapshot. A missing or foreign id is left as None and
+            # ``approve`` refuses with the reason why.
+            roll_entry = RollEntry.objects.filter(
+                poll=poll, pk=request.POST.get("roll_entry", "")
+            ).first()
             if not reason:
                 messages.error(request, _("Un motif est obligatoire pour accepter."))
+            elif roll_entry is None:
+                messages.error(
+                    request, _("Choisissez l'entrée de la liste électorale à rattacher.")
+                )
             else:
                 registration, token = registrations.approve(
-                    registration, reason=reason, actor=current_operator(request), note=note
+                    registration,
+                    roll_entry,
+                    reason=reason,
+                    actor=current_operator(request),
+                    note=note,
                 )
                 transaction.on_commit(
                     lambda: registration_mail.send_confirmation(registration, token)
@@ -360,18 +374,21 @@ def roll_import_review(request: HttpRequest, poll: Poll) -> HttpResponse:
         "total_rows": len(table.rows),
     }
 
-    if len(mapping) < len(rollimport.FIELDS):
-        # Step 2: mapping is not complete yet — nothing to validate.
+    if any(name not in mapping for name in rollimport.MANDATORY_FIELDS):
+        # Step 2: a mandatory column is still unmapped — nothing to validate.
         return render(request, "backoffice/roll_import_review.html", context)
 
     rows = rollimport.apply_mapping(table, mapping)
-    report = rollimport.validate(rows)
+    report = rollimport.validate(rows, mapping)
+    entries = rollimport.collapse(rows).entries
     context["report"] = report
-    context["preview"] = rows[:20]
+    context["preview"] = entries[:20]
+    context["entry_count"] = len(entries)
 
     if request.POST.get("action") == "confirm" and not report.blocking:
-        roll_import_row = rollimport.apply_import(
+        rollimport.apply_import(
             rows,
+            mapping,
             filename=draft["filename"],
             file_sha256=bytes.fromhex(draft["sha256"]),
             operator=current_operator(request),
@@ -379,8 +396,7 @@ def roll_import_review(request: HttpRequest, poll: Poll) -> HttpResponse:
         del request.session[_ROLL_DRAFT_SESSION_KEY]
         messages.success(
             request,
-            _("Liste électorale importée : %(count)s inscrit(s).")
-            % {"count": roll_import_row.row_count},
+            _("Liste électorale importée : %(count)s inscrit(s).") % {"count": len(entries)},
         )
         return redirect("backoffice:dashboard", poll_id=str(poll.pk))
 

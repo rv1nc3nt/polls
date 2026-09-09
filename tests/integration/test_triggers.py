@@ -165,10 +165,14 @@ def test_inv7_roll_snapshot_is_immutable_and_purgeable_only_after_closure(
     from apps.elections.models import RollEntry
 
     entry = RollEntry.objects.create(
-        poll=open_window_poll, last_name="Dupont", first_names="Émile", nne="12345678"
+        poll=open_window_poll,
+        birth_name="Dupont",
+        first_names="Émile",
+        date_of_birth="12/05/1970",
+        list_types=["principale"],
     )
     with pytest.raises(Exception, match="INV-7"), transaction.atomic():
-        raw("UPDATE elections_rollentry SET nne = '87654321' WHERE id = %s", [pk(entry)])
+        raw("UPDATE elections_rollentry SET birth_name = 'Autre' WHERE id = %s", [pk(entry)])
     with pytest.raises(Exception, match="INV-7"), transaction.atomic():
         raw("DELETE FROM elections_rollentry WHERE id = %s", [pk(entry)])
 

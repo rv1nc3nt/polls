@@ -1,16 +1,23 @@
 # SPDX-License-Identifier: 0BSD
-"""Name and address comparison for registration matching (§6.2, R-5.3).
+"""Name and date comparison for registration matching (§6.2, R-5.3).
 
-Pure functions, tested without a database (T-40, T-41). The comparison decides
-between ``pending_email`` and ``pending_review``; it never refuses a
+Pure functions, tested without a database (T-40, T-41, T-59). The comparison
+decides between ``pending_email`` and ``pending_review``; it never refuses a
 registration on its own, so a false negative costs a human review and a false
 positive is the one to avoid.
+
+There is no national identifier here any more (R-4.8): a match is a normalised
+name tried against **both** the roll's birth surname and its name in use,
+together with the date of birth, which carries most of the discriminating power
+(R-5.3). The date is parsed by ``parse_dob``; where it will not parse the entry
+is flagged ``date_uncertain`` and never matched automatically (R-4.9).
 """
 
 from __future__ import annotations
 
 import re
 import unicodedata
+from datetime import date, datetime
 
 # Particles are dropped before comparison: rolls and self-declarations disagree
 # about them constantly ("de La Fontaine" / "Lafontaine" stays a divergence, but
@@ -47,15 +54,37 @@ def name_tokens(text: str) -> frozenset[str]:
     return frozenset(p for p in parts if p and p not in PARTICLES)
 
 
-def names_match(declared_last: str, declared_first: str, roll_last: str, roll_first: str) -> bool:
+def surname_matches(declared_last: str, roll_birth_name: str, roll_usual_name: str) -> bool:
+    """The declared surname tried against **both** roll surnames (R-5.3).
+
+    ``roll_usual_name`` is often blank; when it is, only the birth surname is
+    compared. A registrant may write either — a married name or the name on the
+    roll — and neither is the wrong answer.
+    """
+    declared = name_tokens(declared_last)
+    if not declared:
+        return False
+    if declared == name_tokens(roll_birth_name):
+        return True
+    return bool(roll_usual_name) and declared == name_tokens(roll_usual_name)
+
+
+def names_match(
+    declared_last: str,
+    declared_first: str,
+    roll_birth_name: str,
+    roll_usual_name: str,
+    roll_first: str,
+) -> bool:
     """Whether a self-declared name is consistent with the roll entry (R-5.3).
 
-    Last names must agree as sets. First names agree if either side's tokens are
-    a subset of the other's: a roll holding every given name ("Marie Claire
+    The surname must agree as a set with the birth surname or the name in use
+    (``surname_matches``). First names agree if either side's tokens are a
+    subset of the other's: a roll holding every given name ("Marie Claire
     Josèphe") and a person writing one of them ("Marie") is the common case, and
     it is a match; a person writing a name absent from the roll is not.
     """
-    if name_tokens(declared_last) != name_tokens(roll_last):
+    if not surname_matches(declared_last, roll_birth_name, roll_usual_name):
         return False
     declared = name_tokens(declared_first)
     roll = name_tokens(roll_first)
@@ -74,14 +103,26 @@ def canonical_email(address: str) -> str:
     return address.strip().lower()
 
 
-NNE_PATTERN = re.compile(r"^\d{8,9}$")
+#: Accepted written forms of a date of birth. ``%d/%m/%Y`` is what a REU export
+#: and a French registrant both write; the ISO form is accepted so a machine-fed
+#: file is not rejected for its punctuation.
+_DOB_FORMATS = ("%d/%m/%Y", "%Y-%m-%d")
 
 
-def normalise_nne(value: str) -> str:
-    """An NNE with its whitespace removed. Validation is separate."""
-    return re.sub(r"\s+", "", value.strip())
+def parse_dob(raw: str) -> date | None:
+    """The date of birth as a ``date``, or ``None`` when it will not parse.
 
-
-def is_valid_nne(value: str) -> bool:
-    """8 or 9 digits (§2). Format only — the roll decides whether it exists."""
-    return bool(NNE_PATTERN.match(value))
+    ``None`` covers an empty cell, a bare year (``1961``), an impossible date
+    (``00/00/1953``) and a real date in an unrecognised layout — everything
+    R-4.9 keeps verbatim and flags ``date_uncertain``. The raw string is stored
+    beside this value, never replaced by it.
+    """
+    text = raw.strip()
+    if not text:
+        return None
+    for fmt in _DOB_FORMATS:
+        try:
+            return datetime.strptime(text, fmt).date()
+        except ValueError:
+            continue
+    return None

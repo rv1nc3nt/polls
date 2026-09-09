@@ -110,7 +110,16 @@ def _open_poll_locked(poll: Poll, actor: User | None, now: datetime | None) -> P
         raise TransitionRefused(_("Ouverture refusée : configuration incomplète."), blockers)
 
     RollEntry.objects.bulk_create(
-        RollEntry(poll=poll, last_name=e.last_name, first_names=e.first_names, nne=e.nne)
+        RollEntry(
+            poll=poll,
+            birth_name=e.birth_name,
+            usual_name=e.usual_name,
+            first_names=e.first_names,
+            date_of_birth=e.date_of_birth,
+            date_of_birth_parsed=e.date_of_birth_parsed,
+            date_uncertain=e.date_uncertain,
+            list_types=e.list_types,
+        )
         for e in WorkingRollEntry.objects.all().iterator()
     )
     snapshot_size = poll.roll_entries.count()

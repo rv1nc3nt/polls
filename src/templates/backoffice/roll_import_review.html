@@ -15,6 +15,9 @@
 {% block screen %}
   <p>{% blocktranslate %}Fichier : {{ filename }}{% endblocktranslate %}</p>
   <p>{% blocktranslate count total=total_rows %}{{ total }} ligne à traiter{% plural %}{{ total }} lignes à traiter{% endblocktranslate %}</p>
+  {% if entry_count %}
+    <p>{% blocktranslate count n=entry_count %}{{ n }} électeur après regroupement{% plural %}{{ n }} électeurs après regroupement{% endblocktranslate %}</p>
+  {% endif %}
 
   <form method="post">
     {% csrf_token %}
@@ -47,46 +50,62 @@
         <h2 id="rapport">{% translate "Rapport de validation" %}</h2>
 
         {% comment %}
-          §6.1's four categories. The first three block the import outright
-          (T-11); the fourth is judgement for the operator, the same way a
-          divergent registration is (R-5.4), and never blocks.
+          §6.1, R-4.5: the report informs, it does not gate. Only the first two
+          categories block the import (a structurally unusable file, T-11); the
+          rest are judgement for the operator — every one of those rows is
+          imported anyway.
         {% endcomment %}
         <ul class="validation-report">
-          <li class="{% if report.missing_fields %}validation-report__bad{% else %}validation-report__ok{% endif %}">
-            {% blocktranslate count n=report.missing_fields|length %}{{ n }} ligne avec un champ manquant{% plural %}{{ n }} lignes avec un champ manquant{% endblocktranslate %}
+          <li class="{% if report.missing_columns %}validation-report__bad{% else %}validation-report__ok{% endif %}">
+            {% if report.missing_columns %}
+              {% blocktranslate with cols=report.missing_columns|join:", " %}Colonnes obligatoires non associées : {{ cols }}{% endblocktranslate %}
+            {% else %}
+              {% translate "Toutes les colonnes obligatoires sont associées." %}
+            {% endif %}
           </li>
-          <li class="{% if report.malformed_nne %}validation-report__bad{% else %}validation-report__ok{% endif %}">
-            {% blocktranslate count n=report.malformed_nne|length %}{{ n }} ligne avec un NNE mal formé{% plural %}{{ n }} lignes avec un NNE mal formé{% endblocktranslate %}
-          </li>
-          <li class="{% if report.duplicate_nne %}validation-report__bad{% else %}validation-report__ok{% endif %}">
-            {% blocktranslate count n=report.duplicate_nne|length %}{{ n }} ligne avec un NNE en doublon{% plural %}{{ n }} lignes avec un NNE en doublon{% endblocktranslate %}
+          <li class="{% if report.nameless_rows %}validation-report__bad{% else %}validation-report__ok{% endif %}">
+            {% blocktranslate count n=report.nameless_rows|length %}{{ n }} ligne sans nom{% plural %}{{ n }} lignes sans nom{% endblocktranslate %}
           </li>
           <li class="validation-report__warn">
-            {% blocktranslate count n=report.duplicate_name_nne_mismatch|length %}{{ n }} doublon de nom à vérifier (non bloquant){% plural %}{{ n }} doublons de nom à vérifier (non bloquant){% endblocktranslate %}
+            {% blocktranslate count n=report.date_uncertain|length %}{{ n }} date de naissance illisible (importée, jamais rapprochée automatiquement){% plural %}{{ n }} dates de naissance illisibles (importées, jamais rapprochées automatiquement){% endblocktranslate %}
+          </li>
+          <li class="validation-report__warn">
+            {% blocktranslate count n=report.incomplete|length %}{{ n }} ligne sans type de liste (importée){% plural %}{{ n }} lignes sans type de liste (importées){% endblocktranslate %}
+          </li>
+          <li class="validation-report__warn">
+            {% blocktranslate count n=report.collapsed|length %}{{ n }} électeur regroupé sur plusieurs listes{% plural %}{{ n }} électeurs regroupés sur plusieurs listes{% endblocktranslate %}
+          </li>
+          <li class="validation-report__warn">
+            {% blocktranslate count n=report.indistinguishable|length %}{{ n }} entrée indiscernable sur le nom et la date de naissance (non bloquant){% plural %}{{ n }} entrées indiscernables sur le nom et la date de naissance (non bloquant){% endblocktranslate %}
           </li>
         </ul>
 
         {% if report.blocking %}
-          <p class="error" role="alert">{% translate "Import refusé : corrigez le fichier source et rechargez-le. Rien n'a été écrit." %}</p>
+          <p class="error" role="alert">{% translate "Import refusé : le fichier est inexploitable en l'état. Corrigez-le et rechargez-le. Rien n'a été écrit." %}</p>
         {% endif %}
 
-        <h3>{% translate "Aperçu (20 premières lignes)" %}</h3>
+        <h3>{% translate "Aperçu (20 premières entrées)" %}</h3>
         <table>
           <thead>
             <tr>
-              <th scope="col">{% translate "Ligne" %}</th>
-              <th scope="col">{% translate "Nom" %}</th>
+              <th scope="col">{% translate "Nom de naissance" %}</th>
+              <th scope="col">{% translate "Nom d'usage" %}</th>
               <th scope="col">{% translate "Prénoms" %}</th>
-              <th scope="col">{% translate "NNE" %}</th>
+              <th scope="col">{% translate "Date de naissance" %}</th>
+              <th scope="col">{% translate "Listes" %}</th>
             </tr>
           </thead>
           <tbody>
-            {% for row in preview %}
+            {% for entry in preview %}
               <tr>
-                <td>{{ row.index }}</td>
-                <td>{{ row.last_name }}</td>
-                <td>{{ row.first_names }}</td>
-                <td>{{ row.nne }}</td>
+                <td>{{ entry.birth_name }}</td>
+                <td>{{ entry.usual_name|default:"—" }}</td>
+                <td>{{ entry.first_names }}</td>
+                <td>
+                  {{ entry.date_of_birth|default:"—" }}
+                  {% if entry.date_uncertain %}<span class="warn">{% translate "(illisible)" %}</span>{% endif %}
+                </td>
+                <td>{{ entry.list_types|join:", "|default:"—" }}</td>
               </tr>
             {% endfor %}
           </tbody>

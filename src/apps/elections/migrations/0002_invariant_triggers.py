@@ -43,6 +43,7 @@ FOR EACH ROW WHEN OLD.state <> 'draft' AND (
     OR OLD.paper_requires_countersign IS NOT NEW.paper_requires_countersign
     OR OLD.paper_requires_reconciliation IS NOT NEW.paper_requires_reconciliation
     OR OLD.allow_ballot_modification  IS NOT NEW.allow_ballot_modification
+    OR OLD.eligible_list_types        IS NOT NEW.eligible_list_types
     OR OLD.show_live_participation    IS NOT NEW.show_live_participation
     OR OLD.is_sandbox                 IS NOT NEW.is_sandbox
 )

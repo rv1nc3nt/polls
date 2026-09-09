@@ -48,15 +48,20 @@ def modify(poll: Poll, token: Token, ranking: list[list[str]]) -> Ballot:
     raise NotImplementedError("§6.3")
 
 
-def enter_paper(poll: Poll, nne: str, ranking: list[list[str]], operator_id: str) -> Ballot:
+def enter_paper(
+    poll: Poll, roll_entry_id: str, ranking: list[list[str]], operator_id: str
+) -> Ballot:
     """Operator keying (§6.4).
 
-    Checks ``Registration.channel`` first: ``paper`` is an edit of the existing
-    ballot; ``online`` raises the blocking interstitial of R-9.3, which proceeds
-    only on explicit confirmation with a mandatory reason code, both logged;
-    ``none`` proceeds. Where ``paper_requires_countersign`` is set the row is
-    written ``pending_countersign`` and is not counted until a second named
-    operator validates it.
+    The operator has already searched the snapshot by name or date of birth and
+    confirmed the elector (R-8.3); ``roll_entry_id`` is that snapshot entry, and
+    it is what ``PaperBallotLink`` records. Checks ``Registration.channel``
+    first: ``paper`` is an edit of the existing ballot; ``online`` raises the
+    blocking interstitial of R-9.3, which proceeds only on explicit confirmation
+    with a mandatory reason code, both logged; ``none`` proceeds. Where
+    ``paper_requires_countersign`` is set the row is written
+    ``pending_countersign`` and is not counted until a second named operator
+    validates it.
     """
     raise NotImplementedError("§6.4")
 
