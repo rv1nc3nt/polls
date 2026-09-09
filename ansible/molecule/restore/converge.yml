@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: 0BSD
+# A full install. The role's main.yml runs backup.yml as part of the play, so
+# there is a snapshot for verify.yml to lose and restore (T-16).
+- name: Converge
+  hosts: all
+  become: true
+  roles:
+    - role: polls

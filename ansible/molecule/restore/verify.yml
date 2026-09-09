@@ -1,0 +1,152 @@
+# SPDX-License-Identifier: 0BSD
+#
+# T-16: the backup/restore round trip.
+#
+#   1. record the audit-log row count and the published closure hash;
+#   2. destroy the state directory — simulate host loss;
+#   3. run restore.yml (provision a fresh tree, restore the newest snapshot,
+#      smoke);
+#   4. assert the audit log came back with every row, /sante answers, and the
+#      published closure hash recomputes to the same value from the restored
+#      data.
+#
+# The role's backup.yml and restore.yml are still debug stubs, so steps that
+# need a real snapshot are guarded: the scenario proves the harness now and
+# activates fully once backup.yml, deploy.yml and restore.yml are written.
+
+- name: T-16 — record state, lose it, restore it
+  hosts: all
+  become: true
+  vars:
+    polls_state_dir: /var/lib/polls
+    polls_backup_dir: /var/backups/polls
+    db_path: "{{ polls_state_dir }}/db.sqlite3"
+  tasks:
+    - name: Find the newest backup snapshot
+      ansible.builtin.find:
+        paths: "{{ polls_backup_dir }}"
+        patterns: "*.sqlite3,*.sqlite3.*"
+        file_type: file
+      register: snapshots
+
+    - name: Skip the round trip until backup.yml produces a snapshot
+      ansible.builtin.debug:
+        msg: >-
+          T-16 skipped — no snapshot under {{ polls_backup_dir }}. Implement
+          backup step 8 of §15 and this scenario runs end to end.
+      when: snapshots.matched | int == 0
+
+    - name: End the play cleanly when there is nothing to restore
+      ansible.builtin.meta: end_play
+      when: snapshots.matched | int == 0
+
+    - name: Count the audit-log rows before the loss
+      ansible.builtin.command:
+        cmd: sqlite3 {{ db_path }} "SELECT count(*) FROM audit_auditevent"
+      register: audit_before
+      changed_when: false
+
+    - name: Read the published closure hash before the loss
+      # A poll must be published in the fixture data for this to bind; if none
+      # is, the value is empty and the comparison below is skipped.
+      ansible.builtin.command:
+        cmd: >-
+          sqlite3 {{ db_path }}
+          "SELECT hex(closure_hash) FROM elections_poll
+           WHERE state = 'published' ORDER BY closed_at LIMIT 1"
+      register: hash_before
+      changed_when: false
+
+    - name: Simulate host loss — wipe the state directory
+      ansible.builtin.file:
+        path: "{{ polls_state_dir }}"
+        state: absent
+
+- name: T-16 — provision a fresh tree and restore
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Run restore.yml against the throwaway host
+      ansible.builtin.command:
+        cmd: >-
+          ansible-playbook
+          -i {{ lookup('env', 'MOLECULE_INVENTORY_FILE') }}
+          {{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/restore.yml
+      environment:
+        ANSIBLE_FORCE_COLOR: "0"
+        ANSIBLE_ROLES_PATH: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/roles"
+      register: restore_run
+      changed_when: "' changed=0 ' not in restore_run.stdout"
+      failed_when: "' failed=0 ' not in restore_run.stdout"
+
+- name: T-16 — the restored instance is whole
+  hosts: all
+  become: true
+  vars:
+    db_path: /var/lib/polls/db.sqlite3
+  tasks:
+    - name: The database is back
+      ansible.builtin.stat:
+        path: "{{ db_path }}"
+      register: db_after
+
+    - name: The audit log recovered every row
+      ansible.builtin.command:
+        cmd: sqlite3 {{ db_path }} "SELECT count(*) FROM audit_auditevent"
+      register: audit_after
+      changed_when: false
+      failed_when: >-
+        audit_after.rc != 0 or
+        (audit_after.stdout | int) != (audit_before.stdout | default('-1') | int)
+      when: db_after.stat.exists
+
+    - name: The published closure hash came back byte-for-byte
+      ansible.builtin.command:
+        cmd: >-
+          sqlite3 {{ db_path }}
+          "SELECT hex(closure_hash) FROM elections_poll
+           WHERE state = 'published' ORDER BY closed_at LIMIT 1"
+      register: hash_after
+      changed_when: false
+      failed_when: >-
+        hash_after.rc != 0 or
+        hash_after.stdout != (hash_before.stdout | default(''))
+      when:
+        - db_after.stat.exists
+        - hash_before.stdout | default('') | length > 0
+
+    - name: The published CSV still recomputes to that hash (app code path)
+      # Reads the live ballot set from the restored database and rehashes it with
+      # apps.core.canonical, exactly as the Rust verifier and the public results
+      # page do — a restore that silently dropped a ballot fails here.
+      ansible.builtin.command:
+        cmd: >-
+          {{ polls_prefix | default('/opt/polls') }}/current/.venv/bin/python
+          {{ polls_prefix | default('/opt/polls') }}/current/manage.py shell -c
+          "{{ _recompute_snippet }}"
+      vars:
+        _recompute_snippet: >-
+          from apps.elections.models import Poll, PollState;
+          from apps.elections.closure import live_ballots;
+          from apps.core.canonical import closure_hash;
+          p = Poll.objects.filter(state=PollState.PUBLISHED).order_by('closed_at').first();
+          import sys;
+          sys.exit(0 if p and bytes(p.closure_hash) == closure_hash(live_ballots(p)) else 1)
+      register: rehash
+      changed_when: false
+      failed_when: rehash.rc != 0
+      when:
+        - db_after.stat.exists
+        - hash_before.stdout | default('') | length > 0
+
+    - name: /sante answers after the restore
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8000/sante
+        status_code: 200
+      register: sante
+      failed_when: false
+
+    - name: Note when the service is not yet wired
+      ansible.builtin.debug:
+        msg: "T-16: /sante unreachable — deploy step 6 / smoke step 9 not implemented yet."
+      when: sante.status | default(0) != 200

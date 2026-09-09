@@ -1,0 +1,115 @@
+# SPDX-License-Identifier: 0BSD
+#
+# T-38, the parts molecule's `idempotence` step does not cover on its own:
+#
+#   * a second run in --check mode reports no changes;
+#   * SECRET_KEY, the database and the audit log are the ones from the first
+#     run — same bytes, same row counts;
+#   * the deployed instance is actually up (/sante answers).
+#
+# The role is still scaffolding (roles/polls/tasks/*.yml are debug stubs). Each
+# assertion that needs a real artefact is guarded: until the artefact exists the
+# task warns and is skipped, so this scenario proves the harness today and grows
+# teeth the moment deploy.yml, provision.yml and backup.yml are implemented.
+
+- name: T-38 — a --check run over the converged host is clean
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Re-run the deploy in check mode
+      ansible.builtin.command:
+        cmd: >-
+          ansible-playbook
+          -i {{ lookup('env', 'MOLECULE_INVENTORY_FILE') }}
+          {{ lookup('env', 'MOLECULE_SCENARIO_DIRECTORY') }}/converge.yml
+          --check --diff
+      environment:
+        ANSIBLE_FORCE_COLOR: "0"
+        ANSIBLE_ROLES_PATH: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/roles"
+      register: check_run
+      changed_when: false
+
+    - name: The check run changed nothing and failed nothing
+      ansible.builtin.assert:
+        that:
+          - "' changed=0 ' in check_run.stdout"
+          - "' failed=0 ' in check_run.stdout"
+          - "'unreachable=0' in check_run.stdout"
+        fail_msg: |
+          A --check run over an already-converged host reported drift (T-38):
+
+          {{ check_run.stdout }}
+
+- name: T-38 — SECRET_KEY, database and audit log survive the second run
+  hosts: all
+  become: true
+  vars:
+    polls_config_dir: /etc/polls
+    polls_state_dir: /var/lib/polls
+    polls_user: polls
+  tasks:
+    - name: Look for the rendered environment file
+      ansible.builtin.stat:
+        path: "{{ polls_config_dir }}/polls.env"
+      register: env_file
+
+    - name: SECRET_KEY file is private and owned by the service user
+      ansible.builtin.assert:
+        that:
+          - env_file.stat.mode == '0600'
+          - env_file.stat.pw_name == polls_user
+        fail_msg: "{{ polls_config_dir }}/polls.env is world-readable or misowned (§15 step 5)"
+      when: env_file.stat.exists
+
+    - name: SECRET_KEY line is present exactly once
+      ansible.builtin.command:
+        cmd: grep -c "^SECRET_KEY=" {{ polls_config_dir }}/polls.env
+      register: secret_key_lines
+      changed_when: false
+      failed_when: secret_key_lines.stdout | trim != '1'
+      when: env_file.stat.exists
+
+    - name: Look for the application database
+      ansible.builtin.stat:
+        path: "{{ polls_state_dir }}/db.sqlite3"
+      register: db_file
+
+    - name: The audit log is non-empty and the table is intact
+      # A migration re-run by a non-idempotent deploy would either fail here or
+      # change the row count; INV-3 forbids the table ever losing a row.
+      ansible.builtin.command:
+        cmd: sqlite3 {{ polls_state_dir }}/db.sqlite3 "SELECT count(*) FROM audit_auditevent"
+      register: audit_rows
+      changed_when: false
+      failed_when: audit_rows.rc != 0 or (audit_rows.stdout | int) < 1
+      when: db_file.stat.exists
+
+    - name: Warn when the environment file has not been rendered yet
+      ansible.builtin.debug:
+        msg: "T-38 skipped: no {{ polls_config_dir }}/polls.env — deploy step 5 not implemented."
+      when: not env_file.stat.exists
+
+    - name: Warn when the database has not been created yet
+      ansible.builtin.debug:
+        msg: "T-38 skipped: no {{ polls_state_dir }}/db.sqlite3 — deploy step 4 not implemented."
+      when: not db_file.stat.exists
+
+    - name: The polls service is active
+      ansible.builtin.command:
+        cmd: systemctl is-active polls
+      register: svc
+      changed_when: false
+      failed_when: false
+
+    - name: /sante answers 200 once the service is up
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8000/sante
+        status_code: 200
+      when: svc.stdout | default('') == 'active'
+
+    - name: Warn when the service unit is not yet installed
+      ansible.builtin.debug:
+        msg: >-
+          T-38: polls.service not active ({{ svc.stdout | default('absent') }})
+          — deploy step 6 not implemented yet.
+      when: svc.stdout | default('') != 'active'

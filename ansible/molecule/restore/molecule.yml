@@ -1,0 +1,53 @@
+# SPDX-License-Identifier: 0BSD
+#
+# T-16: provision a fresh host, restore the most recent backup, run the same
+# smoke play — and prove the audit log came back whole and the published
+# closure hash still recomputes from the restored data (§15, restore.yml).
+#
+# Same driver and image as the `default` scenario; see molecule/README.md.
+
+dependency:
+  name: galaxy
+  enabled: false
+
+driver:
+  name: docker
+
+platforms:
+  - name: polls-t16
+    image: geerlingguy/docker-debian12-ansible:latest
+    pre_build_image: true
+    privileged: true
+    cgroupns_mode: host
+    command: /usr/lib/systemd/systemd
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+
+provisioner:
+  name: ansible
+  env:
+    ANSIBLE_ROLES_PATH: "${MOLECULE_PROJECT_DIRECTORY}/roles"
+  inventory:
+    group_vars:
+      all:
+        polls_release: molecule
+        polls_domain: vote.molecule.test
+        polls_admin_email: admin@molecule.test
+        polls_smoke_test_email: smoke@molecule.test
+        polls_scheduler: systemd
+  playbooks:
+    converge: converge.yml
+    verify: verify.yml
+
+scenario:
+  test_sequence:
+    - dependency
+    - cleanup
+    - destroy
+    - syntax
+    - create
+    - prepare
+    - converge
+    - verify
+    - cleanup
+    - destroy

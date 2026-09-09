@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: 0BSD
+# The deploy under test: the `polls` role applies, exactly as site.yml runs it,
+# so idempotence here is idempotence of the real thing (T-38, §15).
+- name: Converge
+  hosts: all
+  become: true
+  roles:
+    - role: polls

@@ -45,5 +45,24 @@ jobs:
       - run: systemd-analyze verify contrib/init/polls.service
       - run: shellcheck contrib/init/polls.openrc contrib/init/polls.rc.freebsd
 
-  # TODO(scaffold): the slow job — T-16 and T-38 need a throwaway host
-  # (a container or a VM under Molecule), not the ordinary test database.
+  molecule:
+    # The slow job: T-38 (deploy is idempotent and --check clean, SECRET_KEY /
+    # database / audit log untouched) and T-16 (a backup restores with its
+    # audit log whole and its closure hash still recomputing). A throwaway
+    # systemd container, not the ordinary test database — see
+    # ansible/molecule/README.md.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install Molecule and the container driver
+        run: pip install "molecule-plugins[docker]" molecule ansible-core
+      # Docker is already running on the runner; no daemon setup needed.
+      - name: T-38 — deploy idempotence and --check
+        working-directory: ansible
+        run: molecule test -s default
+      - name: T-16 — backup and restore round trip
+        working-directory: ansible
+        run: molecule test -s restore
