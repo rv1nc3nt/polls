@@ -175,9 +175,15 @@ def _actions_for_state(poll: Poll) -> list[PermittedAction]:
                     (Role.POLL_ADMIN,),
                     url_name="backoffice:registration_queue",
                 ),
-                PermittedAction(_("Saisir un bulletin papier"), (Role.ENTRY_OPERATOR,)),
                 PermittedAction(
-                    _("Rectifier ou supprimer un bulletin papier"), (Role.ENTRY_OPERATOR,)
+                    _("Saisir un bulletin papier"),
+                    (Role.ENTRY_OPERATOR,),
+                    url_name="backoffice:paper_entry",
+                ),
+                PermittedAction(
+                    _("Rectifier ou supprimer un bulletin papier"),
+                    (Role.ENTRY_OPERATOR,),
+                    url_name="backoffice:paper_ballot_list",
                 ),
                 PermittedAction(
                     _("Reporter la date de clôture"),
@@ -187,7 +193,11 @@ def _actions_for_state(poll: Poll) -> list[PermittedAction]:
             ]
             if poll.paper_requires_countersign:
                 actions.append(
-                    PermittedAction(_("Contresigner des bulletins"), (Role.ENTRY_OPERATOR,))
+                    PermittedAction(
+                        _("Contresigner des bulletins"),
+                        (Role.ENTRY_OPERATOR,),
+                        url_name="backoffice:countersign_queue",
+                    )
                 )
             return actions
         case PollState.CLOSED:

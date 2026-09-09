@@ -1,0 +1,50 @@
+{% extends "backoffice/base.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD #}
+
+{% block screen_title %}{% translate "Reçu de vote papier" %}{% endblock %}
+{% block heading %}{% translate "Reçu de vote papier" %}{% endblock %}
+
+{% block screen %}
+  {% comment %}
+    R-8.4: the receipt bears the tracking code and is handed to the elector.
+    R-8.2 bis: where no signed paper form is collected, the receipt carries the
+    statement that a ballot entered by this channel stays associated with the
+    elector's identity — unlike an online ballot. The .noprint chrome is hidden
+    by the print stylesheet in app.css.
+  {% endcomment %}
+
+  <article class="receipt">
+    <p class="receipt__poll">{{ poll.title }}</p>
+
+    {% if not_in_force %}
+      <p class="receipt__notice" role="alert">{% translate "Ce bulletin papier n'est pas décompté : un vote en ligne a déjà été enregistré pour cet électeur, et c'est celui-ci qui compte. Ce reçu vaut trace de la démarche." %}</p>
+    {% elif pending_countersign %}
+      <p class="receipt__notice">{% translate "Ce bulletin est en attente de contreseing par un second opérateur. Il ne sera décompté qu'une fois contresigné." %}</p>
+    {% endif %}
+
+    <p class="receipt__label">{% translate "Code de suivi" %}</p>
+    <p class="receipt__code">{{ tracking_code }}</p>
+    <p class="help">{% translate "Conservez ce code : il vous permettra de retrouver votre bulletin dans la liste publiée après la clôture. Il ne peut pas être retrouvé s'il est perdu." %}</p>
+
+    <p class="receipt__label">{% translate "Classement enregistré" %}</p>
+    {% translate " — à égalité — " as tie_sep %}
+    <ol class="receipt__ranking">
+      {% for group in ranking_rows %}
+        <li>{{ group|join:tie_sep }}</li>
+      {% endfor %}
+    </ol>
+
+    {% if show_identity_notice %}
+      <p class="receipt__identity">{% translate "Information : un bulletin déposé par la voie papier reste associé à votre identité dans le système, contrairement à un bulletin voté en ligne, à des fins de traçabilité et de suppression éventuelle à votre demande." %}</p>
+    {% endif %}
+
+    <p class="receipt__consultative" lang="fr">{% translate "Cette consultation est consultative : son résultat ne lie pas le conseil municipal." %}</p>
+  </article>
+
+  <p class="noprint help">{% translate "Imprimez ce reçu avec la fonction d'impression du navigateur, puis remettez-le à l'électeur." %}</p>
+  <p class="noprint">
+    <a href="{% url 'backoffice:paper_entry' poll.pk %}">{% translate "Saisir un autre bulletin" %}</a>
+    <a href="{% url 'backoffice:paper_ballot' poll.pk ballot.pk %}">{% translate "Voir le bulletin" %}</a>
+  </p>
+{% endblock %}

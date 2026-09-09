@@ -1,0 +1,54 @@
+{% extends "backoffice/base.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD #}
+
+{% block screen_title %}{% translate "Bulletins papier" %}{% endblock %}
+{% block heading %}{% translate "Bulletins papier" %}{% endblock %}
+
+{% block pollnav %}
+  <ul class="pollnav__links">
+    <li><a href="{% url 'backoffice:dashboard' poll.pk %}">{% translate "Tableau de bord" %}</a></li>
+    <li><a href="{% url 'backoffice:paper_entry' poll.pk %}">{% translate "Saisie" %}</a></li>
+    <li><a href="{% url 'backoffice:paper_ballot_list' poll.pk %}" aria-current="page">{% translate "Bulletins papier" %}</a></li>
+  </ul>
+{% endblock %}
+
+{% block screen %}
+  {% comment %}
+    §6.5.6: every paper ballot, whatever its state. A not-in-force collision
+    entry (R-9.3) and a superseded version are shown here too, so nothing keyed
+    is invisible; only in-force rows can still be corrected or deleted (R-8.5).
+  {% endcomment %}
+  <table>
+    <caption>{% translate "Bulletins papier de ce scrutin" %}</caption>
+    <thead>
+      <tr>
+        <th scope="col">{% translate "Électeur" %}</th>
+        <th scope="col">{% translate "Code de suivi" %}</th>
+        <th scope="col">{% translate "Version" %}</th>
+        <th scope="col">{% translate "État" %}</th>
+        <th scope="col">{% translate "Saisi par" %}</th>
+        <th scope="col">{% translate "Le" %}</th>
+        <th scope="col"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for link in links %}
+        <tr>
+          <td>
+            {% if link.roll_entry %}{{ link.roll_entry.birth_name }} {{ link.roll_entry.first_names }}
+            {% else %}<span class="purged">{% translate "objet supprimé (rétention)" %}</span>{% endif %}
+          </td>
+          <td><code>{{ link.ballot.tracking_code }}</code></td>
+          <td>{{ link.ballot.version }}</td>
+          <td>{{ link.ballot.get_status_display }}</td>
+          <td>{{ link.operator }}</td>
+          <td>{{ link.created_at }}</td>
+          <td><a href="{% url 'backoffice:paper_ballot' poll.pk link.ballot.pk %}">{% translate "Ouvrir" %}</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7">{% translate "Aucun bulletin papier n'a été saisi." %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

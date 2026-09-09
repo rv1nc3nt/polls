@@ -1,0 +1,106 @@
+{% extends "backoffice/base.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD #}
+
+{% block screen_title %}{% translate "Bulletin papier" %}{% endblock %}
+{% block heading %}{% translate "Bulletin papier" %}{% endblock %}
+
+{% block pollnav %}
+  <ul class="pollnav__links">
+    <li><a href="{% url 'backoffice:dashboard' poll.pk %}">{% translate "Tableau de bord" %}</a></li>
+    <li><a href="{% url 'backoffice:paper_ballot_list' poll.pk %}">{% translate "Bulletins papier" %}</a></li>
+  </ul>
+{% endblock %}
+
+{% block screen %}
+  {% comment %}
+    §6.5.6: one paper ballot beside the elector it belongs to. Correction and
+    deletion each take a mandatory reason and are logged with before/after
+    (R-8.5); deletion re-opens online voting for the elector (R-9.4). A
+    superseded, deleted or not-in-force row is read-only.
+  {% endcomment %}
+
+  <section aria-labelledby="elector">
+    <h2 id="elector">
+      {% if link.roll_entry %}{{ link.roll_entry.birth_name }} {{ link.roll_entry.first_names }}
+      {% else %}<span class="purged">{% translate "électeur supprimé (rétention)" %}</span>{% endif %}
+    </h2>
+    <dl class="facts">
+      <dt>{% translate "Code de suivi" %}</dt><dd><code>{{ tracking_code }}</code></dd>
+      <dt>{% translate "Version en cours" %}</dt><dd>{{ ballot.version }}</dd>
+      <dt>{% translate "État" %}</dt><dd>{{ ballot.get_status_display }}</dd>
+      <dt>{% translate "Saisi par" %}</dt><dd>{{ link.operator }}</dd>
+      {% if link.countersigned_by %}
+        <dt>{% translate "Contresigné par" %}</dt><dd>{{ link.countersigned_by }}</dd>
+      {% endif %}
+    </dl>
+
+    {% translate " — à égalité — " as tie_sep %}
+    <p>{% translate "Classement enregistré" %}</p>
+    <ol class="paper-ranking">
+      {% for group in ranking_rows %}<li>{{ group|join:tie_sep }}</li>{% endfor %}
+    </ol>
+  </section>
+
+  {% if editable %}
+    <section class="decision" aria-label="{% translate 'Rectifier ou supprimer' %}">
+      <form method="post" class="decision__half">
+        {% csrf_token %}
+        <fieldset>
+          <legend>{% translate "Rectifier (corriger une erreur de saisie)" %}</legend>
+          <p class="help">{% translate "La rectification répare une erreur de transcription. Elle reste possible même si le scrutin n'autorise pas les électeurs à modifier leur vote." %}</p>
+          {% include "ballots/_ranking_field.html" %}
+          <p>
+            <label for="correct-reason">{% translate "Motif" %}</label>
+            <select id="correct-reason" name="reason">
+              <option value="">{% translate "— choisir —" %}</option>
+              {% for value, label in correction_reasons %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+            </select>
+          </p>
+          <p>
+            <label for="correct-note">{% translate "Note (facultative)" %}</label>
+            <span class="help">{% translate "Conservée avec le bulletin, absente du journal d'audit." %}</span>
+            <input id="correct-note" type="text" name="note" maxlength="500">
+          </p>
+          <button type="submit" name="action" value="correct">{% translate "Enregistrer la rectification" %}</button>
+        </fieldset>
+      </form>
+
+      <form method="post" class="decision__half">
+        {% csrf_token %}
+        <fieldset>
+          <legend>{% translate "Supprimer" %}</legend>
+          <p class="help">{% translate "La suppression retire le bulletin du décompte et rouvre le vote en ligne pour cet électeur. Le bulletin n'est jamais effacé physiquement." %}</p>
+          <p>
+            <label for="delete-reason">{% translate "Motif" %}</label>
+            <select id="delete-reason" name="reason">
+              <option value="">{% translate "— choisir —" %}</option>
+              {% for value, label in deletion_reasons %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+            </select>
+          </p>
+          <p>
+            <label for="delete-note">{% translate "Note (facultative)" %}</label>
+            <input id="delete-note" type="text" name="note" maxlength="500">
+          </p>
+          <button type="submit" name="action" value="delete">{% translate "Supprimer le bulletin" %}</button>
+        </fieldset>
+      </form>
+    </section>
+  {% else %}
+    <p class="notice">{% translate "Ce bulletin ne peut plus être modifié dans son état actuel." %}</p>
+  {% endif %}
+
+  {% if versions|length > 1 %}
+    <section aria-labelledby="history">
+      <h2 id="history">{% translate "Historique des versions" %}</h2>
+      <table>
+        <thead><tr><th scope="col">{% translate "Version" %}</th><th scope="col">{% translate "État" %}</th><th scope="col">{% translate "Créée le" %}</th></tr></thead>
+        <tbody>
+          {% for version in versions %}
+            <tr><td>{{ version.version }}</td><td>{{ version.get_status_display }}</td><td>{{ version.created_at }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+  {% endif %}
+{% endblock %}

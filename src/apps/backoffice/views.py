@@ -16,16 +16,16 @@ Two rules govern every screen and are not negotiable per-view:
 Here so far: the shell the screens hang off — sign-in for named accounts
 (R-2.2) and the poll index — plus screen 1 (tableau de bord), screen 2
 (configuration du scrutin), screen 3 (import de la liste électorale), screen 4
-(file d'attente des inscriptions) and screen 8 (journal d'audit). The gate is
-``access.py``; the read models are ``dashboard.py``, ``auditlog.py`` and
-``review.py``, and the write paths are the service functions of §5.1
-(``elections.config``, ``elections.rollimport``, ``registrations.services``), so
-the views stay thin enough to see the gate on each one.
+(file d'attente des inscriptions), screens 5–7 (saisie, rectification et
+contreseing des bulletins papier) and screen 8 (journal d'audit). The gate is
+``access.py``; the read models are ``dashboard.py``, ``auditlog.py``,
+``review.py`` and ``paper.py``, and the write paths are the service functions of
+§5.1 (``elections.config``, ``elections.rollimport``,
+``registrations.services``, ``ballots.services``), so the views stay thin enough
+to see the gate on each one.
 
-TODO(scaffold): screens 5–7 and 9–11 of §6.5. Each waits on the service
-function it must post through (§5.1) — no view writes through the ORM directly,
-so a screen cannot land before ``ballots.services`` and the closure/tally
-pieces do.
+TODO(scaffold): screens 9–11 of §6.5 — closure and publication, accounts and
+roles, first-run wizard. Screen 9 waits on the closure/tally pieces.
 """
 
 from __future__ import annotations
@@ -37,7 +37,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, LogoutView
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.http import HttpRequest, HttpResponse
+from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.dateparse import parse_date
 from django.utils.timezone import get_current_timezone
@@ -45,16 +45,22 @@ from django.utils.translation import gettext as _
 
 from apps.audit import services as audit
 from apps.audit.models import Action, Reason
+from apps.ballots import services as ballots
+from apps.ballots.forms import RankingForm
+from apps.ballots.models import Ballot, BallotSource, BallotStatus, PaperBallotLink
+from apps.ballots.ranking import BallotRefused
+from apps.core.codes import format_tracking_code
 from apps.core.models import Role
+from apps.core.types import TrackingCode
 from apps.elections import config, rollimport
 from apps.elections.models import Poll, PollState, RollEntry
 from apps.elections.transitions import TransitionRefused, extend_closes_at
 from apps.elections.windows import WindowClosed
 from apps.registrations import mail as registration_mail
 from apps.registrations import services as registrations
-from apps.registrations.models import Registration
+from apps.registrations.models import Channel, Registration
 
-from . import auditlog, dashboard, review
+from . import auditlog, dashboard, paper, review
 from .access import (
     accessible_polls,
     current_operator,
@@ -484,3 +490,247 @@ def roll_import_review(request: HttpRequest, poll: Poll) -> HttpResponse:
         return redirect("backoffice:dashboard", poll_id=str(poll.pk))
 
     return render(request, "backoffice/roll_import_review.html", context)
+
+
+def _validated_reason(posted: str, permitted: tuple[Reason, ...]) -> str:
+    """A reason code checked against the vocabulary *this* action offers, not
+    against every ``Reason`` there is: a code that is valid but untrue on the
+    decision in front of the operator is a false record (§10)."""
+    return posted if posted in {str(reason) for reason in permitted} else ""
+
+
+# --- Screen 5: saisie d'un bulletin papier (§6.5.5, §6.4) ------------------
+
+
+@require_poll_role(Role.ENTRY_OPERATOR)
+def paper_entry(request: HttpRequest, poll: Poll) -> HttpResponse:
+    """Screen 5 — search the snapshot, confirm the elector, key the ranking.
+
+    One page: a search step until a snapshot entry is chosen, then the ranking
+    form. Where the elector already has a paper ballot the operator is sent to
+    screen 6; where they have voted online (R-9.3) the ranking form is preceded
+    by the blocking interstitial, and the entry proceeds only with the
+    confirmation box and a reason, both passed to ``enter_paper`` and logged.
+    """
+    if poll.state != PollState.OPEN:
+        messages.error(
+            request, _("La saisie des bulletins papier n'est possible que pendant le scrutin.")
+        )
+        return redirect("backoffice:dashboard", poll_id=str(poll.pk))
+
+    query = (request.POST.get("q") or request.GET.get("q") or "").strip()
+    chosen = request.POST.get("roll_entry", "")
+    entry = RollEntry.objects.filter(poll=poll, pk=chosen).first() if chosen else None
+
+    context: dict[str, object] = {"poll": poll, "query": query}
+
+    if entry is None:
+        context["matches"] = paper.snapshot_search(poll, query) if query else None
+        return render(request, "backoffice/paper_entry.html", context)
+
+    channel = paper.channel_state(poll, entry)
+    if channel == Channel.PAPER:
+        existing = paper.in_force_paper_ballot(poll, entry)
+        if existing is not None:
+            return redirect(
+                "backoffice:paper_ballot", poll_id=str(poll.pk), ballot_id=str(existing.pk)
+            )
+
+    submitting = request.POST.get("action") == "record"
+    form = RankingForm(
+        request.POST if submitting else None, poll=poll, language=request.LANGUAGE_CODE
+    )
+    context.update({"entry": entry, "channel": channel, "form": form})
+    if channel == Channel.ONLINE:
+        context["collision_reasons"] = paper.choices(paper.COLLISION_REASONS)
+
+    if submitting and form.is_valid():
+        collision_reason = ""
+        if channel == Channel.ONLINE:
+            if not request.POST.get("collision_ack"):
+                messages.error(
+                    request,
+                    _("Confirmez explicitement pour enregistrer malgré le vote en ligne."),
+                )
+                return render(request, "backoffice/paper_entry.html", context)
+            collision_reason = _validated_reason(
+                request.POST.get("collision_reason", ""), paper.COLLISION_REASONS
+            )
+            if not collision_reason:
+                messages.error(request, _("Un motif est obligatoire."))
+                return render(request, "backoffice/paper_entry.html", context)
+        try:
+            ballot = ballots.enter_paper(
+                poll,
+                str(entry.pk),
+                form.cleaned_data["ranking"],
+                str(current_operator(request).pk),
+                request.LANGUAGE_CODE,
+                identity_confirmed=bool(request.POST.get("identity_confirmed")),
+                collision_reason=collision_reason,
+                note=request.POST.get("note", "").strip(),
+            )
+        except (BallotRefused, WindowClosed) as refused:
+            messages.error(request, str(refused))
+        else:
+            messages.success(request, _("Bulletin papier enregistré."))
+            return redirect(
+                "backoffice:paper_receipt", poll_id=str(poll.pk), ballot_id=str(ballot.pk)
+            )
+
+    return render(request, "backoffice/paper_entry.html", context)
+
+
+@require_poll_role(Role.ENTRY_OPERATOR, Role.POLL_ADMIN)
+def paper_receipt(request: HttpRequest, poll: Poll, ballot_id: str) -> HttpResponse:
+    """The receipt handed to the elector (R-8.4): tracking code, the recorded
+    ranking, and — where no signed form is collected — the R-8.2 bis notice that
+    a paper ballot stays tied to their identity. Rendered with a print
+    stylesheet; re-openable later in the poll's default language.
+    """
+    ballot = get_object_or_404(
+        Ballot.objects.filter(poll=poll, source=BallotSource.PAPER), pk=ballot_id
+    )
+    link = get_object_or_404(PaperBallotLink, ballot=ballot)
+    labels = paper.option_labels(poll, link.language or poll.default_language)
+    return render(
+        request,
+        "backoffice/paper_receipt.html",
+        {
+            "poll": poll,
+            "ballot": ballot,
+            "tracking_code": format_tracking_code(TrackingCode(ballot.tracking_code)),
+            "ranking_rows": [
+                [labels.get(option_id, option_id) for option_id in group]
+                for group in ballot.ranking
+            ],
+            "not_in_force": ballot.status == BallotStatus.NOT_IN_FORCE_COLLISION,
+            "pending_countersign": ballot.status == BallotStatus.PENDING_COUNTERSIGN,
+            "show_identity_notice": not poll.paper_requires_signed_form,
+        },
+    )
+
+
+# --- Screen 6: rectification et suppression d'un bulletin papier (§6.5.6) ---
+
+
+@require_poll_role(Role.ENTRY_OPERATOR)
+def paper_ballot_list(request: HttpRequest, poll: Poll) -> HttpResponse:
+    """Every paper ballot of this poll — in force, superseded, deleted, and the
+    not-in-force collision records — so none is invisible (§6.5.6)."""
+    links = (
+        PaperBallotLink.objects.filter(poll=poll)
+        .select_related("ballot", "roll_entry", "operator", "countersigned_by")
+        .order_by("-created_at")
+    )
+    return render(request, "backoffice/paper_ballot_list.html", {"poll": poll, "links": links})
+
+
+@require_poll_role(Role.ENTRY_OPERATOR)
+def paper_ballot(request: HttpRequest, poll: Poll, ballot_id: str) -> HttpResponse:
+    """One paper ballot beside the elector it belongs to, with the correction
+    and deletion actions of R-8.5. Both take a mandatory reason; deletion also
+    re-opens online voting (R-9.4). A superseded, deleted or not-in-force row is
+    shown read-only.
+    """
+    ballot = get_object_or_404(
+        Ballot.objects.filter(poll=poll, source=BallotSource.PAPER), pk=ballot_id
+    )
+    link = get_object_or_404(PaperBallotLink, ballot=ballot)
+    editable = ballot.status in (BallotStatus.LIVE, BallotStatus.PENDING_COUNTERSIGN)
+    operator_id = str(current_operator(request).pk)
+    form = RankingForm(
+        request.POST if request.POST.get("action") == "correct" else None,
+        poll=poll,
+        language=link.language or request.LANGUAGE_CODE,
+    )
+
+    if request.method == "POST" and editable:
+        action = request.POST.get("action", "")
+        note = request.POST.get("note", "").strip()
+        try:
+            if action == "correct":
+                reason = _validated_reason(request.POST.get("reason", ""), paper.CORRECTION_REASONS)
+                if form.is_valid() and reason:
+                    new = ballots.correct_paper(
+                        ballot, form.cleaned_data["ranking"], operator_id, reason, note
+                    )
+                    messages.success(request, _("Bulletin rectifié."))
+                    return redirect(
+                        "backoffice:paper_ballot", poll_id=str(poll.pk), ballot_id=str(new.pk)
+                    )
+                if not reason:
+                    messages.error(request, _("Un motif est obligatoire pour rectifier."))
+            elif action == "delete":
+                reason = _validated_reason(request.POST.get("reason", ""), paper.DELETION_REASONS)
+                if not reason:
+                    messages.error(request, _("Un motif est obligatoire pour supprimer."))
+                else:
+                    ballots.delete_paper(ballot, operator_id, reason, note)
+                    messages.success(
+                        request,
+                        _(
+                            "Bulletin supprimé ; le vote en ligne redevient possible "
+                            "pour cet électeur."
+                        ),
+                    )
+                    return redirect(
+                        "backoffice:paper_ballot", poll_id=str(poll.pk), ballot_id=str(ballot.pk)
+                    )
+        except (BallotRefused, WindowClosed) as refused:
+            messages.error(request, str(refused))
+
+    labels = paper.option_labels(poll, link.language or poll.default_language)
+    return render(
+        request,
+        "backoffice/paper_ballot.html",
+        {
+            "poll": poll,
+            "ballot": ballot,
+            "link": link,
+            "editable": editable,
+            "form": form,
+            "tracking_code": format_tracking_code(TrackingCode(ballot.tracking_code)),
+            "ranking_rows": [
+                [labels.get(option_id, option_id) for option_id in group]
+                for group in ballot.ranking
+            ],
+            "correction_reasons": paper.choices(paper.CORRECTION_REASONS),
+            "deletion_reasons": paper.choices(paper.DELETION_REASONS),
+            "versions": Ballot.objects.filter(
+                poll=poll, tracking_code=ballot.tracking_code
+            ).order_by("version"),
+        },
+    )
+
+
+# --- Screen 7: contreseing (§6.5.7) ---------------------------------------
+
+
+@require_poll_role(Role.ENTRY_OPERATOR)
+def countersign_queue(request: HttpRequest, poll: Poll) -> HttpResponse:
+    """Entries awaiting a second operator (R-8.7). Present only where the poll
+    is configured for countersignature; a POST validates one entry, refused for
+    the operator who keyed it and outside the paper window (T-56)."""
+    if not poll.paper_requires_countersign:
+        raise Http404
+
+    if request.method == "POST":
+        ballot = get_object_or_404(
+            Ballot.objects.filter(poll=poll, status=BallotStatus.PENDING_COUNTERSIGN),
+            pk=request.POST.get("ballot", ""),
+        )
+        try:
+            ballots.countersign(ballot, str(current_operator(request).pk))
+        except (BallotRefused, WindowClosed) as refused:
+            messages.error(request, str(refused))
+        else:
+            messages.success(request, _("Bulletin contresigné."))
+        return redirect("backoffice:countersign_queue", poll_id=str(poll.pk))
+
+    links = (
+        PaperBallotLink.objects.filter(poll=poll, ballot__status=BallotStatus.PENDING_COUNTERSIGN)
+        .select_related("ballot", "roll_entry", "operator")
+        .order_by("created_at")
+    )
+    return render(request, "backoffice/countersign_queue.html", {"poll": poll, "links": links})

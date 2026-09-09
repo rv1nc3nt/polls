@@ -1,0 +1,58 @@
+{% extends "backoffice/base.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD #}
+
+{% block screen_title %}{% translate "Contreseing" %}{% endblock %}
+{% block heading %}{% translate "Contreseing des bulletins papier" %}{% endblock %}
+
+{% block pollnav %}
+  <ul class="pollnav__links">
+    <li><a href="{% url 'backoffice:dashboard' poll.pk %}">{% translate "Tableau de bord" %}</a></li>
+    <li><a href="{% url 'backoffice:paper_ballot_list' poll.pk %}">{% translate "Bulletins papier" %}</a></li>
+    <li><a href="{% url 'backoffice:countersign_queue' poll.pk %}" aria-current="page">{% translate "Contreseing" %}</a></li>
+  </ul>
+{% endblock %}
+
+{% block screen %}
+  {% comment %}
+    R-8.7: where the poll requires it, a keyed ballot is not counted until a
+    second named operator validates it. R-8.7 bis: closure is refused while this
+    queue is not empty. The window runs to paper_entry_deadline (T-56).
+  {% endcomment %}
+  <p class="help">{% translate "Le contreseing doit être apposé par un opérateur autre que celui qui a saisi le bulletin." %}</p>
+
+  <table>
+    <caption>{% translate "Bulletins en attente de contreseing" %}</caption>
+    <thead>
+      <tr>
+        <th scope="col">{% translate "Électeur" %}</th>
+        <th scope="col">{% translate "Code de suivi" %}</th>
+        <th scope="col">{% translate "Saisi par" %}</th>
+        <th scope="col">{% translate "Le" %}</th>
+        <th scope="col"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for link in links %}
+        <tr>
+          <td>
+            {% if link.roll_entry %}{{ link.roll_entry.birth_name }} {{ link.roll_entry.first_names }}
+            {% else %}<span class="purged">{% translate "objet supprimé (rétention)" %}</span>{% endif %}
+          </td>
+          <td><code>{{ link.ballot.tracking_code }}</code></td>
+          <td>{{ link.operator }}</td>
+          <td>{{ link.created_at }}</td>
+          <td>
+            <form method="post">
+              {% csrf_token %}
+              <input type="hidden" name="ballot" value="{{ link.ballot.pk }}">
+              <button type="submit">{% translate "Contresigner" %}</button>
+            </form>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5">{% translate "Aucun bulletin n'attend de contreseing." %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

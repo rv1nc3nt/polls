@@ -1,0 +1,146 @@
+{% extends "backoffice/base.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD #}
+
+{% block screen_title %}{% translate "Saisie d'un bulletin papier" %}{% endblock %}
+{% block heading %}{% translate "Saisie d'un bulletin papier" %}{% endblock %}
+
+{% block pollnav %}
+  <ul class="pollnav__links">
+    <li><a href="{% url 'backoffice:dashboard' poll.pk %}">{% translate "Tableau de bord" %}</a></li>
+    <li><a href="{% url 'backoffice:paper_entry' poll.pk %}" aria-current="page">{% translate "Saisie" %}</a></li>
+    <li><a href="{% url 'backoffice:paper_ballot_list' poll.pk %}">{% translate "Bulletins papier" %}</a></li>
+  </ul>
+{% endblock %}
+
+{% block screen %}
+  {% comment %}
+    R-8.3: the operator searches the frozen snapshot and confirms the elector
+    before anything is written. R-8.1: this channel is for an elector without
+    internet access; keying is transcription of a vote cast on paper, not a
+    vote in its own right (§6.4).
+  {% endcomment %}
+
+  <form method="get" class="paper-search">
+    <label for="q">{% translate "Rechercher un électeur dans la liste électorale figée" %}</label>
+    <span class="help">{% translate "Nom, prénom, date de naissance (JJ/MM/AAAA), ou plusieurs à la fois." %}</span>
+    <input id="q" type="search" name="q" value="{{ query }}" autofocus>
+    <button type="submit">{% translate "Rechercher" %}</button>
+  </form>
+
+  {% if entry %}
+    <section class="paper-elector" aria-labelledby="elector">
+      <h2 id="elector">{{ entry.birth_name }} {{ entry.first_names }}</h2>
+      <dl class="facts">
+        <dt>{% translate "Nom d'usage" %}</dt>
+        <dd>{{ entry.usual_name|default:"—" }}</dd>
+        <dt>{% translate "Date de naissance" %}</dt>
+        <dd>{{ entry.date_of_birth|default:"—" }}</dd>
+        <dt>{% translate "Listes électorales" %}</dt>
+        <dd>{{ entry.list_types|join:", "|default:"—" }}</dd>
+      </dl>
+
+      {% if channel == "online" %}
+        {% comment %} R-9.3: blocking interstitial, in red, express confirmation and a
+           mandatory reason. Where the poll permits it, the elector should modify
+           their own ballot online instead. {% endcomment %}
+        <div class="collision" role="alert">
+          <p class="collision__title">{% translate "Attention : cet électeur a déjà voté en ligne." %}</p>
+          {% if poll.allow_ballot_modification %}
+            <p>{% translate "Invitez d'abord l'électeur à modifier lui-même son bulletin en ligne. N'enregistrez un bulletin papier que si ce n'est pas possible." %}</p>
+          {% endif %}
+          <p>{% translate "Le bulletin en ligne reste celui qui compte : le bulletin papier saisi ici est enregistré et classé, mais non décompté." %}</p>
+        </div>
+      {% endif %}
+
+      <form method="post" class="paper-form">
+        {% csrf_token %}
+        <input type="hidden" name="roll_entry" value="{{ entry.pk }}">
+        <input type="hidden" name="q" value="{{ query }}">
+
+        <fieldset>
+          <legend>{% translate "Classement" %}</legend>
+          {% include "ballots/_ranking_field.html" %}
+        </fieldset>
+
+        {% if channel == "online" %}
+          <fieldset class="collision__confirm">
+            <legend>{% translate "Confirmation requise (R-9.3)" %}</legend>
+            <p>
+              <input type="checkbox" id="collision_ack" name="collision_ack" value="1">
+              <label for="collision_ack">{% translate "Je confirme enregistrer ce bulletin papier alors qu'un vote en ligne existe déjà." %}</label>
+            </p>
+            <p>
+              <label for="collision_reason">{% translate "Motif" %}</label>
+              <select id="collision_reason" name="collision_reason">
+                <option value="">{% translate "— choisir —" %}</option>
+                {% for value, label in collision_reasons %}
+                  <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+            </p>
+          </fieldset>
+        {% else %}
+          <p>
+            <input type="checkbox" id="identity_confirmed" name="identity_confirmed" value="1">
+            <label for="identity_confirmed">{% translate "Identité confirmée avec l'électeur présent (entrées de la liste indistinguables)." %}</label>
+          </p>
+        {% endif %}
+
+        <p class="field">
+          <label for="note">{% translate "Note (facultative)" %}</label>
+          <span class="help">{% translate "Conservée avec le bulletin et supprimée avec lui. N'apparaît pas dans le journal d'audit." %}</span>
+          <input id="note" type="text" name="note" maxlength="500">
+        </p>
+
+        <button type="submit" name="action" value="record">{% translate "Enregistrer le bulletin papier" %}</button>
+      </form>
+    </section>
+
+  {% elif matches is not None %}
+    <form method="post" class="paper-pick">
+      {% csrf_token %}
+      <input type="hidden" name="q" value="{{ query }}">
+      <h2>{% translate "Résultats" %}</h2>
+      {% if matches %}
+        <table>
+          <caption>{% translate "Choisir l'électeur, puis continuer" %}</caption>
+          <thead>
+            <tr>
+              <th scope="col">{% translate "Choisir" %}</th>
+              <th scope="col">{% translate "Nom de naissance" %}</th>
+              <th scope="col">{% translate "Nom d'usage" %}</th>
+              <th scope="col">{% translate "Prénoms" %}</th>
+              <th scope="col">{% translate "Date de naissance" %}</th>
+              <th scope="col">{% translate "Concordance" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for match in matches %}
+              <tr>
+                <td>
+                  <input type="radio" name="roll_entry" value="{{ match.entry.pk }}"
+                         id="re-{{ match.entry.pk }}" {% if forloop.first %}checked{% endif %}>
+                </td>
+                <td><label for="re-{{ match.entry.pk }}">{{ match.entry.birth_name }}</label></td>
+                <td>{{ match.entry.usual_name|default:"—" }}</td>
+                <td>{{ match.entry.first_names }}</td>
+                <td>
+                  {{ match.entry.date_of_birth|default:"—" }}
+                  {% if match.date_uncertain %}<span class="warn">{% translate "(date incertaine)" %}</span>{% endif %}
+                </td>
+                <td>
+                  {% if match.same_dob %}{% translate "date identique" %}{% endif %}
+                  {% if match.name_overlap %}{% blocktranslate count n=match.name_overlap %}{{ n }} terme de nom commun{% plural %}{{ n }} termes de nom communs{% endblocktranslate %}{% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <button type="submit">{% translate "Continuer avec cet électeur" %}</button>
+      {% else %}
+        <p>{% translate "Aucune entrée proche. Précisez la recherche, ou vérifiez l'inscription de la personne sur la liste électorale." %}</p>
+      {% endif %}
+    </form>
+  {% endif %}
+{% endblock %}

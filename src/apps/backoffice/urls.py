@@ -5,9 +5,9 @@ from . import views
 
 app_name = "backoffice"
 
-# TODO(scaffold): screens 5–7 and 9–11 of §6.5 land here. Poll-scoped routes
-# carry ``<uuid:poll_id>``, which ``access.require_poll_role`` resolves and
-# gates — a route that does not is a screen open to anyone signed in.
+# TODO(scaffold): screens 9–11 of §6.5 land here. Poll-scoped routes carry
+# ``<uuid:poll_id>``, which ``access.require_poll_role`` resolves and gates — a
+# route that does not is a screen open to anyone signed in.
 urlpatterns = [
     path("", views.poll_index, name="poll_index"),
     path("connexion/", views.OperatorLoginView.as_view(), name="login"),
@@ -34,5 +34,30 @@ urlpatterns = [
         "scrutin/<uuid:poll_id>/liste-electorale/verification/",
         views.roll_import_review,
         name="roll_import_review",
+    ),
+    path(
+        "scrutin/<uuid:poll_id>/bulletin-papier/",
+        views.paper_entry,
+        name="paper_entry",
+    ),
+    path(
+        "scrutin/<uuid:poll_id>/bulletins-papier/",
+        views.paper_ballot_list,
+        name="paper_ballot_list",
+    ),
+    path(
+        "scrutin/<uuid:poll_id>/bulletin-papier/<uuid:ballot_id>/",
+        views.paper_ballot,
+        name="paper_ballot",
+    ),
+    path(
+        "scrutin/<uuid:poll_id>/bulletin-papier/<uuid:ballot_id>/recu/",
+        views.paper_receipt,
+        name="paper_receipt",
+    ),
+    path(
+        "scrutin/<uuid:poll_id>/contreseing/",
+        views.countersign_queue,
+        name="countersign_queue",
     ),
 ]
