@@ -325,16 +325,22 @@ def test_t13_the_ballot_is_completable_by_keyboard_and_screen_reader_alone(
     django_capture_on_commit_callbacks: Callable[..., Any],
 ) -> None:
     """T-13: the automatable half. The ranking is native ``<select>`` controls,
-    one per proposition, each with its own ``<label>``; the page carries no
-    script and no drag affordance, so a keyboard or screen-reader user depends
-    on neither. A plain POST of the values the page offers writes the ballot.
-    The assistive-technology pass itself stays a manual step (§12).
+    one per proposition, each with its own ``<label>``; the ballot content
+    carries no script and no drag affordance, so a keyboard or screen-reader
+    user depends on neither. A plain POST of the values the page offers writes
+    the ballot. The assistive-technology pass itself stays a manual step (§12).
+
+    "No script" is asserted over the document body, not the whole page: the
+    shared ``<head>`` loads the cosmetic theme-toggle asset (§14 permits minimal
+    vanilla JavaScript), which the ballot neither uses nor degrades without.
+    Anything enhancing the ranking would live in the body and still fail this.
     """
     _registration, token = _register(live_poll)
     page = client.get(_access_url(live_poll, token)).content.decode()
+    body = page.split("<main", 1)[1]
 
     # No pointer-only affordance and no scripting to depend on.
-    assert "<script" not in page
+    assert "<script" not in body
     assert "draggable" not in page
     assert 'type="range"' not in page
 
@@ -367,4 +373,4 @@ def test_t13_the_ballot_is_completable_by_keyboard_and_screen_reader_alone(
     receipt = client.get(response["Location"]).content.decode()
     assert "enregistré" in receipt
     assert format_tracking_code(TrackingCode(ballot.tracking_code)) in receipt
-    assert "<script" not in receipt
+    assert "<script" not in receipt.split("<main", 1)[1]

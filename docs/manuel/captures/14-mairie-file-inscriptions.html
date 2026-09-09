@@ -13,30 +13,43 @@
    no build step (§14): an adopting commune's IT department reads this file in
    one sitting.
 
-   Four rules this file keeps and every later screen must keep too:
+   Five rules this file keeps and every later screen must keep too:
    - nothing carries meaning by colour alone (3.1) — states and message levels
      are written in words, and the colour is decoration on top of the word;
    - the focus indicator is never removed and never relies on colour alone (10.7);
    - sizes are in rem, so the page survives a 200 % zoom (10.4);
-   - light and dark are a token swap and nothing else. Every rule below takes its
-     colours from the seven variables (plus a few layout constants that do not
-     change between themes); the two blocks after :root redefine only the
-     colours, keeping the same contrasts, so a dark viewer gets the same page in
-     the other key. `prefers-color-scheme` is honoured, and `data-theme` on the
-     root wins over it in either direction. */
+   - text keeps its AA contrast in both themes — the token values below are
+     chosen for it and the ratio is noted where it is close;
+   - light and dark are a token swap and nothing else. Every rule takes its
+     colour from the variables on :root; the two blocks after :root redefine
+     only those variables, keeping the same contrasts, so a dark viewer gets
+     the same page in the other key. `prefers-color-scheme` is honoured, and
+     `data-theme` on the root — set by static/js/theme.js from the viewer's
+     choice — wins over it in either direction. */
 
 :root {
   color-scheme: light;
+
   --ink: #1b1b1b;
   --ink-quiet: #4a4a4a;      /* 9.3:1 on --paper */
   --paper: #ffffff;
   --paper-quiet: #f4f4f1;
+  --surface: #ffffff;        /* raised cards; separated by --rule-soft + shadow */
   --rule: #767676;           /* 4.5:1 on --paper */
+  --rule-soft: #d9d9d3;      /* row hairlines — decorative, backed by the zebra */
   --link: #1a4fa0;           /* 7.4:1 on --paper */
   --focus: #b8003f;
+  --accent: #000091;         /* bleu France; 16:1 on --paper, 16:1 for white on it */
+  --accent-ink: #ffffff;
+  --accent-soft: #e9e9fb;    /* accent wash behind --ink text — 15:1 */
+  --ok: #1f6b2c;             /* 6:1 on --paper */
+  --warn: #7a5c00;           /* 6.3:1 on --paper */
 
-  --radius: 0.5rem;
-  --radius-sm: 0.3rem;
+  --shadow: 0 1px 2px rgba(17, 17, 26, 0.05), 0 6px 20px -4px rgba(17, 17, 26, 0.10);
+  --shadow-sm: 0 1px 2px rgba(17, 17, 26, 0.06);
+
+  --radius: 0.7rem;
+  --radius-sm: 0.4rem;
   --measure: 42rem;          /* comfortable reading width for prose */
   --page: 78rem;             /* the centred content column */
 }
@@ -48,9 +61,18 @@
     --ink-quiet: #a9abb2;    /* 6.5:1 on --paper */
     --paper: #17181b;
     --paper-quiet: #202227;
+    --surface: #22242a;
     --rule: #7d7f87;         /* 4.2:1 on --paper */
+    --rule-soft: #3b3d45;
     --link: #7db3ff;         /* 8:1 on --paper */
     --focus: #ff5a7c;
+    --accent: #a5b4ff;       /* 9.8:1 on --paper */
+    --accent-ink: #10121a;   /* 12:1 on --accent */
+    --accent-soft: #242739;
+    --ok: #74c983;           /* 9:1 on --paper */
+    --warn: #d9b45f;         /* 9.7:1 on --paper */
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 20px -4px rgba(0, 0, 0, 0.55);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
   }
 }
 
@@ -60,9 +82,18 @@
   --ink-quiet: #a9abb2;
   --paper: #17181b;
   --paper-quiet: #202227;
+  --surface: #22242a;
   --rule: #7d7f87;
+  --rule-soft: #3b3d45;
   --link: #7db3ff;
   --focus: #ff5a7c;
+  --accent: #a5b4ff;
+  --accent-ink: #10121a;
+  --accent-soft: #242739;
+  --ok: #74c983;
+  --warn: #d9b45f;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 20px -4px rgba(0, 0, 0, 0.55);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -73,6 +104,9 @@ body {
   background: var(--paper);
   font: 1rem/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
+  /* The one piece of civic identity the platform allows itself: a bleu France
+     rule across the top of every page. Decorative, removed for print. */
+  border-top: 3px solid var(--accent);
 }
 
 /* One centred column. Bars and content share the same bounds so their edges
@@ -82,7 +116,7 @@ body {
   margin-inline: auto;
   padding: 1rem clamp(1rem, 4vw, 3rem);
 }
-main { padding-block: 1.75rem 3rem; }
+main { padding-block: 2rem 3.5rem; }
 
 /* The skip link is the first focusable element and is off-screen until focused,
    never `display: none`, which would take it out of the tab order (12.7). */
@@ -111,18 +145,27 @@ a:hover { text-decoration-thickness: 2px; }
 /* ---- type scale ---------------------------------------------------------- */
 
 h1, h2, h3 { line-height: 1.2; text-wrap: balance; }
-h1 { font-size: clamp(1.5rem, 1.1rem + 1.6vw, 1.9rem); letter-spacing: -0.01em; margin: 0 0 1rem; }
-h2 { font-size: 1.2rem; margin: 1.9rem 0 0.7rem; }
-h3 { font-size: 1rem; margin: 1.4rem 0 0.5rem; }
+h1 {
+  font-size: clamp(1.75rem, 1.3rem + 1.9vw, 2.35rem);
+  letter-spacing: -0.02em;
+  margin: 0 0 1.25rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 2px solid var(--accent);
+}
+h2 { font-size: clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem); margin: 2.1rem 0 0.7rem; letter-spacing: -0.01em; }
+h3 { font-size: 1.05rem; margin: 1.5rem 0 0.5rem; }
 p { margin: 0 0 0.8rem; }
 main > p, .paper-form p, .receipt p { max-width: var(--measure); }
-section { margin-bottom: 1.75rem; }
+section { margin-bottom: 2rem; }
 section:last-child { margin-bottom: 0; }
 
 .notice, .help { color: var(--ink-quiet); }
 .help { font-size: 0.9rem; }
 .pending, .purged { font-style: italic; color: var(--ink-quiet); }
 .required { font-weight: 400; color: var(--ink-quiet); }
+/* Inline annotations next to a table cell — "(date incertaine)", "(illisible)".
+   Small, italic, in the warn key; the words carry the meaning (3.1). */
+.warn { font-style: italic; color: var(--warn); }
 
 /* ---- shell ------------------------------------------------------------- */
 
@@ -130,14 +173,15 @@ section:last-child { margin-bottom: 0; }
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  padding-block: 0.85rem;
+  padding-block: 1rem;
   border-bottom: 1px solid var(--rule);
 }
-.site-name { font-weight: 700; margin: 0; }
+.site-name { font-weight: 700; margin: 0; font-size: 1.15rem; letter-spacing: -0.01em; }
 .site-name a { color: var(--ink); text-decoration: none; }
-.account { display: flex; gap: 0.75rem; align-items: baseline; }
+.site-name a:hover { color: var(--accent); }
+.account { display: flex; gap: 0.75rem; align-items: center; }
 .account__name { font-weight: 600; }
 
 .pollnav {
@@ -150,28 +194,63 @@ section:last-child { margin-bottom: 0; }
   list-style: none;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.2rem 1.4rem;
+  gap: 0.2rem 1.5rem;
   margin: 0.55rem 0 0;
   padding: 0;
 }
 .pollnav__links a {
   color: var(--ink);
   text-decoration: none;
-  padding: 0.15rem 0;
+  padding: 0.2rem 0;
   border-bottom: 2px solid transparent;
 }
 .pollnav__links a:hover { border-bottom-color: var(--rule); }
-.pollnav__links a[aria-current="page"] { font-weight: 700; border-bottom-color: var(--focus); }
+.pollnav__links a[aria-current="page"] {
+  font-weight: 700;
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
 
-.contentinfo { border-top: 1px solid var(--rule); color: var(--ink-quiet); font-size: 0.9rem; }
-.langswitch { display: flex; gap: 0.5rem; align-items: end; flex-wrap: wrap; margin-top: 0.75rem; }
+.contentinfo { border-top: 1px solid var(--rule); color: var(--ink-quiet); font-size: 0.9rem; margin-top: 1rem; }
+.langswitch, .themeswitch { display: flex; gap: 0.5rem; align-items: end; flex-wrap: wrap; margin-top: 0.75rem; }
 .langswitch label { font-weight: 400; }
+
+/* Theme control (static/js/theme.js). Progressive enhancement: it is hidden
+   until the script reveals it, since without JavaScript it does nothing and
+   the OS setting already drives the page. A segmented group of toggle buttons;
+   the pressed one is bold and filled — `aria-pressed` carries the state and
+   the weight change backs it up for a sighted viewer (3.1). */
+.themeswitch[hidden] { display: none; }
+.themeswitch > span { font-weight: 600; align-self: center; }
+.themeswitch [role="group"] {
+  display: inline-flex;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.themeswitch button {
+  margin: 0;
+  padding: 0.35rem 0.75rem;
+  font-weight: 500;
+  color: var(--ink);
+  background: var(--surface);
+  border: 0;
+  border-left: 1px solid var(--rule);
+  border-radius: 0;
+}
+.themeswitch button:first-child { border-left: 0; }
+.themeswitch button:hover { opacity: 1; background: var(--paper-quiet); }
+.themeswitch button[aria-pressed="true"] {
+  font-weight: 700;
+  color: var(--accent-ink);
+  background: var(--accent);
+}
 
 /* ---- messages and callouts ------------------------------------------------
    All the same object: an accent bar down the left of a tinted box. The word
    inside carries the meaning; the colour only sorts it (3.1). */
 
-.messages { list-style: none; margin: 0; }
+.messages { list-style: none; margin: 1rem auto 0; }
 .message,
 .blocker,
 .warning,
@@ -180,7 +259,7 @@ section:last-child { margin-bottom: 0; }
 .validation-report li {
   border-left: 4px solid var(--rule);
   background: var(--paper-quiet);
-  padding: 0.6rem 0.85rem;
+  padding: 0.7rem 0.95rem;
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   margin-bottom: 0.5rem;
 }
@@ -190,12 +269,13 @@ section:last-child { margin-bottom: 0; }
 .error,
 .receipt__notice,
 .validation-report__bad { border-left-color: var(--focus); }
+.message--success,
+.validation-report__ok { border-left-color: var(--ok); }
 .error { font-weight: 600; }
-.validation-report__ok { border-left-color: #2f7d3a; }
 .warning,
-.validation-report__warn { border-left-color: #8a6d1f; }
+.validation-report__warn { border-left-color: var(--warn); }
 
-.blockers, .validation-report { list-style: none; padding: 0; margin: 0.5rem 0 1.25rem; }
+.blockers, .validation-report { list-style: none; padding: 0; margin: 0.5rem 0 1.5rem; }
 
 /* ---- forms ------------------------------------------------------------- */
 
@@ -205,7 +285,7 @@ label { display: block; font-weight: 600; margin-bottom: 0.15rem; }
 
 input, select, textarea, button { font: inherit; }
 input, select, textarea {
-  padding: 0.45rem 0.6rem;
+  padding: 0.5rem 0.65rem;
   border: 1px solid var(--rule);
   border-radius: var(--radius-sm);
   background: var(--paper);
@@ -218,20 +298,35 @@ input[type="search"], input[type="text"], input[type="email"], input[type="date"
 input[type="search"], input[type="text"], input[type="email"] { width: min(30rem, 100%); }
 select { cursor: pointer; }
 input:focus-visible, select:focus-visible, textarea:focus-visible { border-color: var(--focus); }
-input[type="checkbox"], input[type="radio"] { accent-color: var(--focus); width: 1rem; height: 1rem; }
+input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); width: 1rem; height: 1rem; }
 
 button {
-  padding: 0.55rem 1rem;
+  padding: 0.6rem 1.1rem;
   font-weight: 600;
-  border: 1px solid var(--ink);
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--accent);
+  color: var(--accent-ink);
   cursor: pointer;
-  transition: opacity 0.12s ease;
+  transition: opacity 0.12s ease, background 0.12s ease;
 }
-button:hover { opacity: 0.85; }
-button:active { opacity: 0.7; }
+button:hover { opacity: 0.88; }
+button:active { opacity: 0.76; }
+
+/* Secondary and destructive actions carry the same word-first labelling; the
+   quieter fill keeps a routine screen from looking like a wall of blue, and
+   sets the primary action apart (R-2.4, §6.5). */
+button.secondary,
+form.inline button {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--rule);
+}
+form.danger button {
+  background: var(--surface);
+  color: var(--focus);
+  border-color: var(--focus);
+}
 
 fieldset {
   border: 1px solid var(--rule);
@@ -241,20 +336,47 @@ fieldset {
 }
 legend { font-weight: 700; padding: 0 0.4rem; }
 
+/* The account-management disclosure stacks three small forms; space them and
+   let each lay its label, field and button out in a row. */
+details form.inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: end;
+  margin: 0.75rem 0 0;
+}
+details form.inline label { margin: 0; }
+
+.pollpicker { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: end; margin-bottom: 1.5rem; }
+
 /* ---- tables ---------------------------------------------------------- */
 
-table { border-collapse: collapse; width: 100%; margin: 0.5rem 0 1.75rem; }
+table { border-collapse: collapse; width: 100%; margin: 0.5rem 0 2rem; }
 caption { text-align: left; font-weight: 600; padding-bottom: 0.6rem; }
-th, td { text-align: left; padding: 0.6rem 0.7rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
-thead th { background: var(--paper-quiet); border-bottom-width: 2px; font-size: 0.92rem; }
-tbody tr:last-child td { border-bottom: 0; }
-tbody tr:hover td { background: var(--paper-quiet); }
+th, td { text-align: left; padding: 0.65rem 0.75rem; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--paper-quiet);
+  border-bottom: 2px solid var(--rule);
+  font-size: 0.92rem;
+}
+/* Zebra and hover cover the row header too (the results matrix leads each row
+   with <th scope="row">), or the row would stripe everything but its label. */
+tbody tr:nth-child(even) th, tbody tr:nth-child(even) td { background: var(--paper-quiet); }
+tbody tr:last-child th, tbody tr:last-child td { border-bottom: 0; }
+tbody tr:hover th, tbody tr:hover td { background: var(--accent-soft); }
+
+.rolelist { list-style: none; margin: 0; padding: 0; }
+.rolelist li { padding: 0.1rem 0; }
 
 .tag {
   display: inline-block;
+  background: var(--paper-quiet);
   border: 1px solid var(--rule);
-  border-radius: var(--radius-sm);
-  padding: 0 0.35rem;
+  border-radius: 999px;
+  padding: 0.05rem 0.55rem;
   font-size: 0.8rem;
 }
 
@@ -264,29 +386,46 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 
 /* ---- screen 1: tableau de bord --------------------------------------- */
 
+/* Stat blocks read as cards: a raised surface, the label column quiet, the
+   value column plain. Used on the dashboard, the results screens and the
+   read-only configuration. */
 .facts {
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: 0.4rem 1.25rem;
-  margin: 0.5rem 0 1.25rem;
+  gap: 0.5rem 1.5rem;
+  margin: 0.5rem 0 1.5rem;
+  padding: 1.1rem 1.3rem;
+  background: var(--surface);
+  border: 1px solid var(--rule-soft);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
 }
 .facts dt { font-weight: 600; color: var(--ink-quiet); }
 .facts dd { margin: 0; }
+/* Nested inside another boxed block (a review article), the card treatment
+   would be a box in a box — drop it back to a plain grid. */
+.review .facts, .paper-elector .facts { box-shadow: none; border: 0; background: none; padding: 0; }
 
 .actions { list-style: none; padding: 0; margin: 0.5rem 0 0; display: flex; flex-direction: column; gap: 0.5rem; }
 
 /* ---- screen 8: journal d'audit ------------------------------------- */
 
-.filters { display: flex; flex-wrap: wrap; gap: 1rem; align-items: end; margin-bottom: 1.25rem; }
+.filters { display: flex; flex-wrap: wrap; gap: 1rem; align-items: end; margin-bottom: 1.5rem; }
 .filters p { margin: 0; }
 .filters .help { display: block; font-size: 0.85rem; }
-.pagination { display: flex; gap: 1rem; align-items: baseline; margin-top: 1.25rem; }
+.pagination { display: flex; gap: 1rem; align-items: baseline; margin-top: 1.5rem; }
 
 /* ---- screen 4: file d'attente des inscriptions --------------------
    The two decisions sit side by side and are told apart by their legend,
    never by colour alone (R-14.1). */
 
-.review { border-top: 1px solid var(--rule); padding-top: 1.25rem; margin-top: 1.75rem; }
+.review {
+  border: 1px solid var(--rule-soft);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 1.3rem 1.4rem;
+  margin-top: 1.75rem;
+}
 .decision { display: flex; flex-wrap: wrap; gap: 1.25rem; align-items: start; }
 .decision__half {
   flex: 1 1 20rem;
@@ -303,9 +442,10 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 
 .paper-search { margin-bottom: 1.75rem; }
 .paper-elector .facts, .receipt__ranking, .paper-ranking { margin: 0.5rem 0 1.25rem; }
-.ranking { list-style: decimal; padding-left: 1.4rem; margin: 0.5rem 0 0; }
+.ranking, .ranking-summary { list-style: decimal; padding-left: 1.4rem; margin: 0.5rem 0 1.25rem; }
 .ranking__row { padding: 0.35rem 0; }
 .ranking__row label { display: inline-block; margin: 0 0.6rem 0 0; font-weight: 400; }
+.ranking-summary li { padding: 0.2rem 0; }
 
 /* The dead end when the elector has already voted online (§6.4). Red, and also
    announced in words — the heading names the situation and role="alert" carries
@@ -320,11 +460,12 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 .collision__title { font-weight: 700; color: var(--focus); font-size: 1.05rem; margin: 0 0 0.4rem; }
 .collision p:last-child { margin-bottom: 0; }
 
-/* ---- the paper receipt (R-8.4) ---------------------------------------- */
+/* ---- receipts: the online one (R-7.x) and the paper one (R-8.4) ------- */
 
 .receipt {
-  border: 1px solid var(--rule);
+  border: 1px solid var(--rule-soft);
   border-radius: var(--radius);
+  box-shadow: var(--shadow);
   padding: 1.75rem;
   max-width: 34rem;
 }
@@ -336,13 +477,24 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
-.receipt__code {
+/* The tracking code is the one thing on either receipt the elector must be able
+   to copy exactly: big, monospaced, set on an accent wash so it reads as the
+   payload of the page. */
+.receipt__code,
+.tracking-code {
+  display: inline-block;
   font-size: 1.7rem;
   font-weight: 600;
   letter-spacing: 0.12em;
   font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
-  margin: 0 0 0.5rem;
+  margin: 0.2rem 0 0.5rem;
 }
+.tracking-code {
+  background: var(--accent-soft);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.9rem;
+}
+.tracking-code code { font: inherit; }
 .receipt__identity, .receipt__consultative { font-size: 0.9rem; color: var(--ink-quiet); }
 .noprint + .noprint, .receipt + .noprint { margin-top: 1rem; }
 .noprint a + a { margin-left: 1.25rem; }
@@ -355,15 +507,21 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 .propositions { padding-left: 1.4rem; margin: 0.5rem 0 0; }
 .propositions li { padding: 0.2rem 0; }
 .extensions { list-style: none; padding: 0; margin: 0.5rem 0 0; }
-.extensions li { padding: 0.4rem 0; border-bottom: 1px solid var(--rule); max-width: var(--measure); }
+.extensions li { padding: 0.4rem 0; border-bottom: 1px solid var(--rule-soft); max-width: var(--measure); }
 .extensions li:last-child { border-bottom: 0; }
-.outcome { font-size: 1.1rem; font-weight: 600; max-width: var(--measure); }
+.outcome {
+  font-size: 1.15rem;
+  font-weight: 600;
+  max-width: var(--measure);
+  border-left: 4px solid var(--accent);
+  padding-left: 0.9rem;
+}
 .legal { border-top: 1px solid var(--rule); padding-top: 1rem; }
 .legal p { max-width: var(--measure); }
 .poll-index { list-style: none; padding: 0; }
-.poll-index li { padding: 0.5rem 0; border-bottom: 1px solid var(--rule); }
-.poll-index li:last-child { border-bottom: 0; }
-.poll-index a { font-weight: 600; }
+.poll-index li { padding: 0.9rem 0; border-bottom: 1px solid var(--rule-soft); }
+.poll-index li:first-child { border-top: 1px solid var(--rule-soft); }
+.poll-index a { font-weight: 600; font-size: 1.05rem; }
 .poll-index .help { display: block; }
 
 @media (prefers-reduced-motion: reduce) {
@@ -371,9 +529,11 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 }
 
 @media print {
-  .banner, .pollnav, .messages, .contentinfo, .langswitch, .noprint { display: none !important; }
-  .receipt { border: none; border-radius: 0; padding: 0; max-width: none; }
+  body { border-top: 0; }
+  .banner, .pollnav, .messages, .contentinfo, .langswitch, .themeswitch, .noprint { display: none !important; }
+  .receipt { border: none; border-radius: 0; box-shadow: none; padding: 0; max-width: none; }
   main { margin: 0; padding: 0; max-width: none; }
+  h1 { border-bottom: 0; }
 }
 
 </style>
@@ -389,7 +549,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
       
       <span class="account__name">Jean Mercier</span>
       <form action="/fr/mairie/deconnexion/" method="post">
-        <input type="hidden" name="csrfmiddlewaretoken" value="oN7eUlpcqE1odmSF8858TI8YLxYUFDeDBx8JSNI1LzHspuTB1UNcoT012rGtDbZp">
+        <input type="hidden" name="csrfmiddlewaretoken" value="ltkuPg1b0Ezk8lsKat6qEX2Kld84STqlOQb0F0IQHhowMws6JQg1FhEevO9mVcEz">
         <button type="submit">Se déconnecter</button>
       </form>
     </div>
@@ -403,9 +563,9 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
       <p class="pollnav__poll">Réaménagement de la place de la Mairie — ouvert</p>
       
   <ul class="pollnav__links">
-    <li><a href="/fr/mairie/scrutin/786cf88b-5108-4ccd-906b-a5d0e3f1683d/">Tableau de bord</a></li>
-    <li><a href="/fr/mairie/scrutin/786cf88b-5108-4ccd-906b-a5d0e3f1683d/inscriptions/" aria-current="page">Inscriptions</a></li>
-    <li><a href="/fr/mairie/scrutin/786cf88b-5108-4ccd-906b-a5d0e3f1683d/journal/">Journal d'audit</a></li>
+    <li><a href="/fr/mairie/scrutin/534afc66-f211-495b-afc8-fa235bcaaf68/">Tableau de bord</a></li>
+    <li><a href="/fr/mairie/scrutin/534afc66-f211-495b-afc8-fa235bcaaf68/inscriptions/" aria-current="page">Inscriptions</a></li>
+    <li><a href="/fr/mairie/scrutin/534afc66-f211-495b-afc8-fa235bcaaf68/journal/">Journal d'audit</a></li>
   </ul>
 
     </nav>
@@ -424,8 +584,8 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
   <p class="help">Une même adresse électronique ne peut servir qu'une fois. Deux personnes partageant une adresse ne peuvent pas s'inscrire toutes les deux en ligne : leur voie est le vote papier à la mairie.</p>
 
   
-    <article class="review" aria-labelledby="demande-a7db27cf-a2e0-436a-8d84-0ef357eb2f90">
-      <h2 id="demande-a7db27cf-a2e0-436a-8d84-0ef357eb2f90">
+    <article class="review" aria-labelledby="demande-21354acd-2680-4872-94b8-97b9be9595d3">
+      <h2 id="demande-21354acd-2680-4872-94b8-97b9be9595d3">
         Dubois Marc
       </h2>
 
@@ -437,12 +597,12 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
         <dt>Déclaration sur l'honneur</dt>
         <dd>signée</dd>
         <dt>Demande reçue le</dt>
-        <dd>9 septembre 2026 18:59</dd>
+        <dd>9 septembre 2026 20:38</dd>
       </dl>
 
-      <form method="post" action="/fr/mairie/scrutin/786cf88b-5108-4ccd-906b-a5d0e3f1683d/inscriptions/decision/" class="decision">
-        <input type="hidden" name="csrfmiddlewaretoken" value="oN7eUlpcqE1odmSF8858TI8YLxYUFDeDBx8JSNI1LzHspuTB1UNcoT012rGtDbZp">
-        <input type="hidden" name="registration" value="a7db27cf-a2e0-436a-8d84-0ef357eb2f90">
+      <form method="post" action="/fr/mairie/scrutin/534afc66-f211-495b-afc8-fa235bcaaf68/inscriptions/decision/" class="decision">
+        <input type="hidden" name="csrfmiddlewaretoken" value="ltkuPg1b0Ezk8lsKat6qEX2Kld84STqlOQb0F0IQHhowMws6JQg1FhEevO9mVcEz">
+        <input type="hidden" name="registration" value="21354acd-2680-4872-94b8-97b9be9595d3">
 
         <h3>Entrées proches de la liste électorale</h3>
         
@@ -450,16 +610,16 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
         
 
         <p>
-          <label for="note-a7db27cf-a2e0-436a-8d84-0ef357eb2f90">Note (facultative)</label>
+          <label for="note-21354acd-2680-4872-94b8-97b9be9595d3">Note (facultative)</label>
           
           <span class="help">Conservée avec la demande et supprimée avec elle. N'apparaît pas dans le journal d'audit.</span>
-          <input id="note-a7db27cf-a2e0-436a-8d84-0ef357eb2f90" type="text" name="note" maxlength="500">
+          <input id="note-21354acd-2680-4872-94b8-97b9be9595d3" type="text" name="note" maxlength="500">
         </p>
         
         <fieldset class="decision__half">
           <legend>Accepter</legend>
-          <label for="ok-a7db27cf-a2e0-436a-8d84-0ef357eb2f90">Motif</label>
-          <select id="ok-a7db27cf-a2e0-436a-8d84-0ef357eb2f90" name="approve_reason">
+          <label for="ok-21354acd-2680-4872-94b8-97b9be9595d3">Motif</label>
+          <select id="ok-21354acd-2680-4872-94b8-97b9be9595d3" name="approve_reason">
             <option value="">— choisir —</option>
             
               <option value="name_divergence_accepted">divergence de nom acceptée</option>
@@ -476,8 +636,8 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 
         <fieldset class="decision__half">
           <legend>Refuser</legend>
-          <label for="no-a7db27cf-a2e0-436a-8d84-0ef357eb2f90">Motif</label>
-          <select id="no-a7db27cf-a2e0-436a-8d84-0ef357eb2f90" name="reject_reason">
+          <label for="no-21354acd-2680-4872-94b8-97b9be9595d3">Motif</label>
+          <select id="no-21354acd-2680-4872-94b8-97b9be9595d3" name="reject_reason">
             <option value="">— choisir —</option>
             
               <option value="name_divergence_refused">divergence de nom refusée</option>
@@ -507,8 +667,8 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
     
 
     <form action="/i18n/setlang/" method="post" class="langswitch">
-      <input type="hidden" name="csrfmiddlewaretoken" value="oN7eUlpcqE1odmSF8858TI8YLxYUFDeDBx8JSNI1LzHspuTB1UNcoT012rGtDbZp">
-      <input type="hidden" name="next" value="/fr/mairie/scrutin/786cf88b-5108-4ccd-906b-a5d0e3f1683d/inscriptions/">
+      <input type="hidden" name="csrfmiddlewaretoken" value="ltkuPg1b0Ezk8lsKat6qEX2Kld84STqlOQb0F0IQHhowMws6JQg1FhEevO9mVcEz">
+      <input type="hidden" name="next" value="/fr/mairie/scrutin/534afc66-f211-495b-afc8-fa235bcaaf68/inscriptions/">
       <label for="langswitch-select">Langue</label>
       <select id="langswitch-select" name="language">
         
@@ -520,6 +680,16 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
       </select>
       <button type="submit">Changer</button>
     </form>
+
+    
+    <div class="themeswitch" data-theme-control hidden>
+      <span id="themeswitch-label">Thème</span>
+      <div role="group" aria-labelledby="themeswitch-label">
+        <button type="button" value="light">Clair</button>
+        <button type="button" value="dark">Sombre</button>
+        <button type="button" value="auto">Système</button>
+      </div>
+    </div>
   </footer>
 </body>
 </html>

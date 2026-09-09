@@ -508,6 +508,22 @@ msgstr "Language"
 msgid "Changer"
 msgstr "Change"
 
+#: templates/base.html
+msgid "Thème"
+msgstr "Theme"
+
+#: templates/base.html
+msgid "Clair"
+msgstr "Light"
+
+#: templates/base.html
+msgid "Sombre"
+msgstr "Dark"
+
+#: templates/base.html
+msgid "Système"
+msgstr "System"
+
 #: templates/publicsite/poll_list.html
 msgid "Consultations"
 msgstr "Consultations"

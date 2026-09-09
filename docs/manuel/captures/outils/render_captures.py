@@ -25,7 +25,7 @@ from apps.registrations import services as reg
 from apps.registrations.models import Channel, Registration, RegistrationState
 
 ROOT = Path("/home/claude/Projects/polls")
-OUT = ROOT / "docs" / "captures"
+OUT = ROOT / "docs" / "manuel" / "captures"
 OUT.mkdir(parents=True, exist_ok=True)
 CSS = (ROOT / "src" / "static" / "css" / "app.css").read_text(encoding="utf-8")
 
@@ -47,6 +47,10 @@ def save(name: str, html: str) -> None:
         f"<style>\n{CSS}\n</style>",
         html,
     )
+    # The theme toggle is progressive enhancement (static/js/theme.js); a
+    # stand-alone capture has no server to load it from and does not need it —
+    # the control stays hidden and the OS theme drives the page, as designed.
+    html = re.sub(r'\s*<script src="[^"]*theme\.js[^"]*"></script>', "", html)
     (OUT / name).write_text(html, encoding="utf-8")
     print("  ", name, len(html))
 

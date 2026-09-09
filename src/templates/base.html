@@ -12,6 +12,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{% if commune %}{{ commune.name }}{% else %}{% translate "Consultation citoyenne" %}{% endif %}{% endblock %}</title>
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  {% comment %} Synchronous, before <body>: it sets data-theme from the stored
+     choice so the page never flashes the other theme (§14, R-14.1). {% endcomment %}
+  <script src="{% static 'js/theme.js' %}"></script>
 </head>
 <body>
   <a class="skip" href="#contenu">{% translate "Aller au contenu" %}</a>
@@ -60,6 +63,18 @@
       </select>
       <button type="submit">{% translate "Changer" %}</button>
     </form>
+
+    {% comment %} Revealed by static/js/theme.js. The OS setting is honoured with or
+       without this control; it only lets a visitor override it, and the choice
+       is kept in that browser (R-14.1, §14). {% endcomment %}
+    <div class="themeswitch" data-theme-control hidden>
+      <span id="themeswitch-label">{% translate "Thème" %}</span>
+      <div role="group" aria-labelledby="themeswitch-label">
+        <button type="button" value="light">{% translate "Clair" %}</button>
+        <button type="button" value="dark">{% translate "Sombre" %}</button>
+        <button type="button" value="auto">{% translate "Système" %}</button>
+      </div>
+    </div>
   </footer>
 </body>
 </html>
