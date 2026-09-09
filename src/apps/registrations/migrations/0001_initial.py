@@ -136,7 +136,9 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="registration",
             constraint=models.UniqueConstraint(
-                fields=("poll", "email_canonical"), name="uniq_registration_poll_email"
+                fields=("poll", "email_canonical"),
+                condition=~models.Q(channel="paper"),
+                name="uniq_registration_poll_email",
             ),
         ),
     ]

@@ -99,8 +99,14 @@ class Registration(models.Model):
                 & ~models.Q(state=RegistrationState.REJECTED),
                 name="uniq_registration_poll_roll_entry",
             ),
+            # INV-10 (§6.2): one elector, one address — for the online channel.
+            # A paper registration created at keying (§6.4) carries no address
+            # and any number may coexist for one poll, so the paper channel is
+            # outside this constraint.
             models.UniqueConstraint(
-                fields=["poll", "email_canonical"], name="uniq_registration_poll_email"
+                fields=["poll", "email_canonical"],
+                condition=~models.Q(channel=Channel.PAPER),
+                name="uniq_registration_poll_email",
             ),
         ]
         indexes = [

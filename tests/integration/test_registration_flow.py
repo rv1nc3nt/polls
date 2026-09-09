@@ -450,3 +450,86 @@ def test_marking_voted_writes_the_channel_and_returns_nothing(live_poll: Poll) -
     registration.refresh_from_db()
     assert registration.channel == Channel.ONLINE
     assert registration.has_voted
+
+
+# --- §6.4: the paper channel's registration binding -------------------------
+
+
+def test_ensure_paper_registration_creates_one_for_an_offline_elector(live_poll: Poll) -> None:
+    """R-8.1: an elector without internet access has no registration until a
+    ballot is keyed for them (§6.4)."""
+    from apps.elections.models import RollEntry
+
+    entry = RollEntry.objects.get(poll=live_poll)
+    reg_id, channel = services.ensure_paper_registration(live_poll, str(entry.pk))
+
+    assert channel == Channel.PAPER
+    reg = Registration.objects.get(pk=reg_id)
+    assert reg.state == RegistrationState.ACTIVE
+    assert reg.channel == Channel.PAPER
+    assert reg.roll_entry_id == entry.pk
+    assert reg.email == "" and reg.email_canonical == ""
+    assert reg.declared_last_name == entry.birth_name
+    assert reg.voter_hash is None
+
+
+def test_ensure_paper_registration_reuses_the_bound_registration(live_poll: Poll) -> None:
+    """INV-4: one roll entry, one registration — a second call binds nothing new
+    and reports the channel it found."""
+    registration, _ = _register(live_poll)
+    entry_id = str(registration.roll_entry_id)
+
+    reg_id, channel = services.ensure_paper_registration(live_poll, entry_id)
+
+    assert reg_id == str(registration.pk)
+    assert channel == Channel.NONE
+    assert Registration.objects.filter(poll=live_poll).count() == 1
+
+
+def test_blank_email_paper_registrations_coexist(open_window_poll: Poll) -> None:
+    """§3.3: INV-10 does not reach the paper channel, so a household keyed at the
+    mairie is not blocked by a shared (absent) address."""
+    from apps.elections.models import RollEntry, WorkingRollEntry
+
+    WorkingRollEntry.objects.create(
+        birth_name="Durand",
+        first_names="Marie",
+        date_of_birth="03/07/1975",
+        date_of_birth_parsed="1975-07-03",
+        list_types=["principale"],
+    )
+    open_poll(open_window_poll)
+    poll = Poll.objects.get(pk=open_window_poll.pk)
+
+    entries = list(RollEntry.objects.filter(poll=poll))
+    assert len(entries) == 2
+    for entry in entries:
+        services.ensure_paper_registration(poll, str(entry.pk))
+
+    assert Registration.objects.filter(poll=poll, channel=Channel.PAPER).count() == 2
+
+
+def test_online_registrations_still_share_no_address(live_poll: Poll) -> None:
+    """D2: narrowing the address constraint to the non-paper channels must not
+    loosen it for them (INV-10)."""
+    from django.db import IntegrityError, transaction
+
+    Registration.objects.create(
+        poll=live_poll,
+        state=RegistrationState.ACTIVE,
+        channel=Channel.ONLINE,
+        declared_last_name="A",
+        declared_first_names="B",
+        email="dup@example.fr",
+        email_canonical="dup@example.fr",
+    )
+    with pytest.raises(IntegrityError), transaction.atomic():
+        Registration.objects.create(
+            poll=live_poll,
+            state=RegistrationState.PENDING_EMAIL,
+            channel=Channel.NONE,
+            declared_last_name="C",
+            declared_first_names="D",
+            email="dup@example.fr",
+            email_canonical="dup@example.fr",
+        )

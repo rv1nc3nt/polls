@@ -3,7 +3,11 @@
 
 Never imports ``apps.ballots`` (INV-1). Voting status is written here, on
 ``Registration.channel``, in the same transaction as the ballot insert — the
-ballot service calls ``mark_voted`` below and passes no voter identity back.
+ballot service calls ``mark_voted`` below and passes no voter identity back. The
+paper channel (§6.4) also reaches this module and nowhere else:
+``ensure_paper_registration`` gives back the id of the registration a keyed
+ballot's channel indicator hangs off, creating one for an elector who never
+registered online.
 
 The token is the whole of §7 and is handled in one place. It is minted on entry
 to ``pending_email``, from either path, and immediately forgotten: only
@@ -406,3 +410,45 @@ def mark_voted(registration_id: str, channel: Channel) -> None:
     voter and a ballot in one scope, which is where a join gets written.
     """
     Registration.objects.filter(pk=registration_id).update(channel=channel)
+
+
+@transaction.atomic
+def ensure_paper_registration(poll: Poll, roll_entry_id: str) -> tuple[str, str]:
+    """The registration a paper ballot's channel indicator hangs off (§6.4).
+
+    Screen 5 has confirmed an elector against the frozen snapshot (R-8.3); this
+    returns the id of the registration bound to that snapshot entry and its
+    current channel, so ``ballots.services`` can branch on a prior online vote
+    (R-9.3) without being handed a ``Registration``.
+
+    An elector who never registered online has none: one is created here,
+    ``active`` and on the ``paper`` channel, with the ``declared_*`` identity
+    copied from the snapshot entry and no address. It is a single INSERT, which
+    the INV-2 trigger admits on the paper channel until ``paper_entry_deadline``
+    (§6.4); the blank ``email_canonical`` sits outside INV-10, which the paper
+    channel is exempt from (§3.3). ``roll_entry`` is unique per poll among
+    non-rejected bound rows (INV-4), so a second call returns the first row.
+    """
+    check_registration_window(poll, channel=Channel.PAPER)
+    entry = RollEntry.objects.get(poll=poll, pk=roll_entry_id)
+    existing = (
+        Registration.objects.filter(poll=poll, roll_entry=entry)
+        .exclude(state=RegistrationState.REJECTED)
+        .first()
+    )
+    if existing is not None:
+        return str(existing.pk), str(existing.channel)
+
+    registration = Registration.objects.create(
+        poll=poll,
+        roll_entry=entry,
+        state=RegistrationState.ACTIVE,
+        channel=Channel.PAPER,
+        declared_last_name=entry.birth_name,
+        declared_first_names=entry.first_names,
+        declared_dob=entry.date_of_birth,
+        email="",
+        email_canonical="",
+        confirmed_at=timezone.now(),
+    )
+    return str(registration.pk), str(Channel.PAPER)
