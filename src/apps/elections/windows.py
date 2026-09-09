@@ -44,7 +44,9 @@ def check_ballot_window(poll: Poll, source: str, now: datetime | None = None) ->
         )
 
 
-def check_registration_window(poll: Poll, now: datetime | None = None) -> None:
+def check_registration_window(
+    poll: Poll, now: datetime | None = None, *, channel: str | None = None
+) -> None:
     """No registration write after ``closes_at`` (INV-2), nor before ``opens_at``.
 
     INV-2 names only the closing bound. The opening one is here because
@@ -55,6 +57,12 @@ def check_registration_window(poll: Poll, now: datetime | None = None) -> None:
     the clock and not ``Poll.state``, since the scheduled transition may run
     late (§4).
 
+    ``channel`` is set to ``paper`` by the paper-entry path only: the
+    voting-channel indicator of a paper voter tracks the *ballot* window, not
+    the registration window, because keying is transcription of a vote cast
+    before ``closes_at`` (§6.4) and the INV-2 trigger admits the same. Every
+    other registration write still stops at ``closes_at``.
+
     The retention purge is the sole exception and is not a caller here: it goes
     through ``apps.elections.retention``, of which it is the only user, and the
     database trigger names the exception rather than being disabled for it
@@ -63,5 +71,6 @@ def check_registration_window(poll: Poll, now: datetime | None = None) -> None:
     now = now or timezone.now()
     if now < poll.opens_at:
         raise WindowClosed(_("Les inscriptions ne sont pas encore ouvertes."))
-    if now >= poll.closes_at:
+    deadline = poll.paper_entry_deadline if channel == BallotSource.PAPER else poll.closes_at
+    if now >= deadline:
         raise WindowClosed(_("Les inscriptions sont closes."))

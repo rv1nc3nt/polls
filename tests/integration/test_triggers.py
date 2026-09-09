@@ -123,6 +123,85 @@ def test_t56_paper_keying_window_outlives_online_voting(open_window_poll: Poll) 
     paper.save(update_fields=["status"])
 
 
+def test_t24_not_in_force_collision_ballot_is_immutable(open_window_poll: Poll) -> None:
+    """D4: the R-9.3 override entry is a permanent, uncounted record (§6.4)."""
+    ballot = Ballot.objects.create(
+        poll=open_window_poll,
+        tracking_code=new_tracking_code(),
+        ranking=[["a"], ["b"], ["c"]],
+        source=BallotSource.PAPER,
+        status=BallotStatus.NOT_IN_FORCE_COLLISION,
+    )
+    with pytest.raises(Exception, match="INV-3"), transaction.atomic():
+        raw("UPDATE ballots_ballot SET status = 'live' WHERE id = %s", [pk(ballot)])
+    with pytest.raises(Exception, match="INV-3"), transaction.atomic():
+        raw("DELETE FROM ballots_ballot WHERE id = %s", [pk(ballot)])
+    assert Ballot.objects.filter(pk=ballot.pk).exists()
+
+
+def test_paper_channel_registration_moves_in_the_keying_window(open_window_poll: Poll) -> None:
+    """D1 / §6.4: a paper voter's channel indicator tracks the *ballot* window,
+    so it may be created and moved after ``closes_at`` and until
+    ``paper_entry_deadline`` — and nothing else on the row may."""
+    from apps.elections.models import RollEntry
+    from apps.registrations.models import Channel, Registration, RegistrationState
+
+    entry = RollEntry.objects.create(
+        poll=open_window_poll,
+        birth_name="Dupont",
+        first_names="Émile",
+        date_of_birth="12/05/1970",
+        list_types=["principale"],
+    )
+    now = timezone.now()
+    raw(
+        "UPDATE elections_poll SET closes_at = %s, paper_entry_deadline = %s WHERE id = %s",
+        [
+            sql_time(now - timedelta(hours=1)),
+            sql_time(now + timedelta(days=1)),
+            pk(open_window_poll),
+        ],
+    )
+
+    # A paper-channel registration may still be created; an online one may not.
+    paper = Registration.objects.create(
+        poll=open_window_poll,
+        roll_entry=entry,
+        state=RegistrationState.ACTIVE,
+        channel=Channel.PAPER,
+        declared_last_name="Dupont",
+        declared_first_names="Émile",
+        declared_dob="12/05/1970",
+        email="",
+        email_canonical="",
+    )
+    with pytest.raises(Exception, match="INV-2"), transaction.atomic():
+        Registration.objects.create(
+            poll=open_window_poll,
+            state=RegistrationState.PENDING_EMAIL,
+            channel=Channel.ONLINE,
+            declared_last_name="X",
+            declared_first_names="Y",
+            email="x@example.test",
+            email_canonical="x@example.test",
+        )
+
+    # The channel may be cleared (paper ballot deleted, R-9.4) and set again ...
+    Registration.objects.filter(pk=paper.pk).update(channel=Channel.NONE)
+    Registration.objects.filter(pk=paper.pk).update(channel=Channel.PAPER)
+    # ... but no other column may move in this window.
+    with pytest.raises(Exception, match="INV-2"), transaction.atomic():
+        Registration.objects.filter(pk=paper.pk).update(state=RegistrationState.REJECTED)
+
+    # Past paper_entry_deadline even the channel is frozen.
+    raw(
+        "UPDATE elections_poll SET paper_entry_deadline = %s WHERE id = %s",
+        [sql_time(now - timedelta(minutes=1)), pk(open_window_poll)],
+    )
+    with pytest.raises(Exception, match="INV-2"), transaction.atomic():
+        Registration.objects.filter(pk=paper.pk).update(channel=Channel.NONE)
+
+
 def test_t4_poll_configuration_is_frozen_outside_draft(open_window_poll: Poll) -> None:
     """INV-6 / R-3.3, at the database, since ``save()`` is bypassed by
     ``update()`` and raw SQL."""

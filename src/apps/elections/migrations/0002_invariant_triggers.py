@@ -109,14 +109,16 @@ BEGIN
 END;
 """
 
-# A superseded or deleted ballot version is history: it may not be edited, and
-# no ballot row is ever physically removed (§3.4, R-8.5).
+# A superseded, deleted or not-in-force ballot row is history: it may not be
+# edited, and no ballot row is ever physically removed (§3.4, R-8.5).
+# ``not_in_force_collision`` is immutable from birth — the R-9.3 override entry
+# is a permanent record of a paper ballot that was never counted (§6.4, D4).
 BALLOT_HISTORY_IMMUTABLE = """
 CREATE TRIGGER inv3_ballot_history_no_update
 BEFORE UPDATE ON ballots_ballot
-FOR EACH ROW WHEN OLD.status IN ('superseded', 'deleted')
+FOR EACH ROW WHEN OLD.status IN ('superseded', 'deleted', 'not_in_force_collision')
 BEGIN
-    SELECT RAISE(ABORT, 'INV-3: superseded and deleted ballot versions are immutable');
+    SELECT RAISE(ABORT, 'INV-3: superseded, deleted and not-in-force ballot rows are immutable');
 END;
 
 CREATE TRIGGER inv3_ballot_no_delete
@@ -153,19 +155,55 @@ END;
 # The purge's exception is expressed *inside* the trigger rather than around it:
 # DELETE of a registration is permitted where the poll is over. Disabling the
 # trigger for the duration of the job is not an acceptable substitute (§11).
+#
+# The voting-channel indicator (R-9.1) is the one field that still moves after
+# closes_at, and only for the paper channel: keying a paper ballot until
+# paper_entry_deadline sets it to 'paper' (§6.4), and deleting that ballot
+# clears it again (R-9.4). Keying is transcription of a vote cast before
+# closes_at, so this mirrors the ballot window, which already admits the paper
+# ballot itself over the same period (D1). Every other column is frozen at
+# closure; the equality list below must track registrations_registration, since
+# a field added to the model and omitted here would become writable after it.
 REGISTRATION_WINDOW = """
 CREATE TRIGGER inv2_registration_insert_window
 BEFORE INSERT ON registrations_registration
-FOR EACH ROW WHEN julianday('now') >=
-    julianday((SELECT closes_at FROM elections_poll WHERE id = NEW.poll_id))
+FOR EACH ROW WHEN
+    julianday('now') >= julianday(
+        (SELECT closes_at FROM elections_poll WHERE id = NEW.poll_id))
+    AND NOT (
+        NEW.channel = 'paper'
+        AND julianday('now') < julianday(
+            (SELECT paper_entry_deadline FROM elections_poll WHERE id = NEW.poll_id))
+    )
 BEGIN
     SELECT RAISE(ABORT, 'INV-2: registrations are closed');
 END;
 
 CREATE TRIGGER inv2_registration_update_window
 BEFORE UPDATE ON registrations_registration
-FOR EACH ROW WHEN julianday('now') >=
-    julianday((SELECT closes_at FROM elections_poll WHERE id = NEW.poll_id))
+FOR EACH ROW WHEN
+    julianday('now') >= julianday(
+        (SELECT closes_at FROM elections_poll WHERE id = NEW.poll_id))
+    AND NOT (
+        julianday('now') < julianday(
+            (SELECT paper_entry_deadline FROM elections_poll WHERE id = NEW.poll_id))
+        AND (NEW.channel = 'paper' OR OLD.channel = 'paper')
+        AND NEW.poll_id IS OLD.poll_id
+        AND NEW.roll_entry_id IS OLD.roll_entry_id
+        AND NEW.declared_last_name IS OLD.declared_last_name
+        AND NEW.declared_first_names IS OLD.declared_first_names
+        AND NEW.declared_dob IS OLD.declared_dob
+        AND NEW.email IS OLD.email
+        AND NEW.email_canonical IS OLD.email_canonical
+        AND NEW.declared_on_honour IS OLD.declared_on_honour
+        AND NEW.state IS OLD.state
+        AND NEW.review_reason IS OLD.review_reason
+        AND NEW.voter_hash IS OLD.voter_hash
+        AND NEW.language IS OLD.language
+        AND NEW.created_at IS OLD.created_at
+        AND NEW.confirmed_at IS OLD.confirmed_at
+        AND NEW.reminder_sent_at IS OLD.reminder_sent_at
+    )
 BEGIN
     SELECT RAISE(ABORT, 'INV-2: registrations are closed');
 END;
