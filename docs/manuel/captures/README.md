@@ -2,12 +2,11 @@
 
 # Captures d'écran du manuel
 
-Chaque fichier `*.html` de ce dossier est une capture d'un écran réel de
-l'application, rendue à partir d'une instance de démonstration et livrée avec sa
-feuille de style intégrée, donc consultable hors ligne dans n'importe quel
-navigateur.
+- `*.html` — le balisage réel de chaque écran, feuille de style intégrée, donc
+  consultable hors ligne dans n'importe quel navigateur. C'est la **source**.
+- `img/*.png` — le rendu de ces mêmes pages, c'est ce que le manuel affiche.
 
-## Régénérer les captures
+## Régénérer
 
 ```sh
 # 1. base de démonstration (settings dev, SQLite jetable)
@@ -16,21 +15,25 @@ DJANGO_SETTINGS_MODULE=config.settings.dev PYTHONPATH=src \
   uv run python manage.py migrate
 PYTHONPATH=src uv run python docs/manuel/captures/outils/demo_seed.py
 
-# 2. rendu des captures dans docs/manuel/captures/
+# 2. HTML de chaque écran dans docs/manuel/captures/
 DJANGO_SETTINGS_MODULE=config.settings.dev PYTHONPATH=src \
   uv run python docs/manuel/captures/outils/render_captures.py
-```
 
-## Convertir en images
-
-Sur une machine dotée d'un navigateur sans affichage :
-
-```sh
+# 3. HTML -> PNG dans docs/manuel/captures/img/ (navigateur sans affichage)
+mkdir -p docs/manuel/captures/img
 for f in docs/manuel/captures/*.html; do
-  chromium --headless --screenshot="${f%.html}.png" \
-    --window-size=1280,1800 "$f"
+  b=$(basename "$f" .html)
+  chrome-headless-shell --headless --disable-gpu --no-sandbox --hide-scrollbars \
+    --window-size=1360,9000 --screenshot="docs/manuel/captures/img/$b.png" "file://$PWD/$f"
+  convert "docs/manuel/captures/img/$b.png" -bordercolor white -border 1 \
+    -trim +repage -bordercolor white -border 24 "docs/manuel/captures/img/$b.png"
 done
 ```
+
+Toute commande de capture d'un navigateur sans affichage convient à l'étape 3
+(`chromium --headless`, `google-chrome --headless`, Playwright…). Le
+rognage `convert` (ImageMagick) enlève le blanc en bas de page ; il est
+facultatif.
 
 ## Inventaire
 

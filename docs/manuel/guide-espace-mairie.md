@@ -47,7 +47,9 @@ interdits par construction. Le nom de la personne connectée est affiché en hau
 de chaque écran : on doit voir d'un coup d'œil au nom de qui le journal d'audit
 va enregistrer les actions.
 
-> **Figure 6 — Connexion à l'espace mairie.** [Ouvrir la capture](captures/06-mairie-connexion.html)
+**Figure 6 — Connexion à l'espace mairie.**
+
+![Connexion à l'espace mairie](captures/img/06-mairie-connexion.png)
 
 ## 2. Mise en route d'une instance neuve
 
@@ -63,9 +65,13 @@ va enregistrer les actions.
 3. **Import de la liste électorale** (écran 3) — voir §5.
 4. **Créer le premier scrutin** (§3) puis **le configurer** (§4).
 
-> **Figure 18 — Comptes opérateurs.** [Ouvrir la capture](captures/18-mairie-comptes.html)
->
-> **Figure 19 — Rôles par scrutin.** [Ouvrir la capture](captures/19-mairie-roles.html)
+**Figure 18 — Comptes opérateurs.**
+
+![Comptes opérateurs](captures/img/18-mairie-comptes.png)
+
+**Figure 19 — Rôles par scrutin.**
+
+![Rôles par scrutin](captures/img/19-mairie-roles.png)
 
 Toute attribution de rôle est tracée au journal (§10).
 
@@ -105,7 +111,9 @@ permises dans l'état courant**.
   qui s'affichent, pas un comptage frais (les inscriptions derrière un comptage
   frais sont supprimées deux mois après — un comptage frais donnerait alors zéro).
 
-> **Figure 11 — Tableau de bord d'un scrutin ouvert.** [Ouvrir la capture](captures/11-mairie-tableau-de-bord.html)
+**Figure 11 — Tableau de bord d'un scrutin ouvert.**
+
+![Tableau de bord d'un scrutin ouvert](captures/img/11-mairie-tableau-de-bord.png)
 
 ## 4. Configuration du scrutin (écran 2)
 
@@ -149,9 +157,13 @@ chaque langue activée. **Un scrutin ne peut pas être ouvert tant qu'une
 traduction manque** ; une traduction absente retombe sur la langue par défaut du
 scrutin, jamais sur rien. Le français fait foi.
 
-> **Figure 13 — Configuration modifiable (scrutin en brouillon).** [Ouvrir la capture](captures/13-mairie-configuration-brouillon.html)
->
-> **Figure 12 — Configuration en lecture seule (scrutin ouvert), avec le report de clôture comme action distincte.** [Ouvrir la capture](captures/12-mairie-configuration-lecture.html)
+**Figure 13 — Configuration modifiable (scrutin en brouillon).**
+
+![Configuration modifiable (scrutin en brouillon)](captures/img/13-mairie-configuration-brouillon.png)
+
+**Figure 12 — Configuration en lecture seule (scrutin ouvert), avec le report de clôture comme action distincte.**
+
+![Configuration en lecture seule (scrutin ouvert), avec le report de clôture comme action distincte](captures/img/12-mairie-configuration-lecture.png)
 
 ### Méthodes de dépouillement (R-10.3)
 
@@ -196,7 +208,9 @@ si l'inscription postale est configurée.
 L'import est inscrit au journal avec le **nom du fichier, son empreinte SHA-256,
 le nombre de lignes** et l'identité de l'opérateur.
 
-> **Figure 15 — Import de la liste électorale, étape 1 (choix du fichier et correspondance des colonnes).** [Ouvrir la capture](captures/15-mairie-import-liste.html)
+**Figure 15 — Import de la liste électorale, étape 1 (choix du fichier et correspondance des colonnes).**
+
+![Import de la liste électorale, étape 1 (choix du fichier et correspondance des colonnes)](captures/img/15-mairie-import-liste.png)
 
 ### Le rapport informe, il ne bloque pas
 
@@ -254,8 +268,10 @@ inscription est à l'étude.
 
 > Deux décisions sont présentées côte à côte et distinguées par leur intitulé,
 > jamais par la couleur seule (RGAA).
->
-> **Figure 14 — File d'attente des inscriptions.** [Ouvrir la capture](captures/14-mairie-file-inscriptions.html)
+
+**Figure 14 — File d'attente des inscriptions.**
+
+![File d'attente des inscriptions](captures/img/14-mairie-file-inscriptions.png)
 
 ### Tentatives de doublon (R-5.9)
 
@@ -287,7 +303,9 @@ s'applique.
 
 ### Saisie (écran 5)
 
-> **Figure 16 — Saisie d'un bulletin papier : recherche de l'électeur.** [Ouvrir la capture](captures/16-mairie-bulletin-papier.html)
+**Figure 16 — Saisie d'un bulletin papier : recherche de l'électeur.**
+
+![Saisie d'un bulletin papier : recherche de l'électeur](captures/img/16-mairie-bulletin-papier.png)
 
 1. **Rechercher l'électeur** dans la copie figée (nom, prénom, date de
    naissance, ou plusieurs à la fois). L'écran affiche les **entrées proches**
@@ -295,7 +313,9 @@ s'applique.
    données détenues, l'opérateur tranche **avec l'électeur présent**, pas depuis
    le dossier (R-8.3).
 
-   > **Figure 16a — Résultats de recherche, avec l'indication de concordance.** [Ouvrir la capture](captures/16a-mairie-bulletin-papier-recherche.html)
+   **Figure 16a — Résultats de recherche, avec l'indication de concordance.**
+
+   ![Résultats de recherche, avec l'indication de concordance](captures/img/16a-mairie-bulletin-papier-recherche.png)
 
 2. **Vérifier le canal de vote** de l'électeur :
    - **papier déjà enregistré** → c'est une **correction** du bulletin
@@ -307,7 +327,9 @@ s'applique.
      modification en ligne ; sinon, il indique que le vote en ligne est
      définitif (R-9.3) ;
 
-     > **Figure 16d — Interstitiel bloquant : l'électeur a déjà voté en ligne.** [Ouvrir la capture](captures/16d-mairie-bulletin-papier-collision.html)
+     **Figure 16d — Interstitiel bloquant : l'électeur a déjà voté en ligne.**
+
+     ![Interstitiel bloquant : l'électeur a déjà voté en ligne](captures/img/16d-mairie-bulletin-papier-collision.png)
 
    - **aucun** → on continue.
 3. **Saisir le classement** selon les contraintes du scrutin.
@@ -319,7 +341,9 @@ déposé par la voie papier **reste associé à l'identité de l'électeur** dan
 système — contrairement à un bulletin voté en ligne — à des fins de traçabilité
 et de suppression éventuelle à la demande (R-8.2 bis).
 
-> **Figure 16c — Reçu de vote papier (imprimable).** [Ouvrir la capture](captures/16c-mairie-recu-papier.html)
+**Figure 16c — Reçu de vote papier (imprimable).**
+
+![Reçu de vote papier (imprimable)](captures/img/16c-mairie-recu-papier.png)
 
 ### Correction et suppression (écran 6)
 
@@ -330,7 +354,9 @@ modifier leur vote : réparer une erreur de saisie n'est pas le même acte qu'un
 électeur qui change d'avis. La **suppression** efface l'indicateur de canal et
 **rouvre le vote en ligne** pour l'électeur concerné (R-9.4).
 
-> **Figure 16b — Liste des bulletins papier saisis.** [Ouvrir la capture](captures/16b-mairie-bulletins-papier-liste.html)
+**Figure 16b — Liste des bulletins papier saisis.**
+
+![Liste des bulletins papier saisis](captures/img/16b-mairie-bulletins-papier-liste.png)
 
 ### La fenêtre de saisie
 
@@ -352,7 +378,9 @@ et reste permis dans la même fenêtre que la saisie.
 
 ## 8. Clôture et publication (écran 9)
 
-> **Figure 17 — Clôture et publication.** [Ouvrir la capture](captures/17-mairie-depouillement.html)
+**Figure 17 — Clôture et publication.**
+
+![Clôture et publication](captures/img/17-mairie-depouillement.png)
 
 À la clôture, l'écran présente l'**empreinte de clôture** (SHA-256 couvrant
 exactement les bulletins retenus, sérialisés par code de suivi et identifiants
@@ -411,7 +439,9 @@ rouvre le vote en ligne (R-9.4).
 
 ## 10. Journal d'audit (écran 8)
 
-> **Figure 21 — Journal d'audit.** [Ouvrir la capture](captures/21-mairie-journal-audit.html)
+**Figure 21 — Journal d'audit.**
+
+![Journal d'audit](captures/img/21-mairie-journal-audit.png)
 
 Lecture seule, filtrable par auteur, date et objet. Visible des **auditeurs**.
 **Aucun événement ne peut être modifié ni supprimé**, dans l'application comme
@@ -453,7 +483,9 @@ rétention la reprend.
 
 ## 12. Écran de départ : l'index des scrutins
 
-> **Figure 10 — Index des scrutins de l'espace mairie (vu par un administrateur de commune).** [Ouvrir la capture](captures/10-mairie-index-scrutins.html)
+**Figure 10 — Index des scrutins de l'espace mairie (vu par un administrateur de commune).**
+
+![Index des scrutins de l'espace mairie (vu par un administrateur de commune)](captures/img/10-mairie-index-scrutins.png)
 
 Un administrateur de commune voit **tous** les scrutins (il faut savoir ce qui
 existe pour attribuer les rôles) ; les autres opérateurs ne voient que les

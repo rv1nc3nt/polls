@@ -18,20 +18,24 @@ Il se lit selon le rôle que l'on tient :
 
 ## À propos des captures d'écran
 
-Les figures de ce manuel renvoient au dossier [`captures/`](captures/). Faute
-de navigateur graphique sur la machine où le manuel a été rédigé, ce sont des
-**captures HTML** : le balisage réel de chaque écran, produit à partir d'une
-instance de démonstration alimentée par des données synthétiques, avec la
-feuille de style intégrée. Chaque fichier s'ouvre seul dans un navigateur et se
-convertit en image en une commande :
+Les images du manuel sont dans [`captures/img/`](captures/img/). Ce sont des
+captures d'**écrans réels** de l'application, rendues à partir d'une instance de
+démonstration alimentée par des **données synthétiques**. Le HTML source de
+chaque écran est conservé à côté, dans [`captures/`](captures/), et sert à
+régénérer les images.
 
-```sh
-chromium --headless --screenshot=11.png --window-size=1280,1600 \
-  docs/manuel/captures/11-mairie-tableau-de-bord.html
-```
+Chaîne de production, entièrement reproductible (voir
+[`captures/README.md`](captures/README.md)) :
 
-Le jeu de données et le script de génération sont dans
-[`captures/outils/`](captures/outils/) ; ils ne servent qu'à la documentation et
-n'ont aucun rôle en production. Les noms (« Commune de Saint-Aubin-des-Bois »,
-les électeurs, les adresses en `@example.fr`) sont fictifs : aucun export réel
-de liste électorale ne figure ici, conformément à R-13.6.
+1. `captures/outils/demo_seed.py` construit une base SQLite jetable — commune,
+   comptes, rôles, liste électorale, inscriptions, bulletins, un scrutin ouvert,
+   un brouillon, un scrutin publié ;
+2. `captures/outils/render_captures.py` se connecte dans chaque rôle et écrit le
+   HTML de chaque écran dans `captures/*.html`, feuille de style intégrée ;
+3. un navigateur sans affichage transforme chaque HTML en PNG dans
+   `captures/img/`.
+
+Ces outils ne servent qu'à la documentation et n'ont aucun rôle en production.
+Les noms (« Commune de Saint-Aubin-des-Bois », les électeurs, les adresses en
+`@example.fr`) sont fictifs : aucun export réel de liste électorale ne figure
+ici, conformément à R-13.6.

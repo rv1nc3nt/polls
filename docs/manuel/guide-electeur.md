@@ -22,14 +22,18 @@ et vérifier que votre vote a bien été enregistré.
 
 La page publique liste les consultations ouvertes et publiées.
 
-> **Figure 1 — Liste publique des consultations.** [Ouvrir la capture](captures/01-site-public-liste.html)
+**Figure 1 — Liste publique des consultations.**
+
+![Liste publique des consultations](captures/img/01-site-public-liste.png)
 
 La page d'une consultation ouverte montre les propositions, la date et l'heure
 de **clôture**, l'échéance de saisie des bulletins papier si elle diffère, tout
 **report de clôture** déjà décidé (avec son motif), et le rappel du caractère
 consultatif.
 
-> **Figure 2 — Page publique d'une consultation ouverte.** [Ouvrir la capture](captures/02-site-public-scrutin.html)
+**Figure 2 — Page publique d'une consultation ouverte.**
+
+![Page publique d'une consultation ouverte](captures/img/02-site-public-scrutin.png)
 
 Le nombre de votants **n'est pas affiché** pendant le scrutin, sauf si la
 configuration le prévoit : publier la participation en cours de vote peut
@@ -41,7 +45,9 @@ L'inscription est **propre à un scrutin**. Si vous participez à deux
 consultations en même temps, vous vous inscrivez deux fois et recevez deux liens
 indépendants.
 
-> **Figure 3 — Formulaire d'inscription.** [Ouvrir la capture](captures/03-inscription-formulaire.html)
+**Figure 3 — Formulaire d'inscription.**
+
+![Formulaire d'inscription](captures/img/03-inscription-formulaire.png)
 
 Le formulaire demande :
 
@@ -73,9 +79,13 @@ Conseils :
 | Une seule entrée correspond mais son type de liste ne donne pas voix sur ce scrutin | « Vous n'êtes pas éligible à cette consultation » | — |
 | L'entrée de liste ou l'adresse est déjà inscrite | « Nous ne pouvons pas enregistrer cette demande en ligne. Adressez-vous à la mairie. » | contactez la mairie |
 
-> **Figure 4 — Accusé : courriel de confirmation envoyé.** [Ouvrir la capture](captures/04-inscription-confirmee.html)
->
-> **Figure 5 — Accusé : inscription mise à l'étude.** [Ouvrir la capture](captures/05-inscription-en-examen.html)
+**Figure 4 — Accusé : courriel de confirmation envoyé.**
+
+![Accusé : courriel de confirmation envoyé](captures/img/04-inscription-confirmee.png)
+
+**Figure 5 — Accusé : inscription mise à l'étude.**
+
+![Accusé : inscription mise à l'étude](captures/img/05-inscription-en-examen.png)
 
 Pour votre protection, le nom trouvé dans la liste **ne vous est jamais réaffiché**
 avant que vous ayez confirmé votre adresse : sans cela, le formulaire deviendrait
@@ -101,7 +111,9 @@ courriel :
 
 ## 4. Voter
 
-> **Figure 7 — Bulletin : premier vote.** [Ouvrir la capture](captures/07-bulletin-vote.html)
+**Figure 7 — Bulletin : premier vote.**
+
+![Bulletin : premier vote](captures/img/07-bulletin-vote.png)
 
 - **L'ordre des propositions est tiré au hasard pour chaque électeur**,
   indépendamment de l'ordre de la configuration.
@@ -124,7 +136,9 @@ publiée, **sans révéler votre identité**.
 Rouvrez le **lien reçu lors de l'inscription**. Vous pouvez modifier autant de
 fois que vous le souhaitez jusqu'à la clôture.
 
-> **Figure 8 — Bulletin : modification.** [Ouvrir la capture](captures/08-bulletin-modification.html)
+**Figure 8 — Bulletin : modification.**
+
+![Bulletin : modification](captures/img/08-bulletin-modification.png)
 
 - Chaque modification crée une **nouvelle version** ; la précédente est
   conservée mais n'est plus comptée. Votre **code de suivi ne change pas**.
@@ -137,7 +151,9 @@ Si vous rouvrez le lien alors que le scrutin n'autorise pas la modification, ou
 que vous avez déjà voté sur un scrutin sans modification, un message vous
 l'indique.
 
-> **Figure 9 — Message « un bulletin a déjà été enregistré ».** [Ouvrir la capture](captures/09-bulletin-deja-enregistre.html)
+**Figure 9 — Message « un bulletin a déjà été enregistré ».**
+
+![Message « un bulletin a déjà été enregistré »](captures/img/09-bulletin-deja-enregistre.png)
 
 ## 6. Rappel
 
@@ -163,7 +179,9 @@ place : le vote en ligne fait foi.
 
 ## 8. Vérifier, après la clôture
 
-> **Figure 20 — Page publique de résultats.** [Ouvrir la capture](captures/20-site-public-resultats.html)
+**Figure 20 — Page publique de résultats.**
+
+![Page publique de résultats](captures/img/20-site-public-resultats.png)
 
 Après la publication, la page de la consultation porte :
 
