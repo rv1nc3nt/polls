@@ -11,12 +11,16 @@ in their own CI job and are not part of `pytest`.
 
 ## Status
 
-`roles/polls/tasks/*.yml` are still `debug` stubs. The scenarios therefore prove
-the **harness** — the container comes up, the role applies, idempotence and
-`--check` run — and every assertion that needs a real artefact (the env file,
-the database, a backup snapshot, the running service) is guarded: it warns and
-is skipped until that artefact exists, and bites automatically once
-`provision.yml`, `deploy.yml`, `backup.yml` and `restore.yml` are written.
+The role is implemented: `provision.yml`, `deploy.yml`, `backup.yml`,
+`restore.yml` and `smoke.yml`. Both scenarios run end to end — `default`
+provisions, deploys and asserts idempotence and a clean `--check`; `restore`
+takes a real snapshot on converge, wipes the state directory, and drives
+`restore.yml` through a full provision → deploy → restore → smoke.
+
+The containers have no MTA, so both scenarios set `polls_smoke_require_mail:
+false`: `smoke.yml` still runs `sendtestemail` and reports the result but does
+not fail the deploy on it. A real install leaves the variable at its `true`
+default, and the deploy is not green until that mail sends.
 
 ## Running locally
 

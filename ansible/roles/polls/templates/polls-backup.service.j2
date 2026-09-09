@@ -1,0 +1,19 @@
+# {{ ansible_managed }}
+# One-shot database snapshot behind polls-backup.timer (§15 step 8),
+# scheduler = systemd.
+[Unit]
+Description=Commune polling platform — database backup
+
+[Service]
+Type=oneshot
+User={{ polls_user }}
+Group={{ polls_group }}
+ExecStart={{ polls_prefix }}/bin/polls-backup
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+# Both writable for the same reason as polls.service: a WAL-mode SQLite read
+# still touches the -shm/-wal sidecars, and the snapshot lands under the
+# backup directory.
+ReadWritePaths={{ polls_state_dir }} {{ polls_backup_dir }}

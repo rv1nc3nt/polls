@@ -1,0 +1,55 @@
+#!/bin/sh
+# {{ ansible_managed }}
+# Nightly database snapshot (§15 step 8). Invoked by cron or a systemd timer,
+# never long-running. Every path is baked in from the role variables at render
+# time, so the script needs no environment of its own.
+#
+# The snapshot contains poll.token_salt (§7), so it is written 0600 into a
+# directory this script never chmods wider than 0700.
+set -eu
+umask 077
+
+db="{{ polls_state_dir }}/db.sqlite3"
+dest_dir="{{ polls_backup_dir }}"
+stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+dest="${dest_dir}/db-${stamp}.sqlite3"
+
+if [ ! -f "$db" ]; then
+    echo "polls-backup: no database at $db" >&2
+    exit 1
+fi
+
+# `VACUUM INTO` reads through the WAL and writes a compact, transactionally
+# consistent copy without holding a write lock for the duration (§15 step 8).
+# Write to a temp name first, cleaned up on any exit, so a crashed or killed
+# run never leaves a half-file that later looks like a valid snapshot.
+trap 'rm -f "${dest}.partial"' EXIT
+sqlite3 "$db" "VACUUM INTO '${dest}.partial'"
+mv "${dest}.partial" "$dest"
+
+# A restore that installs a corrupt file is worse than a failed backup: the
+# damage only shows up later, against the audit log. Refuse the snapshot here.
+if [ "$(sqlite3 "$dest" 'PRAGMA integrity_check')" != "ok" ]; then
+    echo "polls-backup: integrity check failed on $dest" >&2
+    rm -f "$dest"
+    exit 1
+fi
+
+ln -sfn "$dest" "${dest_dir}/latest.sqlite3"
+
+{% if (polls_backup_retention_days | int) > 0 %}
+# Retention window: drop snapshots strictly older than the window. `-mtime +N`
+# means "more than N*24h ago", so N = days - 1 keeps exactly the last N days.
+find "$dest_dir" -maxdepth 1 -type f -name 'db-*.sqlite3' \
+    -mtime +{{ (polls_backup_retention_days | int) - 1 }} -delete
+{% endif %}
+{% if polls_backup_replicate_to | length > 0 %}
+
+# Off-host replication (§15 step 8). The SSH identity for {{ polls_user }} is
+# provisioned out of band; this only invokes the copy. --delete keeps the
+# remote in step with the local retention window.
+rsync {{ polls_backup_replicate_opts }} \
+    "${dest_dir}/" "{{ polls_backup_replicate_to }}/"
+{% endif %}
+
+echo "polls-backup: wrote $dest"

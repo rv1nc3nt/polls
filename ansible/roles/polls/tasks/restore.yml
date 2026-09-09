@@ -1,0 +1,112 @@
+# SPDX-License-Identifier: 0BSD
+# Put a `VACUUM INTO` snapshot back in place as the live database, reconcile its
+# schema with the deployed code, and hand it to the service. Imported by
+# ansible/restore.yml between the deploy and the smoke play; never part of
+# site.yml.
+#
+# The audit log is immutable (INV-3) and rides along inside the file untouched —
+# the whole point of the exercise is that it comes back with every row (T-16).
+# A snapshot can predate the running code, so `migrate` runs after the copy: a
+# restore that skipped it would boot the application against an older schema.
+
+- name: Choose the snapshot to restore
+  when: polls_restore_from | default('') | length == 0
+  block:
+    - name: List the snapshots under the backup directory
+      ansible.builtin.find:
+        paths: "{{ polls_backup_dir }}"
+        patterns: "db-*.sqlite3"
+        file_type: file
+      register: polls_restore_candidates
+
+    - name: Fail when there is nothing to restore
+      ansible.builtin.fail:
+        msg: >-
+          No snapshot matching db-*.sqlite3 under {{ polls_backup_dir }}. Pass
+          -e polls_restore_from=/path/to/snapshot, or place one there first.
+      when: polls_restore_candidates.matched | int == 0
+
+    - name: Take the most recent snapshot by modification time
+      ansible.builtin.set_fact:
+        polls_restore_from: "{{ (polls_restore_candidates.files | sort(attribute='mtime') | last).path }}"
+
+- name: Confirm the chosen snapshot is a readable file
+  ansible.builtin.stat:
+    path: "{{ polls_restore_from }}"
+  register: polls_restore_stat
+
+- name: Fail when the chosen snapshot is missing
+  ansible.builtin.fail:
+    msg: "Snapshot {{ polls_restore_from }} does not exist."
+  when: not polls_restore_stat.stat.exists
+
+- name: Verify the snapshot's integrity before trusting it
+  # Installing a corrupt file is worse than a failed restore: the damage only
+  # surfaces later, against the audit log (§15).
+  ansible.builtin.command:
+    cmd: sqlite3 {{ polls_restore_from | quote }} "PRAGMA integrity_check"
+  register: polls_restore_integrity
+  changed_when: false
+  failed_when: (polls_restore_integrity.stdout | trim) != "ok"
+
+- name: Stop the web service while the database file is swapped
+  ansible.builtin.systemd_service:
+    name: polls.service
+    state: stopped
+  failed_when: false
+
+- name: Set aside the pre-restore database, if one is present
+  ansible.builtin.command:
+    cmd: >-
+      mv {{ polls_state_dir }}/db.sqlite3
+      {{ polls_state_dir }}/db.sqlite3.pre-restore-{{ ansible_date_time.iso8601_basic_short }}
+    removes: "{{ polls_state_dir }}/db.sqlite3"
+
+- name: Drop any stale WAL and SHM sidecars
+  ansible.builtin.file:
+    path: "{{ polls_state_dir }}/{{ item }}"
+    state: absent
+  loop:
+    - db.sqlite3-wal
+    - db.sqlite3-shm
+
+- name: Put the snapshot in place as the live database
+  ansible.builtin.copy:
+    src: "{{ polls_restore_from }}"
+    dest: "{{ polls_state_dir }}/db.sqlite3"
+    remote_src: true
+    owner: "{{ polls_user }}"
+    group: "{{ polls_group }}"
+    mode: "0640"
+
+- name: Reconcile the restored schema with the deployed code
+  # Mirrors deploy.yml step 4's environment; DJANGO_SECRET_KEY is a placeholder
+  # because migrate signs nothing.
+  ansible.builtin.command:
+    cmd: "{{ polls_prefix }}/current/.venv/bin/python manage.py migrate --no-input"
+    chdir: "{{ polls_prefix }}/current"
+  environment:
+    DJANGO_SETTINGS_MODULE: config.settings.prod
+    DJANGO_SECRET_KEY: build-step-not-used-for-signing
+    DJANGO_ALLOWED_HOSTS: "{{ polls_domain }},127.0.0.1,localhost"
+    DJANGO_DB_PATH: "{{ polls_state_dir }}/db.sqlite3"
+    DJANGO_PUBLIC_BASE_URL: "https://{{ polls_domain }}"
+    DJANGO_EMAIL_HOST: "{{ polls_email_host }}"
+    DJANGO_JOB_LOCK_DIR: "{{ polls_state_dir }}/locks"
+    PYTHONPATH: "{{ polls_prefix }}/current/src"
+  become: true
+  become_user: "{{ polls_user }}"
+  register: polls_restore_migrate
+  changed_when: "'Applying' in polls_restore_migrate.stdout"
+
+- name: Start the web service on the restored database
+  ansible.builtin.systemd_service:
+    name: polls.service
+    state: started
+
+- name: Report what was restored
+  ansible.builtin.debug:
+    msg: >-
+      Restored {{ polls_state_dir }}/db.sqlite3 from {{ polls_restore_from }}
+      ({{ 'schema migrated' if polls_restore_migrate.changed else 'schema already current' }}).
+      The previous database, if any, is kept beside it as db.sqlite3.pre-restore-*.

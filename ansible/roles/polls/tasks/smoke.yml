@@ -1,10 +1,88 @@
 # SPDX-License-Identifier: 0BSD
-# 9. Run last: service up, /sante answering, and a test email actually
-#    delivered to {{ polls_smoke_test_email }}.
+# §15 step 9, run last: the service is up, /sante answers with no migrations
+# outstanding and the version just deployed, and a test email actually leaves
+# the machine.
 #
-# Deployment is not "green" until mail has been proven to leave the machine:
-# every online ballot passes through a confirmation email, and mail from a small
-# self-hosted domain is routinely filtered (§14).
-- name: TODO(scaffold) smoke play, step 9 of §15
+# Mail is not incidental — every online ballot depends on a confirmation email,
+# and mail from a small self-hosted domain is routinely filtered (§14). So the
+# mail step is a hard failure by default; set polls_smoke_require_mail=false
+# only where there is deliberately no relay yet (CI does, having no MTA in the
+# container).
+#
+# Nothing here changes state: the checks report reality, so every task is
+# changed_when:false and a re-run of the play is still idempotent (T-38).
+
+- name: The polls web service is active
+  ansible.builtin.command:
+    cmd: systemctl is-active polls.service
+  register: polls_smoke_active
+  changed_when: false
+  failed_when: (polls_smoke_active.stdout | trim) != "active"
+
+- name: /sante answers on the loopback
+  # The loopback, not the vhost: this is the same path monitoring takes
+  # (polls.env.j2), and it needs neither DNS nor a certificate.
+  ansible.builtin.uri:
+    url: "http://{{ polls_bind }}/sante"
+  register: polls_smoke_sante
+  changed_when: false
+  retries: 5
+  delay: 3
+  until: polls_smoke_sante.status == 200
+
+- name: /sante reports a healthy instance running the deployed release
+  ansible.builtin.assert:
+    that:
+      - not polls_smoke_sante.json.migrations_pending
+      - polls_smoke_sante.json.version == polls_release
+    fail_msg: >-
+      /sante: migrations_pending={{ polls_smoke_sante.json.migrations_pending }},
+      version={{ polls_smoke_sante.json.version }} (deployed {{ polls_release }}).
+      Either migrate did not finish, or the workers are still on an older
+      release — reload polls.service.
+    success_msg: "/sante healthy on {{ polls_smoke_sante.json.version }}."
+
+- name: A smoke-test recipient is set
+  ansible.builtin.assert:
+    that:
+      - polls_smoke_test_email | length > 0
+    fail_msg: >-
+      Set polls_smoke_test_email to an address you can check. §15 step 9: the
+      deploy is not green until mail has been proven to leave the machine.
+      Set polls_smoke_require_mail=false to waive this, knowingly.
+    success_msg: "Smoke-test recipient: {{ polls_smoke_test_email }}."
+  when: polls_smoke_require_mail | bool
+
+- name: Send a test email through the real SMTP path
+  # Through the job wrapper so it sources polls.env: the same relay, credentials
+  # and From address the confirmation mails will use, exercised end to end.
+  ansible.builtin.command:
+    cmd: "{{ polls_prefix }}/bin/polls-manage sendtestemail {{ polls_smoke_test_email }}"
+  become: true
+  become_user: "{{ polls_user }}"
+  register: polls_smoke_mail
+  changed_when: false
+  failed_when:
+    - polls_smoke_require_mail | bool
+    - polls_smoke_mail.rc != 0
+  when: polls_smoke_test_email | length > 0
+
+- name: Warn when a mail failure was tolerated
   ansible.builtin.debug:
-    msg: "smoke — health endpoint and a delivered test email"
+    msg: >-
+      sendtestemail exited {{ polls_smoke_mail.rc }} and
+      polls_smoke_require_mail is false, so the deploy is not blocked — but mail
+      has NOT been proven to leave this machine (§15 step 9):
+      {{ polls_smoke_mail.stderr | default('') | trim }}
+  when:
+    - not polls_smoke_mail.skipped | default(false)
+    - polls_smoke_mail.rc | default(0) != 0
+
+- name: Smoke play passed
+  ansible.builtin.debug:
+    msg: >-
+      polls.service active · /sante healthy on {{ polls_smoke_sante.json.version }} ·
+      test email
+      {{ ('sent to ' ~ polls_smoke_test_email)
+         if (not polls_smoke_mail.skipped | default(false)) and polls_smoke_mail.rc == 0
+         else 'not sent' }}.

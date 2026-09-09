@@ -11,7 +11,12 @@ polls_backup_dir: /var/backups/polls
 polls_release: ""            # tagged artefact, never a working branch
 polls_domain: ""
 polls_admin_email: ""
-polls_smoke_test_email: ""
+
+# --- Smoke play (§15 step 9) --------------------------------------------
+polls_smoke_test_email: ""        # an address you can check; required unless waived below
+# §15: the deploy is not green until mail has been proven to leave the machine.
+# Leave true for any real install; CI sets it false, having no relay.
+polls_smoke_require_mail: true
 
 # cron (default, universally available), systemd (timers, Persistent=true), or
 # none for operators with their own orchestration (§15).
@@ -21,8 +26,23 @@ polls_job_interval_minutes: 5   # short enough to honour opens_at to the minute
 # Never run migrate against a poll in `open` state without setting this (§15).
 polls_allow_migrate_during_open_poll: false
 
-polls_backup_retention_days: 30
 polls_tls_method: certbot       # certbot | nginx-acme
+
+# --- Backups (§15 step 8) --------------------------------------------------
+# Nightly `VACUUM INTO` under polls_backup_dir, which stays 0700 / polls_user:
+# poll.token_salt is in the database and so in every snapshot (§14).
+polls_backup_retention_days: 30   # snapshots older than this are pruned; 0 keeps all
+polls_backup_hour: 3              # local time; Europe/Paris is set in provision.yml
+polls_backup_minute: 17
+# Off-host copy after each snapshot. An rsync target — "backups@host:/srv/polls"
+# — or "" to disable. The transport credential (an SSH identity for polls_user)
+# is the operator's to install, the same way SMTP secrets come from vault.
+polls_backup_replicate_to: ""
+polls_backup_replicate_opts: "-a --delete"
+
+# --- Restore (restore.yml, §15) -----------------------------------------
+# Snapshot to restore; "" picks the newest db-*.sqlite3 under polls_backup_dir.
+polls_restore_from: ""
 
 # --- Source of the application release (§15 step 3) -------------------------
 # Set polls_repo_url to clone the tag named in polls_release on the target.

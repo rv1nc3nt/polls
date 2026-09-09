@@ -1,0 +1,14 @@
+# {{ ansible_managed }}
+# Persistent=true so a host that was off when the backup was due runs it once
+# on boot rather than skipping the night (§14, §15). The randomised delay keeps
+# the snapshot off the exact minute the scheduled jobs also fire.
+[Unit]
+Description=Nightly schedule for the polls database backup
+
+[Timer]
+OnCalendar=*-*-* {{ '%02d' | format(polls_backup_hour | int) }}:{{ '%02d' | format(polls_backup_minute | int) }}:00
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

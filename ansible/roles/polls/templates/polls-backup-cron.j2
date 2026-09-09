@@ -1,0 +1,6 @@
+# {{ ansible_managed }}
+# Nightly database snapshot (§15 step 8), scheduler = cron. The script is
+# self-contained, so unlike the job wrapper it needs no environment file.
+SHELL=/bin/sh
+MAILTO={{ polls_admin_email }}
+{{ polls_backup_minute }} {{ polls_backup_hour }} * * * {{ polls_user }} {{ polls_prefix }}/bin/polls-backup

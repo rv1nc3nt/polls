@@ -1,10 +1,102 @@
 # SPDX-License-Identifier: 0BSD
-# 8. Nightly `VACUUM INTO` to {{ polls_backup_dir }}, retention window, off-host
-#    replication.
+# §15 step 8: a nightly `VACUUM INTO` snapshot under {{ polls_backup_dir }}, a
+# retention window, and an optional off-host copy.
 #
-# poll.token_salt lives in the database and therefore in the backups, so the
-# backup destination permissions are part of the ballot-secrecy boundary and
-# this file must not loosen them (§14, §15).
-- name: TODO(scaffold) backup step 8 of §15
-  ansible.builtin.debug:
-    msg: "backup"
+# poll.token_salt lives in the database and therefore in every snapshot (§7),
+# so the backup directory stays 0700 / {{ polls_user }} and nothing here widens
+# it. The `backup` tag runs this file on its own (§15 "Structure"), so it
+# re-asserts the directory rather than trusting provision.yml to have run.
+
+- name: Ensure the backup directory exists, private to the service user
+  ansible.builtin.file:
+    path: "{{ polls_backup_dir }}"
+    state: directory
+    owner: "{{ polls_user }}"
+    group: "{{ polls_group }}"
+    mode: "0700"
+
+- name: Install rsync for off-host replication
+  ansible.builtin.apt:
+    name: rsync
+    state: present
+  when: polls_backup_replicate_to | length > 0
+
+- name: Install the backup script
+  ansible.builtin.template:
+    src: polls-backup.sh.j2
+    dest: "{{ polls_prefix }}/bin/polls-backup"
+    owner: root
+    group: "{{ polls_group }}"
+    mode: "0750"
+
+# --- scheduler = cron -------------------------------------------------
+- name: Install the nightly backup cron job
+  ansible.builtin.template:
+    src: polls-backup-cron.j2
+    dest: /etc/cron.d/polls-backup
+    owner: root
+    group: root
+    mode: "0644"
+  when: polls_scheduler == "cron"
+
+- name: Remove the backup cron job when another scheduler is in use
+  ansible.builtin.file:
+    path: /etc/cron.d/polls-backup
+    state: absent
+  when: polls_scheduler != "cron"
+
+# --- scheduler = systemd --------------------------------------------------
+# Switching polls_scheduler on an existing host leaves the previous mode's
+# units in place; remove them by hand, as deploy.yml notes for the job units.
+- name: Install the backup service and timer
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - polls-backup.service
+    - polls-backup.timer
+  when: polls_scheduler == "systemd"
+  notify: Reload systemd
+
+- name: Reload systemd so the backup timer is known
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+  changed_when: false
+  when: polls_scheduler == "systemd"
+
+- name: Enable and start the backup timer
+  ansible.builtin.systemd_service:
+    name: polls-backup.timer
+    enabled: true
+    state: started
+  when: polls_scheduler == "systemd"
+
+# --- an initial snapshot so a restore always has something to work from ----
+# The timer has not fired on a fresh host, and restore.yml (and T-16) need a
+# real snapshot the moment the install completes. Guarded on there being none
+# already, so a second converge run is unchanged (T-38).
+- name: Look for an existing snapshot
+  ansible.builtin.find:
+    paths: "{{ polls_backup_dir }}"
+    patterns: "db-*.sqlite3"
+    file_type: file
+  register: polls_existing_snapshots
+
+- name: Stat the application database
+  ansible.builtin.stat:
+    path: "{{ polls_state_dir }}/db.sqlite3"
+  register: polls_db_for_backup
+
+- name: Take the first snapshot
+  ansible.builtin.command:
+    cmd: "{{ polls_prefix }}/bin/polls-backup"
+  become: true
+  become_user: "{{ polls_user }}"
+  register: polls_initial_backup
+  changed_when: "'wrote' in polls_initial_backup.stdout"
+  when:
+    - polls_existing_snapshots.matched | int == 0
+    - polls_db_for_backup.stat.exists

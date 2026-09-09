@@ -47,6 +47,9 @@ provisioner:
         # nftables load and the ACME exchange both need a real host.
         polls_manage_firewall: false
         polls_enable_tls: false
+        # No MTA in the container, so the smoke play still runs sendtestemail
+        # and reports the result but does not fail the deploy on it.
+        polls_smoke_require_mail: false
   playbooks:
     converge: converge.yml
     verify: verify.yml
