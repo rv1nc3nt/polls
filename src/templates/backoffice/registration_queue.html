@@ -5,14 +5,6 @@
 {% block screen_title %}{% translate "Inscriptions en attente" %}{% endblock %}
 {% block heading %}{% translate "Inscriptions en attente d'examen" %}{% endblock %}
 
-{% block pollnav %}
-  <ul class="pollnav__links">
-    <li><a href="{% url 'backoffice:dashboard' poll.pk %}">{% translate "Tableau de bord" %}</a></li>
-    <li><a href="{% url 'backoffice:registration_queue' poll.pk %}" aria-current="page">{% translate "Inscriptions" %}</a></li>
-    <li><a href="{% url 'backoffice:audit_log' poll.pk %}">{% translate "Journal d'audit" %}</a></li>
-  </ul>
-{% endblock %}
-
 {% block screen %}
   {% comment %}
     R-5.4: these reached the queue because no single automatic match was found —

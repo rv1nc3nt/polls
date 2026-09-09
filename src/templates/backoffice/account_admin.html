@@ -6,9 +6,6 @@
 {% block heading %}{% translate "Comptes opérateurs" %}{% endblock %}
 
 {% block screen %}
-  <p><a href="{% url 'backoffice:poll_index' %}">{% translate "← Retour aux scrutins" %}</a>
-     · <a href="{% url 'backoffice:role_admin' %}">{% translate "Rôles par scrutin" %}</a></p>
-
   {% comment %}
     R-2.2: one named account per natural person, no shared login. §3.7: the
     commune-admin flag gère les comptes et crée les scrutins, et n'ouvre aucun

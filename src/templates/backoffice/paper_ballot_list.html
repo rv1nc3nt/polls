@@ -5,14 +5,6 @@
 {% block screen_title %}{% translate "Bulletins papier" %}{% endblock %}
 {% block heading %}{% translate "Bulletins papier" %}{% endblock %}
 
-{% block pollnav %}
-  <ul class="pollnav__links">
-    <li><a href="{% url 'backoffice:dashboard' poll.pk %}">{% translate "Tableau de bord" %}</a></li>
-    <li><a href="{% url 'backoffice:paper_entry' poll.pk %}">{% translate "Saisie" %}</a></li>
-    <li><a href="{% url 'backoffice:paper_ballot_list' poll.pk %}" aria-current="page">{% translate "Bulletins papier" %}</a></li>
-  </ul>
-{% endblock %}
-
 {% block screen %}
   {% comment %}
     §6.5.6: every paper ballot, whatever its state — a superseded version and a

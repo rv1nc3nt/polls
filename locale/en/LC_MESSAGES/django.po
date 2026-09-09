@@ -1377,3 +1377,51 @@ msgstr "Remove this proposition"
 
 msgid "Rétablir cette proposition"
 msgstr "Restore this proposition"
+
+#: apps/backoffice/templatetags/backoffice_nav.py
+msgid "Suivi"
+msgstr "Oversight"
+
+#: apps/backoffice/templatetags/backoffice_nav.py
+msgid "Commune"
+msgstr "Commune"
+
+#: apps/backoffice/templatetags/backoffice_nav.py
+msgid "Configuration"
+msgstr "Configuration"
+
+#: apps/backoffice/templatetags/backoffice_nav.py
+msgid "Saisie"
+msgstr "Keying"
+
+#: apps/backoffice/templatetags/backoffice_nav.py
+msgid "Bulletins papier"
+msgstr "Paper ballots"
+
+#: apps/backoffice/templatetags/backoffice_nav.py
+msgid "Contreseing"
+msgstr "Countersignature"
+
+#: apps/backoffice/templatetags/backoffice_nav.py
+msgid "Dépouillement"
+msgstr "Tally"
+
+#: apps/backoffice/templatetags/backoffice_nav.py
+msgid "Comptes opérateurs"
+msgstr "Operator accounts"
+
+#: apps/backoffice/templatetags/backoffice_nav.py
+msgid "Rôles par scrutin"
+msgstr "Roles per poll"
+
+#: templates/backoffice/base.html
+msgid "Voir le site public"
+msgstr "View the public site"
+
+#: templates/backoffice/base.html
+msgid "Fil d’Ariane"
+msgstr "Breadcrumb"
+
+#: templates/backoffice/_nav.html
+msgid "Navigation de l’espace mairie"
+msgstr "Mairie area navigation"

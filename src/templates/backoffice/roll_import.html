@@ -5,13 +5,6 @@
 {% block screen_title %}{% translate "Import de la liste électorale" %}{% endblock %}
 {% block heading %}{% translate "Import de la liste électorale" %}{% endblock %}
 
-{% block pollnav %}
-  <ul class="pollnav__links">
-    <li><a href="{% url 'backoffice:dashboard' poll.pk %}">{% translate "Tableau de bord" %}</a></li>
-    <li><a href="{% url 'backoffice:roll_import' poll.pk %}" aria-current="page">{% translate "Liste électorale" %}</a></li>
-  </ul>
-{% endblock %}
-
 {% block screen %}
   {% comment %}
     §6.1: the working roll is commune-wide, not this poll's alone — every poll

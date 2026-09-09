@@ -175,34 +175,152 @@ section:last-child { margin-bottom: 0; }
 .account { display: flex; gap: 0.75rem; align-items: center; }
 .account__name { font-weight: 600; }
 
-.pollnav {
+.account__public { white-space: nowrap; }
+
+.contentinfo { border-top: 1px solid var(--rule); color: var(--ink-quiet); font-size: 0.9rem; margin-top: 1rem; }
+
+/* ---- espace mairie shell (§6.5) ---------------------------------------
+   A classic layout: one fixed left-column menu, the same on every screen, with
+   the banner, messages, content and footer sitting beside it; a breadcrumb
+   pinned to the top of the content column so the operator can always see where
+   they are. No JavaScript — the column becomes a bar above the content on a
+   narrow screen (§14). The menu markup is `backoffice/_nav.html`; what it lists
+   is decided in `apps/backoffice/templatetags/backoffice_nav.py`. */
+
+body.bo { --bo-side: 15.5rem; }
+
+body.bo .banner,
+body.bo .messages,
+body.bo main,
+body.bo .contentinfo {
+  max-width: none;
+  margin-inline: 0;
+  margin-left: var(--bo-side);
+}
+body.bo main { padding: 0; }
+
+.bo-side {
+  position: fixed;
+  top: 3px;                 /* clears the bleu France rule on <body> */
+  left: 0;
+  bottom: 0;
+  width: var(--bo-side);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--paper-quiet);
+  border-right: 1px solid var(--rule);
+  padding-bottom: 1.5rem;
+}
+.bo-side__brand {
+  display: block;
+  padding: 1rem 1.15rem 0.85rem;
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  text-decoration: none;
+}
+.bo-side__brand:hover { color: var(--accent); }
+
+.bo-side__poll {
+  padding: 0 1.15rem 0.9rem;
+  border-bottom: 1px solid var(--rule);
+}
+.bo-side__poll-name { display: block; font-weight: 600; line-height: 1.3; }
+
+/* The poll state, written out — the wash only sorts it, it does not carry it
+   (R-14.1). A finished poll drops to a plain outline. */
+.bo-state {
+  display: inline-block;
+  margin-top: 0.5rem;
+  padding: 0.15rem 0.55rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.bo-state--closed,
+.bo-state--published {
+  background: var(--paper);
+  border-color: var(--rule);
+  color: var(--ink-quiet);
+}
+
+.bo-side__group {
+  margin: 1.1rem 0 0.2rem;
+  padding: 0 1.15rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-quiet);
+}
+.bo-side__list { list-style: none; margin: 0; padding: 0; }
+.bo-side__link {
+  display: block;
+  padding: 0.5rem 1.15rem;
+  color: var(--ink);
+  text-decoration: none;
+  border-left: 3px solid transparent;
+}
+.bo-side__link:hover { background: var(--rule-soft); }
+.bo-side__link.is-current {
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
+}
+
+/* Breadcrumb: sticky, so "where am I" survives a long journal or tally. */
+.bo-crumb {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   background: var(--paper-quiet);
   border-bottom: 1px solid var(--rule);
-  padding-block: 0.85rem;
+  padding: 0.6rem clamp(1rem, 4vw, 2.5rem);
 }
-.pollnav__poll { margin: 0; font-weight: 600; }
-.pollnav__links {
+.bo-crumb ol {
   list-style: none;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.2rem 1.5rem;
-  margin: 0.55rem 0 0;
+  gap: 0.35rem;
+  margin: 0;
   padding: 0;
+  font-size: 0.85rem;
 }
-.pollnav__links a {
-  color: var(--ink);
-  text-decoration: none;
-  padding: 0.2rem 0;
-  border-bottom: 2px solid transparent;
-}
-.pollnav__links a:hover { border-bottom-color: var(--rule); }
-.pollnav__links a[aria-current="page"] {
-  font-weight: 700;
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-}
+.bo-crumb li { display: flex; gap: 0.35rem; align-items: baseline; }
+.bo-crumb li + li::before { content: "\203A"; color: var(--ink-quiet); }
+.bo-crumb a { color: var(--link); text-decoration: none; }
+.bo-crumb a:hover { text-decoration: underline; }
+.bo-crumb [aria-current="page"] { color: var(--ink-quiet); font-weight: 600; }
 
-.contentinfo { border-top: 1px solid var(--rule); color: var(--ink-quiet); font-size: 0.9rem; margin-top: 1rem; }
+.bo-main { padding: 1.75rem clamp(1rem, 4vw, 2.5rem) 3.5rem; }
+
+/* Narrow screens: no fixed column. It flows back into the page as a bar above
+   the content, between the banner and the breadcrumb. */
+@media (max-width: 52rem) {
+  body.bo { --bo-side: 0rem; }
+  body.bo .banner,
+  body.bo .messages,
+  body.bo main,
+  body.bo .contentinfo { margin-left: 0; }
+  .bo-side {
+    position: static;
+    width: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 0.5rem;
+  }
+  .bo-side__list { display: flex; flex-wrap: wrap; }
+  .bo-side__link,
+  .bo-side__link.is-current { border-left: 0; border-radius: var(--radius-sm); }
+  .bo-crumb { position: static; }
+}
 .langswitch, .themeswitch { display: flex; gap: 0.5rem; align-items: end; flex-wrap: wrap; margin-top: 0.75rem; }
 .langswitch label { font-weight: 400; }
 
@@ -536,8 +654,9 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 
 @media print {
   body { border-top: 0; }
-  .banner, .pollnav, .messages, .contentinfo, .langswitch, .themeswitch, .noprint { display: none !important; }
+  .banner, .bo-side, .bo-crumb, .messages, .contentinfo, .langswitch, .themeswitch, .noprint { display: none !important; }
   .receipt { border: none; border-radius: 0; box-shadow: none; padding: 0; max-width: none; }
-  main { margin: 0; padding: 0; max-width: none; }
+  main, body.bo main { margin: 0; padding: 0; max-width: none; }
+  .bo-main { padding: 0; }
   h1 { border-bottom: 0; }
 }

@@ -5,13 +5,6 @@
 {% block screen_title %}{% translate "Import de la liste électorale" %}{% endblock %}
 {% block heading %}{% translate "Import de la liste électorale" %}{% endblock %}
 
-{% block pollnav %}
-  <ul class="pollnav__links">
-    <li><a href="{% url 'backoffice:dashboard' poll.pk %}">{% translate "Tableau de bord" %}</a></li>
-    <li><a href="{% url 'backoffice:roll_import' poll.pk %}">{% translate "Liste électorale" %}</a></li>
-  </ul>
-{% endblock %}
-
 {% block screen %}
   <p>{% blocktranslate %}Fichier : {{ filename }}{% endblocktranslate %}</p>
   <p>{% blocktranslate count total=total_rows %}{{ total }} ligne à traiter{% plural %}{{ total }} lignes à traiter{% endblocktranslate %}</p>

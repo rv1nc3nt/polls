@@ -5,14 +5,6 @@
 {% block screen_title %}{% translate "Contreseing" %}{% endblock %}
 {% block heading %}{% translate "Contreseing des bulletins papier" %}{% endblock %}
 
-{% block pollnav %}
-  <ul class="pollnav__links">
-    <li><a href="{% url 'backoffice:dashboard' poll.pk %}">{% translate "Tableau de bord" %}</a></li>
-    <li><a href="{% url 'backoffice:paper_ballot_list' poll.pk %}">{% translate "Bulletins papier" %}</a></li>
-    <li><a href="{% url 'backoffice:countersign_queue' poll.pk %}" aria-current="page">{% translate "Contreseing" %}</a></li>
-  </ul>
-{% endblock %}
-
 {% block screen %}
   {% comment %}
     R-8.7: where the poll requires it, a keyed ballot is not counted until a

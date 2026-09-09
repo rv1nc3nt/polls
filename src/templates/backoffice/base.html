@@ -1,9 +1,17 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n backoffice_nav %}
 {# SPDX-License-Identifier: 0BSD #}
-{% comment %} The espace mairie shell (§6.5). The screens fill `screen`; everything that
-   must appear on all eleven — who is signed in, how to sign out, which poll is
-   in scope — is here so no screen can omit it. {% endcomment %}
+{% comment %} The espace mairie shell (§6.5). One fixed left-column menu, identical on every
+   screen and built from the poll and the operator's roles (§3.7) — it replaces the
+   per-screen `pollnav` blocks, whose links and order drifted from one page to the
+   next. A breadcrumb stays pinned to the top of the content while the screen
+   scrolls, so "where am I" is always answered; its leaf is the active menu entry,
+   so the two cannot disagree. The signed-in operator is kept on the back office:
+   the commune name leads to « Scrutins », and the public site is a separate,
+   explicit link that opens in its own tab. {% endcomment %}
+
+{% block body_class %}{% if user.is_authenticated %}bo{% endif %}{% endblock %}
+{% block home_url %}{% url 'backoffice:poll_index' %}{% endblock %}
 
 {% block title %}{% block screen_title %}{% translate "Espace mairie" %}{% endblock %} — {% translate "Espace mairie" %}{% endblock %}
 
@@ -13,6 +21,9 @@
       {% comment %} R-2.2: named accounts, and the name is on screen. An operator should be
          able to see at a glance whose actions the audit log is about to record. {% endcomment %}
       <span class="account__name">{{ user }}</span>
+      {% comment %} A new tab, so consulting the public page never takes the operator out
+         of the back office (§6.5). {% endcomment %}
+      <a class="account__public" href="/" target="_blank" rel="noopener">{% translate "Voir le site public" %}</a>
       <form action="{% url 'backoffice:logout' %}" method="post">
         {% csrf_token %}
         <button type="submit">{% translate "Se déconnecter" %}</button>
@@ -21,16 +32,28 @@
   {% endif %}
 {% endblock %}
 
-{% block nav %}
-  {% if poll %}
-    <nav class="pollnav" aria-label="{% translate 'Navigation du scrutin' %}">
-      <p class="pollnav__poll">{{ poll.title }} — {{ poll.get_state_display }}</p>
-      {% block pollnav %}{% endblock %}
-    </nav>
-  {% endif %}
-{% endblock %}
+{% block nav %}{% if user.is_authenticated %}{% bo_nav %}{% endif %}{% endblock %}
 
 {% block content %}
-  <h1>{% block heading %}{% translate "Espace mairie" %}{% endblock %}</h1>
-  {% block screen %}{% endblock %}
+  {% if user.is_authenticated %}
+    {% bo_current_label as crumb_leaf %}
+    <nav class="bo-crumb" aria-label="{% translate 'Fil d’Ariane' %}">
+      <ol>
+        <li{% if not poll and not crumb_leaf %} aria-current="page"{% endif %}>
+          <a href="{% url 'backoffice:poll_index' %}">{% translate "Scrutins" %}</a>
+        </li>
+        {% if poll %}
+          <li{% if not crumb_leaf %} aria-current="page"{% endif %}>
+            <a href="{% url 'backoffice:dashboard' poll.pk %}">{{ poll.title }}</a>
+          </li>
+        {% endif %}
+        {% if crumb_leaf %}<li aria-current="page">{{ crumb_leaf }}</li>{% endif %}
+      </ol>
+    </nav>
+  {% endif %}
+
+  <div class="bo-main">
+    <h1>{% block heading %}{% translate "Espace mairie" %}{% endblock %}</h1>
+    {% block screen %}{% endblock %}
+  </div>
 {% endblock %}

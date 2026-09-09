@@ -16,11 +16,14 @@
      choice so the page never flashes the other theme (§14, R-14.1). {% endcomment %}
   <script src="{% static 'js/theme.js' %}"></script>
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
   <a class="skip" href="#contenu">{% translate "Aller au contenu" %}</a>
 
   <header class="banner">
-    <p class="site-name"><a href="/">{% if commune %}{{ commune.name }}{% else %}{% translate "Consultation citoyenne" %}{% endif %}</a></p>
+    {% comment %} `home_url` is `/` on the public site; the espace mairie points it at
+       « Scrutins » instead, so a signed-in operator clicking the name stays on the
+       back office rather than landing on the public pages. {% endcomment %}
+    <p class="site-name"><a href="{% block home_url %}/{% endblock %}">{% if commune %}{{ commune.name }}{% else %}{% translate "Consultation citoyenne" %}{% endif %}</a></p>
     {% block header_extra %}{% endblock %}
   </header>
 

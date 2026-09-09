@@ -5,14 +5,6 @@
 {% block screen_title %}{% translate "Saisie d'un bulletin papier" %}{% endblock %}
 {% block heading %}{% translate "Saisie d'un bulletin papier" %}{% endblock %}
 
-{% block pollnav %}
-  <ul class="pollnav__links">
-    <li><a href="{% url 'backoffice:dashboard' poll.pk %}">{% translate "Tableau de bord" %}</a></li>
-    <li><a href="{% url 'backoffice:paper_entry' poll.pk %}" aria-current="page">{% translate "Saisie" %}</a></li>
-    <li><a href="{% url 'backoffice:paper_ballot_list' poll.pk %}">{% translate "Bulletins papier" %}</a></li>
-  </ul>
-{% endblock %}
-
 {% block screen %}
   {% comment %}
     R-8.3: the operator searches the frozen snapshot and confirms the elector
