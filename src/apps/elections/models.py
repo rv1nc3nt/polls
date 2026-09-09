@@ -270,8 +270,9 @@ class RollEntry(RollEntryFields):
     """The frozen snapshot taken at ``draft → open`` (§3.2, R-4.3).
 
     Immutable thereafter: INV-7's trigger refuses every ``UPDATE`` outright and
-    permits ``DELETE`` only once the poll is ``published``, which is the
-    retention purge (§11). A snapshot is frozen, not immortal.
+    permits ``DELETE`` only once the poll is ``closed`` or ``published``, which
+    is the retention purge (§11) — anchored on closure, so a poll that never
+    publishes still purges. A snapshot is frozen, not immortal.
 
     There is **no natural unique key** (R-4.8): the roll's order number is
     neither unique nor stable, and there is no national identifier. Apparent

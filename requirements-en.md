@@ -102,7 +102,7 @@ In review cases, the administrator accepts or rejects the registration with reas
 
 **R-5.5** Registration is confirmed by a link sent to the declared email address. An unconfirmed registration carries no ballot, permits no vote, and is not counted in participation figures.
 
-**R-5.6** The confirmation email contains the tracking code and, where the poll permits modification, the modification link. Both cease to operate at closure.
+**R-5.6** The confirmation email contains, where the poll permits modification, the modification link, which ceases to operate at closure. It contains no tracking code: the tracking code attaches to a ballot, which does not yet exist at registration, and is issued only when the vote is cast (R-6.4) or on the paper receipt (R-8.4).
 
 **R-5.7** A reminder is sent 48 hours before closure to registered electors who have not cast a vote.
 
@@ -126,7 +126,7 @@ In review cases, the administrator accepts or rejects the registration with reas
 
 **R-6.3** The ranking interface provides an alternative to drag-and-drop (numbered drop-down lists or equivalent), usable with a keyboard and with a screen reader.
 
-**R-6.4** On submission, the elector is shown a summary of their ranking and their tracking code, and receives both by email.
+**R-6.4** On the first cast, the elector is shown a summary of their ranking and their tracking code, and receives both by email. On a later modification, the summary is shown on screen; no email is sent, the tracking code being unchanged (R-7.2) and already held by the elector.
 
 **R-6.5** Where the poll does not permit modification, the ballot page states this before submission, and not merely in the confirmation.
 
@@ -180,7 +180,7 @@ In review cases, the administrator accepts or rejects the registration with reas
 
 **R-9.2** Paper ballot already recorded → online voting is refused, with a message inviting the person to attend the mairie to obtain the prior deletion of their paper ballot.
 
-**R-9.3** Online ballot already recorded → a blocking warning, displayed in red, is presented to the operator, who may proceed only after express confirmation and entry of a mandatory reason, both being recorded. Where the poll permits modification, the elector should in principle be invited to modify their own ballot online.
+**R-9.3** Online ballot already recorded → paper entry is refused. A ballot cast online is anonymous and cannot be located from the elector's registration (R-7.4); it therefore cannot be displaced. Where the poll permits modification, the elector is invited to modify their own ballot online; failing that, the screen states that the online vote is final.
 
 **R-9.4** Deletion of a paper ballot by an operator clears the indicator and re-opens online voting for the elector concerned.
 
@@ -244,7 +244,7 @@ No library pseudo-random generator is used, reproducibility having to depend nei
 
 **R-13.2** An information notice is presented at registration, stating the purpose, the legal basis, the retention periods, the recipients and the rights of data subjects, together with the identity of the referent responsible for requests and complaints.
 
-**R-13.3** Retention periods: identity data (registration records, frozen copy of the electoral roll, association of paper ballots with electors) are deleted on expiry of a period of two months running from publication of the result, and the fields declared under R-12.4 are erased from the audit log at the same term. Anonymised ballots, the published result and the log itself are retained beyond that term.
+**R-13.3** Retention periods: identity data (registration records, frozen copy of the electoral roll, association of paper ballots with electors) are deleted on expiry of a period of two months running from closure of the poll, and the fields declared under R-12.4 are erased from the audit log at the same term. The starting point is closure and not publication: a poll that closes but is never published — an unresolved physical tie-break, an abandoned result — would otherwise keep this data indefinitely. Anonymised ballots, the published result and the log itself are retained beyond that term.
 
 **R-13.4** The salts used to derive the tokens are specific to each poll, so that the platform permits no correlation of the participation of the same person in two distinct polls. No cross-poll participation report is provided.
 

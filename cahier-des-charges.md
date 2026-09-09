@@ -100,7 +100,7 @@ Dans les cas d'examen manuel, l'administrateur accepte ou rejette l'inscription 
 
 **R-5.5** L'inscription est confirmée par un lien adressé à l'adresse électronique déclarée. Une inscription non confirmée n'emporte aucun bulletin, ne permet pas de voter et n'est pas décomptée dans la participation.
 
-**R-5.6** Le courriel de confirmation comporte le code de suivi et, lorsque le scrutin admet la modification, le lien de modification. L'un et l'autre cessent d'être opérants à la clôture.
+**R-5.6** Le courriel de confirmation comporte, lorsque le scrutin admet la modification, le lien de modification, lequel cesse d'être opérant à la clôture. Il ne comporte pas de code de suivi : celui-ci se rattache à un bulletin, qui n'existe pas encore au stade de l'inscription, et n'est délivré qu'à l'expression du vote (R-6.4) ou sur le récépissé papier (R-8.4).
 
 **R-5.7** Un rappel est adressé 48 heures avant la clôture aux électeurs inscrits n'ayant pas exprimé de vote.
 
@@ -124,7 +124,7 @@ Dans les cas d'examen manuel, l'administrateur accepte ou rejette l'inscription 
 
 **R-6.3** L'interface de classement offre une solution de remplacement au glisser-déposer (listes déroulantes numérotées ou équivalent), utilisable au clavier et avec un lecteur d'écran.
 
-**R-6.4** À la validation, l'électeur se voit présenter un récapitulatif de son classement et son code de suivi, et les reçoit par courrier électronique.
+**R-6.4** À la première expression du vote, l'électeur se voit présenter un récapitulatif de son classement et son code de suivi, et les reçoit par courrier électronique. Lors d'une modification ultérieure, le récapitulatif est présenté à l'écran ; aucun courriel n'est adressé, le code de suivi étant inchangé (R-7.2) et déjà détenu par l'électeur.
 
 **R-6.5** Lorsque le scrutin n'admet pas la modification, la page du bulletin l'indique avant la validation, et non dans le seul accusé de réception.
 
@@ -178,7 +178,7 @@ Dans les cas d'examen manuel, l'administrateur accepte ou rejette l'inscription 
 
 **R-9.2** Bulletin papier déjà enregistré → le vote en ligne est refusé, un message invitant l'intéressé à se rendre en mairie pour obtenir au préalable la suppression de son bulletin papier.
 
-**R-9.3** Bulletin en ligne déjà enregistré → un avertissement bloquant, affiché en rouge, est présenté à l'opérateur, lequel ne peut poursuivre qu'après confirmation expresse et saisie d'un motif obligatoire, l'un et l'autre étant consignés. Lorsque le scrutin admet la modification, l'électeur doit en principe être invité à modifier lui-même son bulletin en ligne.
+**R-9.3** Bulletin en ligne déjà enregistré → la saisie d'un bulletin papier est refusée. Un bulletin exprimé en ligne est anonyme et ne peut être localisé à partir de l'enregistrement de l'électeur (R-7.4) ; il ne peut donc être remplacé. Lorsque le scrutin admet la modification, l'électeur est invité à modifier lui-même son bulletin en ligne ; à défaut, l'écran indique que le vote en ligne est définitif.
 
 **R-9.4** La suppression d'un bulletin papier par un opérateur efface l'indicateur et rouvre le vote en ligne pour l'électeur concerné.
 
@@ -242,7 +242,7 @@ Aucun générateur pseudo-aléatoire de bibliothèque n'est employé, la reprodu
 
 **R-13.2** Une notice d'information est présentée lors de l'inscription, indiquant la finalité, la base légale, les durées de conservation, les destinataires et les droits des personnes concernées, ainsi que l'identité du référent chargé des demandes et réclamations.
 
-**R-13.3** Durées de conservation : les données d'identité (enregistrements d'inscription, copie figée de la liste électorale, association des bulletins papier aux électeurs) sont supprimées à l'expiration d'un délai de deux mois courant à compter de la publication du résultat, et les rubriques déclarées au titre de la règle R-12.4 sont effacées du journal d'audit au même terme. Les bulletins anonymisés, le résultat publié et le journal lui-même sont conservés au-delà.
+**R-13.3** Durées de conservation : les données d'identité (enregistrements d'inscription, copie figée de la liste électorale, association des bulletins papier aux électeurs) sont supprimées à l'expiration d'un délai de deux mois courant à compter de la clôture du scrutin, et les rubriques déclarées au titre de la règle R-12.4 sont effacées du journal d'audit au même terme. Le point de départ est la clôture et non la publication : un scrutin clos qui n'est jamais publié — départage physique non tranché, résultat abandonné — conserverait sinon ces données indéfiniment. Les bulletins anonymisés, le résultat publié et le journal lui-même sont conservés au-delà.
 
 **R-13.4** Les sels servant à la dérivation des jetons sont propres à chaque scrutin, de sorte que la plateforme ne permette aucun rapprochement de la participation d'une même personne à deux scrutins distincts. Aucun état de participation inter-scrutins n'est fourni.
 

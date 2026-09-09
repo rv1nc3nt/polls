@@ -6,6 +6,11 @@ of the requirements, and the specification corrected. This file records where th
 **code** departs from the specification, so a reviewer can settle each one rather
 than discover it.
 
+Items 1–6 were settled on 2026-09-09 by amending `spec-plateforme-vote.md` and,
+where noted, the functional requirements (`cahier-des-charges.md` /
+`requirements-en.md`). Each keeps its context and carries the resolution
+inline.
+
 ## 1. Retention purge on a poll that closed but was never published
 
 **Specification, §11.** Two statements that cannot both hold:
@@ -30,9 +35,18 @@ where the poll's state is `closed` **or** `published`
 disabling it, `AuditEvent` is untouched, and the purge remains the sole writer
 past `closes_at`.
 
-**To settle:** amend §11's two trigger sentences to say `closed` or
-`published`. The alternative — anchoring retention on publication — contradicts
-§11's own reasoning and T-58.
+**Settled (2026-09-09).** §11's two trigger sentences now read `closed` or
+`published`, with a line stating why `closed` alone must be admitted. The
+`retention.py` and `RollEntry` docstrings were corrected to match. The
+alternative — anchoring retention on publication — contradicts §11's own
+reasoning and T-58.
+
+**Settled (2026-09-09), related.** R-13.3 previously fixed the retention term at
+"two months running from **publication** of the result", which the closure
+anchor of §11, T-58 and the code all contradicted. R-13.3 was amended (both
+language files) to run the term from **closure of the poll**, with the reason
+stated inline. The specification's §11 already read "closure" and needed no
+change.
 
 ## 2. Tracking code in the registration email (R-5.6)
 
@@ -43,10 +57,12 @@ tracking code: the code is issued at cast (§6.3) and on the paper receipt
 but name and would destroy INV-1 and INV-5, and T-25 asserts no value whatever
 is common to the two rows.
 
-If R-5.6 is read as requiring the code in the registration email, the safe
-implementation named by §6.2 is a value derived from the token and stored
-nowhere; INV-11 would then need rewording to tolerate a derived value that
-cannot be re-rolled on collision.
+**Settled (2026-09-09).** R-5.6 was amended (both language files) to drop the
+tracking code from the confirmation email: the email carries only the
+modification link, where the poll permits one. The derived-value alternative
+(a value derived from the token, stored nowhere) was rejected — it forces a
+reword of INV-11 and hands the voter a code before a ballot exists to bear it.
+§6.2 step 7 of the specification was updated to point here.
 
 ## 3. Plurality with a tied first group
 
@@ -58,6 +74,12 @@ only where `allow_ties_in_ballot` is set on a `plurality` poll.
 (`apps/tally/methods.py`). The configuration that permits it is a
 misconfiguration for the back-office to warn about (§6.5 screen 2), not
 something to resolve silently in the tally.
+
+**Settled (2026-09-09).** §8.2 now states the one-count-per-tied-option rule
+explicitly and records that screen 2 warns on the `plurality` +
+`allow_ties_in_ballot` combination at configuration time. No requirements
+change. The screen-2 warning itself is outstanding implementation work (screen
+2 is built; the check is not yet wired).
 
 ## 4. The registration window admits a channel change for the paper channel
 
@@ -83,9 +105,12 @@ This mirrors the ballot window, which already admits the paper ballot itself
 over exactly this period, and follows §6.4's own reasoning that keying is
 transcription of a vote cast before `closes_at`, not a vote in its own right.
 
-**To settle:** amend §5.1's "no `Registration` write after `closes_at`" to
-carry the same paper-channel carve-out the ballot window has, or state that the
-channel indicator for the paper channel is governed by `paper_entry_deadline`.
+**Settled (2026-09-09).** §5.1's INV-2 statement now carries the paper-channel
+carve-out: a change to the voting-channel indicator for the `paper` channel is
+permitted until `paper_entry_deadline`, mirroring the ballot window. The note
+records that the equality list in the `Registration` `UPDATE` trigger is what
+confines the carve-out to the channel field and must track the model. No
+requirements change — INV-2 is a specification concept.
 
 ## 5. Paper entry is refused outright when an online ballot exists
 
@@ -119,11 +144,12 @@ around exactly that. The rarer case — a compromised online vote — has no rem
 under §7 regardless (R-7.6: token loss is unrecoverable by anyone), so the
 override could not have helped there either.
 
-**To settle:** amend R-9.3 and T-8. Either drop the override (recording that a
-paper ballot cannot displace an anonymous online one), or, if an in-person
-change path is wanted for `allow_ballot_modification`-off polls, specify it as
-*the elector presents their tracking code* and the paper ballot is keyed as a
-new version of that ballot chain — the one handle that exists.
+**Settled (2026-09-09).** R-9.3 was amended (both language files) to drop the
+reasoned override: paper entry against an existing online ballot is refused,
+because an anonymous online ballot cannot be located from the registration
+(R-7.4) and so cannot be displaced. §6.4's `channel = online` bullet and T-8
+were rewritten to match. The tracking-code-based in-person change path is
+recorded here as a possible future feature, not adopted.
 
 ## 6. A ballot *modification* sends no confirmation email
 
@@ -151,7 +177,9 @@ The tracking code is unchanged across versions (R-7.2) and was mailed at the
 first cast, so a modifying voter is not left without it; the receipt page
 restates it in any case.
 
-**To settle:** amend R-6.4 to require the emailed receipt on the *first* cast
-only, the on-screen summary sufficing for later modifications — or accept a
-weaker token rule for the modification route (the token kept in the URL so
-`modify` can re-derive the address), which trades away part of T-21.
+**Settled (2026-09-09).** R-6.4 was amended (both language files): the emailed
+receipt is required on the *first* cast only; a later modification shows the
+on-screen summary and sends no email, the tracking code being unchanged (R-7.2)
+and already held. §6.3 was updated to match. The weaker-token alternative
+(token kept in the modification URL) was rejected — it trades away part of
+T-21 for a redundant email.

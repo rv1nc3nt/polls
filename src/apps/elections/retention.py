@@ -10,10 +10,12 @@ Publication after a purge stays possible because §9 freezes the counts.
 This module is the sole permitted writer past ``closes_at`` and the only caller
 of the deletes below (§5.1). The INV-2 trigger names the exception rather than
 being disabled for the job's duration: it permits ``DELETE`` on a registration
-only where the poll is ``published``, and INV-7's trigger does the same for
-``RollEntry``. ``AuditEvent`` is never touched — it holds references and
-non-identifying state only, so deleting the referenced rows is what anonymises
-the log (T-14, T-54, T-55).
+only where the poll is ``closed`` or ``published``, and INV-7's trigger does the
+same for ``RollEntry``. ``closed`` and not ``published`` alone, because the
+anchor is closure: a poll that closes and is never published must still purge.
+``AuditEvent`` is never touched — it holds references and non-identifying state
+only, so deleting the referenced rows is what anonymises the log (T-14, T-54,
+T-55).
 
 Idempotent: a re-run finds nothing left to delete and says so.
 """
