@@ -157,7 +157,11 @@ def _actions_for_state(poll: Poll) -> list[PermittedAction]:
     match poll.state:
         case PollState.DRAFT:
             return [
-                PermittedAction(_("Configurer le scrutin"), (Role.POLL_ADMIN,)),
+                PermittedAction(
+                    _("Configurer le scrutin"),
+                    (Role.POLL_ADMIN,),
+                    url_name="backoffice:poll_config",
+                ),
                 PermittedAction(
                     _("Importer la liste électorale"),
                     (Role.POLL_ADMIN,),
@@ -175,7 +179,11 @@ def _actions_for_state(poll: Poll) -> list[PermittedAction]:
                 PermittedAction(
                     _("Rectifier ou supprimer un bulletin papier"), (Role.ENTRY_OPERATOR,)
                 ),
-                PermittedAction(_("Reporter la date de clôture"), (Role.POLL_ADMIN,)),
+                PermittedAction(
+                    _("Reporter la date de clôture"),
+                    (Role.POLL_ADMIN,),
+                    url_name="backoffice:poll_config",
+                ),
             ]
             if poll.paper_requires_countersign:
                 actions.append(

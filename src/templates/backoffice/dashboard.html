@@ -8,6 +8,7 @@
 {% block pollnav %}
   <ul class="pollnav__links">
     <li><a href="{% url 'backoffice:dashboard' poll.pk %}" aria-current="page">{% translate "Tableau de bord" %}</a></li>
+    <li><a href="{% url 'backoffice:poll_config' poll.pk %}">{% translate "Configuration" %}</a></li>
   </ul>
 {% endblock %}
 

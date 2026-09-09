@@ -1,0 +1,213 @@
+{% extends "backoffice/base.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD #}
+
+{% block screen_title %}{% translate "Configuration du scrutin" %}{% endblock %}
+{% block heading %}{% translate "Configuration du scrutin" %}{% endblock %}
+
+{% block pollnav %}
+  <ul class="pollnav__links">
+    <li><a href="{% url 'backoffice:dashboard' poll.pk %}">{% translate "Tableau de bord" %}</a></li>
+    <li><a href="{% url 'backoffice:poll_config' poll.pk %}" aria-current="page">{% translate "Configuration" %}</a></li>
+    <li><a href="{% url 'backoffice:roll_import' poll.pk %}">{% translate "Liste électorale" %}</a></li>
+    <li><a href="{% url 'backoffice:audit_log' poll.pk %}">{% translate "Journal d'audit" %}</a></li>
+  </ul>
+{% endblock %}
+
+{% block screen %}
+
+{% if editable %}
+  {% comment %}
+    R-3.3: the configuration is freely modifiable while the poll is in
+    `draft` and immutable once it is open. This form is shown only in `draft`;
+    the readiness of what is typed here — a missing translation, fewer than two
+    propositions — is reported on the dashboard, not enforced field by field
+    (§3.8, §4).
+  {% endcomment %}
+  <p class="notice">{% translate "Le scrutin est en brouillon : toute la configuration est modifiable. Elle se fige à l'ouverture (R-3.3). Les points encore incomplets sont signalés sur le tableau de bord." %}</p>
+
+  <form method="post">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      {% for message in form.non_field_errors %}<p class="error" role="alert">{{ message }}</p>{% endfor %}
+    {% endif %}
+
+    <fieldset>
+      <legend>{% translate "Contenu du scrutin" %}</legend>
+      {% for field in form %}
+        {% if field.name|slice:":6" == "title_" or field.name|slice:":12" == "description_" %}
+          <p class="field">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {% if field.help_text %}<span class="help">{{ field.help_text }}</span>{% endif %}
+            {{ field }}
+            {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+          </p>
+        {% endif %}
+      {% endfor %}
+    </fieldset>
+
+    <fieldset>
+      <legend>{% translate "Propositions" %}</legend>
+      {% comment %}
+        §3.1: an ordered list of at least two options. Row order is the
+        proposition order. Clear a row or tick « Supprimer » to drop it; the
+        blank rows at the end are there to add more.
+      {% endcomment %}
+      <p class="help">{% translate "Au moins deux propositions. L'ordre des lignes est l'ordre des propositions. L'identifiant est porté par les bulletins et le résultat publié : ne le changez plus après l'ouverture." %}</p>
+
+      {% for message in formset.non_form_errors %}<p class="error" role="alert">{{ message }}</p>{% endfor %}
+
+      {{ formset.management_form }}
+      {% for option_form in formset %}
+        <fieldset class="option-row">
+          <legend>{% blocktranslate with n=forloop.counter %}Proposition {{ n }}{% endblocktranslate %}</legend>
+          {% for field in option_form %}
+            {% if field.is_hidden %}
+              {{ field }}
+            {% else %}
+              <p class="field">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {% if field.help_text %}<span class="help">{{ field.help_text }}</span>{% endif %}
+                {{ field }}
+                {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+              </p>
+            {% endif %}
+          {% endfor %}
+        </fieldset>
+      {% endfor %}
+    </fieldset>
+
+    <fieldset>
+      <legend>{% translate "Langues" %}</legend>
+      {% for field in form %}
+        {% if field.name == "default_language" or field.name == "extra_languages" %}
+          <p class="field">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {% if field.help_text %}<span class="help">{{ field.help_text }}</span>{% endif %}
+            {{ field }}
+            {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+          </p>
+        {% endif %}
+      {% endfor %}
+    </fieldset>
+
+    <fieldset>
+      <legend>{% translate "Calendrier" %}</legend>
+      {% for field in form %}
+        {% if field.name == "opens_at" or field.name == "closes_at" or field.name == "paper_entry_deadline" or field.name == "timezone" %}
+          <p class="field">
+            <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span class="required">{% translate "(obligatoire)" %}</span>{% endif %}</label>
+            {% if field.help_text %}<span class="help">{{ field.help_text }}</span>{% endif %}
+            {{ field }}
+            {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+          </p>
+        {% endif %}
+      {% endfor %}
+    </fieldset>
+
+    <fieldset>
+      <legend>{% translate "Bulletin et dépouillement" %}</legend>
+      {% for field in form %}
+        {% if field.name == "tally_method" or field.name == "tally_method_version" or field.name == "require_complete_ranking" or field.name == "allow_ties_in_ballot" or field.name == "tiebreak_rule" or field.name == "allow_ballot_modification" or field.name == "eligible_list_types" or field.name == "show_live_participation" %}
+          <p class="field">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {% if field.help_text %}<span class="help">{{ field.help_text }}</span>{% endif %}
+            {{ field }}
+            {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+          </p>
+        {% endif %}
+      {% endfor %}
+    </fieldset>
+
+    <fieldset>
+      <legend>{% translate "Bulletins papier" %}</legend>
+      {% for field in form %}
+        {% if field.name == "paper_requires_signed_form" or field.name == "paper_requires_countersign" or field.name == "paper_requires_reconciliation" %}
+          <p class="field">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+          </p>
+        {% endif %}
+      {% endfor %}
+    </fieldset>
+
+    {% comment %}
+      R-3.7: the test-poll quality is fixed at creation and never editable, so
+      it is shown here and not offered as a field.
+    {% endcomment %}
+    <p class="help">
+      {% if poll.is_sandbox %}
+        {% translate "Scrutin bac à sable, fixé à la création : il n'apparaît sur aucune page publique et n'entre dans aucune statistique (R-3.7)." %}
+      {% else %}
+        {% translate "Scrutin réel (non bac à sable), fixé à la création (R-3.7)." %}
+      {% endif %}
+    </p>
+
+    <button type="submit">{% translate "Enregistrer la configuration" %}</button>
+  </form>
+
+{% else %}
+
+  {% comment %}
+    R-3.3: past `draft` the configuration is frozen. It is shown read-only so
+    an operator can consult it; the only change still permitted is R-3.4's
+    extension of the closing date, offered below while the poll is open.
+  {% endcomment %}
+  <p class="notice">{% translate "Le scrutin n'est plus en brouillon : la configuration est figée (R-3.3). Seule la date de clôture peut encore être repoussée, avec un motif." %}</p>
+
+  <dl class="facts">
+    <dt>{% translate "État" %}</dt><dd>{{ poll.get_state_display }}</dd>
+    <dt>{% translate "Titre" %}</dt><dd>{{ poll.title }}</dd>
+    <dt>{% translate "Description" %}</dt><dd>{{ poll.description }}</dd>
+    <dt>{% translate "Langues" %}</dt><dd>{{ poll.languages|join:", " }}</dd>
+    <dt>{% translate "Ouverture" %}</dt><dd>{{ poll.opens_at }}</dd>
+    <dt>{% translate "Clôture du vote en ligne" %}</dt><dd>{{ poll.closes_at }}</dd>
+    <dt>{% translate "Fin de saisie des bulletins papier" %}</dt><dd>{{ poll.paper_entry_deadline }}</dd>
+    <dt>{% translate "Fuseau horaire" %}</dt><dd>{{ poll.timezone }}</dd>
+    <dt>{% translate "Méthode de dépouillement" %}</dt><dd>{{ poll.get_tally_method_display }} (v{{ poll.tally_method_version }})</dd>
+    <dt>{% translate "Classement complet obligatoire" %}</dt><dd>{% if poll.require_complete_ranking %}{% translate "oui" %}{% else %}{% translate "non" %}{% endif %}</dd>
+    <dt>{% translate "Ex æquo autorisés sur un bulletin" %}</dt><dd>{% if poll.allow_ties_in_ballot %}{% translate "oui" %}{% else %}{% translate "non" %}{% endif %}</dd>
+    <dt>{% translate "Départage en cas d'égalité" %}</dt><dd>{{ poll.get_tiebreak_rule_display }}</dd>
+    <dt>{% translate "Modification d'un bulletin déjà voté" %}</dt><dd>{% if poll.allow_ballot_modification %}{% translate "autorisée" %}{% else %}{% translate "interdite" %}{% endif %}</dd>
+    <dt>{% translate "Types de liste ouvrant le droit de vote" %}</dt><dd>{{ poll.eligible_list_types|join:", " }}</dd>
+    <dt>{% translate "Participation affichée pendant le scrutin" %}</dt><dd>{% if poll.show_live_participation %}{% translate "oui" %}{% else %}{% translate "non" %}{% endif %}</dd>
+    <dt>{% translate "Formulaire signé exigé (papier)" %}</dt><dd>{% if poll.paper_requires_signed_form %}{% translate "oui" %}{% else %}{% translate "non" %}{% endif %}</dd>
+    <dt>{% translate "Contreseing exigé (papier)" %}</dt><dd>{% if poll.paper_requires_countersign %}{% translate "oui" %}{% else %}{% translate "non" %}{% endif %}</dd>
+    <dt>{% translate "Rapprochement exigé (papier)" %}</dt><dd>{% if poll.paper_requires_reconciliation %}{% translate "oui" %}{% else %}{% translate "non" %}{% endif %}</dd>
+    <dt>{% translate "Bac à sable" %}</dt><dd>{% if poll.is_sandbox %}{% translate "oui" %}{% else %}{% translate "non" %}{% endif %}</dd>
+  </dl>
+
+  <h2>{% translate "Propositions" %}</h2>
+  <ol>
+    {% for option in options %}<li>{{ option.label }} <span class="help">({{ option.option_id }})</span></li>{% endfor %}
+  </ol>
+
+  {% if extension %}
+    <section aria-labelledby="report">
+      <h2 id="report">{% translate "Reporter la date de clôture" %}</h2>
+      {% comment %}
+        R-3.4: permitted only while the poll is open, only to a later instant,
+        logged with the operator, the timestamp and a mandatory reason, and
+        displayed on the public page of the poll. `paper_entry_deadline` moves
+        with it, keeping the configured keying window (§4).
+      {% endcomment %}
+      <p class="help">{% translate "Uniquement vers une date postérieure. Le report est inscrit au journal d'audit et affiché sur la page publique du scrutin ; la fenêtre de saisie des bulletins papier est décalée d'autant." %}</p>
+      <form method="post">
+        {% csrf_token %}
+        {% for field in extension %}
+          <p class="field">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+          </p>
+        {% endfor %}
+        <button type="submit">{% translate "Reporter la clôture" %}</button>
+      </form>
+    </section>
+  {% endif %}
+
+{% endif %}
+
+{% endblock %}

@@ -14,15 +14,18 @@ Two rules govern every screen and are not negotiable per-view:
   paper-entry screen, where the association is deliberate and logged.
 
 Here so far: the shell the screens hang off — sign-in for named accounts
-(R-2.2) and the poll index — plus screen 1 (tableau de bord) and screen 8
-(journal d'audit), the two that read and never write. The gate is ``access.py``;
-the read models are ``dashboard.py`` and ``auditlog.py``, so the views stay thin
-enough to see the gate on each one.
+(R-2.2) and the poll index — plus screen 1 (tableau de bord), screen 2
+(configuration du scrutin), screen 3 (import de la liste électorale), screen 4
+(file d'attente des inscriptions) and screen 8 (journal d'audit). The gate is
+``access.py``; the read models are ``dashboard.py``, ``auditlog.py`` and
+``review.py``, and the write paths are the service functions of §5.1
+(``elections.config``, ``elections.rollimport``, ``registrations.services``), so
+the views stay thin enough to see the gate on each one.
 
-TODO(scaffold): screens 2, 3, 5–7 and 9–11 of §6.5. Each waits on the service
+TODO(scaffold): screens 5–7 and 9–11 of §6.5. Each waits on the service
 function it must post through (§5.1) — no view writes through the ORM directly,
-so a screen cannot land before ``registrations.services`` or
-``ballots.services`` does.
+so a screen cannot land before ``ballots.services`` and the closure/tally
+pieces do.
 """
 
 from __future__ import annotations
@@ -43,8 +46,9 @@ from django.utils.translation import gettext as _
 from apps.audit import services as audit
 from apps.audit.models import Action, Reason
 from apps.core.models import Role
-from apps.elections import rollimport
-from apps.elections.models import Poll, RollEntry
+from apps.elections import config, rollimport
+from apps.elections.models import Poll, PollState, RollEntry
+from apps.elections.transitions import TransitionRefused, extend_closes_at
 from apps.elections.windows import WindowClosed
 from apps.registrations import mail as registration_mail
 from apps.registrations import services as registrations
@@ -57,6 +61,14 @@ from .access import (
     is_commune_admin,
     poll_roles,
     require_poll_role,
+)
+from .forms import (
+    ExtensionForm,
+    OptionFormSet,
+    PollConfigForm,
+    config_initial,
+    option_drafts,
+    option_initial,
 )
 
 
@@ -115,6 +127,77 @@ def poll_dashboard(request: HttpRequest, poll: Poll) -> HttpResponse:
             "participation": dashboard.participation(poll),
             "blockers": dashboard.blockers(poll),
             "actions": dashboard.permitted_actions(poll, poll_roles(request.user, poll)),
+        },
+    )
+
+
+@require_poll_role(Role.POLL_ADMIN)
+def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
+    """Screen 2 — configuration du scrutin (§6.5.2).
+
+    Editable only while ``draft`` (R-3.3); read-only thereafter, with the
+    reasoned ``closes_at`` extension of R-3.4 the one change still permitted
+    once the poll is ``open``. Poll admin only — configuration and closure are
+    the admin's, not the entry operator's (§3.7).
+
+    Two forms, never both live: the ``draft`` poll gets the configuration
+    editor, every other state gets the read-only view (plus the extension form
+    while ``open``). The POST branch follows from ``poll.state`` alone, so
+    neither form needs an action discriminator.
+    """
+    languages = list(poll.languages) or [poll.default_language]
+    on_post = request.method == "POST"
+
+    if poll.state == PollState.DRAFT:
+        form = PollConfigForm(
+            request.POST or None,
+            content_languages=languages,
+            initial=None if on_post else config_initial(poll),
+        )
+        formset = OptionFormSet(
+            request.POST or None,
+            prefix="opt",
+            form_kwargs={"content_languages": languages},
+            initial=None if on_post else option_initial(poll),
+        )
+        if on_post and form.is_valid() and formset.is_valid():
+            draft = form.to_draft(option_drafts(formset))
+            try:
+                config.save_configuration(poll, draft, actor=current_operator(request))
+            except config.ConfigurationLocked as locked:
+                messages.error(request, str(locked))
+            else:
+                messages.success(request, _("Configuration enregistrée."))
+                return redirect("backoffice:poll_config", poll_id=str(poll.pk))
+        return render(
+            request,
+            "backoffice/poll_config.html",
+            {"poll": poll, "editable": True, "form": form, "formset": formset},
+        )
+
+    extension = ExtensionForm(request.POST or None) if poll.state == PollState.OPEN else None
+    if on_post and extension is not None and extension.is_valid():
+        try:
+            extend_closes_at(
+                poll,
+                extension.cleaned_data["new_closes_at"],
+                current_operator(request),
+                extension.cleaned_data["reason"],
+            )
+        except TransitionRefused as refused:
+            messages.error(request, str(refused))
+        else:
+            messages.success(request, _("Date de clôture repoussée."))
+            return redirect("backoffice:poll_config", poll_id=str(poll.pk))
+
+    return render(
+        request,
+        "backoffice/poll_config.html",
+        {
+            "poll": poll,
+            "editable": False,
+            "options": poll.options.all(),
+            "extension": extension,
         },
     )
 

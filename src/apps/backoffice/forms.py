@@ -1,0 +1,341 @@
+# SPDX-License-Identifier: 0BSD
+"""Forms for the espace mairie (§6.5).
+
+Screen 2's forms. They validate *shape* — a closing instant after the opening
+one, a real timezone, at least two propositions — and hand the cleaned values
+to ``elections.config``, the one writer (§6.5: no view writes through the ORM).
+
+Whether the poll may be edited at all is R-3.3's business and is checked in the
+service, not here: a form that quietly rendered itself read-only would hide the
+reason it did.
+
+The content fields — title, description, each option's label — are built per
+enabled language at construction time, from the poll's *current* ``languages``.
+Change the language set and save, and the new language's empty fields appear on
+the next load, where the dashboard is already naming them as opening blockers
+(§3.8).
+"""
+
+from __future__ import annotations
+
+from typing import Any
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+from django import forms
+from django.conf import settings
+from django.utils.translation import gettext_lazy as _
+
+from apps.audit.models import Reason
+from apps.elections import config
+from apps.elections.models import ListType, Poll, TallyMethod, TiebreakRule
+
+#: ``datetime-local`` submits without seconds; accept both shapes on the way in.
+_DATETIME_FORMATS = ("%Y-%m-%dT%H:%M", "%Y-%m-%dT%H:%M:%S")
+
+#: R-3.4's reason vocabulary, narrowed to the codes that can mean "the closing
+#: date moved". The full ``Reason`` set includes ballot-review codes that would
+#: be a valid enum value and a false record here (§10) — the same reasoning as
+#: ``review.py``'s split of the registration decision codes.
+EXTENSION_REASONS: tuple[Reason, ...] = (
+    Reason.ADMINISTRATIVE_DECISION,
+    Reason.DEADLINE_REACHED,
+    Reason.OTHER,
+)
+
+
+class _DateTimeField(forms.DateTimeField):
+    """A ``datetime-local`` field, so the operator gets a calendar widget."""
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(
+            input_formats=_DATETIME_FORMATS,
+            widget=forms.DateTimeInput(format="%Y-%m-%dT%H:%M", attrs={"type": "datetime-local"}),
+            **kwargs,
+        )
+
+
+def _language_name(code: str) -> str:
+    return dict(settings.LANGUAGES).get(code, code)
+
+
+class PollConfigForm(forms.Form):
+    """The editable configuration of a ``draft`` poll (§3.1, §6.5.2)."""
+
+    opens_at = _DateTimeField(
+        label=_("Ouverture du scrutin"),
+        help_text=_(
+            "Heure locale du serveur. Le scrutin s'ouvre à cette heure, ou plus tard si "
+            "la tâche planifiée a pris du retard (§4)."
+        ),
+    )
+    closes_at = _DateTimeField(label=_("Clôture du vote en ligne"))
+    paper_entry_deadline = _DateTimeField(
+        label=_("Fin de saisie des bulletins papier"),
+        help_text=_(
+            "Au moins égale à la clôture. Laissez-la égale à la clôture s'il n'y a pas "
+            "de saisie papier différée : toute période pendant laquelle un bulletin peut "
+            "encore entrer en base est affichée publiquement (§6.4)."
+        ),
+    )
+    timezone = forms.CharField(
+        label=_("Fuseau horaire du scrutin"), max_length=64, initial="Europe/Paris"
+    )
+
+    tally_method = forms.ChoiceField(
+        label=_("Méthode de dépouillement"), choices=TallyMethod.choices
+    )
+    tally_method_version = forms.CharField(
+        label=_("Version de la méthode"), max_length=20, initial="1"
+    )
+    require_complete_ranking = forms.BooleanField(
+        label=_("Classement complet obligatoire"), required=False
+    )
+    allow_ties_in_ballot = forms.BooleanField(
+        label=_("Ex æquo autorisés sur un bulletin"), required=False
+    )
+    tiebreak_rule = forms.ChoiceField(
+        label=_("Départage en cas d'égalité"), choices=TiebreakRule.choices
+    )
+
+    paper_requires_signed_form = forms.BooleanField(
+        label=_("Formulaire signé exigé pour un bulletin papier"), required=False
+    )
+    paper_requires_countersign = forms.BooleanField(
+        label=_("Contreseing d'un second opérateur exigé"), required=False
+    )
+    paper_requires_reconciliation = forms.BooleanField(
+        label=_("Rapprochement des bulletins papier exigé"), required=False
+    )
+
+    allow_ballot_modification = forms.BooleanField(
+        label=_("Autoriser la modification d'un bulletin déjà voté"),
+        required=False,
+        help_text=_(
+            "Ce n'est pas qu'un réglage de confidentialité. Désactiver la modification "
+            "renforce l'anonymat — aucun lien n'est alors calculé entre un bulletin et le "
+            "jeton qui l'a émis — mais retire à un électeur sous contrainte son seul "
+            "recours : revoter seul une fois la pression levée (§7). La commune choisit "
+            "lequel des deux risques elle préfère porter."
+        ),
+    )
+    eligible_list_types = forms.MultipleChoiceField(
+        label=_("Types de liste ouvrant le droit de vote"),
+        choices=ListType.choices,
+        widget=forms.CheckboxSelectMultiple,
+        help_text=_(
+            "Une question municipale prend la liste principale et la complémentaire "
+            "municipale ; la complémentaire européenne seule ne confère aucun droit ici (R-4.7)."
+        ),
+    )
+    show_live_participation = forms.BooleanField(
+        label=_("Afficher la participation pendant le scrutin"),
+        required=False,
+        help_text=_(
+            "Par défaut non : publier la participation pendant le vote peut l'influencer (§6.6)."
+        ),
+    )
+
+    default_language = forms.ChoiceField(label=_("Langue par défaut"), choices=[])
+    extra_languages = forms.MultipleChoiceField(
+        label=_("Langues supplémentaires"),
+        choices=[],
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+        help_text=_(
+            "Le titre, la description et chaque proposition devront être traduits dans "
+            "chaque langue avant l'ouverture (§3.8)."
+        ),
+    )
+
+    def __init__(self, *args: Any, content_languages: list[str], **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.content_languages = content_languages
+        available = list(settings.LANGUAGES)
+        self.fields["default_language"].choices = available  # type: ignore[attr-defined]
+        self.fields["extra_languages"].choices = available  # type: ignore[attr-defined]
+        for code in content_languages:
+            name = _language_name(code)
+            self.fields[f"title_{code}"] = forms.CharField(
+                label=_("Titre (%(lang)s)") % {"lang": name},
+                max_length=300,
+                required=False,
+            )
+            self.fields[f"description_{code}"] = forms.CharField(
+                label=_("Description (%(lang)s)") % {"lang": name},
+                widget=forms.Textarea(attrs={"rows": 4}),
+                required=False,
+            )
+
+    def clean_timezone(self) -> str:
+        value: str = self.cleaned_data["timezone"]
+        try:
+            ZoneInfo(value)
+        except (ZoneInfoNotFoundError, ValueError):
+            raise forms.ValidationError(_("Fuseau horaire inconnu.")) from None
+        return value
+
+    def clean(self) -> dict[str, Any]:
+        super().clean()
+        cleaned = self.cleaned_data
+        opens_at = cleaned.get("opens_at")
+        closes_at = cleaned.get("closes_at")
+        paper_deadline = cleaned.get("paper_entry_deadline")
+        if opens_at and closes_at and closes_at <= opens_at:
+            self.add_error("closes_at", _("La clôture doit suivre l'ouverture."))
+        if closes_at and paper_deadline and paper_deadline < closes_at:
+            self.add_error(
+                "paper_entry_deadline",
+                _("La fin de saisie des bulletins papier ne peut précéder la clôture."),
+            )
+
+        default_language = cleaned.get("default_language")
+        extra = cleaned.get("extra_languages") or []
+        if default_language:
+            # §3.8: the first entry of ``languages`` is the default and the
+            # fallback, so it leads the list and is never repeated in the tail.
+            cleaned["languages"] = [default_language, *(c for c in extra if c != default_language)]
+        return cleaned
+
+    def to_draft(self, options: list[config.OptionDraft]) -> config.ConfigDraft:
+        cleaned = self.cleaned_data
+        languages: list[str] = cleaned["languages"]
+        scalars = {name: cleaned[name] for name in config.SCALAR_FIELDS if name in cleaned}
+
+        def content(prefix: str) -> dict[str, str]:
+            # An empty string is "no translation", which is exactly what
+            # ``missing_translations`` looks for — so it is dropped, not stored
+            # (§3.8). A language removed from the set this save drops with it.
+            out = {
+                code: cleaned.get(f"{prefix}_{code}", "").strip() for code in self.content_languages
+            }
+            return {code: text for code, text in out.items() if text and code in languages}
+
+        return config.ConfigDraft(
+            scalars=scalars,
+            languages=languages,
+            title_i18n=content("title"),
+            description_i18n=content("description"),
+            options=options,
+        )
+
+
+class OptionForm(forms.Form):
+    """One proposition row. Blank rows are ignored; a deleted row is dropped."""
+
+    pk = forms.CharField(required=False, widget=forms.HiddenInput)
+    option_id = forms.SlugField(
+        label=_("Identifiant"),
+        max_length=50,
+        required=False,
+        help_text=_(
+            "Court, sans espace ni accent. Porté par les bulletins et le résultat publié : "
+            "ne le modifiez pas après l'ouverture (§3.8)."
+        ),
+    )
+
+    def __init__(self, *args: Any, content_languages: list[str], **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.content_languages = content_languages
+        for code in content_languages:
+            self.fields[f"label_{code}"] = forms.CharField(
+                label=_("Intitulé (%(lang)s)") % {"lang": _language_name(code)},
+                max_length=300,
+                required=False,
+            )
+
+    def _has_label(self) -> bool:
+        return any(self.cleaned_data.get(f"label_{code}") for code in self.content_languages)
+
+    def is_blank(self) -> bool:
+        return not self.cleaned_data.get("option_id") and not self._has_label()
+
+    def clean(self) -> dict[str, Any]:
+        super().clean()
+        cleaned = self.cleaned_data
+        if self._has_label() and not cleaned.get("option_id"):
+            self.add_error("option_id", _("Donnez un identifiant à cette proposition."))
+        return cleaned
+
+    def to_draft(self) -> config.OptionDraft | None:
+        cleaned = self.cleaned_data
+        if cleaned.get("DELETE") or self.is_blank():
+            return None
+        labels = {code: cleaned.get(f"label_{code}", "").strip() for code in self.content_languages}
+        return config.OptionDraft(
+            option_id=cleaned["option_id"],
+            labels={code: text for code, text in labels.items() if text},
+            pk=cleaned.get("pk", ""),
+        )
+
+
+class BaseOptionFormSet(forms.BaseFormSet):  # type: ignore[type-arg]  # not subscriptable at runtime
+    """Cross-row rules: at least two propositions, no shared identifier (§3.1).
+
+    Validation only — it raises, it does not keep state. The view re-derives the
+    drafts from the (now valid) forms through ``option_drafts`` below, so the
+    typing stays exact past ``formset_factory``, which erases this subclass.
+    """
+
+    def clean(self) -> None:
+        if any(self.errors):
+            return
+        drafts = option_drafts(self)
+        ids = [draft.option_id for draft in drafts]
+        if len(ids) != len(set(ids)):
+            raise forms.ValidationError(_("Deux propositions portent le même identifiant."))
+        if len(drafts) < 2:
+            raise forms.ValidationError(
+                _("Un scrutin comporte au moins deux propositions (R-3.1).")
+            )
+
+
+OptionFormSet = forms.formset_factory(
+    OptionForm, formset=BaseOptionFormSet, extra=2, can_delete=True
+)
+
+
+def option_drafts(formset: forms.BaseFormSet[OptionForm]) -> list[config.OptionDraft]:
+    """The non-blank, non-deleted proposition rows, in row order."""
+    return [draft for form in formset.forms if (draft := form.to_draft()) is not None]
+
+
+class ExtensionForm(forms.Form):
+    """R-3.4 — the one configuration change still allowed once the poll is open.
+
+    The instant and the reason are validated here; that the poll is ``open``
+    and the new instant is later is ``transitions.extend_closes_at``'s guard,
+    which owns ``closes_at`` and the audit event.
+    """
+
+    new_closes_at = _DateTimeField(label=_("Nouvelle date de clôture"))
+    reason = forms.ChoiceField(
+        label=_("Motif (obligatoire)"),
+        choices=[(reason.value, reason.label) for reason in EXTENSION_REASONS],
+    )
+
+
+def config_initial(poll: Poll) -> dict[str, Any]:
+    """The bound values for ``PollConfigForm`` on a GET.
+
+    In ``views.py`` this would trip ``test_every_poll_scoped_view_is_gated``,
+    which flags any function there taking a ``poll``; it lives here instead.
+    """
+    languages = list(poll.languages) or [poll.default_language]
+    initial: dict[str, Any] = {name: getattr(poll, name) for name in config.SCALAR_FIELDS}
+    initial["default_language"] = poll.default_language
+    initial["extra_languages"] = [code for code in languages if code != poll.default_language]
+    for code in languages:
+        initial[f"title_{code}"] = poll.title_i18n.get(code, "")
+        initial[f"description_{code}"] = poll.description_i18n.get(code, "")
+    return initial
+
+
+def option_initial(poll: Poll) -> list[dict[str, Any]]:
+    """One ``OptionForm`` initial per stored proposition, in order."""
+    rows: list[dict[str, Any]] = []
+    for option in poll.options.all():
+        row: dict[str, Any] = {"pk": str(option.pk), "option_id": option.option_id}
+        for code, text in option.label_i18n.items():
+            row[f"label_{code}"] = text
+        rows.append(row)
+    return rows
