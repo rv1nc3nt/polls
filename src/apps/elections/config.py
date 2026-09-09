@@ -29,7 +29,7 @@ from apps.audit import services as audit
 from apps.audit.models import Action
 from apps.core.models import User
 
-from .models import Poll, PollOption, PollState
+from .models import Poll, PollOption, PollState, TallyMethod
 
 #: The scalar configuration fields screen 2 edits, in display order.
 #: ``title_i18n``/``description_i18n``, ``languages`` and the option list are
@@ -51,6 +51,25 @@ SCALAR_FIELDS: tuple[str, ...] = (
     "eligible_list_types",
     "show_live_participation",
 )
+
+
+def configuration_warnings(tally_method: str, *, allow_ties_in_ballot: bool) -> list[str]:
+    """Legal-but-almost-certainly-wrong configuration, as codes for screen 2 (§8.2).
+
+    These do not block a save or the opening — the tally resolves every one of
+    them deterministically — so they are not ``opening_blockers`` (§4). They are
+    the combinations where the *intent* is in doubt, and §8.2 puts the warning
+    on the configuration screen rather than letting the tally act on a choice
+    the operator may not have realised they made.
+
+    Today there is one: ``plurality`` with ``allow_ties_in_ballot`` set. A
+    ballot whose first group holds several options then hands one count to each
+    (§8.2), which is hardly ever what a single-choice question wants.
+    """
+    warnings: list[str] = []
+    if tally_method == TallyMethod.PLURALITY and allow_ties_in_ballot:
+        warnings.append("plurality_allows_ties")
+    return warnings
 
 
 class ConfigurationLocked(Exception):

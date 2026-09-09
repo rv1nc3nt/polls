@@ -78,8 +78,13 @@ something to resolve silently in the tally.
 **Settled (2026-09-09).** §8.2 now states the one-count-per-tied-option rule
 explicitly and records that screen 2 warns on the `plurality` +
 `allow_ties_in_ballot` combination at configuration time. No requirements
-change. The screen-2 warning itself is outstanding implementation work (screen
-2 is built; the check is not yet wired).
+change.
+
+**Wired (2026-09-09).** `config.configuration_warnings` returns the warning
+codes and `backoffice.forms.config_warnings` the French; screen 2 renders them
+as an advisory `role="status"` callout in both the draft editor and the
+read-only view. It is non-blocking by design — the tally handles the
+combination deterministically, so it is not an opening blocker (§4).
 
 ## 4. The registration window admits a channel change for the paper channel
 

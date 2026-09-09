@@ -344,6 +344,32 @@ def option_initial(poll: Poll) -> list[dict[str, Any]]:
     return rows
 
 
+#: A screen-2 configuration warning code (``config.configuration_warnings``) as a
+#: sentence a council member can act on — the same codes/French split as
+#: ``dashboard.describe_blocker`` keeps for the opening blockers.
+_CONFIG_WARNINGS: dict[str, Any] = {
+    "plurality_allows_ties": _(
+        "Méthode majoritaire avec ex æquo autorisés sur le bulletin : un bulletin "
+        "qui place plusieurs propositions en tête donne une voix à chacune (§8.2). "
+        "C'est rarement voulu pour une question à choix unique — vérifiez l'un ou "
+        "l'autre réglage."
+    ),
+}
+
+
+def config_warnings(poll: Poll) -> list[str]:
+    """Legal-but-suspect configuration on ``poll``, described for screen 2 (§8.2).
+
+    Non-blocking: the poll still saves and still opens. In ``views.py`` this
+    would trip ``test_every_poll_scoped_view_is_gated``; it lives here beside
+    the other screen-2 read helpers.
+    """
+    codes = config.configuration_warnings(
+        poll.tally_method, allow_ties_in_ballot=poll.allow_ties_in_ballot
+    )
+    return [str(_CONFIG_WARNINGS.get(code, code)) for code in codes]
+
+
 # --- Screen 10: comptes et rôles (§6.5.10) --------------------------------
 
 

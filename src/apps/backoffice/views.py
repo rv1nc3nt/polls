@@ -91,6 +91,7 @@ from .forms import (
     OptionFormSet,
     PollConfigForm,
     config_initial,
+    config_warnings,
     option_drafts,
     option_initial,
 )
@@ -243,7 +244,13 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
         return render(
             request,
             "backoffice/poll_config.html",
-            {"poll": poll, "editable": True, "form": form, "formset": formset},
+            {
+                "poll": poll,
+                "editable": True,
+                "form": form,
+                "formset": formset,
+                "warnings": config_warnings(poll),
+            },
         )
 
     extension = ExtensionForm(request.POST or None) if poll.state == PollState.OPEN else None
@@ -269,6 +276,7 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
             "editable": False,
             "options": poll.options.all(),
             "extension": extension,
+            "warnings": config_warnings(poll),
         },
     )
 

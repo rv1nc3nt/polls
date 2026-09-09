@@ -620,6 +620,16 @@ msgstr "Reason"
 msgid "Méthode de dépouillement"
 msgstr "Tally method"
 
+msgid ""
+"Méthode majoritaire avec ex æquo autorisés sur le bulletin : un bulletin qui "
+"place plusieurs propositions en tête donne une voix à chacune (§8.2). C'est "
+"rarement voulu pour une question à choix unique — vérifiez l'un ou l'autre "
+"réglage."
+msgstr ""
+"Plurality method with ties allowed on the ballot: a ballot that places "
+"several options first gives one vote to each of them (§8.2). This is rarely "
+"intended for a single-choice question — check one setting or the other."
+
 msgid "N'ont pas voté"
 msgstr "Did not vote"
 

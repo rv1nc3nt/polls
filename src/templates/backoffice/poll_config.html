@@ -16,6 +16,17 @@
 
 {% block screen %}
 
+{% comment %}
+  §8.2: a configuration that is valid and will tally deterministically, but is
+  almost certainly not what was meant. Advisory, not an error — role="status",
+  and nothing here stops the save or the opening.
+{% endcomment %}
+{% if warnings %}
+  <ul class="blockers" role="status">
+    {% for message in warnings %}<li class="warning">{{ message }}</li>{% endfor %}
+  </ul>
+{% endif %}
+
 {% if editable %}
   {% comment %}
     R-3.3: the configuration is freely modifiable while the poll is in

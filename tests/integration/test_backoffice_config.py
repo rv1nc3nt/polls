@@ -199,6 +199,63 @@ def test_adding_a_language_leaves_a_translation_gap_for_the_dashboard(
     assert "title:en" in open_window_poll.missing_translations()
 
 
+# --- §8.2: the screen-2 misconfiguration warning -------------------------
+
+_WARNING_MARK = "un bulletin qui place plusieurs propositions en tête donne une voix"
+
+
+def test_the_editor_warns_on_plurality_with_ballot_ties_without_blocking_the_save(
+    client: Client, open_window_poll: Poll, admin_user: User
+) -> None:
+    """§8.2: ``plurality`` + ``allow_ties_in_ballot`` tallies deterministically,
+    so the screen warns rather than refusing — the save still goes through and
+    the poll can still open."""
+    _grant(open_window_poll, admin_user, Role.POLL_ADMIN)
+    client.force_login(admin_user)
+
+    data = _payload(open_window_poll)
+    data["tally_method"] = TallyMethod.PLURALITY
+    data["allow_ties_in_ballot"] = "on"
+    assert client.post(_url(open_window_poll), data).status_code == 302
+
+    open_window_poll.refresh_from_db()
+    assert open_window_poll.tally_method == TallyMethod.PLURALITY
+    assert open_window_poll.allow_ties_in_ballot is True
+
+    body = client.get(_url(open_window_poll)).content.decode()
+    assert _WARNING_MARK in body
+    assert 'role="status"' in body
+    # Advisory, not an error: it must not be dressed as a validation failure.
+    assert 'role="alert"' not in body
+
+
+def test_no_warning_without_the_combination(
+    client: Client, open_window_poll: Poll, admin_user: User
+) -> None:
+    _grant(open_window_poll, admin_user, Role.POLL_ADMIN)
+    client.force_login(admin_user)
+
+    body = client.get(_url(open_window_poll)).content.decode()
+    assert _WARNING_MARK not in body
+
+
+def test_the_read_only_view_still_carries_the_warning(
+    client: Client, open_window_poll: Poll, admin_user: User
+) -> None:
+    """The combination is frozen in past ``draft`` — the operator can no longer
+    fix it, which is exactly when naming it explains a later tally."""
+    open_window_poll.tally_method = TallyMethod.PLURALITY
+    open_window_poll.allow_ties_in_ballot = True
+    open_window_poll.save()
+    open_poll(open_window_poll)
+    _grant(open_window_poll, admin_user, Role.POLL_ADMIN)
+    client.force_login(admin_user)
+
+    body = client.get(_url(open_window_poll)).content.decode()
+    assert "la configuration est figée" in body
+    assert _WARNING_MARK in body
+
+
 def test_a_non_draft_poll_is_read_only(
     client: Client, open_window_poll: Poll, admin_user: User
 ) -> None:
