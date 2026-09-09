@@ -1,0 +1,128 @@
+"""Render the real screens to self-contained HTML captures under docs/captures/.
+
+No browser is available in this environment to rasterise them; each file is the
+genuine page markup with the stylesheet inlined, so it opens stand-alone and can
+be turned into a PNG with one command on any machine with a browser:
+
+    chromium --headless --screenshot=01.png --window-size=1280,1600 01-*.html
+"""
+from __future__ import annotations
+
+import os
+import re
+from pathlib import Path
+
+import django
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.dev")
+django.setup()
+
+from django.test import Client
+
+from apps.core.models import User
+from apps.elections.models import Poll, PollState
+from apps.registrations import services as reg
+from apps.registrations.models import Channel, Registration, RegistrationState
+
+ROOT = Path("/home/claude/Projects/polls")
+OUT = ROOT / "docs" / "captures"
+OUT.mkdir(parents=True, exist_ok=True)
+CSS = (ROOT / "src" / "static" / "css" / "app.css").read_text(encoding="utf-8")
+
+poll = Poll.objects.get(state=PollState.OPEN)
+draft = Poll.objects.get(state=PollState.DRAFT)
+pub = Poll.objects.get(state=PollState.PUBLISHED)
+admin = User.objects.get(username="m.rousseau")
+padmin = User.objects.get(username="j.mercier")
+operator = User.objects.get(username="s.blanchard")
+auditor = User.objects.get(username="a.klein")
+
+paper_ballot = poll.ballots.filter(source="paper").first()
+review_reg = Registration.objects.filter(poll=poll, state=RegistrationState.PENDING_REVIEW).first()
+
+
+def save(name: str, html: str) -> None:
+    html = re.sub(
+        r'<link rel="stylesheet" href="[^"]*app\.css[^"]*">',
+        f"<style>\n{CSS}\n</style>",
+        html,
+    )
+    (OUT / name).write_text(html, encoding="utf-8")
+    print("  ", name, len(html))
+
+
+def get(client: Client, url: str, name: str) -> str:
+    resp = client.get(url, follow=True, SERVER_NAME="localhost")
+    body = resp.content.decode("utf-8")
+    if resp.status_code != 200:
+        print("  !! ", url, resp.status_code)
+    save(name, body)
+    return body
+
+
+anon = Client()
+get(anon, "/fr/", "01-site-public-liste.html")
+get(anon, f"/fr/scrutin/{poll.pk}/", "02-site-public-scrutin.html")
+get(anon, f"/fr/inscription/{poll.pk}/", "03-inscription-formulaire.html")
+get(anon, f"/fr/inscription/{poll.pk}/recu/pending_email/", "04-inscription-confirmee.html")
+get(anon, f"/fr/inscription/{poll.pk}/recu/pending_review/", "05-inscription-en-examen.html")
+get(anon, f"/fr/scrutin/{pub.pk}/resultats/", "20-site-public-resultats.html")
+get(anon, "/fr/mairie/connexion/", "06-mairie-connexion.html")
+
+# --- ballot: first cast (channel none) -------------------------------------
+garnier = Registration.objects.get(poll=poll, email_canonical="h.garnier@example.fr")
+token = reg.issue_token(garnier)  # fresh plaintext; only voter_hash is stored
+get(Client(), f"/fr/bulletin/{poll.pk}/acces/{token.reveal()}/", "07-bulletin-vote.html")
+
+# --- ballot: modification (needs the original token, so cast one fresh) -----
+from apps.ballots import services as bal
+
+r2, tok2 = reg.register(
+    poll,
+    {"last_name": "Petit", "first_names": "Élodie", "date_of_birth": "03/01/1990",
+     "email": "elodie.petit@example.fr", "declared_on_honour": "on"},
+    "fr",
+)
+reg.confirm_mailbox(r2)
+bal.cast_online(poll, tok2, [["jardin"], ["mixte"], ["mineral"]])
+get(Client(), f"/fr/bulletin/{poll.pk}/acces/{tok2.reveal()}/", "08-bulletin-modification.html")
+get(Client(), f"/fr/bulletin/{poll.pk}/info/enregistre/", "09-bulletin-deja-enregistre.html")
+
+# --- back-office ----------------------------------------------------------
+ca = Client()
+ca.force_login(admin)
+get(ca, "/fr/mairie/", "10-mairie-index-scrutins.html")
+get(ca, "/fr/mairie/comptes/", "18-mairie-comptes.html")
+get(ca, "/fr/mairie/comptes/roles/", "19-mairie-roles.html")
+
+pa = Client()
+pa.force_login(padmin)
+get(pa, f"/fr/mairie/scrutin/{poll.pk}/", "11-mairie-tableau-de-bord.html")
+get(pa, f"/fr/mairie/scrutin/{poll.pk}/configuration/", "12-mairie-configuration-lecture.html")
+get(pa, f"/fr/mairie/scrutin/{draft.pk}/configuration/", "13-mairie-configuration-brouillon.html")
+get(pa, f"/fr/mairie/scrutin/{poll.pk}/inscriptions/", "14-mairie-file-inscriptions.html")
+get(pa, f"/fr/mairie/scrutin/{poll.pk}/liste-electorale/", "15-mairie-import-liste.html")
+get(pa, f"/fr/mairie/scrutin/{pub.pk}/depouillement/", "17-mairie-depouillement.html")
+
+eo = Client()
+eo.force_login(operator)
+get(eo, f"/fr/mairie/scrutin/{poll.pk}/bulletin-papier/", "16-mairie-bulletin-papier.html")
+get(eo, f"/fr/mairie/scrutin/{poll.pk}/bulletin-papier/?q=Garnier",
+    "16a-mairie-bulletin-papier-recherche.html")
+bouchard = poll.roll_entries.get(birth_name="Bouchard")
+_r = eo.post(
+    f"/fr/mairie/scrutin/{poll.pk}/bulletin-papier/",
+    {"q": "Bouchard", "roll_entry": str(bouchard.pk)},
+    follow=True, SERVER_NAME="localhost",
+)
+save("16d-mairie-bulletin-papier-collision.html", _r.content.decode("utf-8"))
+get(eo, f"/fr/mairie/scrutin/{poll.pk}/bulletins-papier/", "16b-mairie-bulletins-papier-liste.html")
+if paper_ballot:
+    get(eo, f"/fr/mairie/scrutin/{poll.pk}/bulletin-papier/{paper_ballot.pk}/recu/",
+        "16c-mairie-recu-papier.html")
+
+au = Client()
+au.force_login(auditor)
+get(au, f"/fr/mairie/scrutin/{poll.pk}/journal/", "21-mairie-journal-audit.html")
+
+print("done ->", OUT)

@@ -31,6 +31,10 @@ dev = [
 line-length = 100
 target-version = "py313"
 src = ["src"]
+# docs/manuel/captures/outils/ holds throwaway scripts that seed a demo database
+# and render the manual's screen captures. They import Django app internals for
+# convenience and are not application code; the four gates do not police them.
+extend-exclude = ["docs"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "DJ", "S", "C4", "RUF"]

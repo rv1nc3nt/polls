@@ -1,0 +1,459 @@
+<!doctype html>
+
+
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Import de la liste électorale — Espace mairie</title>
+  <style>
+/* SPDX-License-Identifier: 0BSD */
+
+/* RGAA (R-14.1), and only what the criteria actually require. No framework,
+   no build step (§14): an adopting commune's IT department reads this file in
+   one sitting.
+
+   Four rules this file keeps and every later screen must keep too:
+   - nothing carries meaning by colour alone (3.1) — states and message levels
+     are written in words, and the colour is decoration on top of the word;
+   - the focus indicator is never removed and never relies on colour alone (10.7);
+   - sizes are in rem, so the page survives a 200 % zoom (10.4);
+   - light and dark are a token swap and nothing else. Every rule below takes its
+     colours from the seven variables (plus a few layout constants that do not
+     change between themes); the two blocks after :root redefine only the
+     colours, keeping the same contrasts, so a dark viewer gets the same page in
+     the other key. `prefers-color-scheme` is honoured, and `data-theme` on the
+     root wins over it in either direction. */
+
+:root {
+  color-scheme: light;
+  --ink: #1b1b1b;
+  --ink-quiet: #4a4a4a;      /* 9.3:1 on --paper */
+  --paper: #ffffff;
+  --paper-quiet: #f4f4f1;
+  --rule: #767676;           /* 4.5:1 on --paper */
+  --link: #1a4fa0;           /* 7.4:1 on --paper */
+  --focus: #b8003f;
+
+  --radius: 0.5rem;
+  --radius-sm: 0.3rem;
+  --measure: 42rem;          /* comfortable reading width for prose */
+  --page: 78rem;             /* the centred content column */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --ink: #ececef;          /* 15:1 on --paper */
+    --ink-quiet: #a9abb2;    /* 6.5:1 on --paper */
+    --paper: #17181b;
+    --paper-quiet: #202227;
+    --rule: #7d7f87;         /* 4.2:1 on --paper */
+    --link: #7db3ff;         /* 8:1 on --paper */
+    --focus: #ff5a7c;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ink: #ececef;
+  --ink-quiet: #a9abb2;
+  --paper: #17181b;
+  --paper-quiet: #202227;
+  --rule: #7d7f87;
+  --link: #7db3ff;
+  --focus: #ff5a7c;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  color: var(--ink);
+  background: var(--paper);
+  font: 1rem/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* One centred column. Bars and content share the same bounds so their edges
+   line up on a wide monitor; the inline padding is the same everywhere. */
+.banner, .pollnav, .messages, main, .contentinfo {
+  max-width: var(--page);
+  margin-inline: auto;
+  padding: 1rem clamp(1rem, 4vw, 3rem);
+}
+main { padding-block: 1.75rem 3rem; }
+
+/* The skip link is the first focusable element and is off-screen until focused,
+   never `display: none`, which would take it out of the tab order (12.7). */
+.skip {
+  position: absolute;
+  left: -100vw;
+  top: 0;
+  padding: 0.5rem 1rem;
+  background: var(--ink);
+  color: var(--paper);
+  border-radius: 0 0 var(--radius-sm) 0;
+}
+.skip:focus { left: 0; z-index: 10; }
+
+a { color: var(--link); text-underline-offset: 0.15em; }
+a:hover { text-decoration-thickness: 2px; }
+
+/* Visible focus everywhere, outline rather than a colour swap, so it survives
+   forced-colours and colour-blind viewing (10.7). */
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ---- type scale ---------------------------------------------------------- */
+
+h1, h2, h3 { line-height: 1.2; text-wrap: balance; }
+h1 { font-size: clamp(1.5rem, 1.1rem + 1.6vw, 1.9rem); letter-spacing: -0.01em; margin: 0 0 1rem; }
+h2 { font-size: 1.2rem; margin: 1.9rem 0 0.7rem; }
+h3 { font-size: 1rem; margin: 1.4rem 0 0.5rem; }
+p { margin: 0 0 0.8rem; }
+main > p, .paper-form p, .receipt p { max-width: var(--measure); }
+section { margin-bottom: 1.75rem; }
+section:last-child { margin-bottom: 0; }
+
+.notice, .help { color: var(--ink-quiet); }
+.help { font-size: 0.9rem; }
+.pending, .purged { font-style: italic; color: var(--ink-quiet); }
+.required { font-weight: 400; color: var(--ink-quiet); }
+
+/* ---- shell ------------------------------------------------------------- */
+
+.banner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-block: 0.85rem;
+  border-bottom: 1px solid var(--rule);
+}
+.site-name { font-weight: 700; margin: 0; }
+.site-name a { color: var(--ink); text-decoration: none; }
+.account { display: flex; gap: 0.75rem; align-items: baseline; }
+.account__name { font-weight: 600; }
+
+.pollnav {
+  background: var(--paper-quiet);
+  border-bottom: 1px solid var(--rule);
+  padding-block: 0.85rem;
+}
+.pollnav__poll { margin: 0; font-weight: 600; }
+.pollnav__links {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 1.4rem;
+  margin: 0.55rem 0 0;
+  padding: 0;
+}
+.pollnav__links a {
+  color: var(--ink);
+  text-decoration: none;
+  padding: 0.15rem 0;
+  border-bottom: 2px solid transparent;
+}
+.pollnav__links a:hover { border-bottom-color: var(--rule); }
+.pollnav__links a[aria-current="page"] { font-weight: 700; border-bottom-color: var(--focus); }
+
+.contentinfo { border-top: 1px solid var(--rule); color: var(--ink-quiet); font-size: 0.9rem; }
+.langswitch { display: flex; gap: 0.5rem; align-items: end; flex-wrap: wrap; margin-top: 0.75rem; }
+.langswitch label { font-weight: 400; }
+
+/* ---- messages and callouts ------------------------------------------------
+   All the same object: an accent bar down the left of a tinted box. The word
+   inside carries the meaning; the colour only sorts it (3.1). */
+
+.messages { list-style: none; margin: 0; }
+.message,
+.blocker,
+.warning,
+.error,
+.receipt__notice,
+.validation-report li {
+  border-left: 4px solid var(--rule);
+  background: var(--paper-quiet);
+  padding: 0.6rem 0.85rem;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  margin-bottom: 0.5rem;
+}
+.message__level { font-weight: 700; text-transform: uppercase; font-size: 0.78rem; letter-spacing: 0.04em; }
+.message--error,
+.blocker,
+.error,
+.receipt__notice,
+.validation-report__bad { border-left-color: var(--focus); }
+.error { font-weight: 600; }
+.validation-report__ok { border-left-color: #2f7d3a; }
+.warning,
+.validation-report__warn { border-left-color: #8a6d1f; }
+
+.blockers, .validation-report { list-style: none; padding: 0; margin: 0.5rem 0 1.25rem; }
+
+/* ---- forms ------------------------------------------------------------- */
+
+label { display: block; font-weight: 600; margin-bottom: 0.15rem; }
+.field { margin-bottom: 1.15rem; }
+.field .help, .privacy { display: block; margin-top: 0.1rem; color: var(--ink-quiet); }
+
+input, select, textarea, button { font: inherit; }
+input, select, textarea {
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+  color: var(--ink);
+  max-width: 100%;
+}
+input[type="search"], input[type="text"], input[type="email"], input[type="date"], select {
+  min-height: 2.5rem;
+}
+input[type="search"], input[type="text"], input[type="email"] { width: min(30rem, 100%); }
+select { cursor: pointer; }
+input:focus-visible, select:focus-visible, textarea:focus-visible { border-color: var(--focus); }
+input[type="checkbox"], input[type="radio"] { accent-color: var(--focus); width: 1rem; height: 1rem; }
+
+button {
+  padding: 0.55rem 1rem;
+  font-weight: 600;
+  border: 1px solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--ink);
+  color: var(--paper);
+  cursor: pointer;
+  transition: opacity 0.12s ease;
+}
+button:hover { opacity: 0.85; }
+button:active { opacity: 0.7; }
+
+fieldset {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem;
+  margin: 0 0 1.25rem;
+}
+legend { font-weight: 700; padding: 0 0.4rem; }
+
+/* ---- tables ---------------------------------------------------------- */
+
+table { border-collapse: collapse; width: 100%; margin: 0.5rem 0 1.75rem; }
+caption { text-align: left; font-weight: 600; padding-bottom: 0.6rem; }
+th, td { text-align: left; padding: 0.6rem 0.7rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+thead th { background: var(--paper-quiet); border-bottom-width: 2px; font-size: 0.92rem; }
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr:hover td { background: var(--paper-quiet); }
+
+.tag {
+  display: inline-block;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  padding: 0 0.35rem;
+  font-size: 0.8rem;
+}
+
+/* An audit row's before/after is JSON; let it scroll rather than stretch the
+   table past the viewport. */
+td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
+
+/* ---- screen 1: tableau de bord --------------------------------------- */
+
+.facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.4rem 1.25rem;
+  margin: 0.5rem 0 1.25rem;
+}
+.facts dt { font-weight: 600; color: var(--ink-quiet); }
+.facts dd { margin: 0; }
+
+.actions { list-style: none; padding: 0; margin: 0.5rem 0 0; display: flex; flex-direction: column; gap: 0.5rem; }
+
+/* ---- screen 8: journal d'audit ------------------------------------- */
+
+.filters { display: flex; flex-wrap: wrap; gap: 1rem; align-items: end; margin-bottom: 1.25rem; }
+.filters p { margin: 0; }
+.filters .help { display: block; font-size: 0.85rem; }
+.pagination { display: flex; gap: 1rem; align-items: baseline; margin-top: 1.25rem; }
+
+/* ---- screen 4: file d'attente des inscriptions --------------------
+   The two decisions sit side by side and are told apart by their legend,
+   never by colour alone (R-14.1). */
+
+.review { border-top: 1px solid var(--rule); padding-top: 1.25rem; margin-top: 1.75rem; }
+.decision { display: flex; flex-wrap: wrap; gap: 1.25rem; align-items: start; }
+.decision__half {
+  flex: 1 1 20rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem;
+}
+/* Screen 6 wraps a <fieldset> inside a .decision__half <form>; don't draw the
+   box twice. Screen 4's .decision__half is itself the fieldset. */
+.decision__half > fieldset { border: 0; border-radius: 0; padding: 0; margin: 0; }
+.decision__half legend { font-weight: 700; padding: 0 0.4rem; }
+
+/* ---- screens 5–7: paper ballots (§6.5.5–7) ------------------------- */
+
+.paper-search { margin-bottom: 1.75rem; }
+.paper-elector .facts, .receipt__ranking, .paper-ranking { margin: 0.5rem 0 1.25rem; }
+.ranking { list-style: decimal; padding-left: 1.4rem; margin: 0.5rem 0 0; }
+.ranking__row { padding: 0.35rem 0; }
+.ranking__row label { display: inline-block; margin: 0 0.6rem 0 0; font-weight: 400; }
+
+/* The dead end when the elector has already voted online (§6.4). Red, and also
+   announced in words — the heading names the situation and role="alert" carries
+   it to a screen reader, so the colour is never the only signal (R-14.1). */
+.collision {
+  border: 2px solid var(--focus);
+  background: var(--paper-quiet);
+  border-radius: var(--radius);
+  padding: 0.9rem 1.1rem;
+  margin: 1rem 0 1.75rem;
+}
+.collision__title { font-weight: 700; color: var(--focus); font-size: 1.05rem; margin: 0 0 0.4rem; }
+.collision p:last-child { margin-bottom: 0; }
+
+/* ---- the paper receipt (R-8.4) ---------------------------------------- */
+
+.receipt {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 1.75rem;
+  max-width: 34rem;
+}
+.receipt__poll { font-weight: 700; font-size: 1.1rem; margin: 0 0 1rem; }
+.receipt__label {
+  margin: 1rem 0 0.1rem;
+  color: var(--ink-quiet);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.receipt__code {
+  font-size: 1.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  margin: 0 0 0.5rem;
+}
+.receipt__identity, .receipt__consultative { font-size: 0.9rem; color: var(--ink-quiet); }
+.noprint + .noprint, .receipt + .noprint { margin-top: 1rem; }
+.noprint a + a { margin-left: 1.25rem; }
+
+/* ---- public poll page and results (§6.6, §9) ----------------------
+   Reading pages: prose width on the text, the propositions as a plain list,
+   the consultative-status statement set apart without colour carrying it. */
+
+.status { font-weight: 600; }
+.propositions { padding-left: 1.4rem; margin: 0.5rem 0 0; }
+.propositions li { padding: 0.2rem 0; }
+.extensions { list-style: none; padding: 0; margin: 0.5rem 0 0; }
+.extensions li { padding: 0.4rem 0; border-bottom: 1px solid var(--rule); max-width: var(--measure); }
+.extensions li:last-child { border-bottom: 0; }
+.outcome { font-size: 1.1rem; font-weight: 600; max-width: var(--measure); }
+.legal { border-top: 1px solid var(--rule); padding-top: 1rem; }
+.legal p { max-width: var(--measure); }
+.poll-index { list-style: none; padding: 0; }
+.poll-index li { padding: 0.5rem 0; border-bottom: 1px solid var(--rule); }
+.poll-index li:last-child { border-bottom: 0; }
+.poll-index a { font-weight: 600; }
+.poll-index .help { display: block; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; }
+}
+
+@media print {
+  .banner, .pollnav, .messages, .contentinfo, .langswitch, .noprint { display: none !important; }
+  .receipt { border: none; border-radius: 0; padding: 0; max-width: none; }
+  main { margin: 0; padding: 0; max-width: none; }
+}
+
+</style>
+</head>
+<body>
+  <a class="skip" href="#contenu">Aller au contenu</a>
+
+  <header class="banner">
+    <p class="site-name"><a href="/">Commune de Saint-Aubin-des-Bois</a></p>
+    
+  
+    <div class="account">
+      
+      <span class="account__name">Jean Mercier</span>
+      <form action="/fr/mairie/deconnexion/" method="post">
+        <input type="hidden" name="csrfmiddlewaretoken" value="u46Yhpb2qwrJNJv42TjuLjjf5og55W91HO7tfRuRLr7NZRw0VF1ygubimiYE3uUN">
+        <button type="submit">Se déconnecter</button>
+      </form>
+    </div>
+  
+
+  </header>
+
+  
+  
+    <nav class="pollnav" aria-label="Navigation du scrutin">
+      <p class="pollnav__poll">Réaménagement de la place de la Mairie — ouvert</p>
+      
+  <ul class="pollnav__links">
+    <li><a href="/fr/mairie/scrutin/786cf88b-5108-4ccd-906b-a5d0e3f1683d/">Tableau de bord</a></li>
+    <li><a href="/fr/mairie/scrutin/786cf88b-5108-4ccd-906b-a5d0e3f1683d/liste-electorale/" aria-current="page">Liste électorale</a></li>
+  </ul>
+
+    </nav>
+  
+
+
+  
+
+  <main id="contenu">
+  <h1>Import de la liste électorale</h1>
+  
+  
+  <p class="notice">Cet import remplace entièrement la liste électorale de travail, pour tous les scrutins. Les scrutins déjà ouverts conservent leur copie figée et ne sont pas concernés ; tout scrutin encore en brouillon utilisera cette nouvelle liste à son ouverture.</p>
+
+  
+
+  <form method="post" enctype="multipart/form-data">
+    <input type="hidden" name="csrfmiddlewaretoken" value="u46Yhpb2qwrJNJv42TjuLjjf5og55W91HO7tfRuRLr7NZRw0VF1ygubimiYE3uUN">
+    <p class="field">
+      <label for="file">Fichier (.csv ou .xlsx)</label>
+      <span class="help">Encodage UTF-8 ou Latin-1, détecté automatiquement.</span>
+      <input id="file" type="file" name="file" accept=".csv,.xlsx" required>
+    </p>
+    <button type="submit">Charger le fichier</button>
+  </form>
+
+</main>
+
+  <footer class="contentinfo">
+    
+    <p>Cette consultation est consultative : son résultat ne lie pas le conseil municipal.</p>
+
+    
+    
+
+    <form action="/i18n/setlang/" method="post" class="langswitch">
+      <input type="hidden" name="csrfmiddlewaretoken" value="u46Yhpb2qwrJNJv42TjuLjjf5og55W91HO7tfRuRLr7NZRw0VF1ygubimiYE3uUN">
+      <input type="hidden" name="next" value="/fr/mairie/scrutin/786cf88b-5108-4ccd-906b-a5d0e3f1683d/liste-electorale/">
+      <label for="langswitch-select">Langue</label>
+      <select id="langswitch-select" name="language">
+        
+        
+          <option value="fr" lang="fr" selected>Français</option>
+        
+          <option value="en" lang="en">Anglais</option>
+        
+      </select>
+      <button type="submit">Changer</button>
+    </form>
+  </footer>
+</body>
+</html>

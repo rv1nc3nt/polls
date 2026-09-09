@@ -1,0 +1,1048 @@
+<!doctype html>
+
+
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Configuration du scrutin — Espace mairie</title>
+  <style>
+/* SPDX-License-Identifier: 0BSD */
+
+/* RGAA (R-14.1), and only what the criteria actually require. No framework,
+   no build step (§14): an adopting commune's IT department reads this file in
+   one sitting.
+
+   Four rules this file keeps and every later screen must keep too:
+   - nothing carries meaning by colour alone (3.1) — states and message levels
+     are written in words, and the colour is decoration on top of the word;
+   - the focus indicator is never removed and never relies on colour alone (10.7);
+   - sizes are in rem, so the page survives a 200 % zoom (10.4);
+   - light and dark are a token swap and nothing else. Every rule below takes its
+     colours from the seven variables (plus a few layout constants that do not
+     change between themes); the two blocks after :root redefine only the
+     colours, keeping the same contrasts, so a dark viewer gets the same page in
+     the other key. `prefers-color-scheme` is honoured, and `data-theme` on the
+     root wins over it in either direction. */
+
+:root {
+  color-scheme: light;
+  --ink: #1b1b1b;
+  --ink-quiet: #4a4a4a;      /* 9.3:1 on --paper */
+  --paper: #ffffff;
+  --paper-quiet: #f4f4f1;
+  --rule: #767676;           /* 4.5:1 on --paper */
+  --link: #1a4fa0;           /* 7.4:1 on --paper */
+  --focus: #b8003f;
+
+  --radius: 0.5rem;
+  --radius-sm: 0.3rem;
+  --measure: 42rem;          /* comfortable reading width for prose */
+  --page: 78rem;             /* the centred content column */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --ink: #ececef;          /* 15:1 on --paper */
+    --ink-quiet: #a9abb2;    /* 6.5:1 on --paper */
+    --paper: #17181b;
+    --paper-quiet: #202227;
+    --rule: #7d7f87;         /* 4.2:1 on --paper */
+    --link: #7db3ff;         /* 8:1 on --paper */
+    --focus: #ff5a7c;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ink: #ececef;
+  --ink-quiet: #a9abb2;
+  --paper: #17181b;
+  --paper-quiet: #202227;
+  --rule: #7d7f87;
+  --link: #7db3ff;
+  --focus: #ff5a7c;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  color: var(--ink);
+  background: var(--paper);
+  font: 1rem/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* One centred column. Bars and content share the same bounds so their edges
+   line up on a wide monitor; the inline padding is the same everywhere. */
+.banner, .pollnav, .messages, main, .contentinfo {
+  max-width: var(--page);
+  margin-inline: auto;
+  padding: 1rem clamp(1rem, 4vw, 3rem);
+}
+main { padding-block: 1.75rem 3rem; }
+
+/* The skip link is the first focusable element and is off-screen until focused,
+   never `display: none`, which would take it out of the tab order (12.7). */
+.skip {
+  position: absolute;
+  left: -100vw;
+  top: 0;
+  padding: 0.5rem 1rem;
+  background: var(--ink);
+  color: var(--paper);
+  border-radius: 0 0 var(--radius-sm) 0;
+}
+.skip:focus { left: 0; z-index: 10; }
+
+a { color: var(--link); text-underline-offset: 0.15em; }
+a:hover { text-decoration-thickness: 2px; }
+
+/* Visible focus everywhere, outline rather than a colour swap, so it survives
+   forced-colours and colour-blind viewing (10.7). */
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ---- type scale ---------------------------------------------------------- */
+
+h1, h2, h3 { line-height: 1.2; text-wrap: balance; }
+h1 { font-size: clamp(1.5rem, 1.1rem + 1.6vw, 1.9rem); letter-spacing: -0.01em; margin: 0 0 1rem; }
+h2 { font-size: 1.2rem; margin: 1.9rem 0 0.7rem; }
+h3 { font-size: 1rem; margin: 1.4rem 0 0.5rem; }
+p { margin: 0 0 0.8rem; }
+main > p, .paper-form p, .receipt p { max-width: var(--measure); }
+section { margin-bottom: 1.75rem; }
+section:last-child { margin-bottom: 0; }
+
+.notice, .help { color: var(--ink-quiet); }
+.help { font-size: 0.9rem; }
+.pending, .purged { font-style: italic; color: var(--ink-quiet); }
+.required { font-weight: 400; color: var(--ink-quiet); }
+
+/* ---- shell ------------------------------------------------------------- */
+
+.banner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-block: 0.85rem;
+  border-bottom: 1px solid var(--rule);
+}
+.site-name { font-weight: 700; margin: 0; }
+.site-name a { color: var(--ink); text-decoration: none; }
+.account { display: flex; gap: 0.75rem; align-items: baseline; }
+.account__name { font-weight: 600; }
+
+.pollnav {
+  background: var(--paper-quiet);
+  border-bottom: 1px solid var(--rule);
+  padding-block: 0.85rem;
+}
+.pollnav__poll { margin: 0; font-weight: 600; }
+.pollnav__links {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 1.4rem;
+  margin: 0.55rem 0 0;
+  padding: 0;
+}
+.pollnav__links a {
+  color: var(--ink);
+  text-decoration: none;
+  padding: 0.15rem 0;
+  border-bottom: 2px solid transparent;
+}
+.pollnav__links a:hover { border-bottom-color: var(--rule); }
+.pollnav__links a[aria-current="page"] { font-weight: 700; border-bottom-color: var(--focus); }
+
+.contentinfo { border-top: 1px solid var(--rule); color: var(--ink-quiet); font-size: 0.9rem; }
+.langswitch { display: flex; gap: 0.5rem; align-items: end; flex-wrap: wrap; margin-top: 0.75rem; }
+.langswitch label { font-weight: 400; }
+
+/* ---- messages and callouts ------------------------------------------------
+   All the same object: an accent bar down the left of a tinted box. The word
+   inside carries the meaning; the colour only sorts it (3.1). */
+
+.messages { list-style: none; margin: 0; }
+.message,
+.blocker,
+.warning,
+.error,
+.receipt__notice,
+.validation-report li {
+  border-left: 4px solid var(--rule);
+  background: var(--paper-quiet);
+  padding: 0.6rem 0.85rem;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  margin-bottom: 0.5rem;
+}
+.message__level { font-weight: 700; text-transform: uppercase; font-size: 0.78rem; letter-spacing: 0.04em; }
+.message--error,
+.blocker,
+.error,
+.receipt__notice,
+.validation-report__bad { border-left-color: var(--focus); }
+.error { font-weight: 600; }
+.validation-report__ok { border-left-color: #2f7d3a; }
+.warning,
+.validation-report__warn { border-left-color: #8a6d1f; }
+
+.blockers, .validation-report { list-style: none; padding: 0; margin: 0.5rem 0 1.25rem; }
+
+/* ---- forms ------------------------------------------------------------- */
+
+label { display: block; font-weight: 600; margin-bottom: 0.15rem; }
+.field { margin-bottom: 1.15rem; }
+.field .help, .privacy { display: block; margin-top: 0.1rem; color: var(--ink-quiet); }
+
+input, select, textarea, button { font: inherit; }
+input, select, textarea {
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+  color: var(--ink);
+  max-width: 100%;
+}
+input[type="search"], input[type="text"], input[type="email"], input[type="date"], select {
+  min-height: 2.5rem;
+}
+input[type="search"], input[type="text"], input[type="email"] { width: min(30rem, 100%); }
+select { cursor: pointer; }
+input:focus-visible, select:focus-visible, textarea:focus-visible { border-color: var(--focus); }
+input[type="checkbox"], input[type="radio"] { accent-color: var(--focus); width: 1rem; height: 1rem; }
+
+button {
+  padding: 0.55rem 1rem;
+  font-weight: 600;
+  border: 1px solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--ink);
+  color: var(--paper);
+  cursor: pointer;
+  transition: opacity 0.12s ease;
+}
+button:hover { opacity: 0.85; }
+button:active { opacity: 0.7; }
+
+fieldset {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem;
+  margin: 0 0 1.25rem;
+}
+legend { font-weight: 700; padding: 0 0.4rem; }
+
+/* ---- tables ---------------------------------------------------------- */
+
+table { border-collapse: collapse; width: 100%; margin: 0.5rem 0 1.75rem; }
+caption { text-align: left; font-weight: 600; padding-bottom: 0.6rem; }
+th, td { text-align: left; padding: 0.6rem 0.7rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+thead th { background: var(--paper-quiet); border-bottom-width: 2px; font-size: 0.92rem; }
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr:hover td { background: var(--paper-quiet); }
+
+.tag {
+  display: inline-block;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  padding: 0 0.35rem;
+  font-size: 0.8rem;
+}
+
+/* An audit row's before/after is JSON; let it scroll rather than stretch the
+   table past the viewport. */
+td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
+
+/* ---- screen 1: tableau de bord --------------------------------------- */
+
+.facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.4rem 1.25rem;
+  margin: 0.5rem 0 1.25rem;
+}
+.facts dt { font-weight: 600; color: var(--ink-quiet); }
+.facts dd { margin: 0; }
+
+.actions { list-style: none; padding: 0; margin: 0.5rem 0 0; display: flex; flex-direction: column; gap: 0.5rem; }
+
+/* ---- screen 8: journal d'audit ------------------------------------- */
+
+.filters { display: flex; flex-wrap: wrap; gap: 1rem; align-items: end; margin-bottom: 1.25rem; }
+.filters p { margin: 0; }
+.filters .help { display: block; font-size: 0.85rem; }
+.pagination { display: flex; gap: 1rem; align-items: baseline; margin-top: 1.25rem; }
+
+/* ---- screen 4: file d'attente des inscriptions --------------------
+   The two decisions sit side by side and are told apart by their legend,
+   never by colour alone (R-14.1). */
+
+.review { border-top: 1px solid var(--rule); padding-top: 1.25rem; margin-top: 1.75rem; }
+.decision { display: flex; flex-wrap: wrap; gap: 1.25rem; align-items: start; }
+.decision__half {
+  flex: 1 1 20rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem;
+}
+/* Screen 6 wraps a <fieldset> inside a .decision__half <form>; don't draw the
+   box twice. Screen 4's .decision__half is itself the fieldset. */
+.decision__half > fieldset { border: 0; border-radius: 0; padding: 0; margin: 0; }
+.decision__half legend { font-weight: 700; padding: 0 0.4rem; }
+
+/* ---- screens 5–7: paper ballots (§6.5.5–7) ------------------------- */
+
+.paper-search { margin-bottom: 1.75rem; }
+.paper-elector .facts, .receipt__ranking, .paper-ranking { margin: 0.5rem 0 1.25rem; }
+.ranking { list-style: decimal; padding-left: 1.4rem; margin: 0.5rem 0 0; }
+.ranking__row { padding: 0.35rem 0; }
+.ranking__row label { display: inline-block; margin: 0 0.6rem 0 0; font-weight: 400; }
+
+/* The dead end when the elector has already voted online (§6.4). Red, and also
+   announced in words — the heading names the situation and role="alert" carries
+   it to a screen reader, so the colour is never the only signal (R-14.1). */
+.collision {
+  border: 2px solid var(--focus);
+  background: var(--paper-quiet);
+  border-radius: var(--radius);
+  padding: 0.9rem 1.1rem;
+  margin: 1rem 0 1.75rem;
+}
+.collision__title { font-weight: 700; color: var(--focus); font-size: 1.05rem; margin: 0 0 0.4rem; }
+.collision p:last-child { margin-bottom: 0; }
+
+/* ---- the paper receipt (R-8.4) ---------------------------------------- */
+
+.receipt {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 1.75rem;
+  max-width: 34rem;
+}
+.receipt__poll { font-weight: 700; font-size: 1.1rem; margin: 0 0 1rem; }
+.receipt__label {
+  margin: 1rem 0 0.1rem;
+  color: var(--ink-quiet);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.receipt__code {
+  font-size: 1.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  margin: 0 0 0.5rem;
+}
+.receipt__identity, .receipt__consultative { font-size: 0.9rem; color: var(--ink-quiet); }
+.noprint + .noprint, .receipt + .noprint { margin-top: 1rem; }
+.noprint a + a { margin-left: 1.25rem; }
+
+/* ---- public poll page and results (§6.6, §9) ----------------------
+   Reading pages: prose width on the text, the propositions as a plain list,
+   the consultative-status statement set apart without colour carrying it. */
+
+.status { font-weight: 600; }
+.propositions { padding-left: 1.4rem; margin: 0.5rem 0 0; }
+.propositions li { padding: 0.2rem 0; }
+.extensions { list-style: none; padding: 0; margin: 0.5rem 0 0; }
+.extensions li { padding: 0.4rem 0; border-bottom: 1px solid var(--rule); max-width: var(--measure); }
+.extensions li:last-child { border-bottom: 0; }
+.outcome { font-size: 1.1rem; font-weight: 600; max-width: var(--measure); }
+.legal { border-top: 1px solid var(--rule); padding-top: 1rem; }
+.legal p { max-width: var(--measure); }
+.poll-index { list-style: none; padding: 0; }
+.poll-index li { padding: 0.5rem 0; border-bottom: 1px solid var(--rule); }
+.poll-index li:last-child { border-bottom: 0; }
+.poll-index a { font-weight: 600; }
+.poll-index .help { display: block; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; }
+}
+
+@media print {
+  .banner, .pollnav, .messages, .contentinfo, .langswitch, .noprint { display: none !important; }
+  .receipt { border: none; border-radius: 0; padding: 0; max-width: none; }
+  main { margin: 0; padding: 0; max-width: none; }
+}
+
+</style>
+</head>
+<body>
+  <a class="skip" href="#contenu">Aller au contenu</a>
+
+  <header class="banner">
+    <p class="site-name"><a href="/">Commune de Saint-Aubin-des-Bois</a></p>
+    
+  
+    <div class="account">
+      
+      <span class="account__name">Jean Mercier</span>
+      <form action="/fr/mairie/deconnexion/" method="post">
+        <input type="hidden" name="csrfmiddlewaretoken" value="PCrEBf7fVZnFY4IHrNRxwiIWZkDn8qBW2ms9zHq4gU3JacJDkzzB1tAZgelW6YmI">
+        <button type="submit">Se déconnecter</button>
+      </form>
+    </div>
+  
+
+  </header>
+
+  
+  
+    <nav class="pollnav" aria-label="Navigation du scrutin">
+      <p class="pollnav__poll">Nom de la future salle des fêtes — brouillon</p>
+      
+  <ul class="pollnav__links">
+    <li><a href="/fr/mairie/scrutin/76f7775f-1ded-4ba0-be9b-3fd351d5d856/">Tableau de bord</a></li>
+    <li><a href="/fr/mairie/scrutin/76f7775f-1ded-4ba0-be9b-3fd351d5d856/configuration/" aria-current="page">Configuration</a></li>
+    <li><a href="/fr/mairie/scrutin/76f7775f-1ded-4ba0-be9b-3fd351d5d856/liste-electorale/">Liste électorale</a></li>
+    <li><a href="/fr/mairie/scrutin/76f7775f-1ded-4ba0-be9b-3fd351d5d856/journal/">Journal d'audit</a></li>
+  </ul>
+
+    </nav>
+  
+
+
+  
+
+  <main id="contenu">
+  <h1>Configuration du scrutin</h1>
+  
+
+
+
+
+
+  
+  <p class="notice">Le scrutin est en brouillon : toute la configuration est modifiable. Elle se fige à l'ouverture (R-3.3). Les points encore incomplets sont signalés sur le tableau de bord.</p>
+
+  <form method="post">
+    <input type="hidden" name="csrfmiddlewaretoken" value="PCrEBf7fVZnFY4IHrNRxwiIWZkDn8qBW2ms9zHq4gU3JacJDkzzB1tAZgelW6YmI">
+
+    
+
+    <fieldset>
+      <legend>Contenu du scrutin</legend>
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+          <p class="field">
+            <label for="id_title_fr">Titre (Français)</label>
+            
+            <input type="text" name="title_fr" value="Nom de la future salle des fêtes" maxlength="300" id="id_title_fr">
+            
+          </p>
+        
+      
+        
+          <p class="field">
+            <label for="id_description_fr">Description (Français)</label>
+            
+            <textarea name="description_fr" cols="40" rows="4" id="id_description_fr">
+Choix du nom de l&#x27;équipement en cours de construction rue des Écoles.</textarea>
+            
+          </p>
+        
+      
+    </fieldset>
+
+    <fieldset>
+      <legend>Propositions</legend>
+      
+      <p class="help">Au moins deux propositions. L'ordre des lignes est l'ordre des propositions. L'identifiant est porté par les bulletins et le résultat publié : ne le changez plus après l'ouverture.</p>
+
+      
+
+      <input type="hidden" name="opt-TOTAL_FORMS" value="5" id="id_opt-TOTAL_FORMS"><input type="hidden" name="opt-INITIAL_FORMS" value="3" id="id_opt-INITIAL_FORMS"><input type="hidden" name="opt-MIN_NUM_FORMS" value="0" id="id_opt-MIN_NUM_FORMS"><input type="hidden" name="opt-MAX_NUM_FORMS" value="1000" id="id_opt-MAX_NUM_FORMS">
+      
+        <fieldset class="option-row">
+          <legend>Proposition 1</legend>
+          
+            
+              <input type="hidden" name="opt-0-pk" value="b46d96c8-5e95-44da-a31c-a655294dcb50" id="id_opt-0-pk">
+            
+          
+            
+              <p class="field">
+                <label for="id_opt-0-option_id">Identifiant</label>
+                <span class="help">Court, sans espace ni accent. Porté par les bulletins et le résultat publié : ne le modifiez pas après l&#x27;ouverture (§3.8).</span>
+                <input type="text" name="opt-0-option_id" value="hugo" maxlength="50" aria-describedby="id_opt-0-option_id_helptext" id="id_opt-0-option_id">
+                
+              </p>
+            
+          
+            
+              <p class="field">
+                <label for="id_opt-0-label_fr">Intitulé (Français)</label>
+                
+                <input type="text" name="opt-0-label_fr" value="Salle Victor-Hugo" maxlength="300" id="id_opt-0-label_fr">
+                
+              </p>
+            
+          
+            
+              <p class="field">
+                <label for="id_opt-0-DELETE">Supprimer</label>
+                
+                <input type="checkbox" name="opt-0-DELETE" id="id_opt-0-DELETE">
+                
+              </p>
+            
+          
+        </fieldset>
+      
+        <fieldset class="option-row">
+          <legend>Proposition 2</legend>
+          
+            
+              <input type="hidden" name="opt-1-pk" value="adbbc681-6a99-4d8d-a06c-33847018422b" id="id_opt-1-pk">
+            
+          
+            
+              <p class="field">
+                <label for="id_opt-1-option_id">Identifiant</label>
+                <span class="help">Court, sans espace ni accent. Porté par les bulletins et le résultat publié : ne le modifiez pas après l&#x27;ouverture (§3.8).</span>
+                <input type="text" name="opt-1-option_id" value="marie-curie" maxlength="50" aria-describedby="id_opt-1-option_id_helptext" id="id_opt-1-option_id">
+                
+              </p>
+            
+          
+            
+              <p class="field">
+                <label for="id_opt-1-label_fr">Intitulé (Français)</label>
+                
+                <input type="text" name="opt-1-label_fr" value="Salle Marie-Curie" maxlength="300" id="id_opt-1-label_fr">
+                
+              </p>
+            
+          
+            
+              <p class="field">
+                <label for="id_opt-1-DELETE">Supprimer</label>
+                
+                <input type="checkbox" name="opt-1-DELETE" id="id_opt-1-DELETE">
+                
+              </p>
+            
+          
+        </fieldset>
+      
+        <fieldset class="option-row">
+          <legend>Proposition 3</legend>
+          
+            
+              <input type="hidden" name="opt-2-pk" value="48ca1e53-9b8b-43b5-9f74-16173d200d69" id="id_opt-2-pk">
+            
+          
+            
+              <p class="field">
+                <label for="id_opt-2-option_id">Identifiant</label>
+                <span class="help">Court, sans espace ni accent. Porté par les bulletins et le résultat publié : ne le modifiez pas après l&#x27;ouverture (§3.8).</span>
+                <input type="text" name="opt-2-option_id" value="tilleuls" maxlength="50" aria-describedby="id_opt-2-option_id_helptext" id="id_opt-2-option_id">
+                
+              </p>
+            
+          
+            
+              <p class="field">
+                <label for="id_opt-2-label_fr">Intitulé (Français)</label>
+                
+                <input type="text" name="opt-2-label_fr" value="Salle des Tilleuls" maxlength="300" id="id_opt-2-label_fr">
+                
+              </p>
+            
+          
+            
+              <p class="field">
+                <label for="id_opt-2-DELETE">Supprimer</label>
+                
+                <input type="checkbox" name="opt-2-DELETE" id="id_opt-2-DELETE">
+                
+              </p>
+            
+          
+        </fieldset>
+      
+        <fieldset class="option-row">
+          <legend>Proposition 4</legend>
+          
+            
+              <input type="hidden" name="opt-3-pk" id="id_opt-3-pk">
+            
+          
+            
+              <p class="field">
+                <label for="id_opt-3-option_id">Identifiant</label>
+                <span class="help">Court, sans espace ni accent. Porté par les bulletins et le résultat publié : ne le modifiez pas après l&#x27;ouverture (§3.8).</span>
+                <input type="text" name="opt-3-option_id" maxlength="50" aria-describedby="id_opt-3-option_id_helptext" id="id_opt-3-option_id">
+                
+              </p>
+            
+          
+            
+              <p class="field">
+                <label for="id_opt-3-label_fr">Intitulé (Français)</label>
+                
+                <input type="text" name="opt-3-label_fr" maxlength="300" id="id_opt-3-label_fr">
+                
+              </p>
+            
+          
+            
+              <p class="field">
+                <label for="id_opt-3-DELETE">Supprimer</label>
+                
+                <input type="checkbox" name="opt-3-DELETE" id="id_opt-3-DELETE">
+                
+              </p>
+            
+          
+        </fieldset>
+      
+        <fieldset class="option-row">
+          <legend>Proposition 5</legend>
+          
+            
+              <input type="hidden" name="opt-4-pk" id="id_opt-4-pk">
+            
+          
+            
+              <p class="field">
+                <label for="id_opt-4-option_id">Identifiant</label>
+                <span class="help">Court, sans espace ni accent. Porté par les bulletins et le résultat publié : ne le modifiez pas après l&#x27;ouverture (§3.8).</span>
+                <input type="text" name="opt-4-option_id" maxlength="50" aria-describedby="id_opt-4-option_id_helptext" id="id_opt-4-option_id">
+                
+              </p>
+            
+          
+            
+              <p class="field">
+                <label for="id_opt-4-label_fr">Intitulé (Français)</label>
+                
+                <input type="text" name="opt-4-label_fr" maxlength="300" id="id_opt-4-label_fr">
+                
+              </p>
+            
+          
+            
+              <p class="field">
+                <label for="id_opt-4-DELETE">Supprimer</label>
+                
+                <input type="checkbox" name="opt-4-DELETE" id="id_opt-4-DELETE">
+                
+              </p>
+            
+          
+        </fieldset>
+      
+    </fieldset>
+
+    <fieldset>
+      <legend>Langues</legend>
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+          <p class="field">
+            <label for="id_default_language">Langue par défaut</label>
+            
+            <select name="default_language" id="id_default_language">
+  <option value="fr" selected>Français</option>
+
+  <option value="en">English</option>
+
+</select>
+            
+          </p>
+        
+      
+        
+          <p class="field">
+            <label for="">Langues supplémentaires</label>
+            <span class="help">Le titre, la description et chaque proposition devront être traduits dans chaque langue avant l&#x27;ouverture (§3.8).</span>
+            <div id="id_extra_languages"><div>
+    <label for="id_extra_languages_0"><input type="checkbox" name="extra_languages" value="fr" id="id_extra_languages_0">
+ Français</label>
+
+</div><div>
+    <label for="id_extra_languages_1"><input type="checkbox" name="extra_languages" value="en" id="id_extra_languages_1">
+ English</label>
+
+</div>
+</div>
+            
+          </p>
+        
+      
+        
+      
+        
+      
+    </fieldset>
+
+    <fieldset>
+      <legend>Calendrier</legend>
+      
+        
+          <p class="field">
+            <label for="id_opens_at">Ouverture du scrutin <span class="required">(obligatoire)</span></label>
+            <span class="help">Heure locale du serveur. Le scrutin s&#x27;ouvre à cette heure, ou plus tard si la tâche planifiée a pris du retard (§4).</span>
+            <input type="datetime-local" name="opens_at" value="2026-09-29T18:59" required aria-describedby="id_opens_at_helptext" id="id_opens_at">
+            
+          </p>
+        
+      
+        
+          <p class="field">
+            <label for="id_closes_at">Clôture du vote en ligne <span class="required">(obligatoire)</span></label>
+            
+            <input type="datetime-local" name="closes_at" value="2026-10-13T18:59" required id="id_closes_at">
+            
+          </p>
+        
+      
+        
+          <p class="field">
+            <label for="id_paper_entry_deadline">Fin de saisie des bulletins papier <span class="required">(obligatoire)</span></label>
+            <span class="help">Au moins égale à la clôture. Laissez-la égale à la clôture s&#x27;il n&#x27;y a pas de saisie papier différée : toute période pendant laquelle un bulletin peut encore entrer en base est affichée publiquement (§6.4).</span>
+            <input type="datetime-local" name="paper_entry_deadline" value="2026-10-13T18:59" required aria-describedby="id_paper_entry_deadline_helptext" id="id_paper_entry_deadline">
+            
+          </p>
+        
+      
+        
+          <p class="field">
+            <label for="id_timezone">Fuseau horaire du scrutin <span class="required">(obligatoire)</span></label>
+            
+            <input type="text" name="timezone" value="Europe/Paris" maxlength="64" required id="id_timezone">
+            
+          </p>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </fieldset>
+
+    <fieldset>
+      <legend>Bulletin et dépouillement</legend>
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+          <p class="field">
+            <label for="id_tally_method">Méthode de dépouillement</label>
+            
+            <select name="tally_method" id="id_tally_method">
+  <option value="schulze">Schulze</option>
+
+  <option value="plurality" selected>majoritaire</option>
+
+  <option value="approval">par assentiment</option>
+
+</select>
+            
+          </p>
+        
+      
+        
+          <p class="field">
+            <label for="id_tally_method_version">Version de la méthode</label>
+            
+            <input type="text" name="tally_method_version" value="1" maxlength="20" required id="id_tally_method_version">
+            
+          </p>
+        
+      
+        
+          <p class="field">
+            <label for="id_require_complete_ranking">Classement complet obligatoire</label>
+            
+            <input type="checkbox" name="require_complete_ranking" id="id_require_complete_ranking">
+            
+          </p>
+        
+      
+        
+          <p class="field">
+            <label for="id_allow_ties_in_ballot">Ex æquo autorisés sur un bulletin</label>
+            
+            <input type="checkbox" name="allow_ties_in_ballot" id="id_allow_ties_in_ballot">
+            
+          </p>
+        
+      
+        
+          <p class="field">
+            <label for="id_tiebreak_rule">Départage en cas d&#x27;égalité</label>
+            
+            <select name="tiebreak_rule" id="id_tiebreak_rule">
+  <option value="computed" selected>tirage au sort calculé</option>
+
+  <option value="physical">tirage au sort physique</option>
+
+</select>
+            
+          </p>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+          <p class="field">
+            <label for="id_allow_ballot_modification">Autoriser la modification d&#x27;un bulletin déjà voté</label>
+            <span class="help">Ce n&#x27;est pas qu&#x27;un réglage de confidentialité. Désactiver la modification renforce l&#x27;anonymat — aucun lien n&#x27;est alors calculé entre un bulletin et le jeton qui l&#x27;a émis — mais retire à un électeur sous contrainte son seul recours : revoter seul une fois la pression levée (§7). La commune choisit lequel des deux risques elle préfère porter.</span>
+            <input type="checkbox" name="allow_ballot_modification" aria-describedby="id_allow_ballot_modification_helptext" id="id_allow_ballot_modification">
+            
+          </p>
+        
+      
+        
+          <p class="field">
+            <label for="">Types de liste ouvrant le droit de vote</label>
+            <span class="help">Une question municipale prend la liste principale et la complémentaire municipale ; la complémentaire européenne seule ne confère aucun droit ici (R-4.7).</span>
+            <div id="id_eligible_list_types"><div>
+    <label for="id_eligible_list_types_0"><input type="checkbox" name="eligible_list_types" value="principale" id="id_eligible_list_types_0" checked>
+ liste principale</label>
+
+</div><div>
+    <label for="id_eligible_list_types_1"><input type="checkbox" name="eligible_list_types" value="complementaire_municipale" id="id_eligible_list_types_1" checked>
+ liste complémentaire municipale</label>
+
+</div><div>
+    <label for="id_eligible_list_types_2"><input type="checkbox" name="eligible_list_types" value="complementaire_europeenne" id="id_eligible_list_types_2">
+ liste complémentaire européenne</label>
+
+</div>
+</div>
+            
+          </p>
+        
+      
+        
+          <p class="field">
+            <label for="id_show_live_participation">Afficher la participation pendant le scrutin</label>
+            <span class="help">Par défaut non : publier la participation pendant le vote peut l&#x27;influencer (§6.6).</span>
+            <input type="checkbox" name="show_live_participation" aria-describedby="id_show_live_participation_helptext" id="id_show_live_participation">
+            
+          </p>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </fieldset>
+
+    <fieldset>
+      <legend>Bulletins papier</legend>
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+          <p class="field">
+            <label for="id_paper_requires_signed_form">Formulaire signé exigé pour un bulletin papier</label>
+            <input type="checkbox" name="paper_requires_signed_form" id="id_paper_requires_signed_form">
+            
+          </p>
+        
+      
+        
+          <p class="field">
+            <label for="id_paper_requires_countersign">Contreseing d&#x27;un second opérateur exigé</label>
+            <input type="checkbox" name="paper_requires_countersign" id="id_paper_requires_countersign">
+            
+          </p>
+        
+      
+        
+          <p class="field">
+            <label for="id_paper_requires_reconciliation">Rapprochement des bulletins papier exigé</label>
+            <input type="checkbox" name="paper_requires_reconciliation" id="id_paper_requires_reconciliation">
+            
+          </p>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </fieldset>
+
+    
+    <p class="help">
+      
+        Scrutin réel (non bac à sable), fixé à la création (R-3.7).
+      
+    </p>
+
+    <button type="submit">Enregistrer la configuration</button>
+  </form>
+
+
+
+
+</main>
+
+  <footer class="contentinfo">
+    
+    <p>Cette consultation est consultative : son résultat ne lie pas le conseil municipal.</p>
+
+    
+    
+
+    <form action="/i18n/setlang/" method="post" class="langswitch">
+      <input type="hidden" name="csrfmiddlewaretoken" value="PCrEBf7fVZnFY4IHrNRxwiIWZkDn8qBW2ms9zHq4gU3JacJDkzzB1tAZgelW6YmI">
+      <input type="hidden" name="next" value="/fr/mairie/scrutin/76f7775f-1ded-4ba0-be9b-3fd351d5d856/configuration/">
+      <label for="langswitch-select">Langue</label>
+      <select id="langswitch-select" name="language">
+        
+        
+          <option value="fr" lang="fr" selected>Français</option>
+        
+          <option value="en" lang="en">Anglais</option>
+        
+      </select>
+      <button type="submit">Changer</button>
+    </form>
+  </footer>
+</body>
+</html>
