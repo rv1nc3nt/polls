@@ -38,7 +38,9 @@ from apps.core.models import PollRole, Role, User
 from apps.elections.models import Poll
 
 #: A view already past the gate: the poll is resolved and the role is checked.
-PollView = Callable[[HttpRequest, Poll], HttpResponse]
+#: Any further path captures (``ballot_id`` on screens 6–7) are forwarded as
+#: keyword arguments, so the signature is left open.
+PollView = Callable[..., HttpResponse]
 #: What the URL dispatcher calls, with the ``poll_id`` captured from the path.
 DispatchedView = Callable[..., HttpResponse]
 
@@ -114,7 +116,8 @@ def require_poll_role(*roles: Role) -> Callable[[PollView], DispatchedView]:
     Resolves ``poll_id`` from the URL, sends an anonymous visitor to the login
     page with a ``next``, refuses an authenticated account without one of
     ``roles``, and hands the view a ``Poll`` so no screen re-fetches it or
-    forgets which poll it is scoped to.
+    forgets which poll it is scoped to. Any other path captures — ``ballot_id``
+    on screens 6 and 7 — are passed straight through as keyword arguments.
     """
 
     def decorate(view: PollView) -> DispatchedView:
@@ -125,7 +128,7 @@ def require_poll_role(*roles: Role) -> Callable[[PollView], DispatchedView]:
             poll = get_object_or_404(Poll, pk=poll_id)
             if not has_poll_role(request.user, poll, *roles):
                 raise PermissionDenied(_("Vous n'avez pas le rôle requis sur ce scrutin."))
-            return view(request, poll)
+            return view(request, poll, **kwargs)
 
         return wrapper
 

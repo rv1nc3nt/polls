@@ -72,6 +72,20 @@ def test_the_right_role_passes_and_the_view_receives_the_poll(
     assert response.content.decode() == str(open_window_poll.pk)
 
 
+def test_further_path_captures_reach_the_view(open_window_poll: Poll, operator: User) -> None:
+    """Screens 6 and 7 carry a ``ballot_id`` past the gate; it must arrive."""
+
+    @require_poll_role(Role.ENTRY_OPERATOR)
+    def _ballot_screen(request: HttpRequest, poll: Poll, ballot_id: str) -> HttpResponse:
+        return HttpResponse(f"{poll.pk}:{ballot_id}")
+
+    PollRole.objects.create(poll=open_window_poll, user=operator, role=Role.ENTRY_OPERATOR)
+    request = RequestFactory().get("/x/")
+    request.user = operator
+    response = _ballot_screen(request, poll_id=str(open_window_poll.pk), ballot_id="abc")
+    assert response.content.decode() == f"{open_window_poll.pk}:abc"
+
+
 def test_a_role_on_one_poll_is_not_a_role_on_another(
     open_window_poll: Poll, operator: User
 ) -> None:
