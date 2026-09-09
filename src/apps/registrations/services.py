@@ -46,8 +46,9 @@ from apps.core.models import User
 from apps.core.names import canonical_email, names_match, parse_dob
 from apps.core.types import Token, TokenSalt
 from apps.elections.models import Poll, RollEntry
-from apps.elections.windows import check_registration_window
+from apps.elections.windows import WindowClosed, check_registration_window
 
+from . import mail
 from .models import Channel, DuplicateAttempt, Registration, RegistrationState
 
 
@@ -470,3 +471,73 @@ def ensure_paper_registration(poll: Poll, roll_entry_id: str) -> tuple[str, str]
         confirmed_at=timezone.now(),
     )
     return str(registration.pk), str(Channel.PAPER)
+
+
+# --- §6.3 online ballot: the token's one direction ------------------------
+
+
+@dataclass(frozen=True)
+class TokenHolder:
+    """Routing facts for the online ballot view, with no ``Registration`` handed
+    across the app boundary (INV-1): three strings and nothing more.
+
+    ``state`` is a ``RegistrationState`` value and ``channel`` a ``Channel``
+    value. The view branches on them to choose between the ballot form, the
+    modification redirect and a notice page.
+    """
+
+    registration_id: str
+    state: str
+    channel: str
+
+
+def arrive(poll: Poll, token: Token) -> TokenHolder | None:
+    """A voter has followed the link from the confirmation mail (§6.2 step 5,
+    §6.3).
+
+    Presenting the token proves control of the mailbox, so a ``pending_email``
+    registration is moved to ``active`` here — the step ``confirm_mailbox`` used
+    to perform on its own route, folded in now that one link both confirms the
+    mailbox and opens the ballot. Idempotent: a later visit finds it already
+    ``active``. Returns ``None`` when the token matches nothing — §7 allows only
+    ``voter_hash`` → registration and no other direction.
+    """
+    registration = find_by_token(poll, token)
+    if registration is None:
+        return None
+    if registration.state == RegistrationState.PENDING_EMAIL:
+        try:
+            confirm_mailbox(registration)
+        except (RegistrationRefused, WindowClosed):
+            # Rejected since, or the poll has closed. The view renders the
+            # outcome from the state below; the token still leaves the URL.
+            pass
+    return TokenHolder(str(registration.pk), str(registration.state), str(registration.channel))
+
+
+def token_channel(poll: Poll, token: Token) -> tuple[str, str] | None:
+    """``(registration_id, channel)`` for a token, or ``None``.
+
+    A pure read: ``ballots.services.cast_online`` calls it inside its own
+    transaction to settle a double-click race before it writes the ballot.
+    """
+    registration = find_by_token(poll, token)
+    if registration is None:
+        return None
+    return str(registration.pk), str(registration.channel)
+
+
+def send_ballot_receipt(registration_id: str, tracking_code: str, ranking: list[list[str]]) -> None:
+    """R-6.4: mail the voter their ranking and tracking code after a cast.
+
+    Called from the ballot view's ``on_commit`` with plain values, so no
+    ``apps.ballots`` symbol is imported here (INV-1). A *modification* never
+    reaches this: it runs from a session ``ballot_hash`` with no path back to
+    the registration (R-7.4), recorded in ``docs/spec-divergences.md``. The
+    tracking code is stable across versions and was mailed here at the first
+    cast, so the voter always holds it.
+    """
+    registration = Registration.objects.filter(pk=registration_id).first()
+    if registration is None or not registration.email:
+        return
+    mail.send_ballot_receipt(registration, tracking_code, ranking)

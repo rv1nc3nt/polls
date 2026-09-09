@@ -1,0 +1,20 @@
+{% load i18n %}{% autoescape off %}{% blocktranslate %}Bonjour,
+
+Votre bulletin pour la consultation « {{ poll_title }} » a bien été enregistré.{% endblocktranslate %}
+
+{% translate "Votre classement :" %}
+{% for line in ranking_lines %}  {{ line }}
+{% endfor %}
+{% blocktranslate %}Votre code de suivi : {{ tracking_code }}{% endblocktranslate %}
+
+{% blocktranslate %}Conservez ce code. Après la clôture, il vous permet de retrouver votre
+bulletin dans la liste publiée, sans révéler votre identité.{% endblocktranslate %}
+{% if allow_modification %}
+{% blocktranslate %}Vous pouvez modifier votre bulletin jusqu'au {{ closes_at }} en rouvrant le
+lien reçu lors de votre inscription. Ce lien est le seul moyen de le faire :
+personne, pas même la mairie, ne peut le retrouver.{% endblocktranslate %}
+{% else %}
+{% translate "Ce scrutin n'autorise pas la modification d'un bulletin déjà enregistré." %}
+{% endif %}
+{% translate "Cette consultation est consultative : son résultat ne lie pas le conseil municipal." %}
+{% endautoescape %}

@@ -7,11 +7,17 @@ receives ids and strings back — never a ``Registration``. Every write path her
 calls ``check_ballot_window`` first (INV-2), including countersignature and
 paper correction, which are themselves ballot writes (T-56).
 
-``cast_online`` and ``modify`` are still §6.3 scaffold; the paper flows of §6.4
-are implemented.
+**Online casting and modification write no audit event.** §10's minimum list
+covers paper create/correct/delete and countersignatures, not the online
+channel: an event referencing a ballot, written in the same transaction as the
+``Registration.channel`` flip, would be a timing side-channel joining a voter to
+their ballot (INV-1). The version history on the ballot chain itself is the
+record R-7.3 asks for.
 """
 
 from __future__ import annotations
+
+from dataclasses import dataclass
 
 from django.db import IntegrityError, transaction
 from django.utils.translation import gettext as _
@@ -19,8 +25,9 @@ from django.utils.translation import gettext as _
 from apps.audit import services as audit
 from apps.audit.models import Action, Reason
 from apps.core.codes import new_tracking_code
+from apps.core.crypto import ballot_hash as ballot_hash_of
 from apps.core.models import User
-from apps.core.types import Token
+from apps.core.types import BallotHash, Token, TokenSalt
 from apps.elections.models import Poll, RollEntry
 from apps.elections.windows import check_ballot_window
 from apps.registrations import services as registrations
@@ -44,25 +51,111 @@ _CODE_ATTEMPTS = 6
 _EDITABLE = (BallotStatus.LIVE, BallotStatus.PENDING_COUNTERSIGN)
 
 
-def cast_online(poll: Poll, token: Token, ranking: list[list[str]]) -> Ballot:
-    """First cast (§6.3).
+@dataclass(frozen=True)
+class CastResult:
+    """What the view needs after a cast, without holding a ``Ballot`` and a
+    voter in one scope longer than the write itself."""
 
-    Where ``allow_ballot_modification`` is false, ``ballot_hash`` is **not
-    computed and not stored**: nothing whatever then connects a cast ballot to
-    the token that cast it, and the tracking code is the voter's sole handle
-    (§7, T-48). The token is spent and any later use of the link is refused.
+    ballot: Ballot
+    registration_id: str
+
+
+@transaction.atomic
+def cast_online(poll: Poll, token: Token, ranking: list[list[str]]) -> CastResult:
+    """First cast (§6.3, R-6.1, R-6.4).
+
+    The token is the request's, never the session's (§7): this runs in the one
+    request that carries it. From it come both handles — ``voter_hash`` locates
+    the registration whose ``channel`` this flips to ``online`` (INV-5), and,
+    where the poll permits modification, ``ballot_hash`` is stored on the new
+    row so the modification link can find it later. Where modification is off,
+    ``ballot_hash`` is **not computed and not stored**: nothing then connects
+    the ballot to the token that cast it and the tracking code is the sole
+    handle (§7, R-7.4 bis, T-48).
+
+    The channel flip and the ballot insert share this transaction (§7). Any
+    later use of the link is refused because ``channel`` is no longer ``none``.
     """
-    raise NotImplementedError("§6.3")
+    check_ballot_window(poll, BallotSource.ONLINE)
+    _validate(poll, ranking)
+
+    resolved = registrations.token_channel(poll, token)
+    if resolved is None:
+        raise BallotRefused(_("Ce lien n'est pas valide."))
+    registration_id, channel = resolved
+    if channel != _CHANNEL_NONE:
+        # Already voted online, or has a paper ballot. A double-clicked link
+        # lands here; so does a spent link on a no-modification poll (R-7.1).
+        raise BallotRefused(_("Un bulletin a déjà été enregistré pour cet électeur."))
+
+    digest: bytes | None = None
+    if poll.allow_ballot_modification:
+        digest = ballot_hash_of(TokenSalt(bytes(poll.token_salt)), token)
+
+    ballot = _insert(
+        poll, ranking, BallotStatus.LIVE, source=BallotSource.ONLINE, ballot_hash=digest
+    )
+    registrations.mark_voted(registration_id, _CHANNEL_ONLINE)
+    return CastResult(ballot=ballot, registration_id=registration_id)
 
 
-def modify(poll: Poll, token: Token, ranking: list[list[str]]) -> Ballot:
-    """A modification inserts ``version + 1`` and marks the prior row
-    ``superseded`` (R-7.2, T-1). The tracking code is unchanged across versions.
+@transaction.atomic
+def modify(poll: Poll, ballot_hash: BallotHash, ranking: list[list[str]]) -> Ballot:
+    """Replace the live version of a ballot (§6.3, R-7.1, R-7.2, T-1).
 
-    Concurrency: exactly one row stays ``live`` (T-35), so the insert and the
-    supersede happen under a row lock on the poll's live ballot.
+    Reached from a session holding only ``ballot_hash`` — never the token, never
+    a voter reference (INV-1): the modification link exchanged the token for it
+    and redirected token-free (R-7.4 ter, T-21). It follows that a modification
+    writes no confirmation mail — there is no path back to the address — which
+    is recorded in ``docs/spec-divergences.md``; the tracking code is unchanged
+    and was mailed at the first cast.
+
+    Inserts ``version + 1`` keeping the tracking code and the hash, and marks
+    the prior row ``superseded``. The current live row is locked first, so two
+    concurrent modifications leave exactly one live version and no lost update
+    (T-35).
     """
-    raise NotImplementedError("§6.3")
+    check_ballot_window(poll, BallotSource.ONLINE)
+    if not poll.allow_ballot_modification:
+        raise BallotRefused(_("Ce scrutin n'autorise pas la modification d'un bulletin."))
+    _validate(poll, ranking)
+
+    locked = (
+        Ballot.objects.select_for_update()
+        .filter(poll=poll, ballot_hash=bytes(ballot_hash), status=BallotStatus.LIVE)
+        .first()
+    )
+    if locked is None:
+        raise BallotRefused(_("Aucun bulletin à modifier pour ce lien."))
+
+    locked.status = BallotStatus.SUPERSEDED
+    locked.save(update_fields=["status"])
+    return _insert(
+        poll,
+        ranking,
+        BallotStatus.LIVE,
+        version=locked.version + 1,
+        tracking_code=locked.tracking_code,
+        source=BallotSource.ONLINE,
+        ballot_hash=bytes(ballot_hash),
+    )
+
+
+def online_ballot_hash(poll: Poll, token: Token) -> BallotHash:
+    """The ``ballot_hash`` a token maps to (§7).
+
+    The view puts it in the modification session entry; it is the same value
+    ``cast_online`` stored on the ballot. Only meaningful where the poll permits
+    modification — otherwise no such value exists anywhere (R-7.4 bis).
+    """
+    return ballot_hash_of(TokenSalt(bytes(poll.token_salt)), token)
+
+
+def live_ranking(poll: Poll, ballot_hash: BallotHash) -> list[list[str]] | None:
+    """The current ranking of the ballot a modification session points at, to
+    prefill the form. Read-only; ``None`` when the hash matches no live row."""
+    ballot = Ballot.live.filter(poll=poll, ballot_hash=bytes(ballot_hash)).first()
+    return list(ballot.ranking) if ballot is not None else None
 
 
 # --- §6.4 paper entry -----------------------------------------------------
@@ -84,30 +177,30 @@ def _insert(
     *,
     version: int = 1,
     tracking_code: str = "",
+    source: str = BallotSource.PAPER,
+    ballot_hash: bytes | None = None,
 ) -> Ballot:
-    """Insert one paper ``Ballot``. With no ``tracking_code`` a fresh one is
-    generated and re-rolled on the INV-11 collision the caller retries through
-    (§3.4); ``correct_paper`` passes the code of the version it replaces."""
+    """Insert one ``Ballot``. With no ``tracking_code`` a fresh one is generated
+    and re-rolled on the INV-11 collision the caller retries through (§3.4); a
+    modification or ``correct_paper`` passes the code of the version it replaces.
+
+    ``ballot_hash`` is set only for an online cast on a modification-enabled
+    poll (§7); it is null for every paper row and for a no-modification poll.
+    """
+    fields = {
+        "poll": poll,
+        "version": version,
+        "ranking": ranking,
+        "source": source,
+        "status": status,
+        "ballot_hash": ballot_hash,
+    }
     if tracking_code:
-        return Ballot.objects.create(
-            poll=poll,
-            tracking_code=tracking_code,
-            version=version,
-            ranking=ranking,
-            source=BallotSource.PAPER,
-            status=status,
-        )
+        return Ballot.objects.create(tracking_code=tracking_code, **fields)
     for _attempt in range(_CODE_ATTEMPTS):
         try:
             with transaction.atomic():
-                return Ballot.objects.create(
-                    poll=poll,
-                    tracking_code=new_tracking_code(),
-                    version=version,
-                    ranking=ranking,
-                    source=BallotSource.PAPER,
-                    status=status,
-                )
+                return Ballot.objects.create(tracking_code=new_tracking_code(), **fields)
         except IntegrityError as clash:
             # A trigger ABORT (INV-2 window, say) is not a code collision.
             if "INV-" in str(clash):

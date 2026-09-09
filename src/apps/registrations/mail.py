@@ -27,7 +27,8 @@ from django.urls import reverse
 from django.utils import translation
 from django.utils.translation import gettext as _
 
-from apps.core.types import Token
+from apps.core.codes import format_tracking_code
+from apps.core.types import Token, TrackingCode
 
 from .models import Registration
 
@@ -45,16 +46,57 @@ def _absolute(path: str) -> str:
 def ballot_url(registration: Registration, token: Token) -> str:
     """The link that confirms the mailbox and opens the ballot (§6.2 step 7).
 
-    The token travels in the URL exactly once, here. On arrival the server
-    exchanges it for a session and redirects to a token-free address, so it
-    never reaches a proxy log or a ``Referer`` header (§6.3, T-21).
+    One link does both: ``ballots:access`` moves a ``pending_email``
+    registration to ``active`` and then shows the ballot, or — once the elector
+    has voted and the poll permits it — the modification form. The token
+    travels in the URL here; on arrival the ballot routes exchange it and
+    redirect to a token-free address, so it never reaches a proxy log or a
+    ``Referer`` header (§6.3, R-7.4 ter, T-21).
     """
     with translation.override(registration.language):
         path = reverse(
-            "registrations:confirm",
+            "ballots:access",
             kwargs={"poll_id": str(registration.poll_id), "token": token.reveal()},
         )
     return _absolute(path)
+
+
+def _ranking_lines(registration: Registration, ranking: list[list[str]]) -> list[str]:
+    """The recorded ranking as ``"1. Label"`` lines, ties joined with ``" = "``
+    and rendered in the registration's language (§3.8)."""
+    poll = registration.poll
+    labels = {
+        option.option_id: (option.label(registration.language) or option.option_id)
+        for option in poll.options.all()
+    }
+    return [
+        f"{position}. " + " = ".join(labels.get(option_id, option_id) for option_id in group)
+        for position, group in enumerate(ranking, start=1)
+    ]
+
+
+def send_ballot_receipt(
+    registration: Registration, tracking_code: str, ranking: list[list[str]]
+) -> int:
+    """R-6.4: after an online cast, the ranking recorded and the tracking code.
+
+    Plain text like every message here (§14). The tracking code is the voter's
+    permanent handle on the ballot — it appears in the published CSV (§9) and is
+    unchanged if they later modify — so the message says to keep it. It carries
+    no token: modification is by the link sent at registration (R-7.1, R-7.6).
+    """
+    poll = registration.poll
+    with translation.override(registration.language):
+        context = {
+            "poll_title": poll.title(registration.language),
+            "tracking_code": format_tracking_code(TrackingCode(tracking_code)),
+            "ranking_lines": _ranking_lines(registration, ranking),
+            "closes_at": poll.closes_at,
+            "allow_modification": poll.allow_ballot_modification,
+        }
+        subject = _("Votre bulletin est enregistré : %(poll)s") % {"poll": context["poll_title"]}
+        body = render_to_string("registrations/mail/ballot_receipt.txt", context)
+    return send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [registration.email])
 
 
 def send_confirmation(registration: Registration, token: Token) -> int:

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD #}
+
+{% block title %}{% translate "Voter" %} — {{ poll.title }}{% endblock %}
+
+{% block content %}
+  <h1>{% blocktranslate with title=poll.title %}Bulletin : « {{ title }} »{% endblocktranslate %}</h1>
+
+  {% if poll.description %}<p>{{ poll.description }}</p>{% endif %}
+
+  {% if not poll.allow_ballot_modification %}
+    {% comment %}
+      R-6.5: where the poll does not permit modification, the ballot page says
+      so before submission, not merely in the confirmation — it changes what the
+      voter is agreeing to.
+    {% endcomment %}
+    <p class="notice" role="note">
+      {% translate "Ce scrutin n'autorise pas la modification d'un bulletin. Une fois validé, votre vote est définitif." %}
+    </p>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+    {% include "ballots/_ranking_field.html" %}
+    <button type="submit">{% translate "Valider mon bulletin" %}</button>
+  </form>
+{% endblock %}

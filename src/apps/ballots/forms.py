@@ -37,7 +37,14 @@ class RankingForm(forms.Form):
     a group.
     """
 
-    def __init__(self, *args: Any, poll: Poll, language: str, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        *args: Any,
+        poll: Poll,
+        language: str,
+        initial_ranking: list[list[str]] | None = None,
+        **kwargs: Any,
+    ) -> None:
         super().__init__(*args, **kwargs)
         options = list(poll.options.all())
         ids = [option.option_id for option in options]
@@ -57,9 +64,22 @@ class RankingForm(forms.Form):
         labels = {
             option.option_id: (option.label(language) or option.option_id) for option in options
         }
+        # Prefill from an existing ballot (§6.3 modification): the position of a
+        # group in the ranking is its rank, ties share it, an unplaced option
+        # stays blank. Ignored once the form is bound — a re-render after a
+        # validation error keeps what the voter submitted.
+        seeded: dict[str, str] = {}
+        if initial_ranking and not self.is_bound:
+            for position, group in enumerate(initial_ranking, start=1):
+                for option_id in group:
+                    seeded[option_id] = str(position)
+
         for option_id in order:
             self.fields[f"rank_{option_id}"] = forms.ChoiceField(
-                choices=rank_choices, required=False, label=labels[option_id]
+                choices=rank_choices,
+                required=False,
+                label=labels[option_id],
+                initial=seeded.get(option_id, ""),
             )
 
         self._display_order = order

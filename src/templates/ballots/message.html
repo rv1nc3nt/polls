@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD #}
+
+{% block title %}{{ heading }} — {{ poll.title }}{% endblock %}
+
+{% block content %}
+  <h1>{{ heading }}</h1>
+  <p role="alert">{{ body }}</p>
+{% endblock %}

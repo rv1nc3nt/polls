@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD #}
+
+{% block title %}{% translate "Modifier votre bulletin" %} — {{ poll.title }}{% endblock %}
+
+{% block content %}
+  <h1>{% blocktranslate with title=poll.title %}Modifier votre bulletin : « {{ title }} »{% endblocktranslate %}</h1>
+
+  <p>{% translate "Le classement ci-dessous est celui de votre bulletin actuel. En validant, vous le remplacez ; la version précédente est conservée mais n'est plus comptée (R-7.2)." %}</p>
+
+  <form method="post">
+    {% csrf_token %}
+    {% include "ballots/_ranking_field.html" %}
+    <button type="submit">{% translate "Enregistrer les modifications" %}</button>
+  </form>
+{% endblock %}

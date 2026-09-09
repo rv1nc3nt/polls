@@ -124,3 +124,34 @@ paper ballot cannot displace an anonymous online one), or, if an in-person
 change path is wanted for `allow_ballot_modification`-off polls, specify it as
 *the elector presents their tracking code* and the paper ballot is keyed as a
 new version of that ballot chain — the one handle that exists.
+
+## 6. A ballot *modification* sends no confirmation email
+
+**Specification, §6.3 / R-6.4, T-13's neighbourhood.** R-6.4: "On submission,
+the elector is shown a summary of their ranking and their tracking code, and
+receives both by email." It does not distinguish a first cast from a
+modification.
+
+**What the code does.** A first cast emails the summary and tracking code
+(`registrations.services.send_ballot_receipt`, called from the ballot view's
+`on_commit`). A modification shows the summary on the confirmation page but
+sends **no** email.
+
+**Why.** The modification flow runs from a session entry holding only
+`ballot_hash` — the token was exchanged and the voter redirected to a
+token-free URL (R-7.4 ter, T-21), and `apps.core.tokensession` deliberately
+keeps no voter reference beside the ballot hash (INV-1). `modify` therefore has
+no path to the registration and no way to obtain the address: the only mapping
+that could yield it is `ballot_hash` → `voter_hash` → `Registration`, which
+R-7.4's "no join between the two tables is possible" forbids. First cast can
+mail because it alone runs in the request that carries the token
+(`voter_hash` → registration), which is spent immediately after.
+
+The tracking code is unchanged across versions (R-7.2) and was mailed at the
+first cast, so a modifying voter is not left without it; the receipt page
+restates it in any case.
+
+**To settle:** amend R-6.4 to require the emailed receipt on the *first* cast
+only, the on-screen summary sufficing for later modifications — or accept a
+weaker token rule for the modification route (the token kept in the URL so
+`modify` can re-derive the address), which trades away part of T-21.

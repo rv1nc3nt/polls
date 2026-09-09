@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD #}
+
+{% block title %}{% translate "Bulletin enregistré" %} — {{ poll.title }}{% endblock %}
+
+{% block content %}
+  {% if modified %}
+    <h1>{% translate "Votre bulletin a été modifié" %}</h1>
+  {% else %}
+    <h1>{% translate "Votre bulletin a été enregistré" %}</h1>
+  {% endif %}
+
+  <h2>{% translate "Votre classement" %}</h2>
+  <ol class="ranking-summary">
+    {% for line in lines %}<li>{{ line }}</li>{% endfor %}
+  </ol>
+
+  <h2>{% translate "Votre code de suivi" %}</h2>
+  <p class="tracking-code"><code>{{ tracking_code }}</code></p>
+  <p>{% translate "Conservez ce code. Après la clôture, il vous permet de retrouver votre bulletin dans la liste publiée, sans révéler votre identité." %}</p>
+
+  {% if not modified %}
+    <p>{% translate "Une copie de ce récapitulatif vous a été envoyée par courriel." %}</p>
+  {% endif %}
+
+  {% if allow_modification %}
+    <p>{% translate "Pour modifier votre bulletin avant la clôture, rouvrez le lien reçu lors de votre inscription. Personne d'autre ne peut le faire à votre place." %}</p>
+  {% endif %}
+{% endblock %}

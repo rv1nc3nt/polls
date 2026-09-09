@@ -19,6 +19,7 @@ from apps.ballots import services
 from apps.ballots.models import Ballot, BallotStatus, PaperBallotLink
 from apps.ballots.ranking import BallotRefused
 from apps.core.models import User
+from apps.core.types import Token
 from apps.elections.models import Poll, RollEntry
 from apps.elections.windows import WindowClosed
 from apps.registrations.models import Channel, Registration, RegistrationState
@@ -317,3 +318,97 @@ def test_countersign_still_works_after_online_voting_closes(
     )
     live = services.countersign(Ballot.objects.get(pk=ballot.pk), str(second_operator.pk))
     assert live.status == BallotStatus.LIVE
+
+
+# --- §6.3 online casting and modification -----------------------------------
+
+
+def _voter(poll: Poll) -> tuple[str, Token]:
+    """A confirmed, active registration on ``poll`` and its plaintext token."""
+    from apps.registrations import services as registrations
+
+    entry = _entry(poll)
+    registration, token = registrations.register(
+        poll,
+        {
+            "last_name": entry.birth_name,
+            "first_names": entry.first_names,
+            "date_of_birth": entry.date_of_birth,
+            "email": "voter@example.fr",
+            "declared_on_honour": "on",
+        },
+        language="fr",
+    )
+    assert token is not None
+    registrations.confirm_mailbox(registration)
+    return str(registration.pk), token
+
+
+def test_cast_online_refuses_after_closes_at(open_paper_poll: Poll) -> None:
+    """T-3: the write path checks the clock, not ``Poll.state``."""
+    _registration_id, token = _voter(open_paper_poll)
+    now = timezone.now()
+    Poll.objects.filter(pk=open_paper_poll.pk).update(
+        closes_at=now - timedelta(seconds=1), paper_entry_deadline=now - timedelta(seconds=1)
+    )
+    poll = Poll.objects.get(pk=open_paper_poll.pk)
+    with pytest.raises(WindowClosed):
+        services.cast_online(poll, token, STRICT)
+    assert not Ballot.objects.filter(poll=poll).exists()
+
+
+def test_cast_online_flips_the_channel_and_stores_a_ballot_hash(open_paper_poll: Poll) -> None:
+    registration_id, token = _voter(open_paper_poll)
+    result = services.cast_online(open_paper_poll, token, STRICT)
+
+    assert result.ballot.status == BallotStatus.LIVE
+    assert result.ballot.ballot_hash is not None
+    registration = Registration.objects.get(pk=registration_id)
+    assert registration.channel == Channel.ONLINE
+
+    # T-25 at the value level: nothing is common to the two rows.
+    voter_digest, ballot_digest = registration.voter_hash, result.ballot.ballot_hash
+    assert voter_digest is not None and ballot_digest is not None
+    assert bytes(voter_digest) != bytes(ballot_digest)
+    assert result.ballot.tracking_code not in {
+        registration.declared_last_name,
+        str(registration.voter_hash),
+    }
+
+
+def test_a_spent_link_is_refused(open_paper_poll: Poll) -> None:
+    """R-7.1: the token is spent on casting; ``channel`` is the guard."""
+    _registration_id, token = _voter(open_paper_poll)
+    services.cast_online(open_paper_poll, token, STRICT)
+    with pytest.raises(BallotRefused):
+        services.cast_online(open_paper_poll, token, STRICT)
+
+
+def test_modify_supersedes_and_keeps_one_live_version(open_paper_poll: Poll) -> None:
+    """T-1, T-35 invariant: every modification leaves exactly one live row."""
+    _registration_id, token = _voter(open_paper_poll)
+    cast = services.cast_online(open_paper_poll, token, STRICT)
+    digest = services.online_ballot_hash(open_paper_poll, token)
+
+    v2 = services.modify(open_paper_poll, digest, [["b"], ["a"], ["c"]])
+    v3 = services.modify(open_paper_poll, digest, [["c"], ["b"], ["a"]])
+
+    assert [v2.version, v3.version] == [2, 3]
+    assert v3.tracking_code == cast.ballot.tracking_code
+    assert Ballot.live.filter(poll=open_paper_poll).count() == 1
+    assert Ballot.live.get(poll=open_paper_poll).ranking == [["c"], ["b"], ["a"]]
+    assert Ballot.objects.filter(poll=open_paper_poll).count() == 3
+
+
+def test_modify_is_refused_where_the_poll_forbids_it(open_window_poll: Poll) -> None:
+    from apps.elections.transitions import open_poll
+
+    Poll.objects.filter(pk=open_window_poll.pk).update(allow_ballot_modification=False)
+    open_poll(open_window_poll)
+    poll = Poll.objects.get(pk=open_window_poll.pk)
+
+    _registration_id, token = _voter(poll)
+    cast = services.cast_online(poll, token, STRICT)
+    assert cast.ballot.ballot_hash is None
+    with pytest.raises(BallotRefused):
+        services.modify(poll, services.online_ballot_hash(poll, token), [["b"], ["a"], ["c"]])

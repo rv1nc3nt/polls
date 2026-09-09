@@ -157,59 +157,10 @@ def test_t15_a_sandbox_poll_is_not_reachable(client: Client, live_poll: Poll) ->
     assert client.get(f"/fr/inscription/{sandbox.pk}/").status_code == 404
 
 
-# --- §6.3's token rules, which apply here (T-21) -----------------------------
-
-
-def test_t21_the_token_is_exchanged_for_a_session_and_leaves_the_url(
-    client: Client, live_poll: Poll
-) -> None:
-    """§6.3, all of it that is code: the redirect to a token-free URL, and the
-    two headers. Without them §7's claim that the token never reaches a log is
-    false from the first click."""
-    _registration, token = services.register(live_poll, FORM, language="fr")
-    assert token is not None
-
-    response = client.get(f"/fr/inscription/{live_poll.pk}/confirmation/{token.reveal()}/")
-    assert response.status_code == 302
-    assert token.reveal() not in response["Location"]
-    assert response["Referrer-Policy"] == "no-referrer"
-    assert response["Cache-Control"] == "no-store"
-
-    landing = client.get(response["Location"])
-    assert landing.status_code == 200
-    assert "confirmée" in landing.content.decode()
-    assert landing["Referrer-Policy"] == "no-referrer"
-
-
-def test_the_confirmation_link_activates_the_registration(client: Client, live_poll: Poll) -> None:
-    registration, token = services.register(live_poll, FORM, language="fr")
-    assert token is not None
-    client.get(f"/fr/inscription/{live_poll.pk}/confirmation/{token.reveal()}/")
-
-    registration.refresh_from_db()
-    assert registration.state == RegistrationState.ACTIVE
-    assert registration.confirmed_at is not None
-
-
-def test_the_session_holds_a_registration_id_and_never_the_token(
-    client: Client, live_poll: Poll
-) -> None:
-    """§7: the plaintext token is never persisted, and Django's session backend
-    is a database table."""
-    registration, token = services.register(live_poll, FORM, language="fr")
-    assert token is not None
-    client.get(f"/fr/inscription/{live_poll.pk}/confirmation/{token.reveal()}/")
-
-    stored = dict(client.session.items())
-    assert str(registration.pk) in str(stored)
-    assert token.reveal() not in str(stored)
-
-
-def test_an_invalid_token_says_so_without_a_stack_trace(client: Client, live_poll: Poll) -> None:
-    response = client.get(f"/fr/inscription/{live_poll.pk}/confirmation/NOTATOKEN/")
-    assert response.status_code == 404
-    # Autoescaped, so the apostrophe is not the thing to assert on.
-    assert "Lien non valide" in response.content.decode()
+# The confirmation-mail link lands on ``ballots:access`` now — one link both
+# confirms the mailbox and opens the ballot (§6.3). Its token rules (T-21), the
+# mailbox activation and the invalid-token page are pinned in
+# ``test_ballot_http.py``.
 
 
 # --- R-5.8: rate limiting -----------------------------------------------------
