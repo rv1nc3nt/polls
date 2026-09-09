@@ -10,11 +10,15 @@
       served by contrib/init/, installation by hand, best effort.
   tags: [always]
 
-- ansible.builtin.import_tasks: provision.yml
+- name: Provision the host (§15 steps 1, 2, 7)
+  ansible.builtin.import_tasks: provision.yml
   tags: [provision]
-- ansible.builtin.import_tasks: deploy.yml
+- name: Deploy the application (§15 steps 3 to 6)
+  ansible.builtin.import_tasks: deploy.yml
   tags: [deploy]
-- ansible.builtin.import_tasks: backup.yml
+- name: Configure backups (§15 step 8)
+  ansible.builtin.import_tasks: backup.yml
   tags: [backup]
-- ansible.builtin.import_tasks: smoke.yml
+- name: Run the smoke play (§15 step 9)
+  ansible.builtin.import_tasks: smoke.yml
   tags: [smoke, deploy]

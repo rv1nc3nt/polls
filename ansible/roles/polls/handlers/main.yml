@@ -1,0 +1,35 @@
+# SPDX-License-Identifier: 0BSD
+# Handlers run once, after the tasks, and only when notified by a task that
+# actually changed something — so a second converge run (T-38) notifies none of
+# them and nothing is restarted.
+- name: Reload systemd
+  become: true
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+
+- name: Restart polls
+  become: true
+  ansible.builtin.systemd_service:
+    name: polls.service
+    state: restarted
+  # Skipped on the very first run, where deploy.yml starts the unit explicitly
+  # once its file exists; from then on a config change restarts it here.
+  when: polls_web_service_installed | default(false) | bool
+
+- name: Reload nginx
+  become: true
+  ansible.builtin.systemd_service:
+    name: nginx
+    state: reloaded
+
+- name: Restart nginx
+  become: true
+  ansible.builtin.systemd_service:
+    name: nginx
+    state: restarted
+
+- name: Reload nftables
+  become: true
+  ansible.builtin.systemd_service:
+    name: nftables
+    state: reloaded

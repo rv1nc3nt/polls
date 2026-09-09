@@ -1,35 +1,383 @@
 # SPDX-License-Identifier: 0BSD
-# 3. Release from a tagged artefact into a versioned directory, symlink switch
-#    so rollback is a symlink change.
-# 4. Virtualenv from the committed lockfile; migrate, collectstatic and
-#    compilemessages; a fail-fast check that migrations left no pending
-#    changes. `compilemessages` needs GNU gettext on the target, so the package
-#    belongs in provision step 1 — without it the English interface silently
-#    falls back to the French msgids (§3.8).
-# 5. Settings rendered to an environment file, mode 0600, owned by the service
-#    user; secrets from ansible-vault, never the repository.
-# 6. Supervised gunicorn, and periodic invocation of open_poll, close_poll,
-#    send_reminders and retention_purge per {{ polls_scheduler }}.
+# §15 steps 3 to 6: stage the tagged release into a versioned directory, build
+# the virtualenv from the committed lockfile, run the database steps, switch the
+# `current` symlink, then install and start the supervised gunicorn service and
+# the scheduled jobs.
 #
-# Two traps this file must handle explicitly (§15):
-- name: Generate SECRET_KEY once, on first install
-  # The single most likely way to break a poll in progress. A naive template
-  # regenerates it every deploy and silently invalidates every session and
-  # signed link, including live ballot-modification links.
-  ansible.builtin.set_fact:
-    polls_secret_key_exists: true
-  # TODO(scaffold): stat the environment file, generate only when absent, never
-  # re-template the key on a subsequent run (T-38).
+# Three traps this file handles explicitly (§15):
+#   * SECRET_KEY is generated once and never regenerated — a new key
+#     invalidates every session and signed link, live modification links
+#     included;
+#   * migrate is refused while a poll is `open` unless told otherwise;
+#   * the database directory (roll snapshot, audit log) is under
+#     {{ polls_state_dir }}, which nothing here writes to except migrate.
 
-- name: Refuse to migrate while a poll is open
-  # Schedule schema changes between polls.
+- name: Assert a release was named
   ansible.builtin.assert:
     that:
-      - polls_allow_migrate_during_open_poll or not (polls_open_poll_count | default(0) | int > 0)
-    fail_msg: >-
-      A poll is in `open` state. Set polls_allow_migrate_during_open_poll=true
-      only with a considered reason.
+      - polls_release | length > 0
+    fail_msg: "Set polls_release to the tag to deploy (§15 step 3)."
 
-- name: TODO(scaffold) deploy steps 3 to 6 of §15
-  ansible.builtin.debug:
-    msg: "deploy — the roll snapshot and the audit log live in {{ polls_state_dir }}, which this tag never touches"
+- name: Name the release directory
+  ansible.builtin.set_fact:
+    polls_release_dir: "{{ polls_prefix }}/releases/{{ polls_release }}"
+    polls_src_archive: "/tmp/polls-src-{{ polls_release }}.tgz"
+
+- name: Check whether the release is already staged
+  ansible.builtin.stat:
+    path: "{{ polls_release_dir }}/pyproject.toml"
+  register: polls_release_stat
+
+# --- Step 3: stage the release (once per tag) --------------------------
+
+- name: Stage the application release
+  when: not polls_release_stat.stat.exists
+  block:
+    - name: Create the release directory
+      ansible.builtin.file:
+        path: "{{ polls_release_dir }}"
+        state: directory
+        owner: "{{ polls_user }}"
+        group: "{{ polls_group }}"
+        mode: "0750"
+
+    - name: Clone the tag from the release repository
+      ansible.builtin.git:
+        repo: "{{ polls_repo_url }}"
+        dest: "{{ polls_release_dir }}"
+        version: "{{ polls_release }}"
+        depth: 1
+        single_branch: true
+      become: true
+      become_user: "{{ polls_user }}"
+      when: polls_repo_url | length > 0
+
+    - name: Check the local tree is at a tag
+      ansible.builtin.command:  # noqa: command-instead-of-module
+        cmd: git -C {{ polls_source_tree }} describe --exact-match --tags HEAD
+      delegate_to: localhost
+      run_once: true
+      become: false
+      register: polls_tag_check
+      changed_when: false
+      failed_when: false
+      when: polls_repo_url | length == 0
+
+    - name: Refuse an untagged working tree
+      ansible.builtin.fail:
+        msg: >-
+          {{ polls_source_tree }} is not checked out at a tag. §15 wants a
+          tagged artefact, not a working branch. Check one out, or leave
+          polls_require_tagged_release false to override.
+      when:
+        - polls_repo_url | length == 0
+        - polls_require_tagged_release | bool
+        - polls_tag_check.rc != 0
+
+    - name: Warn about an untagged working tree
+      ansible.builtin.debug:
+        msg: >-
+          Staging {{ polls_source_tree }} whose HEAD is not a tag (§15 step 3).
+          Continuing because polls_require_tagged_release is false.
+      when:
+        - polls_repo_url | length == 0
+        - not (polls_require_tagged_release | bool)
+        - polls_tag_check.rc | default(0) != 0
+
+    - name: Build a source archive on the control node
+      ansible.builtin.command:  # noqa: command-instead-of-module
+        cmd: >-
+          tar --create --gzip --file {{ polls_src_archive }}
+          --exclude-vcs
+          --exclude=./.venv --exclude=./var --exclude=./node_modules
+          --exclude=./.molecule --exclude=./.pytest_cache
+          --exclude=./.mypy_cache --exclude=./.ruff_cache --exclude=./__pycache__
+          -C {{ polls_source_tree }} .
+      delegate_to: localhost
+      run_once: true
+      become: false
+      changed_when: false
+      when: polls_repo_url | length == 0
+
+    - name: Unpack the archive onto the target
+      ansible.builtin.unarchive:
+        src: "{{ polls_src_archive }}"
+        dest: "{{ polls_release_dir }}"
+        owner: "{{ polls_user }}"
+        group: "{{ polls_group }}"
+      when: polls_repo_url | length == 0
+
+    - name: Remove the control-node archive
+      ansible.builtin.file:
+        path: "{{ polls_src_archive }}"
+        state: absent
+      delegate_to: localhost
+      run_once: true
+      become: false
+      when: polls_repo_url | length == 0
+
+    - name: Normalise ownership of the staged tree
+      ansible.builtin.file:
+        path: "{{ polls_release_dir }}"
+        state: directory
+        owner: "{{ polls_user }}"
+        group: "{{ polls_group }}"
+        recurse: true
+
+    - name: Create the release var directory for collected static files
+      ansible.builtin.file:
+        path: "{{ polls_release_dir }}/var"
+        state: directory
+        owner: "{{ polls_user }}"
+        group: "{{ polls_group }}"
+        mode: "0750"
+
+# --- Step 5: SECRET_KEY and the environment file ----------------------
+
+- name: Stat the SECRET_KEY file
+  ansible.builtin.stat:
+    path: "{{ polls_config_dir }}/secret_key"
+  register: polls_secret_key_stat
+
+- name: Generate SECRET_KEY on first install only
+  ansible.builtin.command:
+    cmd: python3 -c "import secrets; print(secrets.token_urlsafe(64))"
+  register: polls_secret_key_new
+  when: not polls_secret_key_stat.stat.exists
+  changed_when: true
+  no_log: true
+
+- name: Persist the SECRET_KEY
+  ansible.builtin.copy:
+    dest: "{{ polls_config_dir }}/secret_key"
+    content: "{{ polls_secret_key_new.stdout }}\n"
+    owner: "{{ polls_user }}"
+    group: "{{ polls_group }}"
+    mode: "0600"
+  when: not polls_secret_key_stat.stat.exists
+  no_log: true
+
+- name: Read the SECRET_KEY back
+  ansible.builtin.slurp:
+    src: "{{ polls_config_dir }}/secret_key"
+  register: polls_secret_key_slurp
+  no_log: true
+
+- name: Keep the SECRET_KEY for templating
+  ansible.builtin.set_fact:
+    polls_secret_key: "{{ polls_secret_key_slurp.content | b64decode | trim }}"
+  no_log: true
+
+- name: Render the environment file
+  ansible.builtin.template:
+    src: polls.env.j2
+    dest: "{{ polls_config_dir }}/polls.env"
+    owner: "{{ polls_user }}"
+    group: "{{ polls_group }}"
+    mode: "0600"
+  no_log: true
+  notify: Restart polls
+
+# --- Step 4: virtualenv and database ---------------------------------
+
+- name: Refuse to migrate while a poll is open
+  ansible.builtin.assert:
+    that:
+      - polls_allow_migrate_during_open_poll | bool or (polls_open_poll_count | int) == 0
+    fail_msg: >-
+      A poll is in `open` state (polls_open_poll_count={{ polls_open_poll_count }}).
+      Schedule schema changes between polls, or set
+      polls_allow_migrate_during_open_poll=true with a considered reason.
+
+- name: Application virtualenv and database
+  # DJANGO_SECRET_KEY here is a placeholder: migrate, collectstatic,
+  # createcachetable and the migration check sign nothing. The real key reaches
+  # only gunicorn and the job wrapper, through polls.env.
+  vars:
+    polls_py: "{{ polls_release_dir }}/.venv/bin/python"
+    polls_uv_env:
+      HOME: "{{ polls_prefix }}"
+      UV_CACHE_DIR: "{{ polls_prefix }}/.cache/uv"
+      UV_PYTHON_INSTALL_DIR: "{{ polls_prefix }}/python"
+      UV_PYTHON_PREFERENCE: only-managed
+      UV_NO_MODIFY_PATH: "1"
+    polls_manage_env:
+      DJANGO_SETTINGS_MODULE: config.settings.prod
+      DJANGO_SECRET_KEY: build-step-not-used-for-signing
+      DJANGO_ALLOWED_HOSTS: "{{ polls_domain }},127.0.0.1,localhost"
+      DJANGO_DB_PATH: "{{ polls_state_dir }}/db.sqlite3"
+      DJANGO_PUBLIC_BASE_URL: "https://{{ polls_domain }}"
+      DJANGO_EMAIL_HOST: "{{ polls_email_host }}"
+      DJANGO_JOB_LOCK_DIR: "{{ polls_state_dir }}/locks"
+      APP_VERSION: "{{ polls_release }}"
+      PYTHONPATH: "{{ polls_release_dir }}/src"
+  block:
+    - name: Build the virtualenv from the committed lockfile
+      # Only when the release is first staged. To rebuild in place, bump
+      # polls_release or remove the release directory.
+      ansible.builtin.command:
+        cmd: uv sync --frozen --no-dev --extra deploy --python {{ polls_python_version }}
+        chdir: "{{ polls_release_dir }}"
+      become: true
+      become_user: "{{ polls_user }}"
+      environment: "{{ polls_uv_env }}"
+      register: polls_uv_sync
+      changed_when: >-
+        'Installed' in polls_uv_sync.stderr or 'Uninstalled' in polls_uv_sync.stderr
+        or 'Prepared' in polls_uv_sync.stderr
+      when: not polls_release_stat.stat.exists
+
+    - name: Check migrations left nothing pending
+      ansible.builtin.command:
+        cmd: "{{ polls_py }} manage.py makemigrations --check --dry-run"
+        chdir: "{{ polls_release_dir }}"
+      become: true
+      become_user: "{{ polls_user }}"
+      environment: "{{ polls_manage_env }}"
+      changed_when: false
+
+    - name: Apply database migrations
+      ansible.builtin.command:
+        cmd: "{{ polls_py }} manage.py migrate --no-input"
+        chdir: "{{ polls_release_dir }}"
+      become: true
+      become_user: "{{ polls_user }}"
+      environment: "{{ polls_manage_env }}"
+      register: polls_migrate
+      changed_when: "'Applying' in polls_migrate.stdout"
+
+    - name: Create the rate-limiter cache table (R-5.8)
+      ansible.builtin.command:
+        cmd: "{{ polls_py }} manage.py createcachetable"
+        chdir: "{{ polls_release_dir }}"
+      become: true
+      become_user: "{{ polls_user }}"
+      environment: "{{ polls_manage_env }}"
+      register: polls_cachetable
+      changed_when: "'already exists' not in polls_cachetable.stdout"
+
+    - name: Collect static files
+      ansible.builtin.command:
+        cmd: "{{ polls_py }} manage.py collectstatic --no-input --clear"
+        chdir: "{{ polls_release_dir }}"
+      become: true
+      become_user: "{{ polls_user }}"
+      environment: "{{ polls_manage_env }}"
+      changed_when: true
+      when: not polls_release_stat.stat.exists
+
+    - name: Compile the message catalogues
+      ansible.builtin.command:
+        cmd: "{{ polls_py }} manage.py compilemessages --locale en"
+        chdir: "{{ polls_release_dir }}"
+      become: true
+      become_user: "{{ polls_user }}"
+      environment: "{{ polls_manage_env }}"
+      changed_when: true
+      when: not polls_release_stat.stat.exists
+
+# --- Step 3 (cont.): the symlink switch --------------------------------
+
+- name: Point current at this release
+  ansible.builtin.file:
+    src: "{{ polls_release_dir }}"
+    dest: "{{ polls_prefix }}/current"
+    state: link
+    owner: "{{ polls_user }}"
+    group: "{{ polls_group }}"
+  notify: Restart polls
+
+# --- Step 6: the supervised web service and the scheduled jobs -------
+
+- name: Install the job wrapper
+  ansible.builtin.template:
+    src: polls-manage.sh.j2
+    dest: "{{ polls_prefix }}/bin/polls-manage"
+    owner: root
+    group: "{{ polls_group }}"
+    mode: "0755"
+
+- name: Install the web service unit
+  ansible.builtin.template:
+    src: polls.service.j2
+    dest: /etc/systemd/system/polls.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload systemd
+    - Restart polls
+
+- name: Mark the web service present
+  ansible.builtin.set_fact:
+    polls_web_service_installed: true
+
+- name: Reload systemd so the unit is known
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+  changed_when: false
+
+- name: Enable and start the web service
+  ansible.builtin.systemd_service:
+    name: polls.service
+    enabled: true
+    state: started
+
+- name: Install the cron jobs
+  ansible.builtin.template:
+    src: polls-cron.j2
+    dest: /etc/cron.d/polls
+    owner: root
+    group: root
+    mode: "0644"
+  when: polls_scheduler == "cron"
+
+- name: Remove the cron jobs
+  ansible.builtin.file:
+    path: /etc/cron.d/polls
+    state: absent
+  when: polls_scheduler != "cron"
+
+- name: Configure systemd timers
+  when: polls_scheduler == "systemd"
+  block:
+    - name: Install the job service and timer templates
+      ansible.builtin.template:
+        src: "{{ item }}.j2"
+        dest: "/etc/systemd/system/{{ item }}"
+        owner: root
+        group: root
+        mode: "0644"
+      loop:
+        - polls-job@.service
+        - polls-job@.timer
+      notify: Reload systemd
+
+    - name: Reload systemd so the templates are known
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+      changed_when: false
+
+    - name: Enable and start the job timers
+      ansible.builtin.systemd_service:
+        name: "polls-job@{{ item }}.timer"
+        enabled: true
+        state: started
+      loop:
+        - open_poll
+        - close_poll
+        - send_reminders
+        - retention_purge
+
+# Switching polls_scheduler on an existing host leaves the previous mode's
+# units in place; remove them by hand.
+
+- name: Wait for the web service to answer /sante
+  ansible.builtin.uri:
+    url: "http://{{ polls_bind }}/sante"
+    status_code: 200
+  register: polls_sante
+  retries: 5
+  delay: 3
+  until: polls_sante.status == 200
+  changed_when: false

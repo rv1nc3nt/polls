@@ -251,3 +251,28 @@ ballot a voter saw), or the option `UPDATE` trigger should admit a
 `label_i18n`-only change with a matching screen-2 action. The first is the
 smaller change and matches the current code; recorded here until the spec edit
 is made.
+
+## 9. TLS in the Ansible role is certbot only
+
+**Specification, §15 step 7 / §14.** "TLS per §14", where §14 describes
+`ngx_http_acme_module` (nginx-acme) as the preferred mechanism "where a
+vendor-packaged build is available" and certbot as "the lower-maintenance
+choice … despite being an extra component" on a machine meant to be left alone.
+
+**What the code does.** `roles/polls/tasks/provision.yml` implements the
+certbot path: it installs `certbot` and `python3-certbot-nginx`, obtains the
+certificate with `certbot --nginx`, and re-renders the vhost from
+`nginx-vhost.conf.j2` with an equivalent `:443` block so the file stays under
+Ansible's control. `polls_tls_method: nginx-acme` is accepted but only emits a
+`debug` note pointing back to certbot; `polls_tls_method` defaults to `certbot`.
+
+**Why.** §14 already names certbot the right default for the "left alone"
+target this role serves, and a self-compiled dynamic module "must be rebuilt on
+every nginx upgrade" — which an unattended-upgrades host will do without a
+human present. The nginx-acme path is worth adding once Debian ships a
+vendor-packaged build; until then it is a documented no-op rather than a
+half-working second path.
+
+**Not settled by amending the spec.** This implements one of the two options
+§14 offers rather than contradicting it. Recorded here so the gap is visible;
+no spec or requirements change.

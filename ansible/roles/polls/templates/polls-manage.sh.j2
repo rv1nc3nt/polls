@@ -1,0 +1,11 @@
+#!/bin/sh
+# {{ ansible_managed }}
+# Wrapper for the scheduled management commands (§15 step 6). cron hands a job a
+# near-empty environment, so the environment file is sourced explicitly here
+# rather than relied on to be inherited — the classic cause of a job that works
+# by hand and fails silently at three in the morning.
+set -eu
+set -a
+. "{{ polls_config_dir }}/polls.env"
+set +a
+exec "{{ polls_prefix }}/current/.venv/bin/python" "{{ polls_prefix }}/current/manage.py" "$@"

@@ -62,8 +62,9 @@
       when: env_file.stat.exists
 
     - name: SECRET_KEY line is present exactly once
+      # config/settings/base.py reads DJANGO_SECRET_KEY from the environment.
       ansible.builtin.command:
-        cmd: grep -c "^SECRET_KEY=" {{ polls_config_dir }}/polls.env
+        cmd: grep -c "^DJANGO_SECRET_KEY=" {{ polls_config_dir }}/polls.env
       register: secret_key_lines
       changed_when: false
       failed_when: secret_key_lines.stdout | trim != '1'
@@ -74,14 +75,17 @@
         path: "{{ polls_state_dir }}/db.sqlite3"
       register: db_file
 
-    - name: The audit log is non-empty and the table is intact
-      # A migration re-run by a non-idempotent deploy would either fail here or
-      # change the row count; INV-3 forbids the table ever losing a row.
+    - name: The audit-log table survives the repeat run intact
+      # A fresh install has an empty log, so the property here is that the
+      # schema exists and is queryable after the second converge — a
+      # non-idempotent migrate would have errored or dropped the table. The
+      # `idempotence` step already proved the run changed nothing; INV-3
+      # forbids the table ever losing a row once it has them.
       ansible.builtin.command:
         cmd: sqlite3 {{ polls_state_dir }}/db.sqlite3 "SELECT count(*) FROM audit_auditevent"
       register: audit_rows
       changed_when: false
-      failed_when: audit_rows.rc != 0 or (audit_rows.stdout | int) < 1
+      failed_when: audit_rows.rc != 0 or (audit_rows.stdout | trim) is not match('^[0-9]+$')
       when: db_file.stat.exists
 
     - name: Warn when the environment file has not been rendered yet

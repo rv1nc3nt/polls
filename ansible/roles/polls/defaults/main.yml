@@ -23,3 +23,45 @@ polls_allow_migrate_during_open_poll: false
 
 polls_backup_retention_days: 30
 polls_tls_method: certbot       # certbot | nginx-acme
+
+# --- Source of the application release (§15 step 3) -------------------------
+# Set polls_repo_url to clone the tag named in polls_release on the target.
+# Left empty, the deploy stages the checkout the playbook itself lives in
+# (polls_source_tree) — so `git checkout <tag>` before running, or set
+# polls_require_tagged_release to make an untagged HEAD a hard error.
+polls_repo_url: ""
+polls_source_tree: "{{ role_path }}/../../.."
+polls_require_tagged_release: false
+
+# --- Python toolchain -----------------------------------------------------
+# The target Debian stable ships an older Python than pyproject requires, so
+# uv manages an interpreter of its own under the prefix rather than the deploy
+# depending on a system package version.
+polls_uv_version: ""             # "" installs the latest uv; pin for reproducibility
+polls_python_version: "3.13"
+
+# --- Web process (§15 step 6, contrib/init/polls.service) ----------------
+polls_bind: "127.0.0.1:8000"
+polls_gunicorn_workers: 3
+
+# --- SMTP (§15 step 9). prod.py requires DJANGO_EMAIL_HOST to be set; the
+# default lets the service boot on a host with no relay configured yet, at the
+# cost of the smoke mail failing until it is. Password comes from ansible-vault.
+polls_email_host: localhost
+polls_email_port: 587
+polls_email_user: ""
+polls_email_password: ""
+polls_from_email: ""             # "" falls back to polls_admin_email
+polls_log_level: INFO
+
+# --- nginx / firewall (§15 steps 1, 7) ---------------------------------
+# Both need a real host and a resolvable domain, so CI (molecule) turns them
+# off; a real deployment leaves them on.
+polls_manage_firewall: true
+polls_enable_tls: true
+polls_allowed_ssh_port: 22
+
+# Count of polls currently in `open` state, for the migrate guard (§15). The
+# dashboard read model can supply it; left at 0 the guard only trips when
+# explicitly told a poll is open.
+polls_open_poll_count: 0

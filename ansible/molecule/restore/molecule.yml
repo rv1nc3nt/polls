@@ -35,6 +35,10 @@ provisioner:
         polls_admin_email: admin@molecule.test
         polls_smoke_test_email: smoke@molecule.test
         polls_scheduler: systemd
+        # No real domain and no reachable port 80/443 in the container: the
+        # nftables load and the ACME exchange both need a real host.
+        polls_manage_firewall: false
+        polls_enable_tls: false
   playbooks:
     converge: converge.yml
     verify: verify.yml

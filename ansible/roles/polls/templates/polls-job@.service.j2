@@ -1,0 +1,20 @@
+# {{ ansible_managed }}
+# One-shot service behind polls-job@.timer (§15 step 6), scheduler = systemd.
+# Instance name is the management command: polls-job@open_poll.service, etc.
+[Unit]
+Description=Commune polling platform — scheduled job %i
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User={{ polls_user }}
+Group={{ polls_group }}
+EnvironmentFile={{ polls_config_dir }}/polls.env
+WorkingDirectory={{ polls_prefix }}/current
+ExecStart={{ polls_prefix }}/current/.venv/bin/python {{ polls_prefix }}/current/manage.py %i
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths={{ polls_state_dir }} {{ polls_backup_dir }}

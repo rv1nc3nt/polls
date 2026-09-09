@@ -1,17 +1,232 @@
 # SPDX-License-Identifier: 0BSD
-# 1. System packages (gettext among them, for `compilemessages`), fr_FR.UTF-8,
-#    Europe/Paris, unattended upgrades, firewall allowing only 22, 80 and 443.
-# 2. Unprivileged service user; database under {{ polls_state_dir }}, backups
-#    under {{ polls_backup_dir }}, code under {{ polls_prefix }}, none of it
-#    world-readable.
-# 7. nginx vhost from a template, TLS per §14, security headers, rate-limit zone
-#    consistent with the application's own limits. It MUST also suppress
-#    request-URI logging under `/*/inscription/*/confirmation/` and the ballot
-#    prefixes: a token travels in those URLs, and §7's claim that it never
-#    reaches a log is false without this. The other three parts of that rule —
-#    the session exchange, `Referrer-Policy: no-referrer` and
-#    `Cache-Control: no-store` — are in `apps/core/tokensession.py`.
-#    `manage.py createcachetable` also runs here, for the rate limiter (R-5.8).
-- name: TODO(scaffold) provision steps 1, 2 and 7 of §15
+# §15 steps 1, 2 and 7: the base OS, the unprivileged service account and the
+# directory layout, then the nginx vhost and its TLS.
+#
+# `manage.py createcachetable` is listed against this step in earlier notes but
+# belongs in deploy.yml — it needs the virtualenv that deploy.yml builds.
+
+# --- Step 1: system packages, locale, timezone, upgrades, firewall ---------
+
+- name: Refresh the apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install the base packages
+  ansible.builtin.apt:
+    name:
+      - ca-certificates
+      - curl
+      - git                 # the git source path of deploy.yml
+      - gettext             # compilemessages (§3.8)
+      - acl                 # unprivileged become_user file handovers
+      - sqlite3             # backup, restore and the molecule assertions
+      - locales
+      - nftables
+      - nginx
+      - unattended-upgrades
+    state: present
+
+- name: Enable unattended security upgrades
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+
+- name: Enable the fr_FR.UTF-8 locale
+  ansible.builtin.lineinfile:
+    path: /etc/locale.gen
+    regexp: '^#?\s*fr_FR\.UTF-8 UTF-8'
+    line: "fr_FR.UTF-8 UTF-8"
+  register: polls_locale_line
+
+- name: Generate the locale  # noqa: no-handler
+  ansible.builtin.command: locale-gen
+  when: polls_locale_line is changed
+  changed_when: true
+
+- name: Point /etc/localtime at Europe/Paris
+  ansible.builtin.file:
+    src: /usr/share/zoneinfo/Europe/Paris
+    dest: /etc/localtime
+    state: link
+    force: true
+
+- name: Record the timezone name
+  ansible.builtin.copy:
+    dest: /etc/timezone
+    content: "Europe/Paris\n"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Install the nftables ruleset — inbound 22, 80, 443 only
+  ansible.builtin.template:
+    src: nftables.conf.j2
+    dest: /etc/nftables.conf
+    owner: root
+    group: root
+    mode: "0755"
+    validate: "nft -c -f %s"
+  when: polls_manage_firewall | bool
+  notify: Reload nftables
+
+- name: Enable and start nftables
+  ansible.builtin.systemd_service:
+    name: nftables
+    enabled: true
+    state: started
+  when: polls_manage_firewall | bool
+
+# --- Step 2: service account and directory layout ----------------------
+
+- name: Create the service group
+  ansible.builtin.group:
+    name: "{{ polls_group }}"
+    system: true
+
+- name: Create the service user
+  ansible.builtin.user:
+    name: "{{ polls_user }}"
+    group: "{{ polls_group }}"
+    system: true
+    home: "{{ polls_prefix }}"
+    create_home: false
+    shell: /usr/sbin/nologin
+
+- name: Create the directory layout
+  # None of it world-readable (§15 step 2). nginx reaches the collected static
+  # files through group membership, added below, not through world bits.
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner | default(polls_user) }}"
+    group: "{{ item.group | default(polls_group) }}"
+    mode: "{{ item.mode | default('0750') }}"
+  loop:
+    - { path: "{{ polls_prefix }}" }
+    - { path: "{{ polls_prefix }}/releases" }
+    - { path: "{{ polls_prefix }}/bin" }
+    - { path: "{{ polls_prefix }}/.cache" }
+    - { path: "{{ polls_config_dir }}", owner: root, mode: "0750" }
+    - { path: "{{ polls_state_dir }}" }
+    - { path: "{{ polls_state_dir }}/locks" }
+    - { path: "{{ polls_backup_dir }}", mode: "0700" }
+
+- name: Let nginx read the collected static files
+  # A supplementary group, so the layout above can stay 0750. nginx workers
+  # inherit it only on a full restart, not a reload.
+  ansible.builtin.user:
+    name: www-data
+    groups: "{{ polls_group }}"
+    append: true
+  notify: Restart nginx
+
+- name: Install uv under {{ polls_prefix }}
+  # The target Debian stable ships an older Python than pyproject requires, so
+  # uv manages its own interpreter rather than the deploy tracking a system
+  # package version. `creates` keeps it a one-time install.
+  ansible.builtin.shell:
+    cmd: >-
+      set -o pipefail;
+      curl -LsSf
+      https://astral.sh/uv/{{ (polls_uv_version | length > 0) | ternary(polls_uv_version ~ '/', '') }}install.sh
+      | env UV_INSTALL_DIR=/usr/local/bin INSTALLER_NO_MODIFY_PATH=1 sh
+    creates: /usr/local/bin/uv
+  args:
+    executable: /bin/bash
+
+# --- Step 7: nginx vhost and TLS -------------------------------------
+
+- name: Stat the TLS certificate
+  ansible.builtin.stat:
+    path: "/etc/letsencrypt/live/{{ polls_domain }}/fullchain.pem"
+  register: polls_tls_cert_stat
+
+- name: Render the nginx vhost
+  ansible.builtin.template:
+    src: nginx-vhost.conf.j2
+    dest: /etc/nginx/sites-available/polls.conf
+    owner: root
+    group: root
+    mode: "0644"
+  vars:
+    polls_tls_cert_present: "{{ polls_tls_cert_stat.stat.exists }}"
+  notify: Reload nginx
+
+- name: Enable the polls vhost
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/polls.conf
+    dest: /etc/nginx/sites-enabled/polls.conf
+    state: link
+  notify: Reload nginx
+
+- name: Disable the default vhost
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Reload nginx
+
+- name: Check the nginx configuration
+  ansible.builtin.command: nginx -t
+  changed_when: false
+
+- name: Enable and start nginx
+  ansible.builtin.systemd_service:
+    name: nginx
+    enabled: true
+    state: started
+
+- name: Install certbot
+  ansible.builtin.apt:
+    name:
+      - certbot
+      - python3-certbot-nginx
+    state: present
+  when: polls_enable_tls | bool and polls_tls_method == "certbot"
+
+- name: Obtain the TLS certificate
+  # certbot --nginx edits the vhost to answer the HTTP-01 challenge and, on
+  # success, to serve the certificate; the re-render below then brings the file
+  # back under Ansible's control with an equivalent :443 block.
+  ansible.builtin.command:
+    cmd: >-
+      certbot --nginx --non-interactive --agree-tos
+      -m {{ polls_admin_email }} -d {{ polls_domain }}
+    creates: "/etc/letsencrypt/live/{{ polls_domain }}/fullchain.pem"
+  when: polls_enable_tls | bool and polls_tls_method == "certbot"
+  notify: Reload nginx
+
+- name: Note when nginx-acme was requested
   ansible.builtin.debug:
-    msg: "provision"
+    msg: >-
+      polls_tls_method=nginx-acme is not wired in this role; §14 makes certbot
+      the lower-maintenance default. Set polls_tls_method=certbot or terminate
+      TLS ahead of nginx.
+  when: polls_enable_tls | bool and polls_tls_method == "nginx-acme"
+
+- name: Re-stat the TLS certificate
+  ansible.builtin.stat:
+    path: "/etc/letsencrypt/live/{{ polls_domain }}/fullchain.pem"
+  register: polls_tls_cert_stat2
+  when: polls_enable_tls | bool
+
+- name: Re-render the nginx vhost now the certificate exists
+  ansible.builtin.template:
+    src: nginx-vhost.conf.j2
+    dest: /etc/nginx/sites-available/polls.conf
+    owner: root
+    group: root
+    mode: "0644"
+  vars:
+    polls_tls_cert_present: "{{ polls_tls_cert_stat2.stat.exists | default(false) }}"
+  when: polls_enable_tls | bool
+  notify: Reload nginx
+
+- name: Re-check the nginx configuration
+  ansible.builtin.command: nginx -t
+  changed_when: false

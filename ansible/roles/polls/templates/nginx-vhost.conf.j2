@@ -1,0 +1,82 @@
+# {{ ansible_managed }}
+# §15 step 7: reverse proxy to gunicorn, static files, security headers, a
+# rate-limit zone, and — the part §7 depends on — no request-URI logging for
+# the routes a ballot token travels on.
+#
+# TLS bootstrap: while polls_enable_tls is set but no certificate has been
+# issued yet, the application is served on :80 so that `certbot --nginx` has a
+# server block to work against. Once the certificate exists the template
+# re-renders with the :443 block and the redirect (provision.yml re-runs it).
+
+# The token appears only in /<lang>/bulletin/<poll>/acces/<token>/ (see
+# apps/ballots/urls.py). Suppressing the whole /bulletin/ prefix is deliberate:
+# every other route under it is token-free and low-traffic, so nothing of
+# operational value is lost, and a future token-bearing route cannot leak by
+# omission. The old /inscription/.../confirmation/ route named in earlier notes
+# was retired (apps/core/tokensession.py); /inscription/ carries no token now.
+map $request_uri $polls_loggable {
+    default                    1;
+    "~*^/[a-z]{2}/bulletin/"   0;
+}
+
+limit_req_zone $binary_remote_addr zone=polls_write:10m rate=20r/m;
+
+{% set tls_live = polls_enable_tls and polls_tls_cert_present %}
+{% if tls_live %}
+server {
+    listen 80;
+    listen [::]:80;
+    server_name {{ polls_domain }};
+    location /.well-known/acme-challenge/ { root /var/www/html; }
+    location / { return 301 https://$host$request_uri; }
+}
+{% endif %}
+
+server {
+{% if tls_live %}
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    ssl_certificate     /etc/letsencrypt/live/{{ polls_domain }}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{{ polls_domain }}/privkey.pem;
+{% else %}
+    listen 80;
+    listen [::]:80;
+{% endif %}
+    server_name {{ polls_domain }} localhost 127.0.0.1;
+
+    access_log /var/log/nginx/polls.access.log combined if=$polls_loggable;
+    error_log  /var/log/nginx/polls.error.log;
+
+    client_max_body_size 10m;   # roll imports (§6.1) are the largest upload
+
+    add_header X-Content-Type-Options nosniff always;
+    add_header X-Frame-Options DENY always;
+    add_header Referrer-Policy same-origin always;
+{% if tls_live %}
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+{% endif %}
+{% if polls_enable_tls and not polls_tls_cert_present %}
+    location /.well-known/acme-challenge/ { root /var/www/html; }
+{% endif %}
+
+    location /static/ {
+        alias {{ polls_prefix }}/current/var/static/;
+        access_log off;
+        expires 30d;
+    }
+
+    location / {
+        limit_req zone=polls_write burst=10 nodelay;
+        proxy_pass http://{{ polls_bind }};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        # prod.py reads SECURE_PROXY_SSL_HEADER = X-Forwarded-Proto; secure
+        # cookies and rate limiting both misbehave without it (§14).
+        proxy_set_header X-Forwarded-Proto {% if tls_live %}https{% else %}$scheme{% endif %};
+
+        proxy_redirect off;
+        proxy_connect_timeout 5s;
+        proxy_read_timeout 30s;
+    }
+}

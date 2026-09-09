@@ -1,0 +1,14 @@
+# {{ ansible_managed }}
+# Persistent=true so a host that was off runs the missed job once on boot
+# (§14, §15); the randomised delay keeps the four jobs from all firing on the
+# same second.
+[Unit]
+Description=Schedule for polls job %i
+
+[Timer]
+OnCalendar=*:0/{{ polls_job_interval_minutes }}
+Persistent=true
+RandomizedDelaySec=30
+
+[Install]
+WantedBy=timers.target

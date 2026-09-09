@@ -12,6 +12,12 @@ dependencies = [
     "argon2-cffi>=23.1",
 ]
 
+[project.optional-dependencies]
+# The WSGI server the Ansible deploy supervises (§15 step 6). An extra, not a
+# core dependency: the test suite and the gates never import it, so `uv sync`
+# for development stays minimal and the target pulls it with `--extra deploy`.
+deploy = ["gunicorn>=23.0"]
+
 [dependency-groups]
 dev = [
     "mypy>=1.11",

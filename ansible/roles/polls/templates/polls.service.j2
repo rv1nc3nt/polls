@@ -1,0 +1,33 @@
+# {{ ansible_managed }}
+# The web process. Rendered from the role so the paths follow the role
+# variables; contrib/init/polls.service is the same unit with the defaults
+# baked in, for a hand install (§15).
+[Unit]
+Description=Commune polling platform
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+User={{ polls_user }}
+Group={{ polls_group }}
+EnvironmentFile={{ polls_config_dir }}/polls.env
+WorkingDirectory={{ polls_prefix }}/current
+ExecStart={{ polls_prefix }}/current/.venv/bin/gunicorn config.wsgi:application \
+    --chdir {{ polls_prefix }}/current \
+    --bind {{ polls_bind }} --workers {{ polls_gunicorn_workers }} \
+    --access-logfile - --error-logfile -
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=5
+
+# Hardening. The code under the prefix is read-only to the service; only the
+# state and backup directories are writable (SQLite WAL, job locks).
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths={{ polls_state_dir }} {{ polls_backup_dir }}
+
+[Install]
+WantedBy=multi-user.target

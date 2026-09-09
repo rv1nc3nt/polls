@@ -1,0 +1,9 @@
+# {{ ansible_managed }}
+# Scheduled jobs (§15 step 6), scheduler = cron. Every command is self-locking
+# and state-based (§14): a second copy started by cron exits 0 without acting,
+# and a host that was down catches up on the next run rather than skipping.
+SHELL=/bin/sh
+MAILTO={{ polls_admin_email }}
+{% for job in ['open_poll', 'close_poll', 'send_reminders', 'retention_purge'] %}
+*/{{ polls_job_interval_minutes }} * * * * {{ polls_user }} {{ polls_prefix }}/bin/polls-manage {{ job }}
+{%- endfor %}
