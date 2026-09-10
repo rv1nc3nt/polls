@@ -54,30 +54,35 @@
       <p lang="fr">La version française fait foi ; cette traduction est fournie à titre informatif.</p>
     {% endif %}
 
-    <form action="{% url 'set_language' %}" method="post" class="langswitch">
-      {% csrf_token %}
-      <input type="hidden" name="next" value="{{ request.get_full_path }}">
-      <label for="langswitch-select">{% translate "Langue" %}</label>
-      <select id="langswitch-select" name="language">
-        {% get_available_languages as LANGUAGES %}
-        {% for code, name in LANGUAGES %}
-          <option value="{{ code }}" lang="{{ code }}"{% if code == LANGUAGE_CODE %} selected{% endif %}>{{ name }}</option>
-        {% endfor %}
-      </select>
-      <button type="submit">{% translate "Changer" %}</button>
-    </form>
+    {% comment %} The language chooser and the theme control. The espace mairie overrides
+       this block empty and puts both in its left panel instead (§6.5); the public
+       pages keep them here in the footer. {% endcomment %}
+    {% block footer_tools %}
+      <form action="{% url 'set_language' %}" method="post" class="langswitch">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <label for="langswitch-select">{% translate "Langue" %}</label>
+        <select id="langswitch-select" name="language">
+          {% get_available_languages as LANGUAGES %}
+          {% for code, name in LANGUAGES %}
+            <option value="{{ code }}" lang="{{ code }}"{% if code == LANGUAGE_CODE %} selected{% endif %}>{{ name }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit">{% translate "Changer" %}</button>
+      </form>
 
-    {% comment %} Revealed by static/js/theme.js. The OS setting is honoured with or
-       without this control; it only lets a visitor override it, and the choice
-       is kept in that browser (R-14.1, §14). {% endcomment %}
-    <div class="themeswitch" data-theme-control hidden>
-      <span id="themeswitch-label">{% translate "Thème" %}</span>
-      <div role="group" aria-labelledby="themeswitch-label">
-        <button type="button" value="light">{% translate "Clair" %}</button>
-        <button type="button" value="dark">{% translate "Sombre" %}</button>
-        <button type="button" value="auto">{% translate "Système" %}</button>
+      {% comment %} Revealed by static/js/theme.js. The OS setting is honoured with or
+         without this control; it only lets a visitor override it, and the choice
+         is kept in that browser (R-14.1, §14). {% endcomment %}
+      <div class="themeswitch" data-theme-control hidden>
+        <span id="themeswitch-label">{% translate "Thème" %}</span>
+        <div role="group" aria-labelledby="themeswitch-label">
+          <button type="button" value="light">{% translate "Clair" %}</button>
+          <button type="button" value="dark">{% translate "Sombre" %}</button>
+          <button type="button" value="auto">{% translate "Système" %}</button>
+        </div>
       </div>
-    </div>
+    {% endblock %}
   </footer>
 
   {% block body_end %}{% endblock %}

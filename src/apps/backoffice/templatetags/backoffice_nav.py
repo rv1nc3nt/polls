@@ -72,6 +72,8 @@ class _Item:
     roles: tuple[str, ...] = ()
     owns: tuple[str, ...] = ()
     needs_countersign: bool = False
+    #: Name of a ``<symbol>`` in the sprite at the top of ``backoffice/_nav.html``.
+    icon: str = ""
 
     def lit_by(self, url_name: str) -> bool:
         return url_name == self.url_name or url_name in self.owns
@@ -86,9 +88,9 @@ class _Group:
 #: Always under the wordmark, in this order, on every screen. « Scrutins » is
 #: open to any signed-in operator; the other two need the commune-admin flag.
 _GLOBAL_ITEMS: tuple[_Item, ...] = (
-    _Item(_("Scrutins"), "poll_index"),
-    _Item(_("Comptes opérateurs"), "account_admin", (_COMMUNE,)),
-    _Item(_("Rôles par scrutin"), "role_admin", (_COMMUNE,)),
+    _Item(_("Scrutins"), "poll_index", icon="polls"),
+    _Item(_("Comptes opérateurs"), "account_admin", (_COMMUNE,), icon="accounts"),
+    _Item(_("Rôles par scrutin"), "role_admin", (_COMMUNE,), icon="roles"),
 )
 
 #: Added below the global links when a poll is in scope, grouped in the order the
@@ -97,39 +99,58 @@ _POLL_MENU: tuple[_Group, ...] = (
     _Group(
         _("Scrutin"),
         (
-            _Item(_("Tableau de bord"), "dashboard"),
-            _Item(_("Configuration"), "poll_config", (_POLL_ADMIN,)),
+            _Item(_("Tableau de bord"), "dashboard", icon="dashboard"),
+            _Item(_("Configuration"), "poll_config", (_POLL_ADMIN,), icon="config"),
             _Item(
-                _("Liste électorale"), "roll_import", (_POLL_ADMIN,), owns=("roll_import_review",)
+                _("Liste électorale"),
+                "roll_import",
+                (_POLL_ADMIN,),
+                owns=("roll_import_review",),
+                icon="roll",
             ),
             _Item(
                 _("Inscriptions"),
                 "registration_queue",
                 (_POLL_ADMIN,),
                 owns=("registration_decide",),
+                icon="registrations",
             ),
         ),
     ),
     _Group(
         _("Bulletins papier"),
         (
-            _Item(_("Saisie"), "paper_entry", (_ENTRY_OPERATOR,), owns=("paper_receipt",)),
+            _Item(
+                _("Saisie"),
+                "paper_entry",
+                (_ENTRY_OPERATOR,),
+                owns=("paper_receipt",),
+                icon="entry",
+            ),
             _Item(
                 _("Bulletins papier"),
                 "paper_ballot_list",
                 (_ENTRY_OPERATOR, _POLL_ADMIN),
                 owns=("paper_ballot",),
+                icon="paper",
             ),
             _Item(
                 _("Contreseing"),
                 "countersign_queue",
                 (_ENTRY_OPERATOR,),
                 needs_countersign=True,
+                icon="countersign",
             ),
         ),
     ),
-    _Group(_("Résultats"), (_Item(_("Dépouillement"), "results_publish", (_POLL_ADMIN,)),)),
-    _Group(_("Suivi"), (_Item(_("Journal d'audit"), "audit_log", (_AUDITOR, _POLL_ADMIN)),)),
+    _Group(
+        _("Résultats"),
+        (_Item(_("Dépouillement"), "results_publish", (_POLL_ADMIN,), icon="tally"),),
+    ),
+    _Group(
+        _("Suivi"),
+        (_Item(_("Journal d'audit"), "audit_log", (_AUDITOR, _POLL_ADMIN), icon="audit"),),
+    ),
 )
 
 _Resolved = tuple[list[dict[str, object]], list[dict[str, object]], "Promise | str"]
@@ -164,7 +185,12 @@ def _resolve(context: template.Context) -> _Resolved:
         if active and item.url_name != "poll_index":
             current_label = item.label
         global_items.append(
-            {"label": item.label, "url": reverse(f"backoffice:{item.url_name}"), "current": active}
+            {
+                "label": item.label,
+                "url": reverse(f"backoffice:{item.url_name}"),
+                "current": active,
+                "icon": item.icon,
+            }
         )
 
     poll_groups: list[dict[str, object]] = []
@@ -197,6 +223,7 @@ def _resolve(context: template.Context) -> _Resolved:
                         else grant_url,
                         "current": active,
                         "needs_grant": not held,
+                        "icon": item.icon,
                     }
                 )
             if entries:
@@ -208,14 +235,20 @@ def _resolve(context: template.Context) -> _Resolved:
 @register.inclusion_tag("backoffice/_nav.html", takes_context=True)
 def bo_nav(context: template.Context) -> dict[str, object]:
     """The left-column menu: the global links always, the poll groups when a
-    poll is in scope."""
+    poll is in scope, and — at the foot of the panel — the language and theme
+    controls the public pages keep in their footer (§6.5)."""
     global_items, poll_groups, _label = _resolve(context)
     poll = context.get("poll")
+    request = context["request"]
     return {
         "global_items": global_items,
         "poll_groups": poll_groups,
         "poll": poll if isinstance(poll, Poll) else None,
         "poll_index_url": reverse("backoffice:poll_index"),
+        # Passed through so the language form can post with a CSRF token and come
+        # back to the same screen; the inclusion tag gets a bare context.
+        "csrf_token": context.get("csrf_token"),
+        "request_path": request.get_full_path(),
     }
 
 

@@ -36,6 +36,10 @@
 
 {% block nav %}{% bo_nav %}{% endblock %}
 
+{% comment %} The language and theme controls live in the left panel here, not the footer
+   (§6.5). `bo_nav` renders them at the foot of the panel. {% endcomment %}
+{% block footer_tools %}{% endblock %}
+
 {% block content %}
   {% if user.is_authenticated %}
     {% bo_current_label as crumb_leaf %}

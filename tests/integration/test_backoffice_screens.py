@@ -325,7 +325,11 @@ def test_the_log_offers_no_way_to_change_anything(
     client.force_login(admin_user)
     body = client.get(f"/fr/mairie/scrutin/{open_window_poll.pk}/journal/").content.decode()
     assert "lecture seule" in body
-    assert 'method="post"' not in body.split('<form method="get"')[0].split("</header>")[-1]
+    # No POST form inside the screen itself, before its GET filter form. Scoped
+    # to <main> so the left panel's language form (chrome, not a log action)
+    # does not count.
+    screen = body.split("<main", 1)[1]
+    assert 'method="post"' not in screen.split('<form method="get"')[0]
 
 
 def test_a_published_poll_still_shows_its_dashboard(

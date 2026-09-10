@@ -205,11 +205,27 @@ body.bo main { padding: 0; }
   left: 0;
   bottom: 0;
   width: var(--bo-side);
+  display: flex;
+  flex-direction: column;   /* so the tools block can sit at the foot */
   overflow-y: auto;
   overscroll-behavior: contain;
   background: var(--paper-quiet);
   border-right: 1px solid var(--rule);
   padding-bottom: 1.5rem;
+}
+/* The icon sprite is markup, not a picture: keep it out of the flow and the
+   accessibility tree (each entry still carries its text label). */
+.bo-ico-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+.bo-ico {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex: none;
+  margin-top: 0.1rem;
+  fill: none;
+  stroke: var(--ink-quiet);
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .bo-side__brand {
   display: block;
@@ -268,29 +284,64 @@ body.bo main { padding: 0; }
 .bo-side__poll + .bo-side__group { margin-top: 0.35rem; }
 .bo-side__list { list-style: none; margin: 0; padding: 0; }
 .bo-side__link {
-  display: block;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
   padding: 0.5rem 1.15rem;
   color: var(--ink);
   text-decoration: none;
   border-left: 3px solid transparent;
 }
+.bo-side__text { display: flex; flex-direction: column; min-width: 0; }
 .bo-side__link:hover { background: var(--rule-soft); }
+.bo-side__link:hover .bo-ico { stroke: var(--ink); }
 .bo-side__link.is-current {
   font-weight: 700;
   color: var(--accent);
   background: var(--accent-soft);
   border-left-color: var(--accent);
 }
+.bo-side__link.is-current .bo-ico { stroke: var(--accent); }
 
 /* A commune admin's entry for a role they have not granted themselves yet: the
    link leads to the role screen, and the sub-label — not the colour — says so. */
 .bo-side__link.needs-grant { color: var(--ink-quiet); }
 .bo-side__grant {
-  display: block;
   font-size: 0.72rem;
   font-weight: 400;
   color: var(--ink-quiet);
 }
+
+/* Language and theme, at the foot of the panel (§6.5). `margin-top: auto`
+   pushes the block down while the menu is short, and it scrolls with the rest
+   once the menu is long. */
+.bo-side__tools {
+  margin-top: auto;
+  padding: 0.9rem 1.15rem 0;
+  border-top: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+.bo-side__tools .langswitch,
+.bo-side__tools .themeswitch { margin-top: 0; }
+.bo-side__lang { align-items: center; }
+.bo-side__lang label,
+.bo-side__theme > span {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-quiet);
+  align-self: start;
+}
+.bo-side__lang select { flex: 1 1 6rem; min-width: 0; min-height: 2.2rem; }
+.bo-side__lang button { padding: 0.45rem 0.7rem; }
+.bo-side__tools .themeswitch { flex-direction: column; align-items: stretch; gap: 0.35rem; }
+.bo-side__tools .themeswitch [role="group"] { display: flex; }
+.bo-side__tools .themeswitch button { flex: 1; padding: 0.4rem 0.3rem; font-size: 0.8rem; }
 
 /* Breadcrumb: sticky, so "where am I" survives a long journal or tally. */
 .bo-crumb {
@@ -336,6 +387,7 @@ body.bo main { padding: 0; }
   .bo-side__list { display: flex; flex-wrap: wrap; }
   .bo-side__link,
   .bo-side__link.is-current { border-left: 0; border-radius: var(--radius-sm); }
+  .bo-side__tools { margin-top: 0.75rem; flex-flow: row wrap; align-items: end; gap: 1rem 1.5rem; }
   .bo-crumb { position: static; }
 }
 .langswitch, .themeswitch { display: flex; gap: 0.5rem; align-items: end; flex-wrap: wrap; margin-top: 0.75rem; }

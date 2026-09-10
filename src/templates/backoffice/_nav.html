@@ -2,8 +2,28 @@
 {# SPDX-License-Identifier: 0BSD #}
 {% comment %} Rendered by the `bo_nav` tag (apps/backoffice/templatetags/backoffice_nav.py).
    The wordmark and the global links are on every screen, in the same place; the
-   poll block is added below only when a poll is in scope. An entry the operator
-   may not open is absent, never greyed (R-14.1). {% endcomment %}
+   poll block is added below only when a poll is in scope; the language and theme
+   controls sit at the foot of the panel (§6.5). An entry the operator may not
+   open is absent, never greyed (R-14.1). {% endcomment %}
+
+{% comment %} One sprite, referenced by <use> below. The icons are decoration — every
+   entry keeps its text label — so the sprite is aria-hidden and the individual
+   svgs are too. {% endcomment %}
+<svg class="bo-ico-sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="ico-polls" viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="M4.5 12.5 12 16.5l7.5-4"/></symbol>
+  <symbol id="ico-accounts" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.7-3 2.9-4.8 5.5-4.8S13.8 16 14.5 19"/><path d="M15.8 5.3a3 3 0 0 1 0 5.6"/><path d="M17.2 14.4c2.1.5 3.6 2.3 4.3 4.6"/></symbol>
+  <symbol id="ico-roles" viewBox="0 0 24 24"><circle cx="8.5" cy="14.5" r="3.7"/><path d="m11.1 11.9 8.4-8.4"/><path d="m16.5 6.5 2.5 2.5"/><path d="m14 9 2.5 2.5"/></symbol>
+  <symbol id="ico-dashboard" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.2"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.2"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.2"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.2"/></symbol>
+  <symbol id="ico-config" viewBox="0 0 24 24"><path d="M4 7h8"/><path d="M17 7h3"/><path d="M4 17h3"/><path d="M11 17h9"/><circle cx="14.5" cy="7" r="2.4"/><circle cx="7.5" cy="17" r="2.4"/></symbol>
+  <symbol id="ico-roll" viewBox="0 0 24 24"><path d="M9 6h11"/><path d="M9 12h11"/><path d="M9 18h11"/><circle cx="4.6" cy="6" r="1.15"/><circle cx="4.6" cy="12" r="1.15"/><circle cx="4.6" cy="18" r="1.15"/></symbol>
+  <symbol id="ico-registrations" viewBox="0 0 24 24"><path d="M4 13 5.8 5.6A2 2 0 0 1 7.7 4h8.6a2 2 0 0 1 1.9 1.6L20 13v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M4 13h4l2 3h4l2-3h4"/></symbol>
+  <symbol id="ico-entry" viewBox="0 0 24 24"><path d="m13.5 6.5 4 4"/><path d="M4 20l1-4.5L15.5 5a2.1 2.1 0 0 1 3 0l.5.5a2.1 2.1 0 0 1 0 3L8.5 19Z"/></symbol>
+  <symbol id="ico-paper" viewBox="0 0 24 24"><path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V8Z"/><path d="M14 3v5h4"/><path d="M9.5 13h5"/><path d="M9.5 16.5h5"/></symbol>
+  <symbol id="ico-countersign" viewBox="0 0 24 24"><path d="M3 12.5 6.5 16 14 7.5"/><path d="m13 15 1.6 1.5L21 9"/></symbol>
+  <symbol id="ico-tally" viewBox="0 0 24 24"><path d="M4 20h16"/><path d="M6.5 20v-6"/><path d="M12 20V5"/><path d="M17.5 20v-9"/></symbol>
+  <symbol id="ico-audit" viewBox="0 0 24 24"><path d="m12 3.5 7 2.4v5.3c0 4.6-3 7.4-7 8.8-4-1.4-7-4.2-7-8.8V5.9Z"/><path d="m9 12 2 2 4-4.5"/></symbol>
+</svg>
+
 <nav class="bo-side" aria-label="{% translate 'Navigation de l’espace mairie' %}">
   <a class="bo-side__brand" href="{{ poll_index_url }}">{% translate "Espace mairie" %}</a>
 
@@ -12,7 +32,10 @@
       {% for item in global_items %}
         <li>
           <a class="bo-side__link{% if item.current %} is-current{% endif %}"
-             href="{{ item.url }}"{% if item.current %} aria-current="page"{% endif %}>{{ item.label }}</a>
+             href="{{ item.url }}"{% if item.current %} aria-current="page"{% endif %}>
+            <svg class="bo-ico" aria-hidden="true"><use href="#ico-{{ item.icon }}"></use></svg>
+            <span class="bo-side__text">{{ item.label }}</span>
+          </a>
         </li>
       {% endfor %}
     </ul>
@@ -33,11 +56,43 @@
                screen needs. The link goes to the role-assignment screen for this poll;
                the words say why, so it does not rely on the quieter colour (R-14.1). {% endcomment %}
             <a class="bo-side__link{% if item.current %} is-current{% endif %}{% if item.needs_grant %} needs-grant{% endif %}"
-               href="{{ item.url }}"{% if item.current %} aria-current="page"{% endif %}>{{ item.label }}{% if item.needs_grant %}
-              <span class="bo-side__grant">{% translate "rôle à s’attribuer" %}</span>{% endif %}</a>
+               href="{{ item.url }}"{% if item.current %} aria-current="page"{% endif %}>
+              <svg class="bo-ico" aria-hidden="true"><use href="#ico-{{ item.icon }}"></use></svg>
+              <span class="bo-side__text">{{ item.label }}{% if item.needs_grant %}
+                <span class="bo-side__grant">{% translate "rôle à s’attribuer" %}</span>{% endif %}</span>
+            </a>
           </li>
         {% endfor %}
       </ul>
     {% endfor %}
   {% endif %}
+
+  {% comment %} The language and theme controls, moved here from the footer for the espace
+     mairie (§6.5). Same markup contract as the footer version — class="themeswitch"
+     with [data-theme-control] and button[value] children — so static/js/theme.js
+     wires it unchanged, and the print stylesheet still hides it. {% endcomment %}
+  <div class="bo-side__tools">
+    <form class="langswitch bo-side__lang" action="{% url 'set_language' %}" method="post">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request_path }}">
+      <label for="bo-lang-select">{% translate "Langue" %}</label>
+      <select id="bo-lang-select" name="language">
+        {% get_current_language as CURRENT_LANGUAGE %}
+        {% get_available_languages as AVAILABLE_LANGUAGES %}
+        {% for code, name in AVAILABLE_LANGUAGES %}
+          <option value="{{ code }}" lang="{{ code }}"{% if code == CURRENT_LANGUAGE %} selected{% endif %}>{{ name }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit">{% translate "Changer" %}</button>
+    </form>
+
+    <div class="themeswitch bo-side__theme" data-theme-control hidden>
+      <span id="bo-theme-label">{% translate "Thème" %}</span>
+      <div role="group" aria-labelledby="bo-theme-label">
+        <button type="button" value="light">{% translate "Clair" %}</button>
+        <button type="button" value="dark">{% translate "Sombre" %}</button>
+        <button type="button" value="auto">{% translate "Système" %}</button>
+      </div>
+    </div>
+  </div>
 </nav>
