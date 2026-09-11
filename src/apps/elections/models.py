@@ -25,6 +25,11 @@ class PollState(models.TextChoices):
     publicly visible, configuration already frozen (INV-6 already reads
     ``state != draft``, so this falls out of the existing rule without a
     change to it) — for as long as the poll admin likes before opening it.
+
+    ``withdrawn`` is a fifth, terminal state, reachable only from
+    ``announced``, ``open``, ``closed`` or ``published`` (R-3.11) — never from
+    ``draft``, which has ``delete`` for that. No transition leaves it, same as
+    ``published``.
     """
 
     DRAFT = "draft", _("brouillon")
@@ -32,6 +37,7 @@ class PollState(models.TextChoices):
     OPEN = "open", _("ouvert")
     CLOSED = "closed", _("clos")
     PUBLISHED = "published", _("publié")
+    WITHDRAWN = "withdrawn", _("retiré")
 
 
 class ListType(models.TextChoices):
@@ -136,6 +142,9 @@ class Poll(models.Model):
     state = models.CharField(max_length=20, choices=PollState.choices, default=PollState.DRAFT)
     closure_hash = models.BinaryField(max_length=32, null=True, blank=True)
     closed_at = models.DateTimeField(null=True, blank=True)
+    # R-3.11: set once, on withdrawal. The retention anchor of R-13.3 for a
+    # poll withdrawn before ever reaching ``closed`` — see ``retention.py``.
+    withdrawn_at = models.DateTimeField(null=True, blank=True)
 
     # §9: frozen on entry to ``closed`` and never re-derived, since the
     # registrations they count are deleted by the retention job (§11).

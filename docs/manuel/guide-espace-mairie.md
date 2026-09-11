@@ -79,6 +79,8 @@ Toute attribution de rôle est tracée au journal (§10).
 
 ```
 brouillon  ──►  [annoncé]  ──►  ouvert  ──►  clos  ──►  publié
+                    │              │           │          │
+                    └──────────────┴───────────┴──────────┴──►  retiré
 ```
 
 **Aucune transition n'est réversible** (R-3.2). `Poll.state` n'est écrit que
@@ -89,12 +91,13 @@ a deux origines possibles :
   retard, deux fois, ou pas du tout — d'où le tableau de bord qui nomme à
   l'avance ce qui bloquerait la transition suivante (ci-dessous) ;
 - l'administrateur du scrutin, **à la main**, depuis l'écran de
-  **configuration** (écran 2, §4) : *Annoncer maintenant*, *Ouvrir maintenant*
-  et *Clôturer maintenant* (R-2.1). Les trois passent par les mêmes fonctions
-  gardées que les tâches planifiées, donc un scrutin qui ne pourrait pas
-  s'ouvrir ou se clore tout seul ne peut pas non plus être forcé depuis
-  l'écran — à l'exception du passage outre au contreseing (§8), que seul un
-  humain peut motiver.
+  **configuration** (écran 2, §4) : *Annoncer maintenant*, *Ouvrir maintenant*,
+  *Clôturer maintenant* et *Retirer le scrutin* (R-2.1). Les quatre passent par
+  les mêmes fonctions gardées que les tâches planifiées, donc un scrutin qui ne
+  pourrait pas s'ouvrir ou se clore tout seul ne peut pas non plus être forcé
+  depuis l'écran — à l'exception du passage outre au contreseing (§8), que
+  seul un humain peut motiver. Le retrait n'a, lui, aucune tâche planifiée
+  équivalente : c'est une action manuelle et volontaire, ou rien.
 
 - **brouillon → annoncé** (R-3.10, optionnelle) : rend le scrutin visible sur
   le site public — propositions et calendrier, sans inscription ni vote
@@ -117,6 +120,15 @@ a deux origines possibles :
   encore légitimement.
 - **clos → publié** : le dépouillement (fonction pure) est exécuté et les
   artefacts de §9 deviennent publics.
+- **annoncé, ouvert, clos ou publié → retiré** (R-3.11, à tout moment, motif
+  **obligatoire**) : plus rien du scrutin ne reste sur le site public — ni
+  propositions, ni calendrier, ni participation, ni résultat déjà publié le
+  cas échéant. La page qui portait son adresse indique seulement qu'il a été
+  retiré. Terminal : aucune transition n'en repart, comme pour *publié*. Les
+  bulletins et le journal d'audit ne sont pas touchés ; côté conservation des
+  données (§11), un scrutin retiré avant d'avoir été clos obtient, faute de
+  date de clôture, un point de départ de rétention sur la date du retrait
+  elle-même.
 
 **Figure 12a — Configuration en lecture seule d'un scrutin annoncé, avec *Ouvrir maintenant*.**
 
@@ -182,6 +194,20 @@ suit.
 > Un scrutin test (`is_sandbox`) est fixé à la création et **non modifiable** ;
 > il est exclu des listes publiques, des résultats publiés et de toute
 > statistique (R-3.7).
+
+### Retirer le scrutin (R-3.11)
+
+Depuis les états **annoncé**, **ouvert**, **clos** ou **publié**, le bas de
+l'écran de configuration propose **« Retirer le scrutin »**, avec un **motif
+obligatoire** consigné au journal d'audit. Le retrait est **irréversible** : le
+scrutin passe à l'état `retiré`, dont aucune transition ne repart. Dès le
+retrait, plus rien de ce scrutin n'apparaît sur le site public — l'adresse qui
+portait sa page publique n'affiche plus qu'un avis de retrait, sans son
+intitulé, sa description, ses propositions ni son résultat. Une fois retiré,
+cet écran devient à son tour une consultation en lecture seule, nommant le
+motif et l'instant du retrait. Le retrait ne supprime ni les bulletins ni le
+journal d'audit ; il ne peut pas non plus effacer une copie du résultat qu'un
+tiers aurait déjà téléchargée avant que le retrait n'intervienne.
 
 ### Propositions et identifiants
 
@@ -554,12 +580,15 @@ rétention la reprend.
   R-13.2). Le référent est celui saisi à la première installation.
 - **Durées de conservation** (R-13.3) : les données d'identité (inscriptions,
   copie figée de la liste, association bulletin papier ↔ électeur) sont
-  supprimées **deux mois après la clôture** ; les champs « données personnelles »
-  du journal d'audit sont effacés au même terme, **en conservant** l'entrée, son
-  auteur, sa date et son motif. Point de départ : la **clôture**, pas la
-  publication (un scrutin clos jamais publié conserverait sinon ces données
-  indéfiniment). Les bulletins anonymisés, le résultat publié et le journal sont
-  conservés au-delà. La **liste de travail** importée (§5) obéit à une règle
+  supprimées **deux mois après la clôture**, ou après le **retrait** (R-3.11)
+  pour un scrutin retiré avant d'avoir été clos ; les champs « données
+  personnelles » du journal d'audit sont effacés au même terme, **en
+  conservant** l'entrée, son auteur, sa date et son motif. Point de départ : la
+  **clôture**, ou à défaut le **retrait**, jamais la publication (un scrutin
+  clos jamais publié, ou retiré avant de l'être clos, conserverait sinon ces
+  données indéfiniment). Les bulletins anonymisés, le résultat publié s'il
+  existe et le journal sont conservés au-delà. La **liste de travail** importée
+  (§5) obéit à une règle
   voisine mais distincte (R-13.3 bis) : elle est supprimée **deux mois après
   son import**, sauf tant qu'un scrutin encore en **brouillon ou annoncé** doit
   la consommer à son ouverture — un point de départ différent (l'import, pas

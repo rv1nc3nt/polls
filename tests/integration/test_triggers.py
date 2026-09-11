@@ -265,3 +265,97 @@ def test_inv7_roll_snapshot_is_immutable_and_purgeable_only_after_closure(
     raw("UPDATE elections_poll SET state = 'closed' WHERE id = %s", [pk(open_window_poll)])
     raw("DELETE FROM elections_rollentry WHERE id = %s", [pk(entry)])
     assert not RollEntry.objects.filter(pk=entry.pk).exists()
+
+
+# --- withdrawal (R-3.11) ----------------------------------------------------
+
+
+def test_t74_the_withdrawn_branches_are_legal_but_withdrawn_itself_is_a_dead_end(
+    open_window_poll: Poll,
+) -> None:
+    """T-74, R-3.2/R-3.11: each of the four legal sources may reach
+    ``withdrawn`` directly by raw SQL, but nothing leaves it — not back to its
+    source, not forward to any other state — and ``draft`` cannot reach it at
+    all, matching ``withdrawing_blockers``' ``not_withdrawable``."""
+    with pytest.raises(Exception, match="R-3.2"), transaction.atomic():
+        raw(
+            "UPDATE elections_poll SET state = 'withdrawn' WHERE id = %s",
+            [pk(open_window_poll)],
+        )
+
+    raw("UPDATE elections_poll SET state = 'open' WHERE id = %s", [pk(open_window_poll)])
+    raw("UPDATE elections_poll SET state = 'withdrawn' WHERE id = %s", [pk(open_window_poll)])
+    with pytest.raises(Exception, match="R-3.2"), transaction.atomic():
+        raw("UPDATE elections_poll SET state = 'open' WHERE id = %s", [pk(open_window_poll)])
+    with pytest.raises(Exception, match="R-3.2"), transaction.atomic():
+        raw(
+            "UPDATE elections_poll SET state = 'closed' WHERE id = %s",
+            [pk(open_window_poll)],
+        )
+
+
+def test_t77_the_delete_carveout_opens_only_once_withdrawn_not_before(
+    open_window_poll: Poll,
+) -> None:
+    """T-77: the same ``DELETE`` that is refused while a poll is ``open`` is
+    admitted once it is ``withdrawn`` — the trigger reads the state, not the
+    elapsed time, which is ``due_polls``' own selection to enforce (§11)."""
+    from apps.elections.models import RollEntry
+
+    entry = RollEntry.objects.create(
+        poll=open_window_poll,
+        birth_name="Dupont",
+        first_names="Émile",
+        date_of_birth="12/05/1970",
+        list_types=["principale"],
+    )
+    with pytest.raises(Exception, match="INV-7"), transaction.atomic():
+        raw("DELETE FROM elections_rollentry WHERE id = %s", [pk(entry)])
+
+    raw("UPDATE elections_poll SET state = 'open' WHERE id = %s", [pk(open_window_poll)])
+    raw("UPDATE elections_poll SET state = 'withdrawn' WHERE id = %s", [pk(open_window_poll)])
+    raw("DELETE FROM elections_rollentry WHERE id = %s", [pk(entry)])
+    assert not RollEntry.objects.filter(pk=entry.pk).exists()
+
+
+def test_t78_withdrawn_refuses_ballots_and_registrations_even_inside_the_window(
+    open_window_poll: Poll,
+) -> None:
+    """T-78: ``open_window_poll``'s window is wide open (``opens_at`` in the
+    past, ``closes_at`` a day out) — the clock alone would admit every write
+    below. Withdrawal refuses them anyway, application check and trigger
+    alike, because it is never a delayed scheduled transition (§5.1)."""
+    from apps.elections.models import RollEntry
+    from apps.elections.transitions import open_poll
+    from apps.elections.windows import WindowClosed, check_ballot_window, check_registration_window
+    from apps.registrations.models import Channel, Registration, RegistrationState
+
+    poll = open_poll(open_window_poll)
+    entry = RollEntry.objects.get(poll=poll)
+    raw("UPDATE elections_poll SET state = 'withdrawn' WHERE id = %s", [pk(poll)])
+    poll.refresh_from_db()
+
+    with pytest.raises(WindowClosed):
+        check_ballot_window(poll, BallotSource.ONLINE)
+    with pytest.raises(WindowClosed):
+        check_registration_window(poll)
+
+    with pytest.raises(Exception, match="INV-2"), transaction.atomic():
+        Ballot.objects.create(
+            poll=poll,
+            tracking_code=new_tracking_code(),
+            ranking=[["a"], ["b"], ["c"]],
+            source=BallotSource.ONLINE,
+        )
+    with pytest.raises(Exception, match="INV-2"), transaction.atomic():
+        Registration.objects.create(
+            poll=poll,
+            roll_entry=entry,
+            state=RegistrationState.ACTIVE,
+            channel=Channel.NONE,
+            declared_last_name="Dupont",
+            declared_first_names="Émile",
+            declared_dob="12/05/1970",
+            email="x@example.test",
+            email_canonical="x@example.test",
+        )

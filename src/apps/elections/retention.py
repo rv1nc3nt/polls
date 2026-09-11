@@ -8,6 +8,16 @@ otherwise keep its identity data for ever. The basis for holding it ends when
 the poll is over, not when somebody gets round to announcing the outcome.
 Publication after a purge stays possible because §9 freezes the counts.
 
+**A withdrawn poll (R-3.11) shares the same purge, anchored on `withdrawn_at`
+where the poll never reached `closed`.** Closure and withdrawal are
+alternative ends to the same thing — the poll being over — so `due_polls`
+selects on whichever anchor a `withdrawn` poll actually has: `closed_at` if it
+passed through `closed` on the way (whether it was later withdrawn from
+`closed` itself or from `published`, in which case `closed_at` predates
+`withdrawn_at` and is the earlier, correct anchor), `withdrawn_at` otherwise —
+a poll pulled straight from `announced` or `open` has no `closed_at` at all,
+and without this second anchor its identity data would never become due.
+
 This module is the sole permitted writer past ``closes_at`` and the only caller
 of the deletes below (§5.1). The INV-2 trigger names the exception rather than
 being disabled for the job's duration: it permits ``DELETE`` on a registration
@@ -33,6 +43,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from apps.audit import services as audit
@@ -56,12 +67,24 @@ class PurgeReport:
 
 def due_polls(now: datetime | None = None) -> list[Poll]:
     """State-based selection (§14): everything past its anchor and not yet
-    purged, so a host that was down purges late rather than never."""
+    purged, so a host that was down purges late rather than never.
+
+    A ``withdrawn`` poll anchors on ``closed_at`` where it has one — set
+    before the later withdrawal, so it is the earlier and correct anchor — and
+    on ``withdrawn_at`` otherwise, for the poll pulled straight from
+    ``announced`` or ``open`` that never acquired a ``closed_at`` at all.
+    """
     now = now or timezone.now()
+    threshold = now - RETENTION
     return list(
         Poll.objects.filter(
-            state__in=[PollState.CLOSED, PollState.PUBLISHED],
-            closed_at__lte=now - RETENTION,
+            Q(state__in=[PollState.CLOSED, PollState.PUBLISHED], closed_at__lte=threshold)
+            | Q(state=PollState.WITHDRAWN, closed_at__isnull=False, closed_at__lte=threshold)
+            | Q(
+                state=PollState.WITHDRAWN,
+                closed_at__isnull=True,
+                withdrawn_at__lte=threshold,
+            )
         )
     )
 

@@ -22,7 +22,13 @@ from apps.core.codes import new_tracking_code
 from apps.core.models import PollRole, Role, User
 from apps.elections import config
 from apps.elections.models import Poll, PollOption, PollState, TallyMethod, WorkingRollEntry
-from apps.elections.transitions import TransitionRefused, open_poll, opening_blockers
+from apps.elections.transitions import (
+    TransitionRefused,
+    close_poll,
+    open_poll,
+    opening_blockers,
+    publish_poll,
+)
 
 
 @pytest.fixture
@@ -616,3 +622,82 @@ def test_announce_now_is_refused_once_the_poll_has_left_draft(
     assert response.status_code == 403
     poll.refresh_from_db()
     assert poll.state == PollState.OPEN
+
+
+# --- R-3.11: withdrawal from screen 2 ---------------------------------------
+
+
+def test_withdraw_now_pulls_an_open_poll_and_the_screen_becomes_the_readonly_view(
+    client: Client, open_window_poll: Poll, admin_user: User
+) -> None:
+    poll = open_poll(open_window_poll)
+    _grant(poll, admin_user, Role.POLL_ADMIN)
+    client.force_login(admin_user)
+
+    body = client.get(_url(poll)).content.decode()
+    assert 'value="withdraw_poll"' in body
+
+    response = client.post(
+        _url(poll), {"action": "withdraw_poll", "reason": Reason.ADMINISTRATIVE_DECISION}
+    )
+    assert response.status_code == 302
+    poll.refresh_from_db()
+    assert poll.state == PollState.WITHDRAWN
+    assert poll.withdrawn_at is not None
+    assert AuditEvent.objects.filter(action=Action.POLL_WITHDRAWN, poll=poll).exists()
+
+    # The screen itself becomes the retiré read-only view, naming the reason
+    # and the instant — for the poll admin, never for the public site (§6.6).
+    body = client.get(_url(poll)).content.decode()
+    assert "Ce scrutin a été retiré" in body
+    assert str(Reason.ADMINISTRATIVE_DECISION.label) in body
+    assert 'value="withdraw_poll"' not in body
+    assert 'value="open_poll"' not in body
+
+
+def test_withdraw_now_requires_a_reason(
+    client: Client, open_window_poll: Poll, admin_user: User
+) -> None:
+    poll = open_poll(open_window_poll)
+    _grant(poll, admin_user, Role.POLL_ADMIN)
+    client.force_login(admin_user)
+
+    response = client.post(_url(poll), {"action": "withdraw_poll", "reason": ""})
+    assert response.status_code == 200
+    poll.refresh_from_db()
+    assert poll.state == PollState.OPEN
+
+
+def test_withdraw_now_is_offered_from_closed_and_published_too(
+    client: Client, open_window_poll: Poll, admin_user: User
+) -> None:
+    """R-3.11: unlike opening and closing, withdrawal is not restricted to one
+    state — it follows the poll all the way to ``published``."""
+    poll = open_poll(open_window_poll)
+    poll = close_poll(poll)
+    _grant(poll, admin_user, Role.POLL_ADMIN)
+    client.force_login(admin_user)
+    assert 'value="withdraw_poll"' in client.get(_url(poll)).content.decode()
+
+    published = publish_poll(Poll.objects.get(pk=poll.pk), admin_user)
+    assert 'value="withdraw_poll"' in client.get(_url(published)).content.decode()
+
+    response = client.post(_url(published), {"action": "withdraw_poll", "reason": Reason.OTHER})
+    assert response.status_code == 302
+    assert Poll.objects.get(pk=published.pk).state == PollState.WITHDRAWN
+
+
+def test_withdraw_now_is_refused_on_a_draft_poll(
+    client: Client, open_window_poll: Poll, admin_user: User
+) -> None:
+    _grant(open_window_poll, admin_user, Role.POLL_ADMIN)
+    client.force_login(admin_user)
+
+    # The button never renders on a draft poll; a forged POST is refused
+    # outright, same as a forged announce/open/close (§6.5).
+    response = client.post(
+        _url(open_window_poll), {"action": "withdraw_poll", "reason": Reason.OTHER}
+    )
+    assert response.status_code == 403
+    open_window_poll.refresh_from_db()
+    assert open_window_poll.state == PollState.DRAFT

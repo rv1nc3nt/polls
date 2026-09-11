@@ -115,7 +115,23 @@
     an operator can consult it; the only change still permitted is R-3.4's
     extension of the closing date, offered below while the poll is open.
   {% endcomment %}
-  <p class="notice">{% translate "Le scrutin n'est plus en brouillon : la configuration est figée (R-3.3). Seule la date de clôture peut encore être repoussée, avec un motif." %}</p>
+  {% if poll.state == "withdrawn" %}
+    {% comment %}
+      R-3.11: this screen is the withdrawn poll's only remaining view —
+      everything below is what was already frozen, kept visible to the poll
+      admin who withdrew it. The public site shows none of it (§6.6).
+    {% endcomment %}
+    <p class="notice">
+      {% if withdrawal_event %}
+        {% blocktranslate with when=withdrawal_event.at reason=withdrawal_event.get_reason_display %}Ce scrutin a été retiré le {{ when }}, motif : {{ reason }}.{% endblocktranslate %}
+      {% else %}
+        {% translate "Ce scrutin a été retiré." %}
+      {% endif %}
+      {% translate "Il n'apparaît plus sur aucune page publique (R-3.11)." %}
+    </p>
+  {% else %}
+    <p class="notice">{% translate "Le scrutin n'est plus en brouillon : la configuration est figée (R-3.3). Seule la date de clôture peut encore être repoussée, avec un motif." %}</p>
+  {% endif %}
 
   <dl class="facts">
     <dt>{% translate "État" %}</dt><dd>{{ poll.get_state_display }}</dd>
@@ -216,6 +232,31 @@
       {% else %}
         <p class="help">{% translate "La clôture manuelle sera proposée ici une fois l'échéance de saisie des bulletins papier atteinte." %}</p>
       {% endif %}
+    </section>
+  {% endif %}
+
+  {% if can_withdraw %}
+    <section aria-labelledby="withdraw-now">
+      <h2 id="withdraw-now">{% translate "Retrait" %}</h2>
+      {% comment %}
+        R-3.11: available from `announced`, `open`, `closed` or `published`, at
+        any time, with a mandatory reason. Unlike opening and closing, nothing
+        schedules this — it exists solely as the poll admin's own action, and
+        it is irreversible: no further transition follows it.
+      {% endcomment %}
+      <p class="help">{% translate "Retire ce scrutin du site public, immédiatement et irréversiblement : plus rien de lui — propositions, calendrier, participation, résultat déjà publié le cas échéant — n'y reste visible. Les bulletins et le journal d'audit sont conservés." %}</p>
+      <form method="post" class="danger">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="withdraw_poll">
+        {% for field in withdrawal_form %}
+          <p class="field">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+          </p>
+        {% endfor %}
+        <button type="submit">{% translate "Retirer le scrutin" %}</button>
+      </form>
     </section>
   {% endif %}
 

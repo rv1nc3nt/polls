@@ -37,6 +37,10 @@ msgid "clôture repoussée"
 msgstr "closing date extended"
 
 #: apps/audit/models.py
+msgid "scrutin retiré"
+msgstr "poll withdrawn"
+
+#: apps/audit/models.py
 msgid "liste électorale importée"
 msgstr "electoral roll imported"
 
@@ -261,6 +265,10 @@ msgid "publié"
 msgstr "published"
 
 #: apps/elections/models.py
+msgid "retiré"
+msgstr "withdrawn"
+
+#: apps/elections/models.py
 msgid "Schulze"
 msgstr "Schulze"
 
@@ -333,6 +341,10 @@ msgid "Clôture refusée."
 msgstr "Closure refused."
 
 #: apps/elections/transitions.py
+msgid "Retrait refusé."
+msgstr "Withdrawal refused."
+
+#: apps/elections/transitions.py
 msgid "Seul un scrutin clos peut être publié."
 msgstr "Only a closed poll can be published."
 
@@ -363,6 +375,10 @@ msgstr "Paper ballot keying has closed."
 #: apps/elections/windows.py
 msgid "Les inscriptions sont closes."
 msgstr "Registration has closed."
+
+#: apps/elections/windows.py
+msgid "Ce scrutin a été retiré."
+msgstr "This poll has been withdrawn."
 
 #: apps/registrations/models.py
 msgid "en attente de confirmation"
@@ -1829,6 +1845,37 @@ msgstr "Manual closure is only possible once the deadline is reached."
 
 msgid "Scrutin clos."
 msgstr "Poll closed."
+
+# R-3.11: withdrawal, added by hand for the same reason as the header explains.
+msgid "Retrait"
+msgstr "Withdrawal"
+
+msgid "Retire ce scrutin du site public, immédiatement et irréversiblement : plus rien de lui — propositions, calendrier, participation, résultat déjà publié le cas échéant — n'y reste visible. Les bulletins et le journal d'audit sont conservés."
+msgstr "Withdraws this poll from the public site, immediately and irreversibly: nothing of it — propositions, calendar, participation, an already-published result where one exists — remains visible there. Ballots and the audit log are kept."
+
+msgid "Motif du retrait (obligatoire)"
+msgstr "Reason for withdrawal (mandatory)"
+
+msgid "Retirer le scrutin"
+msgstr "Withdraw the poll"
+
+msgid "Scrutin retiré."
+msgstr "Poll withdrawn."
+
+msgid "Le scrutin ne peut pas être retiré dans cet état."
+msgstr "This poll cannot be withdrawn in this state."
+
+msgid "Ce scrutin a été retiré le %(when)s, motif : %(reason)s."
+msgstr "This poll was withdrawn on %(when)s, reason: %(reason)s."
+
+msgid "Il n'apparaît plus sur aucune page publique (R-3.11)."
+msgstr "It no longer appears on any public page (R-3.11)."
+
+msgid "Consulter le scrutin retiré"
+msgstr "View the withdrawn poll"
+
+msgid "Scrutin retiré"
+msgstr "Poll withdrawn"
 
 msgid "Ce scrutin n'est pas encore ouvert. Ouverture prévue le %(when)s."
 msgstr "This poll is not yet open. Opening scheduled for %(when)s."
