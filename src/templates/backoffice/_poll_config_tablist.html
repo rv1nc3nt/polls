@@ -1,0 +1,28 @@
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD #}
+{% comment %}
+  The tab strip shared by screen 2's draft editor (poll_config.html) and
+  "Nouveau scrutin" (poll_create.html) — see _poll_config_panels.html for the
+  matching panels. static/js/tabs.js pairs tabs to panels by position, so the
+  "Actions" and "Images" tabs are offered only where `poll` is in context: an
+  existing, already-created poll to announce, open, save as a model or attach
+  option images to (poll_config.html). poll_create.html has none yet — its own
+  submit creates one — and _poll_config_actions_panel.html /
+  _poll_config_images_panel.html are correspondingly never included there, so
+  tab and panel counts stay equal either way. The two are separate tabs, not
+  one: "Actions" is R-3.9/R-3.10/§4's state-changing operations, "Images" is
+  R-3.12's per-option upload/delete, which only ended up next to them because
+  both need to sit outside the field-editing <form> (HTML forms do not nest) —
+  not because they are the same kind of thing.
+{% endcomment %}
+<div class="tabs__list" data-tabs-list hidden>
+  <button type="button" class="tabs__tab" data-tabs-tab>{% translate "Contenu & langues" %}</button>
+  <button type="button" class="tabs__tab" data-tabs-tab>{% translate "Propositions" %}</button>
+  <button type="button" class="tabs__tab" data-tabs-tab>{% translate "Calendrier" %}</button>
+  <button type="button" class="tabs__tab" data-tabs-tab>{% translate "Bulletin et dépouillement" %}</button>
+  <button type="button" class="tabs__tab" data-tabs-tab>{% translate "Bulletins papier" %}</button>
+  {% if poll %}
+    <button type="button" class="tabs__tab" data-tabs-tab>{% translate "Actions" %}</button>
+    <button type="button" class="tabs__tab" data-tabs-tab>{% translate "Images" %}</button>
+  {% endif %}
+</div>

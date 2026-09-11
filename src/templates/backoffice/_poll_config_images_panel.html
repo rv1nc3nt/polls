@@ -1,0 +1,66 @@
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD #}
+{% comment %}
+  Screen 2's draft-editor "Images" tab (§6.5.2): R-3.12/§3.1 bis's per-option
+  image upload/delete, one POST target per option (option_image_upload/
+  option_image_delete) rather than a field of `form`. So poll_config.html
+  includes this file as a sibling of the configuration-save <form> that wraps
+  _poll_config_panels.html, never inside it — HTML forms do not nest. Split
+  out of _poll_config_actions_panel.html rather than folded into it: this is
+  option content, not one of R-3.9/R-3.10/§4's state-changing actions, and
+  only needed the same "outside the <form>" placement for the same nesting
+  reason. Kept out of that <form>, unlike _poll_config_panels.html this panel
+  is not reused by poll_create.html: an image needs an existing PollOption row
+  to attach to, and a poll being created has none yet.
+
+  Expects `poll` in context, already present wherever poll_config.html renders
+  the tabbed editor (`editable`).
+{% endcomment %}
+<div id="cfg-images" data-tabs-panel>
+  <section aria-labelledby="option-images">
+    <h2 id="option-images">{% translate "Images des propositions" %}</h2>
+    {% comment %}
+      Only shown for propositions already saved: an image needs an existing
+      PollOption row to attach to, so a blank row added by
+      static/js/option-editor.js but not yet saved has nothing here to show.
+    {% endcomment %}
+    <p class="help">{% translate "Enregistrez d'abord une proposition dans l'onglet « Propositions » pour lui ajouter des images ; elle apparaît ensuite ici. Recopiez le repère « image:… » affiché sous chaque image dans le texte de sa description étendue, entre parenthèses : ![texte alternatif](image:…)" %}</p>
+    {% for option in poll.options.all %}
+      <fieldset>
+        <legend>{{ option.label }} <span class="help">({{ option.option_id }})</span></legend>
+        {% if option.images.all %}
+          <ul class="option-images">
+            {% for image in option.images.all %}
+              <li>
+                <img src="{{ image.file.url }}" alt="{{ image.alt_text }}" class="option-images__thumb">
+                <input type="text" readonly value="image:{{ image.pk }}"
+                       aria-label="{% translate 'Repère à recopier dans la description' %}">
+                <form method="post"
+                      action="{% url 'backoffice:option_image_delete' poll_id=poll.pk image_id=image.pk %}"
+                      class="inline">
+                  {% csrf_token %}
+                  <button type="submit" class="secondary">{% translate "Supprimer cette image" %}</button>
+                </form>
+              </li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+        <form method="post"
+              action="{% url 'backoffice:option_image_upload' poll_id=poll.pk option_id=option.pk %}"
+              enctype="multipart/form-data" class="inline">
+          {% csrf_token %}
+          <p class="field">
+            <label for="image-{{ option.pk }}">{% translate "Ajouter une image" %}</label>
+            <input type="file" name="image" id="image-{{ option.pk }}"
+                   accept="image/png,image/jpeg,image/gif,image/webp" required>
+          </p>
+          <p class="field">
+            <label for="alt-{{ option.pk }}">{% translate "Texte alternatif" %}</label>
+            <input type="text" name="alt_text" id="alt-{{ option.pk }}" maxlength="300">
+          </p>
+          <button type="submit">{% translate "Ajouter" %}</button>
+        </form>
+      </fieldset>
+    {% endfor %}
+  </section>
+</div>
