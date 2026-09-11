@@ -12,9 +12,10 @@ The menu has two parts, and the first never changes:
   par scrutin » for a commune admin — sit under the wordmark on every screen, in
   the same order, whether or not a poll is in scope;
 * the **poll** groups — prepare the poll, key the paper, tally, then the
-  read-only trail — are *added* below when a poll is open, headed by its title
-  and state. Leaving a poll removes that block; it never rearranges the part
-  above it.
+  read-only trail — are *added* below when a poll is open, headed by its state
+  (the title itself is not repeated here: the breadcrumb and the <h1> already
+  carry it, on every poll screen). Leaving a poll removes that block; it never
+  rearranges the part above it.
 
 The rules this keeps:
 
