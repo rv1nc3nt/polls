@@ -243,6 +243,62 @@ class PollOption(models.Model):
         return self.poll.translate(self.label_i18n, language)
 
 
+class PollTemplate(models.Model):
+    """A named, reusable set of tally and ballot rules (R-3.6, R-3.9, §3.9).
+
+    Deliberately not a ``Poll`` with fields nulled out: it carries only the
+    tally mechanism and the ballot rules built around it — never a title, a
+    description, options or any date. Duplicating those belongs to
+    duplicating an existing poll directly (R-3.6), a separate and still-unbuilt
+    path (docs/spec-divergences.md #10). Commune-level, one catalogue rather
+    than one per poll, like ``MailSettings`` — but many rows, not one, so
+    there is no ``pk=1`` singleton constraint here.
+
+    ``apps.elections.polltemplates`` is the one writer: ``save_as_template``
+    creates a row from a poll's current configuration (any state — none of
+    these fields change after ``draft``, INV-6), and screen 13 renames or
+    deletes one. Nothing edits the mechanism fields of a template once saved;
+    there being no live poll behind it, there is no "screen 2" for a template
+    to have.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(_("nom"), max_length=200, unique=True)
+
+    tally_method = models.CharField(
+        max_length=20, choices=TallyMethod.choices, default=TallyMethod.SCHULZE
+    )
+    tally_method_version = models.CharField(max_length=20, default="1")
+    require_complete_ranking = models.BooleanField(default=True)
+    allow_ties_in_ballot = models.BooleanField(default=False)
+    tiebreak_rule = models.CharField(
+        max_length=20, choices=TiebreakRule.choices, default=TiebreakRule.COMPUTED
+    )
+    paper_requires_signed_form = models.BooleanField(default=False)
+    paper_requires_countersign = models.BooleanField(default=False)
+    paper_requires_reconciliation = models.BooleanField(default=False)
+    allow_ballot_modification = models.BooleanField(default=True)
+    eligible_list_types = models.JSONField(default=default_eligible_list_types)
+    languages = models.JSONField(default=list)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(
+        "core.User",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="poll_templates",
+    )
+
+    class Meta:
+        verbose_name = _("modèle de scrutin")
+        verbose_name_plural = _("modèles de scrutin")
+        ordering = ["name"]
+
+    def __str__(self) -> str:
+        return self.name
+
+
 class RollEntryFields(models.Model):
     """The fields R-4.2 imports, shared by the working roll and the snapshot.
 

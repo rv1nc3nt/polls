@@ -1,0 +1,58 @@
+{% extends "backoffice/base.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD #}
+
+{% block screen_title %}{% translate "Modèles de scrutin" %}{% endblock %}
+{% block heading %}{% translate "Modèles de scrutin" %}{% endblock %}
+
+{% block screen %}
+  {% comment %}
+    §3.9, §6.5.13: the catalogue of named templates. Nothing here creates one —
+    that is screen 2's « enregistrer comme modèle » (§6.5.2), reading a
+    template off a poll's own configuration. This screen only renames and
+    deletes.
+  {% endcomment %}
+  <p class="notice">{% translate "Un modèle porte la méthode de dépouillement et les règles de bulletin, jamais un intitulé, une description ou des propositions. Il s'enregistre depuis la configuration d'un scrutin (§3.9)." %}</p>
+
+  <table>
+    <caption>{% translate "Modèles enregistrés" %}</caption>
+    <thead>
+      <tr>
+        <th scope="col">{% translate "Nom du modèle" %}</th>
+        <th scope="col">{% translate "Méthode de dépouillement" %}</th>
+        <th scope="col">{% translate "Enregistré par" %}</th>
+        <th scope="col">{% translate "Le" %}</th>
+        <th scope="col">{% translate "Renommer" %}</th>
+        <th scope="col">{% translate "Supprimer" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for tpl in templates %}
+        <tr>
+          <td>{{ tpl.name }}</td>
+          <td>{{ tpl.get_tally_method_display }}</td>
+          <td>{{ tpl.created_by.username|default:"—" }}</td>
+          <td>{{ tpl.created_at }}</td>
+          <td>
+            <form method="post" class="inline">
+              {% csrf_token %}
+              <input type="hidden" name="template" value="{{ tpl.pk }}">
+              <input type="hidden" name="action" value="rename">
+              <input type="text" name="name" value="{{ tpl.name }}" maxlength="200" required aria-label="{% translate 'Nouveau nom' %}">
+              <button type="submit">{% translate "Renommer" %}</button>
+            </form>
+          </td>
+          <td>
+            <form method="post" class="inline danger">
+              {% csrf_token %}
+              <input type="hidden" name="template" value="{{ tpl.pk }}">
+              <button type="submit" name="action" value="delete">{% translate "Supprimer ce modèle" %}</button>
+            </form>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6">{% translate "Aucun modèle enregistré." %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

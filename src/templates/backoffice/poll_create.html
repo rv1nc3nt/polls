@@ -9,6 +9,32 @@
 
 <p class="notice">{% translate "Toute la configuration reste modifiable tant que le scrutin est en brouillon (R-3.3) ; vous n'avez pas besoin de tout renseigner ici. Une fois créé, allez sur « Rôles par scrutin » pour vous attribuer un rôle : la création n'en donne aucun (§3.7)." %}</p>
 
+{% if templates %}
+  <section aria-labelledby="from-template">
+    <h2 id="from-template">{% translate "Commencer à partir d'un modèle" %}</h2>
+    {% comment %}
+      R-3.6, §3.9: a template carries the tally mechanism and ballot rules
+      only. L'intitulé, la description et les propositions restent à saisir
+      ci-dessous, comme pour un scrutin vierge. GET, pas JavaScript : changer
+      de modèle recharge la page avec les champs pré-remplis différemment.
+    {% endcomment %}
+    <p class="help">{% translate "Reprend la méthode de dépouillement et les règles de bulletin d'un modèle enregistré. L'intitulé, la description et les propositions restent à saisir." %}</p>
+    <form method="get" class="inline">
+      <label for="modele">{% translate "Modèle" %}</label>
+      <select id="modele" name="modele">
+        <option value="">{% translate "— scrutin vierge —" %}</option>
+        {% for tpl in templates %}
+          <option value="{{ tpl.pk }}"{% if template and tpl.pk == template.pk %} selected{% endif %}>{{ tpl.name }} ({{ tpl.get_tally_method_display }})</option>
+        {% endfor %}
+      </select>
+      <button type="submit">{% translate "Charger" %}</button>
+    </form>
+    {% if template %}
+      <p class="notice">{% blocktranslate with name=template.name %}Champs pré-remplis depuis le modèle « {{ name }} ».{% endblocktranslate %}</p>
+    {% endif %}
+  </section>
+{% endif %}
+
 <form method="post">
   {% csrf_token %}
 

@@ -44,19 +44,23 @@ only while no account has been created.
 Here so far, additionally: "Nouveau scrutin" (§6.5, docs/spec-divergences.md
 #10), the create step the numbered screens never included — commune-level
 like 10 and 12, reusing screen 2's form and write path (``elections.config``)
-rather than a screen of its own.
+rather than a screen of its own; and screen 13 (modèles de scrutin, §6.5.13),
+whose read model and write path are both ``elections.polltemplates``. Saving
+a template is an action on screen 2, not its own screen — see ``poll_config``
+below.
 """
 
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, password_validation
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, LogoutView
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.http import Http404, HttpRequest, HttpResponse, HttpResponseBase, JsonResponse
@@ -75,8 +79,14 @@ from apps.ballots.ranking import BallotRefused
 from apps.core.codes import format_tracking_code
 from apps.core.models import PollRole, Role, User
 from apps.core.types import TrackingCode
-from apps.elections import closure, config, results_view, rollimport
-from apps.elections.models import Poll, PollState, RollEntry, default_eligible_list_types
+from apps.elections import closure, config, polltemplates, results_view, rollimport
+from apps.elections.models import (
+    Poll,
+    PollState,
+    PollTemplate,
+    RollEntry,
+    default_eligible_list_types,
+)
 from apps.elections.transitions import TransitionRefused, extend_closes_at, publish_poll
 from apps.elections.windows import WindowClosed
 from apps.registrations import mail as registration_mail
@@ -103,6 +113,7 @@ from .forms import (
     OptionFormSet,
     PollConfigForm,
     PollCreateForm,
+    TemplateNameForm,
     config_initial,
     config_warnings,
     option_drafts,
@@ -208,13 +219,31 @@ def poll_create(request: HttpRequest) -> HttpResponse:
     Creating grants the admin no role on the poll (§3.7) — the redirect lands
     on "Rôles par scrutin" for it, so that granting one, to themselves or
     anyone else, stays the separate, audited step it always is.
+
+    ``?modele=`` (R-3.6, §3.9) seeds the form from a named template's tally
+    mechanism and ballot rules instead of the bare defaults — title,
+    description and options are still entered fresh, exactly as for a blank
+    poll. Only on the initial GET: a template chosen and then edited before
+    submitting is not re-applied over what was typed, since the POST carries
+    no ``modele`` of its own to re-resolve.
     """
-    languages = [settings.LANGUAGE_CODE]
     on_post = request.method == "POST"
-    default_initial = {
+    template = None
+    languages = [settings.LANGUAGE_CODE]
+    default_initial: dict[str, Any] = {
         "default_language": settings.LANGUAGE_CODE,
         "eligible_list_types": default_eligible_list_types(),
     }
+    if not on_post:
+        template_id = request.GET.get("modele", "")
+        if template_id:
+            template = get_object_or_404(PollTemplate, pk=template_id)
+            languages = list(template.languages) or languages
+            default_initial = {
+                **polltemplates.scalars(template),
+                "default_language": languages[0],
+                "extra_languages": languages[1:],
+            }
     form = PollCreateForm(
         request.POST or None,
         content_languages=languages,
@@ -230,7 +259,16 @@ def poll_create(request: HttpRequest) -> HttpResponse:
         )
         messages.success(request, _("Scrutin créé. Attribuez-vous un rôle pour y accéder."))
         return redirect(f"{reverse('backoffice:role_admin')}?scrutin={poll.pk}")
-    return render(request, "backoffice/poll_create.html", {"form": form, "formset": formset})
+    return render(
+        request,
+        "backoffice/poll_create.html",
+        {
+            "form": form,
+            "formset": formset,
+            "templates": PollTemplate.objects.all(),
+            "template": template,
+        },
+    )
 
 
 @require_poll_role(Role.POLL_ADMIN, Role.ENTRY_OPERATOR, Role.AUDITOR)
@@ -270,27 +308,54 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
     Two forms, never both live: the ``draft`` poll gets the configuration
     editor, every other state gets the read-only view (plus the extension form
     while ``open``). The POST branch follows from ``poll.state`` alone, so
-    neither form needs an action discriminator.
+    neither form needs an action discriminator — except *enregistrer comme
+    modèle* (§3.9), checked first and by its own ``action`` field so it never
+    gets mistaken for a config or extension submission: it is available to a
+    commune admin in every state, not only ``draft``.
     """
     languages = list(poll.languages) or [poll.default_language]
     on_post = request.method == "POST"
+    action = request.POST.get("action", "") if on_post else ""
+    operator = current_operator(request)
+    commune_admin = is_commune_admin(request.user)
+
+    saving_template = action == "save_template"
+    template_form = TemplateNameForm(request.POST if saving_template else None)
+    if saving_template:
+        # The screen only ever renders this action's form to a commune admin
+        # (§3.9); a poll admin without the flag has no button to post it from,
+        # so reaching here any other way is a forged request, refused outright
+        # rather than silently ignored.
+        if not commune_admin:
+            raise PermissionDenied(_("Réservé à l'administration de la commune."))
+        if template_form.is_valid():
+            try:
+                polltemplates.save_as_template(
+                    poll, name=template_form.cleaned_data["name"], actor=operator
+                )
+            except polltemplates.DuplicateTemplateName as refused:
+                messages.error(request, str(refused))
+            else:
+                messages.success(request, _("Modèle enregistré."))
+                return redirect("backoffice:poll_config", poll_id=str(poll.pk))
+    configuring = on_post and not saving_template
 
     if poll.state == PollState.DRAFT:
         form = PollConfigForm(
-            request.POST or None,
+            request.POST if configuring else None,
             content_languages=languages,
-            initial=None if on_post else config_initial(poll),
+            initial=None if configuring else config_initial(poll),
         )
         formset = OptionFormSet(
-            request.POST or None,
+            request.POST if configuring else None,
             prefix="opt",
             form_kwargs={"content_languages": languages},
-            initial=None if on_post else option_initial(poll),
+            initial=None if configuring else option_initial(poll),
         )
-        if on_post and form.is_valid() and formset.is_valid():
+        if configuring and form.is_valid() and formset.is_valid():
             draft = form.to_draft(option_drafts(formset))
             try:
-                config.save_configuration(poll, draft, actor=current_operator(request))
+                config.save_configuration(poll, draft, actor=operator)
             except config.ConfigurationLocked as locked:
                 messages.error(request, str(locked))
             else:
@@ -305,16 +370,22 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
                 "form": form,
                 "formset": formset,
                 "warnings": config_warnings(poll),
+                "commune_admin": commune_admin,
+                "template_form": template_form,
             },
         )
 
-    extension = ExtensionForm(request.POST or None) if poll.state == PollState.OPEN else None
-    if on_post and extension is not None and extension.is_valid():
+    extension = (
+        ExtensionForm(request.POST if configuring else None)
+        if poll.state == PollState.OPEN
+        else None
+    )
+    if configuring and extension is not None and extension.is_valid():
         try:
             extend_closes_at(
                 poll,
                 extension.cleaned_data["new_closes_at"],
-                current_operator(request),
+                operator,
                 extension.cleaned_data["reason"],
             )
         except TransitionRefused as refused:
@@ -332,6 +403,8 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
             "options": poll.options.all(),
             "extension": extension,
             "warnings": config_warnings(poll),
+            "commune_admin": commune_admin,
+            "template_form": template_form,
         },
     )
 
@@ -1136,4 +1209,54 @@ def mail_settings(request: HttpRequest) -> HttpResponse:
         request,
         "backoffice/mail_settings.html",
         {"form": form, "test_form": test_form, "config": config},
+    )
+
+
+# --- Screen 13: modèles de scrutin (§6.5.13) --------------------------------
+#
+# Commune-level, like screens 10 and 12: ``require_commune_admin``, no
+# ``poll`` argument. This screen only lists, renames and deletes; the one
+# writer that creates a template is *enregistrer comme modèle* on screen 2
+# (``poll_config`` above), since a template is read off a poll's own
+# configuration, not typed in from nothing.
+
+
+@require_commune_admin
+def template_admin(request: HttpRequest) -> HttpResponse:
+    """Screen 13 — modèles de scrutin (§6.5.13, §3.9).
+
+    Rename or delete a named template. Deleting one has no effect on a poll
+    already created from it: the fields were copied at creation time, not
+    referenced.
+    """
+    if request.method == "POST":
+        operator = current_operator(request)
+        template = get_object_or_404(PollTemplate, pk=request.POST.get("template", ""))
+        action = request.POST.get("action", "")
+        if action == "rename":
+            form = TemplateNameForm(request.POST)
+            if form.is_valid():
+                try:
+                    polltemplates.rename(template, name=form.cleaned_data["name"], actor=operator)
+                except polltemplates.DuplicateTemplateName as refused:
+                    messages.error(request, str(refused))
+                else:
+                    messages.success(request, _("Modèle renommé."))
+            else:
+                messages.error(request, _("Donnez un nom au modèle."))
+            return redirect("backoffice:template_admin")
+        elif action == "delete":
+            polltemplates.delete(template, actor=operator)
+            messages.success(request, _("Modèle supprimé."))
+            return redirect("backoffice:template_admin")
+        else:
+            messages.error(request, _("Action inconnue."))
+
+    return render(
+        request,
+        "backoffice/template_admin.html",
+        {
+            "templates": PollTemplate.objects.select_related("created_by"),
+            "rename_form": TemplateNameForm(),
+        },
     )

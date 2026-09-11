@@ -1645,3 +1645,137 @@ msgstr "Nature of the poll"
 #: templates/backoffice/poll_create.html
 msgid "Créer le scrutin"
 msgstr "Create the poll"
+
+#: apps/audit/models.py
+msgid "modèle enregistré"
+msgstr "template saved"
+
+#: apps/audit/models.py
+msgid "modèle renommé"
+msgstr "template renamed"
+
+#: apps/audit/models.py
+msgid "modèle supprimé"
+msgstr "template deleted"
+
+#: apps/elections/models.py
+msgid "modèle de scrutin"
+msgstr "poll template"
+
+#: apps/elections/models.py
+msgid "modèles de scrutin"
+msgstr "poll templates"
+
+#: apps/elections/models.py
+msgid "nom"
+msgstr "name"
+
+#: apps/elections/polltemplates.py
+msgid "Un modèle porte déjà ce nom."
+msgstr "A template already has this name."
+
+#: apps/backoffice/forms.py
+msgid "Nom du modèle"
+msgstr "Template name"
+
+#: apps/backoffice/views.py
+msgid "Modèle enregistré."
+msgstr "Template saved."
+
+#: apps/backoffice/views.py
+msgid "Modèle renommé."
+msgstr "Template renamed."
+
+#: apps/backoffice/views.py
+msgid "Donnez un nom au modèle."
+msgstr "Give the template a name."
+
+#: apps/backoffice/views.py
+msgid "Modèle supprimé."
+msgstr "Template deleted."
+
+#: templates/backoffice/poll_config.html apps/backoffice/templatetags/backoffice_nav.py
+msgid "Enregistrer comme modèle"
+msgstr "Save as template"
+
+#: templates/backoffice/poll_config.html
+msgid ""
+"Enregistre la méthode de dépouillement et les règles de bulletin de ce "
+"scrutin comme modèle nommé, réutilisable à la création d'un futur "
+"scrutin. Ni l'intitulé, ni la description, ni les propositions ne sont "
+"repris."
+msgstr ""
+"Saves this poll's tally method and ballot rules as a named template, "
+"reusable when creating a future poll. Neither the title, the "
+"description nor the propositions are carried over."
+
+#: templates/backoffice/poll_create.html
+msgid "Commencer à partir d'un modèle"
+msgstr "Start from a template"
+
+#: templates/backoffice/poll_create.html
+msgid ""
+"Reprend la méthode de dépouillement et les règles de bulletin d'un "
+"modèle enregistré. L'intitulé, la description et les propositions "
+"restent à saisir."
+msgstr ""
+"Carries over a saved template's tally method and ballot rules. The "
+"title, the description and the propositions remain to be entered."
+
+#: templates/backoffice/poll_create.html
+msgid "Modèle"
+msgstr "Template"
+
+#: templates/backoffice/poll_create.html
+msgid "— scrutin vierge —"
+msgstr "— blank poll —"
+
+#: templates/backoffice/poll_create.html
+msgid "Charger"
+msgstr "Load"
+
+#: templates/backoffice/poll_create.html
+msgid "Champs pré-remplis depuis le modèle « %(name)s »."
+msgstr "Fields pre-filled from the template “%(name)s”."
+
+#: templates/backoffice/template_admin.html apps/backoffice/templatetags/backoffice_nav.py
+msgid "Modèles de scrutin"
+msgstr "Poll templates"
+
+#: templates/backoffice/template_admin.html
+msgid ""
+"Un modèle porte la méthode de dépouillement et les règles de bulletin, "
+"jamais un intitulé, une description ou des propositions. Il "
+"s'enregistre depuis la configuration d'un scrutin (§3.9)."
+msgstr ""
+"A template carries the tally method and the ballot rules, never a "
+"title, a description or propositions. It is saved from a poll's own "
+"configuration (§3.9)."
+
+#: templates/backoffice/template_admin.html
+msgid "Modèles enregistrés"
+msgstr "Saved templates"
+
+#: templates/backoffice/template_admin.html
+msgid "Enregistré par"
+msgstr "Saved by"
+
+#: templates/backoffice/template_admin.html
+msgid "Renommer"
+msgstr "Rename"
+
+#: templates/backoffice/template_admin.html
+msgid "Supprimer"
+msgstr "Delete"
+
+#: templates/backoffice/template_admin.html
+msgid "Nouveau nom"
+msgstr "New name"
+
+#: templates/backoffice/template_admin.html
+msgid "Supprimer ce modèle"
+msgstr "Delete this template"
+
+#: templates/backoffice/template_admin.html
+msgid "Aucun modèle enregistré."
+msgstr "No template saved."
