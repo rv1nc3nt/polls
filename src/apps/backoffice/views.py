@@ -66,6 +66,7 @@ from django.contrib.auth.views import LoginView, LogoutView
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
 from django.db import transaction
+from django.db.models import Case, IntegerField, QuerySet, Value, When
 from django.http import Http404, HttpRequest, HttpResponse, HttpResponseBase, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -123,7 +124,6 @@ from .forms import (
     ClosureOverrideForm,
     ExtensionForm,
     FirstRunForm,
-    GrantRoleForm,
     MailSettingsForm,
     MailTestForm,
     NewAccountForm,
@@ -1327,53 +1327,82 @@ def account_admin(request: HttpRequest) -> HttpResponse:
     )
 
 
+#: Picker order for screen 10's poll dropdown: the states an operator is
+#: actually likely to be assigning roles on (open, then announced, then a
+#: draft still being staffed up) before the ones role changes rarely touch
+#: any more. Grouped, not just sorted, so ``role_admin.html``'s ``regroup``
+#: can put an ``<optgroup>`` per état — the plain flat list stopped scaling
+#: once a commune had more than a season's worth of polls in its history.
+_POLL_PICKER_ORDER = [
+    PollState.OPEN,
+    PollState.ANNOUNCED,
+    PollState.DRAFT,
+    PollState.CLOSED,
+    PollState.PUBLISHED,
+    PollState.WITHDRAWN,
+]
+
+
+def _polls_for_picker() -> QuerySet[Poll]:
+    priority = Case(
+        *(When(state=state, then=Value(rank)) for rank, state in enumerate(_POLL_PICKER_ORDER)),
+        output_field=IntegerField(),
+    )
+    return Poll.objects.order_by(priority, "-created_at")
+
+
 @require_commune_admin
 def role_admin(request: HttpRequest) -> HttpResponse:
     """Screen 10, part two — per-poll role assignment (R-2.1, §3.7, §6.5.10).
 
-    One poll at a time, chosen from the list (``?scrutin=`` on the way back).
-    Granting and revoking go through ``accounts``, which writes the
-    ``ROLE_ASSIGNED`` / ``ROLE_REVOKED`` event of §10; nothing here touches the
-    ORM. The commune admin doing the assigning gains no access to the poll's
-    screens by it — that is the whole point of §3.7's split.
+    One poll at a time, chosen from the picker (``?scrutin=`` on the way
+    back) — grouped by état and, with ``poll-picker-filter.js``, filterable by
+    name. Roles are then set as a grid, one row per active account and one
+    checkbox per role of §3.7 (``accounts.role_grid``), submitted together and
+    diffed against what is already granted (``accounts.sync_roles``) so only
+    the boxes that actually changed write an event. Nothing here touches the
+    ORM directly; the commune admin doing the assigning gains no access to the
+    poll's screens by it — that is the whole point of §3.7's split.
     """
     poll_id = request.POST.get("poll") or request.GET.get("scrutin") or ""
     poll = get_object_or_404(Poll, pk=poll_id) if poll_id else None
-    granting = request.POST.get("action") == "grant"
-    grant_form = GrantRoleForm(request.POST if granting else None)
 
     if request.method == "POST" and poll is not None:
         operator = current_operator(request)
         back = f"{reverse('backoffice:role_admin')}?scrutin={poll.pk}"
-        try:
-            if granting:
-                if grant_form.is_valid():
-                    accounts.grant_role(
-                        poll,
-                        grant_form.cleaned_data["account"],
-                        grant_form.cleaned_data["role"],
-                        actor=operator,
-                    )
-                    messages.success(request, _("Rôle attribué."))
-                    return redirect(back)
-            elif request.POST.get("action") == "revoke":
-                grant = get_object_or_404(PollRole, pk=request.POST.get("grant", ""), poll=poll)
-                accounts.revoke_role(grant, actor=operator)
-                messages.success(request, _("Rôle retiré."))
-                return redirect(back)
-            else:
-                messages.error(request, _("Action inconnue."))
-        except accounts.AccountActionRefused as refused:
-            messages.error(request, str(refused))
+        action = request.POST.get("action", "")
+        if action == "revoke":
+            grant = get_object_or_404(PollRole, pk=request.POST.get("grant", ""), poll=poll)
+            accounts.revoke_role(grant, actor=operator)
+            messages.success(request, _("Rôle retiré."))
+            return redirect(back)
+        if action == "sync_roles":
+            account_ids = request.POST.getlist("grid_account")
+            desired = {
+                (account_id, role)
+                for account_id in account_ids
+                for role in Role.values
+                if request.POST.get(f"role__{account_id}__{role}")
+            }
+            errors = accounts.sync_roles(
+                poll, account_ids=account_ids, desired=desired, actor=operator
+            )
+            for error in errors:
+                messages.error(request, error)
+            if not errors:
+                messages.success(request, _("Rôles mis à jour."))
+            return redirect(back)
+        messages.error(request, _("Action inconnue."))
 
     return render(
         request,
         "backoffice/role_admin.html",
         {
-            "polls": Poll.objects.order_by("-created_at"),
+            "polls": _polls_for_picker(),
             "selected_poll": poll,
             "holders": accounts.role_holders(poll) if poll is not None else [],
-            "grant_form": grant_form,
+            "grid": accounts.role_grid(poll) if poll is not None else [],
+            "roles": Role.choices,
         },
     )
 

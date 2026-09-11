@@ -1,5 +1,5 @@
 {% extends "backoffice/base.html" %}
-{% load i18n %}
+{% load i18n static %}
 {# SPDX-License-Identifier: 0BSD #}
 
 {% block screen_title %}{% translate "Rôles par scrutin" %}{% endblock %}
@@ -13,14 +13,29 @@
   {% endcomment %}
   <p class="notice">{% translate "Les rôles sont attribués scrutin par scrutin. Chaque attribution et chaque retrait est inscrit au journal d'audit du scrutin." %}</p>
 
-  <form method="get" class="pollpicker">
+  <form method="get" class="pollpicker" data-poll-picker>
+    {% comment %}
+      Grouped by état (views._polls_for_picker) so the list stays readable
+      once a commune has more than a season's worth of polls; the search box
+      is revealed by poll-picker-filter.js and stays hidden without it, same
+      reasoning as option-editor.js's « Ajouter » button.
+    {% endcomment %}
+    <p class="field" data-poll-filter-wrap hidden>
+      <label for="poll-filter">{% translate "Rechercher un scrutin" %}</label>
+      <input type="search" id="poll-filter" data-poll-filter autocomplete="off">
+    </p>
     <label for="scrutin">{% translate "Scrutin" %}</label>
-    <select id="scrutin" name="scrutin">
+    <select id="scrutin" name="scrutin" data-poll-select>
       <option value="">{% translate "— choisir —" %}</option>
-      {% for poll in polls %}
-        <option value="{{ poll.pk }}"{% if selected_poll and poll.pk == selected_poll.pk %} selected{% endif %}>
-          {{ poll.display_title }} — {{ poll.get_state_display }}
-        </option>
+      {% regroup polls by get_state_display as poll_state_groups %}
+      {% for group in poll_state_groups %}
+        <optgroup label="{{ group.grouper }}">
+          {% for poll in group.list %}
+            <option value="{{ poll.pk }}" data-poll-search="{{ poll.display_title }}"{% if selected_poll and poll.pk == selected_poll.pk %} selected{% endif %}>
+              {{ poll.display_title }}
+            </option>
+          {% endfor %}
+        </optgroup>
       {% endfor %}
     </select>
     <button type="submit">{% translate "Afficher" %}</button>
@@ -62,21 +77,56 @@
       </tbody>
     </table>
 
-    <h3>{% translate "Attribuer un rôle" %}</h3>
+    <h3>{% translate "Attribuer des rôles" %}</h3>
+    {% comment %}
+      One row per active account (accounts.role_grid) and one checkbox per
+      role of §3.7, submitted together — replaces the old account-then-role
+      pair of dropdowns, which meant one round trip per grant and did not
+      scale past a handful of comptes any better than the poll picker above
+      did past a handful of scrutins. accounts.sync_roles diffs this against
+      what is already granted, so only the boxes that actually changed write
+      a ROLE_ASSIGNED / ROLE_REVOKED event (§10). A deactivated account is
+      left out — it cannot receive a new grant — and keeps whatever it
+      already holds until withdrawn from the table above.
+    {% endcomment %}
     <form method="post">
       {% csrf_token %}
       <input type="hidden" name="poll" value="{{ selected_poll.pk }}">
-      <input type="hidden" name="action" value="grant">
-      {% for field in grant_form %}
-        <p class="field">
-          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-          {{ field }}
-          {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
-        </p>
-      {% endfor %}
-      <button type="submit">{% translate "Attribuer" %}</button>
+      <input type="hidden" name="action" value="sync_roles">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">{% translate "Compte" %}</th>
+            {% for role_value, role_label in roles %}
+              <th scope="col">{{ role_label }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in grid %}
+            <tr>
+              <th scope="row">
+                {{ row.account.username }}
+                <input type="hidden" name="grid_account" value="{{ row.account.pk }}">
+              </th>
+              {% for cell in row.cells %}
+                <td>
+                  <input type="checkbox" name="role__{{ row.account.pk }}__{{ cell.role }}" value="1"{% if cell.checked %} checked{% endif %}>
+                </td>
+              {% endfor %}
+            </tr>
+          {% empty %}
+            <tr><td colspan="{{ roles|length|add:1 }}">{% translate "Aucun compte actif à qui attribuer un rôle." %}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <button type="submit">{% translate "Enregistrer les rôles" %}</button>
     </form>
   {% else %}
     <p>{% translate "Choisissez un scrutin pour voir et modifier ses rôles." %}</p>
   {% endif %}
+{% endblock %}
+
+{% block body_end %}
+  <script src="{% static 'js/poll-picker-filter.js' %}" defer></script>
 {% endblock %}

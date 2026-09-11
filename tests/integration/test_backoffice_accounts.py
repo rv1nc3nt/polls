@@ -210,18 +210,24 @@ def test_an_absent_account_id_is_a_404(admin_client: Client) -> None:
 # --- per-poll roles (R-2.1, §3.7) ------------------------------------
 
 
+def _sync_payload(poll: Poll, grants: dict[User, list[str]]) -> dict[str, str | list[str]]:
+    """Build a POST for the role grid: ``grants`` maps each account whose row
+    was in the grid to the roles left ticked on it."""
+    payload: dict[str, str | list[str]] = {
+        "action": "sync_roles",
+        "poll": str(poll.pk),
+        "grid_account": [str(account.pk) for account in grants],
+    }
+    for account, roles in grants.items():
+        for role in roles:
+            payload[f"role__{account.pk}__{role}"] = "1"
+    return payload
+
+
 def test_granting_a_role_writes_the_row_and_the_event(
     admin_client: Client, open_window_poll: Poll, plain_operator: User
 ) -> None:
-    admin_client.post(
-        ROLES_URL,
-        {
-            "action": "grant",
-            "poll": str(open_window_poll.pk),
-            "account": str(plain_operator.pk),
-            "role": Role.AUDITOR,
-        },
-    )
+    admin_client.post(ROLES_URL, _sync_payload(open_window_poll, {plain_operator: [Role.AUDITOR]}))
     assert PollRole.objects.filter(
         poll=open_window_poll, user=plain_operator, role=Role.AUDITOR
     ).exists()
@@ -234,15 +240,14 @@ def test_granting_a_role_writes_the_row_and_the_event(
     assert event.after == {"role": Role.AUDITOR}
 
 
-def test_granting_the_same_role_twice_is_refused(
+def test_granting_the_same_role_twice_is_a_no_op(
     admin_client: Client, open_window_poll: Poll, plain_operator: User
 ) -> None:
-    payload = {
-        "action": "grant",
-        "poll": str(open_window_poll.pk),
-        "account": str(plain_operator.pk),
-        "role": Role.ENTRY_OPERATOR,
-    }
+    """Resubmitting the grid with the same box still ticked is not a second
+    grant — ``sync_roles`` diffs against what is already granted, so this
+    never reaches ``grant_role``'s own idempotence refusal in the first
+    place."""
+    payload = _sync_payload(open_window_poll, {plain_operator: [Role.ENTRY_OPERATOR]})
     admin_client.post(ROLES_URL, payload)
     admin_client.post(ROLES_URL, payload)
     assert (
@@ -251,23 +256,63 @@ def test_granting_the_same_role_twice_is_refused(
         ).count()
         == 1
     )
+    assigned = AuditEvent.objects.filter(action=Action.ROLE_ASSIGNED, poll=open_window_poll)
+    assert assigned.count() == 1
 
 
 def test_a_role_cannot_be_granted_to_a_deactivated_account(
     admin_client: Client, open_window_poll: Poll, plain_operator: User
 ) -> None:
+    """A deactivated account never appears in the grid (``role_grid`` filters
+    to active accounts), so this exercises the belt-and-braces case: a grant
+    for it slipped into the POST by hand still hits ``grant_role``'s own
+    refusal instead of silently creating the row."""
     plain_operator.is_active = False
     plain_operator.save(update_fields=["is_active"])
-    admin_client.post(
-        ROLES_URL,
-        {
-            "action": "grant",
-            "poll": str(open_window_poll.pk),
-            "account": str(plain_operator.pk),
-            "role": Role.AUDITOR,
-        },
-    )
+    admin_client.post(ROLES_URL, _sync_payload(open_window_poll, {plain_operator: [Role.AUDITOR]}))
     assert not PollRole.objects.filter(poll=open_window_poll, user=plain_operator).exists()
+
+
+def test_the_grid_lists_only_active_accounts_ticked_with_their_current_roles(
+    admin_client: Client, open_window_poll: Poll, plain_operator: User
+) -> None:
+    PollRole.objects.create(poll=open_window_poll, user=plain_operator, role=Role.POLL_ADMIN)
+    inactive = User.objects.create_user(username="d.retire", password="x", is_active=False)
+
+    body = admin_client.get(ROLES_URL, {"scrutin": str(open_window_poll.pk)}).content.decode()
+    assert f'name="role__{plain_operator.pk}__{Role.POLL_ADMIN}" value="1" checked' in body
+    assert f'name="role__{plain_operator.pk}__{Role.AUDITOR}" value="1" checked' not in body
+    assert f"role__{inactive.pk}__" not in body
+
+
+def test_one_bulk_submission_grants_and_revokes_together(
+    admin_client: Client, open_window_poll: Poll, plain_operator: User
+) -> None:
+    """A submit can tick a new box and untick an old one in the same round
+    trip — each still lands as its own audit event (§10)."""
+    held = PollRole.objects.create(poll=open_window_poll, user=plain_operator, role=Role.AUDITOR)
+    admin_client.post(
+        ROLES_URL, _sync_payload(open_window_poll, {plain_operator: [Role.POLL_ADMIN]})
+    )
+    assert not PollRole.objects.filter(pk=held.pk).exists()
+    assert PollRole.objects.filter(
+        poll=open_window_poll, user=plain_operator, role=Role.POLL_ADMIN
+    ).exists()
+    assigned = AuditEvent.objects.filter(action=Action.ROLE_ASSIGNED, poll=open_window_poll)
+    assert assigned.count() == 1
+    assert AuditEvent.objects.filter(action=Action.ROLE_REVOKED, poll=open_window_poll).count() == 1
+
+
+def test_a_grid_submission_leaves_out_accounts_untouched(
+    admin_client: Client, open_window_poll: Poll, plain_operator: User
+) -> None:
+    """An account whose row was not part of the submitted grid — deactivated
+    after the page was rendered, say — keeps what it holds even though
+    ``desired`` says nothing about it."""
+    held = PollRole.objects.create(poll=open_window_poll, user=plain_operator, role=Role.AUDITOR)
+    other = User.objects.create_user(username="a.autre", password="x")
+    admin_client.post(ROLES_URL, _sync_payload(open_window_poll, {other: [Role.POLL_ADMIN]}))
+    assert PollRole.objects.filter(pk=held.pk).exists()
 
 
 def test_revoking_a_role_removes_the_row_and_writes_the_event(

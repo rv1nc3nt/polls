@@ -30,7 +30,7 @@ from django.utils.translation import gettext_lazy as _
 
 from apps.audit import services as audit
 from apps.audit.models import Action
-from apps.core.models import PollRole, User
+from apps.core.models import PollRole, Role, User
 from apps.elections.models import Poll
 
 #: The commune-level role of §3.7. Not a ``Role`` choice — it is a flag on the
@@ -135,6 +135,89 @@ def role_holders(poll: Poll) -> list[PollRole]:
         .select_related("user", "granted_by")
         .order_by("role", "user__username")
     )
+
+
+@dataclass(frozen=True)
+class RoleCell:
+    """One checkbox of the role grid: a role of §3.7, and whether the row's
+    account already holds it on the poll the grid is for."""
+
+    role: str
+    label: str
+    checked: bool
+
+
+@dataclass(frozen=True)
+class RoleGridRow:
+    """One row of the bulk role-assignment grid — a compte and one cell per
+    role of §3.7 on the poll in view."""
+
+    account: User
+    cells: list[RoleCell]
+
+
+def role_grid(poll: Poll) -> list[RoleGridRow]:
+    """The bulk role-assignment grid for ``poll``: one row per active
+    account, one cell per role of §3.7, ticked where already granted.
+
+    Replaces the account-then-role pair of dropdowns the screen used to post
+    one grant at a time — a dropdown scales no better than the poll picker
+    once a commune has more than a handful of comptes. Only active accounts
+    appear: ``grant_role`` refuses a deactivated one, so a checkbox that can
+    never be ticked would just be confusing. A role granted before an account
+    was deactivated still shows in ``role_holders``' table above the grid and
+    is withdrawn from there, one row at a time, unaffected by the grid
+    leaving the account out.
+    """
+    grants = PollRole.objects.filter(poll=poll).only("user_id", "role")
+    granted = {(grant.user_id, grant.role) for grant in grants}
+    return [
+        RoleGridRow(
+            account=account,
+            cells=[
+                RoleCell(role=role, label=str(label), checked=(account.pk, role) in granted)
+                for role, label in Role.choices
+            ],
+        )
+        for account in User.objects.filter(is_active=True).order_by("username")
+    ]
+
+
+def sync_roles(
+    poll: Poll, *, account_ids: list[str], desired: set[tuple[str, str]], actor: User
+) -> list[str]:
+    """Apply one submission of the role grid (``role_grid``): bring the
+    grants for the accounts in ``account_ids`` — the rows the operator
+    actually saw — in line with ``desired``, the (account id, role) pairs
+    left ticked.
+
+    Goes cell by cell through ``grant_role`` / ``revoke_role``, so a bulk
+    submit still writes one ROLE_ASSIGNED / ROLE_REVOKED event per changed
+    cell (§10) rather than one event for the whole grid. An account outside
+    ``account_ids`` is never touched even if ``desired`` says nothing about
+    it — that is how a deactivated account's existing grants survive a grid
+    that does not render it at all (see ``role_grid``). A cell that fails —
+    a deactivated account slipped into a hand-built POST — is skipped and its
+    message returned; the rest of the submission still lands.
+    """
+    existing = list(PollRole.objects.filter(poll=poll, user_id__in=account_ids))
+    current = {(str(grant.user_id), grant.role) for grant in existing}
+    by_pair = {(str(grant.user_id), grant.role): grant for grant in existing}
+    candidates = User.objects.filter(pk__in=account_ids)
+    accounts_by_id = {str(account.pk): account for account in candidates}
+
+    errors = []
+    for account_id, role in desired - current:
+        account = accounts_by_id.get(account_id)
+        if account is None:
+            continue
+        try:
+            grant_role(poll, account, role, actor=actor)
+        except AccountActionRefused as refused:
+            errors.append(f"{account.username} — {refused}")
+    for pair in current - desired:
+        revoke_role(by_pair[pair], actor=actor)
+    return errors
 
 
 @transaction.atomic
