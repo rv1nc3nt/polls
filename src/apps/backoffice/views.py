@@ -37,12 +37,18 @@ views takes a ``poll`` argument, so the per-poll roles screen 10 *assigns* are
 still not access to a poll's screens for the commune admin who assigns them
 (§3.7). Screen 11 runs before any account exists, so it cannot use either
 gate: ``require_first_run`` opens it only while no account has been created.
+
+Here so far, additionally: "Nouveau scrutin" (§6.5, docs/spec-divergences.md
+#10), the create step the numbered screens never included — commune-level
+like 10 and 12, reusing screen 2's form and write path (``elections.config``)
+rather than a screen of its own.
 """
 
 from __future__ import annotations
 
 from datetime import datetime
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, password_validation
 from django.contrib.auth.decorators import login_required
@@ -67,7 +73,7 @@ from apps.core.codes import format_tracking_code
 from apps.core.models import PollRole, Role, User
 from apps.core.types import TrackingCode
 from apps.elections import closure, config, results_view, rollimport
-from apps.elections.models import Poll, PollState, RollEntry
+from apps.elections.models import Poll, PollState, RollEntry, default_eligible_list_types
 from apps.elections.transitions import TransitionRefused, extend_closes_at, publish_poll
 from apps.elections.windows import WindowClosed
 from apps.registrations import mail as registration_mail
@@ -93,6 +99,7 @@ from .forms import (
     NewAccountForm,
     OptionFormSet,
     PollConfigForm,
+    PollCreateForm,
     config_initial,
     config_warnings,
     option_drafts,
@@ -179,6 +186,48 @@ def poll_index(request: HttpRequest) -> HttpResponse:
             "is_commune_admin": is_commune_admin(request.user),
         },
     )
+
+
+@require_commune_admin
+def poll_create(request: HttpRequest) -> HttpResponse:
+    """Screen "Nouveau scrutin" — the create step ``access.py`` names ("crée
+    les scrutins", R-3.1) but that, until now, no screen offered.
+
+    Commune-level, like screens 10 and 12: a poll being created has no
+    ``poll_admin`` yet to gate on. Reuses screen 2's form and option editor —
+    a poll's initial configuration is the same shape as an edit of one — plus
+    ``is_sandbox`` (R-3.7), which screen 2 excludes because it is fixed here
+    and nowhere else. A fresh poll has no ``languages`` yet to derive the
+    content fields from, so the editor opens on the default language alone;
+    adding another is the same "change the set, save, the new fields appear on
+    the next load" path screen 2 already uses (`forms.PollConfigForm`).
+
+    Creating grants the admin no role on the poll (§3.7) — the redirect lands
+    on "Rôles par scrutin" for it, so that granting one, to themselves or
+    anyone else, stays the separate, audited step it always is.
+    """
+    languages = [settings.LANGUAGE_CODE]
+    on_post = request.method == "POST"
+    default_initial = {
+        "default_language": settings.LANGUAGE_CODE,
+        "eligible_list_types": default_eligible_list_types(),
+    }
+    form = PollCreateForm(
+        request.POST or None,
+        content_languages=languages,
+        initial=None if on_post else default_initial,
+    )
+    formset = OptionFormSet(
+        request.POST or None, prefix="opt", form_kwargs={"content_languages": languages}
+    )
+    if on_post and form.is_valid() and formset.is_valid():
+        draft = form.to_draft(option_drafts(formset))
+        poll = config.create_poll(
+            draft, is_sandbox=form.cleaned_data["is_sandbox"], actor=current_operator(request)
+        )
+        messages.success(request, _("Scrutin créé. Attribuez-vous un rôle pour y accéder."))
+        return redirect(f"{reverse('backoffice:role_admin')}?scrutin={poll.pk}")
+    return render(request, "backoffice/poll_create.html", {"form": form, "formset": formset})
 
 
 @require_poll_role(Role.POLL_ADMIN, Role.ENTRY_OPERATOR, Role.AUDITOR)

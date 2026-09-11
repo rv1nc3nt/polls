@@ -288,3 +288,42 @@ half-working second path.
 **Not settled by amending the spec.** This implements one of the two options
 §14 offers rather than contradicting it. Recorded here so the gap is visible;
 no spec or requirements change.
+
+## 10. No screen ever created a poll
+
+**Specification, §6.5.** R-3.1 says what a poll comprises and R-3.2 that it
+starts in `draft`, but the twelve numbered screens never include the step that
+produces the first row: screen 2 is explicitly "editable only in `draft`",
+which presupposes the `draft` poll it edits already exists. `access.py`'s own
+docstring named the gap before any screen closed it — `commune_admin` is
+"gère les comptes et crée les scrutins" — and `Action.POLL_CREATED` sat in the
+audit vocabulary (`apps/audit/models.py`) unused by any write path but tests.
+Until now the only way to get a `Poll` row into a running instance was the
+Django shell.
+
+**What the code does.** A "Nouveau scrutin" screen, commune-level like
+screens 10 and 12 (`access.require_commune_admin` — a poll being created has
+no `poll_admin` yet), at `/mairie/nouveau/`. It reuses screen 2's form
+(`PollConfigForm`) and option formset unchanged, adding only `is_sandbox`
+(`PollCreateForm`, R-3.7 — fixed at creation and so excluded from
+`save_configuration`'s field set). The write path is
+`elections.config.create_poll`, which builds the `Poll` and its options in one
+transaction and logs `Action.POLL_CREATED`. Creating grants the admin no role
+on the poll (§3.7's split, same as `role_admin`): the screen redirects to
+"Rôles par scrutin" for the new poll so that granting one stays a separate,
+audited step.
+
+**Why R-3.6 is left out.** "A poll may be created by duplicating an existing
+poll or a template" is a convenience on top of creation, not a substitute for
+it — the gap this closes is that there was no base case at all, template or
+not. Duplication carries its own decisions (what a "template" is, whether a
+sandbox poll can be a source) that are worth their own review rather than
+folding into the fix for a missing screen. The create screen always starts
+from a blank configuration until that follow-up lands.
+
+**Not settled by amending the requirements.** Nothing in R-3.1–R-3.8
+contradicts this — the requirements describe what a poll is and how it may
+optionally be duplicated, never how the specification's back office is meant
+to expose plain creation. §6.5's screen list has been amended to name the gap
+and how it is closed; R-3.6 (duplication) remains open, tracked here rather
+than in a requirements edit.

@@ -222,6 +222,25 @@ class PollConfigForm(forms.Form):
         )
 
 
+class PollCreateForm(PollConfigForm):
+    """The "Nouveau scrutin" screen's form — screen 2's shape, plus the one
+    field screen 2 deliberately excludes.
+
+    ``is_sandbox`` is fixed at creation and never editable again (R-3.7), so it
+    belongs on this form and nowhere near ``PollConfigForm.to_draft``, which
+    feeds ``save_configuration`` — the edit path that must never touch it.
+    """
+
+    is_sandbox = forms.BooleanField(
+        label=_("Scrutin bac à sable"),
+        required=False,
+        help_text=_(
+            "Fixé pour toujours : un scrutin bac à sable n'apparaît sur aucune page "
+            "publique, aucun résultat publié et aucune statistique (R-3.7)."
+        ),
+    )
+
+
 class OptionForm(forms.Form):
     """One proposition row. Blank rows are ignored; a deleted row is dropped."""
 

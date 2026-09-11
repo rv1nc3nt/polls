@@ -1584,3 +1584,46 @@ msgstr ""
 #: templates/backoffice/mail_settings.html
 msgid "Envoyer un message de test"
 msgstr "Send a test message"
+
+#: apps/backoffice/templatetags/backoffice_nav.py
+msgid "Nouveau scrutin"
+msgstr "New poll"
+
+#: apps/backoffice/forms.py
+msgid "Scrutin bac à sable"
+msgstr "Sandbox poll"
+
+#: apps/backoffice/forms.py
+msgid ""
+"Fixé pour toujours : un scrutin bac à sable n'apparaît sur aucune page "
+"publique, aucun résultat publié et aucune statistique (R-3.7)."
+msgstr ""
+"Fixed for good: a sandbox poll appears on no public page, no published "
+"result and no statistic (R-3.7)."
+
+#: apps/backoffice/views.py
+msgid "Scrutin créé. Attribuez-vous un rôle pour y accéder."
+msgstr "Poll created. Grant yourself a role to access it."
+
+#: templates/backoffice/poll_index.html
+msgid "Créer un scrutin"
+msgstr "Create a poll"
+
+#: templates/backoffice/poll_create.html
+msgid ""
+"Toute la configuration reste modifiable tant que le scrutin est en "
+"brouillon (R-3.3) ; vous n'avez pas besoin de tout renseigner ici. Une "
+"fois créé, allez sur « Rôles par scrutin » pour vous attribuer un rôle : "
+"la création n'en donne aucun (§3.7)."
+msgstr ""
+"The whole configuration stays editable while the poll is in draft (R-3.3); "
+"you do not need to fill everything in here. Once created, go to “Roles per "
+"poll” to grant yourself one: creating it grants none (§3.7)."
+
+#: templates/backoffice/poll_create.html
+msgid "Nature du scrutin"
+msgstr "Nature of the poll"
+
+#: templates/backoffice/poll_create.html
+msgid "Créer le scrutin"
+msgstr "Create the poll"

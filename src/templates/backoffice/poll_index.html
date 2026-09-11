@@ -9,9 +9,11 @@
   {% if is_commune_admin %}
     {% comment %} §3.7: the flag is commune-level. It lists every poll, and opens none of
        their screens — that needs a per-poll grant (§6.5.10). {% endcomment %}
-    {% comment %} « Comptes opérateurs » and « Rôles par scrutin » are in the left-column
-       menu; not repeated here. {% endcomment %}
+    {% comment %} « Nouveau scrutin », « Comptes opérateurs » and « Rôles par scrutin »
+       are in the left-column menu; not repeated here except the create action, which
+       belongs beside the list it populates. {% endcomment %}
     <p class="notice">{% translate "Vous administrez la commune : tous les scrutins sont listés. L'accès aux écrans d'un scrutin demande un rôle sur ce scrutin." %}</p>
+    <p><a href="{% url 'backoffice:poll_create' %}">{% translate "Créer un scrutin" %}</a></p>
   {% endif %}
 
   {% if polls %}

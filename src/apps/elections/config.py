@@ -14,7 +14,17 @@ leaves nothing half-applied.
 
 This module assigns every configuration field of §3.1 **except**: ``state``,
 which only ``transitions`` assigns (§5.1); ``token_salt``, generated once and
-never edited; and ``is_sandbox``, fixed at creation (R-3.7).
+never edited; and ``is_sandbox``, fixed at creation (R-3.7) and so assigned by
+``create_poll`` below, not ``save_configuration``.
+
+``create_poll`` is the write path behind the "Nouveau scrutin" screen
+(access.require_commune_admin — see its docstring, "crée les scrutins"): a
+poll's initial configuration is the same shape ``PollConfigForm`` already
+validates for screen 2, so creation reuses it rather than a second form for
+the same fields. It grants the creating admin no role on the poll it makes —
+that would bypass the audited grant §3.7 requires for every poll-scoped
+screen — so ``poll_create`` in ``views.py`` sends the admin back to "Rôles par
+scrutin" to grant one, themselves or someone else, as a separate, logged step.
 """
 
 from __future__ import annotations
@@ -70,6 +80,37 @@ def configuration_warnings(tally_method: str, *, allow_ties_in_ballot: bool) -> 
     if tally_method == TallyMethod.PLURALITY and allow_ties_in_ballot:
         warnings.append("plurality_allows_ties")
     return warnings
+
+
+@transaction.atomic
+def create_poll(draft: ConfigDraft, *, is_sandbox: bool, actor: User) -> Poll:
+    """Create a new poll from a screen-2-shaped draft (R-3.1) and log it.
+
+    ``draft.options`` is never ``None`` here — unlike a screen-2 edit, creation
+    always carries the whole proposition list, and ``OptionFormSet`` already
+    refused fewer than two before this is called. ``is_sandbox`` is taken apart
+    from the rest of ``draft.scalars``: R-3.7 fixes it at creation, so it has no
+    place in the set ``save_configuration`` may later change.
+    """
+    poll = Poll(
+        languages=draft.languages,
+        title_i18n=draft.title_i18n,
+        description_i18n=draft.description_i18n,
+        is_sandbox=is_sandbox,
+        **draft.scalars,
+    )
+    poll.save()
+    for position, row in enumerate(draft.options or []):
+        PollOption.objects.create(
+            poll=poll, option_id=row.option_id, label_i18n=row.labels, position=position
+        )
+    audit.record(
+        action=Action.POLL_CREATED,
+        poll=poll,
+        actor=actor,
+        object_ref=audit.ref(poll),
+    )
+    return poll
 
 
 class ConfigurationLocked(Exception):
