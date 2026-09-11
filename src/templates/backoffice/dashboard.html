@@ -13,7 +13,7 @@
        failure this section exists to prevent (§4). {% endcomment %}
     <section aria-labelledby="blocages">
       <h2 id="blocages">
-        {% if poll.state == "draft" %}{% translate "Ce scrutin ne peut pas s'ouvrir" %}
+        {% if poll.state == "draft" or poll.state == "announced" %}{% translate "Ce scrutin ne peut pas s'ouvrir" %}
         {% else %}{% translate "Ce scrutin ne peut pas se clore" %}{% endif %}
       </h2>
       <ul class="blockers">

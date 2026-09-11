@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import pytest
+from django.core.exceptions import ValidationError
 
 from apps.audit.models import Action, AuditEvent
 from apps.ballots.models import Ballot, BallotSource, BallotStatus
@@ -11,6 +12,8 @@ from apps.core.codes import new_tracking_code
 from apps.elections.models import Poll, PollOption, PollState, WorkingRollEntry
 from apps.elections.transitions import (
     TransitionRefused,
+    announce_poll,
+    announcing_blockers,
     close_poll,
     closing_blockers,
     open_poll,
@@ -28,6 +31,55 @@ def test_opening_takes_the_snapshot_and_the_seed_in_one_transaction(
     assert poll.opening_seed is not None
     assert poll.roll_entries.count() == WorkingRollEntry.objects.count()
     assert AuditEvent.objects.filter(action=Action.ROLL_SNAPSHOT_TAKEN).exists()
+
+
+def test_t70_announcing_is_lighter_than_opening(open_window_poll: Poll) -> None:
+    """T-70, R-3.10: neither a missing translation nor an absent roll blocks
+    ``announce_poll`` — a preview needs neither, unlike opening (§3.8, §6.1) —
+    but fewer than two propositions still does. Configuration is frozen the
+    instant it runs (INV-6 already reads ``state != draft``)."""
+    open_window_poll.languages = ["fr", "en"]  # an English translation is missing everywhere
+    open_window_poll.save(update_fields=["languages"])
+    WorkingRollEntry.objects.all().delete()
+    assert announcing_blockers(open_window_poll) == []
+    # Both would block opening, though — announcing is deliberately lighter.
+    assert set(opening_blockers(open_window_poll)) >= {
+        "no_roll_to_snapshot",
+        "missing_translation:title:en",
+    }
+
+    poll = announce_poll(open_window_poll)
+    assert poll.state == PollState.ANNOUNCED
+    assert AuditEvent.objects.filter(action=Action.POLL_STATE_CHANGED, poll=poll).exists()
+
+    # Frozen like `open` — the same INV-6 guard (``Poll.save()``'s
+    # ``state != draft`` check), not a separate mechanism for this state.
+    poll.tally_method_version = "9"
+    with pytest.raises(ValidationError, match="figée"):
+        poll.save(update_fields=["tally_method_version"])
+
+
+def test_open_poll_accepts_an_announced_poll_exactly_like_draft(
+    open_window_poll: Poll,
+) -> None:
+    """R-3.10: announcing is a detour, not a different destination."""
+    poll = announce_poll(open_window_poll)
+    opened = open_poll(Poll.objects.get(pk=poll.pk))
+    assert opened.state == PollState.OPEN
+    assert opened.opening_seed is not None
+
+    events = AuditEvent.objects.filter(action=Action.POLL_STATE_CHANGED, poll=opened).order_by("at")
+    assert [e.before.get("state") for e in events] == ["draft", "announced"]
+    assert [e.after.get("state") for e in events] == ["announced", "open"]
+
+
+def test_t70_announcing_refuses_fewer_than_two_propositions(open_window_poll: Poll) -> None:
+    open_window_poll.options.exclude(option_id="a").delete()
+    assert "fewer_than_two_options" in announcing_blockers(open_window_poll)
+    with pytest.raises(TransitionRefused):
+        announce_poll(open_window_poll)
+    open_window_poll.refresh_from_db()
+    assert open_window_poll.state == PollState.DRAFT
 
 
 def test_t53_opening_refuses_an_untranslated_poll_and_one_with_no_roll(

@@ -30,7 +30,14 @@ from apps.core.types import TrackingCode
 from apps.elections import closure
 from apps.elections.closure import live_ballots
 from apps.elections.models import Poll, PollOption, WorkingRollEntry
-from apps.elections.transitions import close_poll, extend_closes_at, open_poll, publish_poll
+from apps.elections.transitions import (
+    TransitionRefused,
+    announce_poll,
+    close_poll,
+    extend_closes_at,
+    open_poll,
+    publish_poll,
+)
 from apps.registrations.models import Channel, Registration, RegistrationState
 
 
@@ -455,3 +462,59 @@ def test_t23_labels_are_frozen_and_the_hash_and_result_are_built_from_ids(db: No
 
 def test_an_unknown_format_is_404(client: Client, published_poll: Poll) -> None:
     assert client.get(f"/fr/scrutin/{published_poll.pk}/resultats/?format=pdf").status_code == 404
+
+
+# --- early preview: the `announced` state (R-3.10, T-69) ------------------
+
+
+def test_a_draft_poll_never_appears_even_short_of_two_options(client: Client, db: None) -> None:
+    """A ``draft`` poll is never public, under no configuration — there is no
+    flag to flip; the only way to become public is to actually transition
+    (``announce_poll``), and that transition itself refuses a poll not ready
+    to be shown (fewer than two propositions, R-3.10)."""
+    poll = _make_poll()  # never announced
+    assert client.get(f"/fr/scrutin/{poll.pk}/").status_code == 404
+    assert poll.title() not in client.get("/fr/").content.decode()
+
+    poll.options.exclude(option_id="a").delete()
+    with pytest.raises(TransitionRefused):
+        announce_poll(poll)
+    poll.refresh_from_db()
+    assert poll.state == "draft"
+    assert client.get(f"/fr/scrutin/{poll.pk}/").status_code == 404
+
+
+def test_an_announced_poll_previews_publicly(client: Client, db: None) -> None:
+    poll = _make_poll()
+    announce_poll(poll)
+    poll = Poll.objects.get(pk=poll.pk)
+
+    listing = client.get("/fr/").content.decode()
+    assert "Aménagement de la place" in listing
+    assert "à venir" in listing
+
+    body = client.get(f"/fr/scrutin/{poll.pk}/").content.decode()
+    assert "Aménagement de la place" in body
+    assert "A" in body and "B" in body and "C" in body
+    assert "n'est pas encore ouvert" in body
+    # A preview offers no way to register or vote — nothing behind it would
+    # accept a submission before the poll actually opens (§5.1).
+    assert f"/fr/inscription/{poll.pk}/" not in body
+    # No participation either: `_live_participation` only computes for `open`.
+    assert "Participation" not in body
+
+    # `open_poll` accepts `announced` exactly as it accepts `draft` (R-3.10).
+    open_poll(poll)
+    poll.refresh_from_db()
+    assert poll.state == "open"
+    assert client.get(f"/fr/scrutin/{poll.pk}/").status_code == 200
+
+
+def test_a_sandbox_poll_stays_hidden_even_once_announced(client: Client, db: None) -> None:
+    """INV-8: ``announced`` cannot make a sandbox poll public."""
+    poll = _make_poll(sandbox=True)
+    announce_poll(poll)
+    poll.refresh_from_db()
+    assert poll.state == "announced"
+    assert client.get(f"/fr/scrutin/{poll.pk}/").status_code == 404
+    assert poll.title() not in client.get("/fr/").content.decode()

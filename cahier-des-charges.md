@@ -26,7 +26,7 @@ v0.5 — périmètre fonctionnel uniquement ; aucun choix technique. Les règles
 | Rôle | Habilitations |
 |---|---|
 | Administrateur communal | Crée les scrutins, attribue les rôles propres à chaque scrutin, importe la liste électorale. Ce rôle n'emporte par lui-même aucun accès aux bulletins. |
-| Administrateur de scrutin | Modifie la configuration tant que le scrutin est à l'état de projet ; ouvre, clôt et publie le scrutin ; statue sur les inscriptions signalées pour examen manuel. |
+| Administrateur de scrutin | Modifie la configuration tant que le scrutin est à l'état de projet ; annonce, ouvre, clôt et publie le scrutin ; statue sur les inscriptions signalées pour examen manuel. |
 | Opérateur de saisie (conseiller municipal) | Saisit, rectifie et supprime les bulletins papier du scrutin ; délivre les récépissés. |
 | Auditeur | Accès en lecture seule à la configuration du scrutin, à la liste anonymisée des bulletins et à l'intégralité du journal d'audit. |
 | Électeur | S'inscrit, exprime et, lorsque le scrutin le permet, modifie son vote ; vérifie l'enregistrement de son propre bulletin. |
@@ -43,9 +43,9 @@ v0.5 — périmètre fonctionnel uniquement ; aucun choix technique. Les règles
 
 **R-3.1** Un scrutin comporte : un intitulé ; une description ; une liste ordonnée d'au moins deux options ; une date et heure d'ouverture ; une date et heure de clôture ; un fuseau horaire ; une méthode de dépouillement et sa version ; les contraintes de bulletin (classement complet exigé ou non, ex æquo admis ou non) ; une règle de départage ; la faculté ou non pour l'électeur de modifier son bulletin (R-7.1) ; l'affichage ou non de la participation en cours de scrutin (R-11.5) ; les types de liste ouvrant droit de vote (R-4.7) ; les langues activées (R-14.3) ; les exigences de forme applicables aux bulletins papier (R-8.2) ; une copie figée de la liste électorale ; un indicateur de scrutin d'essai ; un état.
 
-**R-3.2** Les changements d'état sont strictement ordonnés : `projet → ouvert → clos → publié`. Aucune transition n'est réversible.
+**R-3.2** Les changements d'état sont strictement ordonnés : `projet → [annoncé] → ouvert → clos → publié`. L'état `annoncé` est une étape facultative (R-3.10) : un scrutin peut aussi passer directement de `projet` à `ouvert`. Aucune transition n'est réversible.
 
-**R-3.3** La configuration est librement modifiable à l'état de `projet` et devient immuable dès le passage à l'état `ouvert`.
+**R-3.3** La configuration est librement modifiable à l'état de `projet` et devient immuable dès que le scrutin quitte cet état, qu'il passe à `annoncé` ou directement à `ouvert`.
 
 **R-3.4** Seule exception à la règle R-3.3 : la date de clôture peut être prorogée pendant que le scrutin est ouvert. La prorogation est consignée au journal d'audit avec l'identité de l'opérateur, l'horodatage et un motif obligatoire, et elle est affichée sur la page publique du scrutin.
 
@@ -58,6 +58,8 @@ v0.5 — périmètre fonctionnel uniquement ; aucun choix technique. Les règles
 **R-3.8** Plusieurs scrutins peuvent se dérouler simultanément auprès du même corps électoral. Chacun est indépendant à tous égards : inscription distincte, copie figée distincte de la liste électorale, jetons distincts, bulletins distincts.
 
 **R-3.9** Un scrutin, à quelque état qu'il soit, peut être enregistré comme modèle nommé, reprenant les mêmes éléments qu'un modèle transmet à la création (R-3.6). Un modèle n'est pas un scrutin : il n'a ni intitulé, ni description, ni options, ni dates, ni corps électoral, ni bulletins, et n'est soumis à aucun cycle de vie ; seul son nom, choisi par l'opérateur, l'identifie.
+
+**R-3.10** À l'option de l'administrateur de scrutin, un scrutin encore à l'état de projet peut être annoncé : il passe alors à l'état `annoncé`, visible sur le site public avant son ouverture. Les propositions et le calendrier y sont montrés, aucune inscription ni aucun vote n'y est proposé, et la page indique expressément que le scrutin n'est pas encore ouvert. Le passage à cet état fige la configuration au même titre que le passage à l'état ouvert (R-3.3) : la page publique ne peut donc pas changer sous les yeux de qui la consulte. Cette étape est facultative ; un scrutin encore à l'état de projet n'apparaît sur aucune page publique.
 
 ---
 
@@ -246,7 +248,7 @@ Aucun générateur pseudo-aléatoire de bibliothèque n'est employé, la reprodu
 
 **R-13.3** Durées de conservation : les données d'identité (enregistrements d'inscription, copie figée de la liste électorale, association des bulletins papier aux électeurs) sont supprimées à l'expiration d'un délai de deux mois courant à compter de la clôture du scrutin, et les rubriques déclarées au titre de la règle R-12.4 sont effacées du journal d'audit au même terme. Le point de départ est la clôture et non la publication : un scrutin clos qui n'est jamais publié — départage physique non tranché, résultat abandonné — conserverait sinon ces données indéfiniment. Les bulletins anonymisés, le résultat publié et le journal lui-même sont conservés au-delà.
 
-**R-13.3 bis** La liste électorale importée mais non encore figée dans un scrutin (règle R-4.3) est supprimée à l'expiration d'un délai de deux mois courant à compter de son import, dès lors qu'aucun scrutin ne se trouve alors à l'état `brouillon` — seul état dans lequel un scrutin la figera encore lors de son ouverture. Seule la provenance de l'import (nom du fichier, empreinte, nombre de lignes, opérateur, date) est alors conservée, au journal d'audit ; les données d'identité elles-mêmes ne le sont pas.
+**R-13.3 bis** La liste électorale importée mais non encore figée dans un scrutin (règle R-4.3) est supprimée à l'expiration d'un délai de deux mois courant à compter de son import, dès lors qu'aucun scrutin ne se trouve alors à l'état `brouillon` ou `annoncé` (règle R-3.10) — les deux seuls états dans lesquels un scrutin la figera encore lors de son ouverture. Seule la provenance de l'import (nom du fichier, empreinte, nombre de lignes, opérateur, date) est alors conservée, au journal d'audit ; les données d'identité elles-mêmes ne le sont pas.
 
 **R-13.4** Les sels servant à la dérivation des jetons sont propres à chaque scrutin, de sorte que la plateforme ne permette aucun rapprochement de la participation d'une même personne à deux scrutins distincts. Aucun état de participation inter-scrutins n'est fourni.
 

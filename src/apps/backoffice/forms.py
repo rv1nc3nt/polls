@@ -336,6 +336,34 @@ class ExtensionForm(forms.Form):
     )
 
 
+#: R-8.7 bis: the codes a poll admin may cite for closing over a
+#: ``pending_countersign`` ballot. ``COUNTERSIGN_UNAVAILABLE`` is the one this
+#: override exists for; the other two cover a closure forced for some other
+#: reason before every countersignature is in.
+CLOSURE_REASONS: tuple[Reason, ...] = (
+    Reason.COUNTERSIGN_UNAVAILABLE,
+    Reason.ADMINISTRATIVE_DECISION,
+    Reason.OTHER,
+)
+
+
+class ClosureOverrideForm(forms.Form):
+    """Screen 2's manual ``close_poll`` trigger (§4).
+
+    The reason is required only when ``closing_blockers`` finds ballots
+    pending countersignature (R-8.7 bis); that is ``transitions.close_poll``'s
+    guard to enforce, not a client-side rule, so the field stays optional here
+    and an omitted reason on a blocked closure comes back as a message naming
+    the blocker instead of a form error.
+    """
+
+    reason = forms.ChoiceField(
+        label=_("Motif de clôture forcée (si des bulletins attendent un contreseing)"),
+        required=False,
+        choices=[("", "—")] + [(reason.value, reason.label) for reason in CLOSURE_REASONS],
+    )
+
+
 def config_initial(poll: Poll) -> dict[str, Any]:
     """The bound values for ``PollConfigForm`` on a GET.
 

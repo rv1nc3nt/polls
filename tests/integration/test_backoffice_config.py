@@ -17,9 +17,11 @@ from django.test import Client
 from django.utils import timezone
 
 from apps.audit.models import Action, AuditEvent, Reason
+from apps.ballots.models import Ballot, BallotSource, BallotStatus
+from apps.core.codes import new_tracking_code
 from apps.core.models import PollRole, Role, User
 from apps.elections import config
-from apps.elections.models import Poll, TallyMethod
+from apps.elections.models import Poll, PollOption, PollState, TallyMethod, WorkingRollEntry
 from apps.elections.transitions import TransitionRefused, open_poll, opening_blockers
 
 
@@ -439,3 +441,178 @@ def test_the_dashboard_links_to_the_configuration_screen(
     client.force_login(admin_user)
     body = client.get(f"/fr/mairie/scrutin/{open_window_poll.pk}/").content.decode()
     assert f"/mairie/scrutin/{open_window_poll.pk}/configuration/" in body
+
+
+# --- R-2.1 / §4: manual open and close from screen 2 ------------------------
+
+
+def test_t67_open_now_succeeds_early_and_refuses_an_unready_poll(
+    client: Client, open_window_poll: Poll, admin_user: User
+) -> None:
+    """T-67: *ouvrir maintenant* works at any time, including well before
+    ``opens_at`` — nothing on the vote/registration write paths depends on
+    ``state`` — and refuses, with the same blockers ``open_poll`` itself would
+    report, on a poll that is not ready."""
+    open_window_poll.opens_at = timezone.now() + timedelta(hours=6)
+    open_window_poll.save(update_fields=["opens_at"])
+    _grant(open_window_poll, admin_user, Role.POLL_ADMIN)
+    client.force_login(admin_user)
+
+    response = client.post(_url(open_window_poll), {"action": "open_poll"})
+    assert response.status_code == 302
+    open_window_poll.refresh_from_db()
+    assert open_window_poll.state == PollState.OPEN
+    assert open_window_poll.opening_seed is not None
+    assert AuditEvent.objects.filter(
+        action=Action.POLL_STATE_CHANGED, poll=open_window_poll
+    ).exists()
+
+    unready = Poll.objects.create(
+        title_i18n={"fr": "Autre"},
+        description_i18n={"fr": "Autre"},
+        languages=["fr"],
+        opens_at=timezone.now() + timedelta(days=1),
+        closes_at=timezone.now() + timedelta(days=3),
+        paper_entry_deadline=timezone.now() + timedelta(days=3),
+    )
+    PollOption.objects.create(poll=unready, option_id="a", label_i18n={"fr": "A"}, position=0)
+    PollOption.objects.create(poll=unready, option_id="b", label_i18n={"fr": "B"}, position=1)
+    _grant(unready, admin_user, Role.POLL_ADMIN)
+    WorkingRollEntry.objects.all().delete()
+
+    body = client.post(_url(unready), {"action": "open_poll"}).content.decode()
+    unready.refresh_from_db()
+    assert unready.state == PollState.DRAFT
+    assert "Ouverture refusée" in body
+
+
+def test_t68_close_now_is_gated_on_the_deadline_and_needs_a_reason_when_blocked(
+    client: Client, open_window_poll: Poll, admin_user: User
+) -> None:
+    """T-68: *clôturer maintenant* is refused outright, without closing the
+    poll, before ``paper_entry_deadline``; once due, refused again without a
+    reason while a ballot awaits countersignature, then succeeds with one —
+    the override reason ``close_poll`` cannot get from a scheduled command."""
+    open_window_poll.paper_requires_countersign = True
+    open_window_poll.save(update_fields=["paper_requires_countersign"])
+    poll = open_poll(open_window_poll)
+    Ballot.objects.create(
+        poll=poll,
+        tracking_code=new_tracking_code(),
+        ranking=[["a"], ["b"], ["c"]],
+        source=BallotSource.PAPER,
+        status=BallotStatus.PENDING_COUNTERSIGN,
+    )
+    _grant(poll, admin_user, Role.POLL_ADMIN)
+    client.force_login(admin_user)
+
+    # Not yet due: the form is absent, and a forged POST changes nothing.
+    body = client.get(_url(poll)).content.decode()
+    assert 'value="close_poll"' not in body
+    response = client.post(_url(poll), {"action": "close_poll"})
+    assert response.status_code == 403
+    poll.refresh_from_db()
+    assert poll.state == PollState.OPEN
+
+    now = timezone.now()
+    poll.closes_at = now - timedelta(minutes=2)
+    poll.paper_entry_deadline = now - timedelta(minutes=1)
+    poll.save(update_fields=["closes_at", "paper_entry_deadline"])
+
+    # Due, but blocked without a reason: refused, not silently dropped (§9).
+    body = client.get(_url(poll)).content.decode()
+    assert 'value="close_poll"' in body
+    blocked = client.post(_url(poll), {"action": "close_poll", "reason": ""}).content.decode()
+    assert "Clôture refusée" in blocked
+    poll.refresh_from_db()
+    assert poll.state == PollState.OPEN
+
+    response = client.post(
+        _url(poll), {"action": "close_poll", "reason": Reason.COUNTERSIGN_UNAVAILABLE}
+    )
+    assert response.status_code == 302
+    poll.refresh_from_db()
+    assert poll.state == PollState.CLOSED
+    assert poll.closure_override_reason == Reason.COUNTERSIGN_UNAVAILABLE
+    assert AuditEvent.objects.filter(action=Action.CLOSURE_OVERRIDE, poll=poll).exists()
+
+
+def test_close_now_succeeds_without_a_reason_once_due_and_nothing_is_blocked(
+    client: Client, open_window_poll: Poll, admin_user: User
+) -> None:
+    now = timezone.now()
+    open_window_poll.closes_at = now - timedelta(minutes=2)
+    open_window_poll.paper_entry_deadline = now - timedelta(minutes=1)
+    open_window_poll.save(update_fields=["closes_at", "paper_entry_deadline"])
+    poll = open_poll(open_window_poll)
+    _grant(poll, admin_user, Role.POLL_ADMIN)
+    client.force_login(admin_user)
+
+    response = client.post(_url(poll), {"action": "close_poll", "reason": ""})
+    assert response.status_code == 302
+    poll.refresh_from_db()
+    assert poll.state == PollState.CLOSED
+    assert poll.closure_override_reason == ""
+
+
+def test_announce_now_shows_the_poll_publicly_and_freezes_configuration(
+    client: Client, open_window_poll: Poll, admin_user: User
+) -> None:
+    """R-3.10: ``draft → announced``, config frozen the instant it runs —
+    same trigger as opening (INV-6: ``state != draft``) — and ``open_poll``
+    still works from ``announced`` afterwards, exactly as from ``draft``."""
+    _grant(open_window_poll, admin_user, Role.POLL_ADMIN)
+    client.force_login(admin_user)
+
+    response = client.post(_url(open_window_poll), {"action": "announce_poll"})
+    assert response.status_code == 302
+    open_window_poll.refresh_from_db()
+    assert open_window_poll.state == PollState.ANNOUNCED
+    assert AuditEvent.objects.filter(
+        action=Action.POLL_STATE_CHANGED, poll=open_window_poll
+    ).exists()
+
+    body = client.get(_url(open_window_poll)).content.decode()
+    assert "la configuration est figée" in body
+    with pytest.raises(config.ConfigurationLocked):
+        config.save_configuration(
+            open_window_poll,
+            config.ConfigDraft(
+                scalars={"tally_method": TallyMethod.APPROVAL},
+                languages=["fr"],
+                title_i18n={"fr": "Autre"},
+                description_i18n={"fr": "Autre"},
+            ),
+            actor=admin_user,
+        )
+
+    response = client.post(_url(open_window_poll), {"action": "open_poll"})
+    assert response.status_code == 302
+    open_window_poll.refresh_from_db()
+    assert open_window_poll.state == PollState.OPEN
+
+
+def test_announce_now_refuses_fewer_than_two_propositions(
+    client: Client, open_window_poll: Poll, admin_user: User
+) -> None:
+    open_window_poll.options.exclude(option_id="a").delete()
+    _grant(open_window_poll, admin_user, Role.POLL_ADMIN)
+    client.force_login(admin_user)
+
+    body = client.post(_url(open_window_poll), {"action": "announce_poll"}).content.decode()
+    open_window_poll.refresh_from_db()
+    assert open_window_poll.state == PollState.DRAFT
+    assert "Annonce refusée" in body
+
+
+def test_announce_now_is_refused_once_the_poll_has_left_draft(
+    client: Client, open_window_poll: Poll, admin_user: User
+) -> None:
+    poll = open_poll(open_window_poll)
+    _grant(poll, admin_user, Role.POLL_ADMIN)
+    client.force_login(admin_user)
+
+    response = client.post(_url(poll), {"action": "announce_poll"})
+    assert response.status_code == 403
+    poll.refresh_from_db()
+    assert poll.state == PollState.OPEN

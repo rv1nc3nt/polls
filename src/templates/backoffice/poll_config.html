@@ -73,6 +73,41 @@
     <button type="submit">{% translate "Enregistrer la configuration" %}</button>
   </form>
 
+  <section aria-labelledby="announce-now">
+    <h2 id="announce-now">{% translate "Annonce" %}</h2>
+    {% comment %}
+      R-3.10: optional, and the only way in — a poll never becomes publicly
+      visible except through this transition, and never while still
+      `draft` (unlike an earlier design of this feature). Config freezes the
+      moment it runs, same trigger as opening (INV-6: `state != draft`), so
+      the public preview cannot change under a viewer's eyes.
+    {% endcomment %}
+    <p class="help">{% translate "Rend ce scrutin visible sur le site public avant son ouverture : propositions et calendrier affichés, sans inscription ni vote possibles. La configuration se fige au moment de l'annonce, comme à l'ouverture (R-3.3) — utile en particulier si le bulletin ne pourra plus être modifié une fois voté." %}</p>
+    <form method="post" class="inline">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="announce_poll">
+      <button type="submit">{% translate "Annoncer le scrutin maintenant" %}</button>
+    </form>
+  </section>
+
+  <section aria-labelledby="open-now">
+    <h2 id="open-now">{% translate "Ouverture" %}</h2>
+    {% comment %}
+      §4, R-2.1: draft → open otherwise runs unattended, at opens_at, via
+      the scheduled open_poll job. This lets the poll admin trigger it by
+      hand instead — including ahead of opens_at, and without going through
+      « annoncer » first — through the same guards (opening_blockers):
+      nothing here lets voting start early, since the window checks of §5.1
+      still hold to the configured opens_at regardless of state.
+    {% endcomment %}
+    <p class="help">{% translate "Le scrutin s'ouvre normalement tout seul à la date d'ouverture configurée, même en retard si besoin. Vous pouvez aussi l'ouvrir maintenant vous-même, y compris par avance et sans passer par l'annonce : la liste électorale sera figée à cet instant, mais personne ne pourra voter avant l'heure d'ouverture configurée." %}</p>
+    <form method="post" class="inline">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="open_poll">
+      <button type="submit">{% translate "Ouvrir le scrutin maintenant" %}</button>
+    </form>
+  </section>
+
 {% else %}
 
   {% comment %}
@@ -109,6 +144,25 @@
     {% for option in options %}<li>{{ option.label }} <span class="help">({{ option.option_id }})</span></li>{% endfor %}
   </ol>
 
+  {% if can_open_now %}
+    <section aria-labelledby="open-now">
+      <h2 id="open-now">{% translate "Ouverture" %}</h2>
+      {% comment %}
+        R-3.10, §4: an `announced` poll is already publicly visible
+        (visible on the public site right now) but not yet votable. Same
+        guarded transition and the same "any time, ahead of opens_at is
+        fine" reasoning as the draft screen's own *ouvrir maintenant*.
+      {% endcomment %}
+      <p class="notice">{% translate "Ce scrutin est annoncé : il est visible sur le site public, mais le vote n'est pas encore ouvert." %}</p>
+      <p class="help">{% translate "Le scrutin s'ouvre normalement tout seul à la date d'ouverture configurée, même en retard si besoin. Vous pouvez aussi l'ouvrir maintenant vous-même, y compris par avance." %}</p>
+      <form method="post" class="inline">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="open_poll">
+        <button type="submit">{% translate "Ouvrir le scrutin maintenant" %}</button>
+      </form>
+    </section>
+  {% endif %}
+
   {% if extension %}
     <section aria-labelledby="report">
       <h2 id="report">{% translate "Reporter la date de clôture" %}</h2>
@@ -130,6 +184,38 @@
         {% endfor %}
         <button type="submit">{% translate "Reporter la clôture" %}</button>
       </form>
+    </section>
+  {% endif %}
+
+  {% if closing_form %}
+    <section aria-labelledby="close-now">
+      <h2 id="close-now">{% translate "Clôture" %}</h2>
+      {% comment %}
+        §4, R-2.1: open → closed otherwise runs unattended, at
+        paper_entry_deadline, via the scheduled close_poll job. Manual
+        closure is offered only from that deadline on, never before: closing
+        earlier would freeze closure_hash and the §9 counts ahead of ballots
+        the write path would still legitimately accept, and would hide the
+        paper-entry screens before their window has actually closed.
+      {% endcomment %}
+      {% if can_close_now %}
+        <p class="help">{% translate "L'échéance de saisie des bulletins papier est atteinte : vous pouvez clore le scrutin maintenant plutôt que d'attendre la prochaine exécution de la tâche planifiée." %}</p>
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="close_poll">
+          {% for field in closing_form %}
+            <p class="field">
+              <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {{ field }}
+              {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+            </p>
+          {% endfor %}
+          <p class="help">{% translate "Le motif n'est exigé que si des bulletins papier attendent encore un contreseing (R-8.7 bis)." %}</p>
+          <button type="submit">{% translate "Clôturer le scrutin maintenant" %}</button>
+        </form>
+      {% else %}
+        <p class="help">{% translate "La clôture manuelle sera proposée ici une fois l'échéance de saisie des bulletins papier atteinte." %}</p>
+      {% endif %}
     </section>
   {% endif %}
 
