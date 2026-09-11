@@ -35,28 +35,31 @@
   </section>
 {% endif %}
 
-<form method="post">
-  {% csrf_token %}
+{% comment %}
+  Same tabs container as screen 2's draft editor, minus the "Actions" and
+  "Images" tabs: _poll_config_tablist.html only adds those where `poll` is in
+  context, and a poll being created has none yet — nothing to announce, open,
+  save as a model or attach an image to
+  (_poll_config_actions_panel.html/_poll_config_images_panel.html are
+  accordingly never included here). Each of the five panels ends with its own
+  submit button already, labelled "Créer le scrutin" by that same absence of
+  `poll` (see _poll_config_panels.html) — nothing further to add here.
+  "Nature du scrutin" (`is_sandbox`, R-3.7) lives inside
+  _poll_config_panels.html's "Contenu & langues" panel, guarded by
+  `form.is_sandbox` instead: the one field screen 2's own PollConfigForm
+  excludes, because by the time screen 2 exists it is already too late to set
+  it.
+{% endcomment %}
+<div class="tabs" data-tabs
+     data-tabs-error-label="{% translate '(des champs à corriger)' %}"
+     data-tabs-required-message="{% translate 'Ce champ est obligatoire.' %}">
+  {% include "backoffice/_poll_config_tablist.html" %}
 
-  {% include "backoffice/_poll_config_fields.html" %}
-
-  <fieldset>
-    <legend>{% translate "Nature du scrutin" %}</legend>
-    {% comment %}
-      R-3.7: fixed for good the moment the poll is created — the one field
-      screen 2 never offers, because by the time screen 2 exists it is already
-      too late to set it.
-    {% endcomment %}
-    <p class="field">
-      <label for="{{ form.is_sandbox.id_for_label }}">{{ form.is_sandbox.label }}</label>
-      <span class="help">{{ form.is_sandbox.help_text }}</span>
-      {{ form.is_sandbox }}
-      {% for message in form.is_sandbox.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
-    </p>
-  </fieldset>
-
-  <button type="submit">{% translate "Créer le scrutin" %}</button>
-</form>
+  <form method="post">
+    {% csrf_token %}
+    {% include "backoffice/_poll_config_panels.html" %}
+  </form>
+</div>
 
 {% endblock %}
 
