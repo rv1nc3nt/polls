@@ -1,0 +1,27 @@
+{% extends "backoffice/base.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD #}
+
+{% block screen_title %}{% translate "Liste électorale" %}{% endblock %}
+{% block heading %}{% translate "Liste électorale" %}{% endblock %}
+
+{% block screen %}
+  {% comment %}
+    R-2.1, §3.2: read-only. WorkingRollEntry is commune-wide, so this is not
+    "this poll's" roll — it is the roll every poll still in draft will pick up
+    at opening. Importing a new one is a commune administrator's action, from
+    the general menu, never from here (docs/spec-divergences.md #11).
+  {% endcomment %}
+  {% if current %}
+    <dl class="facts">
+      <dt>{% translate "Fichier" %}</dt><dd>{{ current.filename }}</dd>
+      <dt>{% translate "Lignes importées" %}</dt><dd>{{ current.row_count }}</dd>
+      <dt>{% translate "Importée le" %}</dt><dd>{{ current.imported_at }}</dd>
+      <dt>{% translate "Par" %}</dt><dd>{{ current.imported_by }}</dd>
+    </dl>
+  {% else %}
+    <p class="notice">{% translate "Aucune liste électorale n'a encore été importée." %}</p>
+  {% endif %}
+
+  <p class="help">{% translate "L'import d'une nouvelle liste se fait depuis le menu général « Liste électorale », par un administrateur de la commune, et s'applique à tous les scrutins." %}</p>
+{% endblock %}

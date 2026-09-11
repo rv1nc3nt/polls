@@ -25,8 +25,12 @@ line or genuine homonyms, and only a human can tell (§6.2). A row whose date of
 birth will not parse is never collapsed on a parsed value (R-4.9).
 
 ``WorkingRollEntry`` is commune-wide, not poll-scoped (§3.2): screen 3 is
-reached from one poll's back-office, gated by that poll's roles, but what it
-replaces is shared by every poll still in ``draft``.
+reached from the general back-office menu, gated on the commune-admin flag
+(R-2.1), not from any one poll's — an earlier version scoped it to a poll and
+that invited exactly the confusion §3.2 warns about, since what it replaces is
+shared by every poll still in ``draft`` regardless of which one's menu started
+the import (docs/spec-divergences.md #11). A poll's own menu offers
+``backoffice.views.roll_status`` instead: read-only, no import action.
 """
 
 from __future__ import annotations
@@ -469,3 +473,12 @@ def apply_import(
         },
     )
     return roll_import
+
+
+def latest_import() -> RollImport | None:
+    """Provenance of the roll currently in force, for the general import screen
+    and a poll's read-only ``roll_status`` (§6.1, §3.2) — ``None`` before the
+    first import. There is at most one row of interest: a new import deletes no
+    ``RollImport`` row (provenance of past imports stays in the audit trail),
+    but only the most recent one describes ``WorkingRollEntry`` as it stands."""
+    return RollImport.objects.order_by("-imported_at").first()

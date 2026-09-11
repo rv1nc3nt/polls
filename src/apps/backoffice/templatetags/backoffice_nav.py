@@ -90,6 +90,17 @@ class _Group:
 _GLOBAL_ITEMS: tuple[_Item, ...] = (
     _Item(_("Scrutins"), "poll_index", icon="polls"),
     _Item(_("Nouveau scrutin"), "poll_create", (_COMMUNE,), icon="new"),
+    # R-2.1: importing the roll is the commune administrator's, not a poll's —
+    # WorkingRollEntry is commune-wide (§3.2), so this lives here and never in
+    # a poll submenu (docs/spec-divergences.md #11). A poll's own menu shows a
+    # read-only entry instead — see ``_POLL_MENU``'s "Liste électorale".
+    _Item(
+        _("Liste électorale"),
+        "roll_import",
+        (_COMMUNE,),
+        owns=("roll_import_review",),
+        icon="roll",
+    ),
     _Item(_("Comptes opérateurs"), "account_admin", (_COMMUNE,), icon="accounts"),
     _Item(_("Rôles par scrutin"), "role_admin", (_COMMUNE,), icon="roles"),
     _Item(_("Messagerie"), "mail_settings", (_COMMUNE,), icon="mail"),
@@ -103,13 +114,11 @@ _POLL_MENU: tuple[_Group, ...] = (
         (
             _Item(_("Tableau de bord"), "dashboard", icon="dashboard"),
             _Item(_("Configuration"), "poll_config", (_POLL_ADMIN,), icon="config"),
-            _Item(
-                _("Liste électorale"),
-                "roll_import",
-                (_POLL_ADMIN,),
-                owns=("roll_import_review",),
-                icon="roll",
-            ),
+            # Read-only (§3.2, R-2.1): what is imported and when, never an
+            # import action — that is the general "Liste électorale" above,
+            # not something a poll submenu offers (docs/spec-divergences.md
+            # #11).
+            _Item(_("Liste électorale"), "roll_status", (_POLL_ADMIN,), icon="roll"),
             _Item(
                 _("Inscriptions"),
                 "registration_queue",

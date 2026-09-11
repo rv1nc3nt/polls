@@ -239,8 +239,9 @@ def test_the_command_refuses_unrecognised_headers_and_points_at_screen_3(operato
 # --- Screen 3, end to end ----------------------------------------------------
 
 
-def _grant(poll: Poll, user: User) -> None:
-    PollRole.objects.create(poll=poll, user=user, role=Role.POLL_ADMIN)
+def _make_commune_admin(user: User) -> None:
+    user.is_commune_admin = True
+    user.save(update_fields=["is_commune_admin"])
 
 
 def _xlsx_bytes(rows: list[list[str]]) -> bytes:
@@ -264,60 +265,49 @@ _CONFIRM = {
 
 
 def test_the_upload_step_stores_a_draft_and_redirects_to_review(
-    client: Client, open_window_poll: Poll, operator: User
+    client: Client, operator: User
 ) -> None:
-    _grant(open_window_poll, operator)
+    _make_commune_admin(operator)
     client.force_login(operator)
 
     upload = SimpleUploadedFile("roll.csv", CLEAN_CSV.encode(), content_type="text/csv")
-    response = client.post(
-        f"/fr/mairie/scrutin/{open_window_poll.pk}/liste-electorale/", {"file": upload}
-    )
+    response = client.post("/fr/mairie/liste-electorale/", {"file": upload})
 
     assert response.status_code == 302
     assert response["Location"].endswith("/verification/")
-    assert WorkingRollEntry.objects.count() == 1  # the fixture's own row, untouched
+    assert WorkingRollEntry.objects.count() == 0
 
 
 def test_an_unreadable_upload_is_reported_and_writes_nothing(
-    client: Client, open_window_poll: Poll, operator: User
+    client: Client, operator: User
 ) -> None:
-    _grant(open_window_poll, operator)
+    _make_commune_admin(operator)
     client.force_login(operator)
 
     upload = SimpleUploadedFile("roll.xlsx", b"not a workbook", content_type="application/xlsx")
-    response = client.post(
-        f"/fr/mairie/scrutin/{open_window_poll.pk}/liste-electorale/", {"file": upload}
-    )
+    response = client.post("/fr/mairie/liste-electorale/", {"file": upload})
     assert response.status_code == 200
     assert "illisible" in response.content.decode()
 
 
-def test_the_review_step_shows_the_preview_and_the_report(
-    client: Client, open_window_poll: Poll, operator: User
-) -> None:
-    _grant(open_window_poll, operator)
+def test_the_review_step_shows_the_preview_and_the_report(client: Client, operator: User) -> None:
+    _make_commune_admin(operator)
     client.force_login(operator)
     upload = SimpleUploadedFile("roll.csv", CLEAN_CSV.encode(), content_type="text/csv")
-    client.post(f"/fr/mairie/scrutin/{open_window_poll.pk}/liste-electorale/", {"file": upload})
+    client.post("/fr/mairie/liste-electorale/", {"file": upload})
 
-    body = client.get(
-        f"/fr/mairie/scrutin/{open_window_poll.pk}/liste-electorale/verification/"
-    ).content.decode()
+    body = client.get("/fr/mairie/liste-electorale/verification/").content.decode()
     assert "Dupont" in body
     assert "2 lignes à traiter" in body
 
 
-def test_confirming_applies_the_import_and_clears_the_draft(
-    client: Client, open_window_poll: Poll, operator: User
-) -> None:
-    _grant(open_window_poll, operator)
+def test_confirming_applies_the_import_and_clears_the_draft(client: Client, operator: User) -> None:
+    _make_commune_admin(operator)
     client.force_login(operator)
     upload = SimpleUploadedFile("roll.csv", CLEAN_CSV.encode(), content_type="text/csv")
-    client.post(f"/fr/mairie/scrutin/{open_window_poll.pk}/liste-electorale/", {"file": upload})
+    client.post("/fr/mairie/liste-electorale/", {"file": upload})
 
-    review_url = f"/fr/mairie/scrutin/{open_window_poll.pk}/liste-electorale/verification/"
-    response = client.post(review_url, _CONFIRM, follow=True)
+    response = client.post("/fr/mairie/liste-electorale/verification/", _CONFIRM, follow=True)
 
     assert response.status_code == 200
     assert WorkingRollEntry.objects.count() == 2
@@ -326,35 +316,28 @@ def test_confirming_applies_the_import_and_clears_the_draft(
 
 
 def test_confirming_a_blocking_report_is_refused_and_writes_nothing(
-    client: Client, open_window_poll: Poll, operator: User
+    client: Client, operator: User
 ) -> None:
-    _grant(open_window_poll, operator)
+    _make_commune_admin(operator)
     client.force_login(operator)
     bad = f"{HEADER}\n;;Émile;14/03/1962;Liste principale\n"
     upload = SimpleUploadedFile("roll.csv", bad.encode(), content_type="text/csv")
-    client.post(f"/fr/mairie/scrutin/{open_window_poll.pk}/liste-electorale/", {"file": upload})
+    client.post("/fr/mairie/liste-electorale/", {"file": upload})
 
-    review_url = f"/fr/mairie/scrutin/{open_window_poll.pk}/liste-electorale/verification/"
-    client.post(review_url, _CONFIRM)
-    assert WorkingRollEntry.objects.count() == 1  # the fixture's own row, untouched
+    client.post("/fr/mairie/liste-electorale/verification/", _CONFIRM)
+    assert WorkingRollEntry.objects.count() == 0
 
 
-def test_review_with_no_draft_sends_back_to_upload(
-    client: Client, open_window_poll: Poll, operator: User
-) -> None:
-    _grant(open_window_poll, operator)
+def test_review_with_no_draft_sends_back_to_upload(client: Client, operator: User) -> None:
+    _make_commune_admin(operator)
     client.force_login(operator)
-    response = client.get(
-        f"/fr/mairie/scrutin/{open_window_poll.pk}/liste-electorale/verification/", follow=True
-    )
-    assert "Import de la liste" in response.content.decode()
+    response = client.get("/fr/mairie/liste-electorale/verification/", follow=True)
+    assert "Liste électorale" in response.content.decode()
     assert response.redirect_chain
 
 
-def test_xlsx_upload_works_end_to_end(
-    client: Client, open_window_poll: Poll, operator: User
-) -> None:
-    _grant(open_window_poll, operator)
+def test_xlsx_upload_works_end_to_end(client: Client, operator: User) -> None:
+    _make_commune_admin(operator)
     client.force_login(operator)
     data = _xlsx_bytes(
         [
@@ -365,18 +348,51 @@ def test_xlsx_upload_works_end_to_end(
     upload = SimpleUploadedFile(
         "roll.xlsx", data, content_type="application/vnd.openxmlformats-officedocument"
     )
-    client.post(f"/fr/mairie/scrutin/{open_window_poll.pk}/liste-electorale/", {"file": upload})
+    client.post("/fr/mairie/liste-electorale/", {"file": upload})
 
-    review_url = f"/fr/mairie/scrutin/{open_window_poll.pk}/liste-electorale/verification/"
-    client.post(review_url, _CONFIRM)
+    client.post("/fr/mairie/liste-electorale/verification/", _CONFIRM)
     assert WorkingRollEntry.objects.count() == 1
 
 
-def test_an_entry_operator_cannot_reach_the_screen(
+def test_a_poll_admin_without_the_commune_flag_cannot_reach_the_screen(
     client: Client, open_window_poll: Poll, operator: User
 ) -> None:
-    PollRole.objects.create(poll=open_window_poll, user=operator, role=Role.ENTRY_OPERATOR)
+    """R-2.1: importing the roll is the commune administrator's, not a poll
+    admin's — holding ``poll_admin`` on some poll grants nothing here."""
+    PollRole.objects.create(poll=open_window_poll, user=operator, role=Role.POLL_ADMIN)
     client.force_login(operator)
-    assert (
-        client.get(f"/fr/mairie/scrutin/{open_window_poll.pk}/liste-electorale/").status_code == 403
+    assert client.get("/fr/mairie/liste-electorale/").status_code == 403
+
+
+# --- Screen 3's read-only counterpart on a poll's own menu -------------------
+
+
+def test_a_poll_admin_sees_the_current_import_read_only(
+    client: Client, open_window_poll: Poll, operator: User
+) -> None:
+    PollRole.objects.create(poll=open_window_poll, user=operator, role=Role.POLL_ADMIN)
+    importer = User.objects.create_user(username="importer", full_name="Importeuse")
+    rollimport.apply_import(
+        [_row()], MAPPING, filename="roll.csv", file_sha256=b"\x00" * 32, operator=importer
     )
+    client.force_login(operator)
+
+    body = client.get(
+        f"/fr/mairie/scrutin/{open_window_poll.pk}/liste-electorale/"
+    ).content.decode()
+    assert "roll.csv" in body
+    assert "Importeuse" in body
+
+
+def test_roll_status_carries_no_form_to_import_from(
+    client: Client, open_window_poll: Poll, operator: User
+) -> None:
+    """No importation from a poll submenu — the whole point of moving screen 3
+    to the general menu (§3.2)."""
+    PollRole.objects.create(poll=open_window_poll, user=operator, role=Role.POLL_ADMIN)
+    client.force_login(operator)
+    body = client.get(
+        f"/fr/mairie/scrutin/{open_window_poll.pk}/liste-electorale/"
+    ).content.decode()
+    assert 'type="file"' not in body
+    assert "Charger le fichier" not in body

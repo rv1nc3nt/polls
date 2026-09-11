@@ -2,17 +2,27 @@
 {% load i18n %}
 {# SPDX-License-Identifier: 0BSD #}
 
-{% block screen_title %}{% translate "Import de la liste électorale" %}{% endblock %}
-{% block heading %}{% translate "Import de la liste électorale" %}{% endblock %}
+{% block screen_title %}{% translate "Liste électorale" %}{% endblock %}
+{% block heading %}{% translate "Liste électorale" %}{% endblock %}
 
 {% block screen %}
   {% comment %}
-    §6.1: the working roll is commune-wide, not this poll's alone — every poll
-    still in draft picks up whatever it holds when it opens (§3.2). Said here
-    rather than left implicit, since the consequence reaches past the poll
-    this screen is scoped to.
+    R-2.1: importing the roll is the commune administrator's, not a poll's —
+    WorkingRollEntry is commune-wide (§3.2), so this screen is reached from the
+    general menu and never from a poll's own (docs/spec-divergences.md #11).
   {% endcomment %}
   <p class="notice">{% translate "Cet import remplace entièrement la liste électorale de travail, pour tous les scrutins. Les scrutins déjà ouverts conservent leur copie figée et ne sont pas concernés ; tout scrutin encore en brouillon utilisera cette nouvelle liste à son ouverture." %}</p>
+
+  {% if current %}
+    <dl class="facts">
+      <dt>{% translate "Fichier" %}</dt><dd>{{ current.filename }}</dd>
+      <dt>{% translate "Lignes importées" %}</dt><dd>{{ current.row_count }}</dd>
+      <dt>{% translate "Importée le" %}</dt><dd>{{ current.imported_at }}</dd>
+      <dt>{% translate "Par" %}</dt><dd>{{ current.imported_by }}</dd>
+    </dl>
+  {% else %}
+    <p class="notice">{% translate "Aucune liste électorale n'a encore été importée." %}</p>
+  {% endif %}
 
   {% if error %}
     <p class="error" role="alert">{{ error }}</p>

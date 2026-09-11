@@ -21,6 +21,16 @@ urlpatterns = [
     path("comptes/", views.account_admin, name="account_admin"),
     path("comptes/roles/", views.role_admin, name="role_admin"),
     path("messagerie/", views.mail_settings, name="mail_settings"),
+    # Commune-level (R-2.1: the commune administrator imports the roll, not a
+    # poll admin), like comptes/ and messagerie/ above — never
+    # scrutin/<poll_id>/…, so no poll submenu can reach it (§3.2,
+    # docs/spec-divergences.md #11).
+    path("liste-electorale/", views.roll_import, name="roll_import"),
+    path(
+        "liste-electorale/verification/",
+        views.roll_import_review,
+        name="roll_import_review",
+    ),
     path("scrutin/<uuid:poll_id>/", views.poll_dashboard, name="dashboard"),
     path("scrutin/<uuid:poll_id>/configuration/", views.poll_config, name="poll_config"),
     path("scrutin/<uuid:poll_id>/journal/", views.audit_log, name="audit_log"),
@@ -34,15 +44,12 @@ urlpatterns = [
         views.registration_decide,
         name="registration_decide",
     ),
+    # Read-only: which import is currently in force, and when it landed. The
+    # import screens above are where that changes.
     path(
         "scrutin/<uuid:poll_id>/liste-electorale/",
-        views.roll_import,
-        name="roll_import",
-    ),
-    path(
-        "scrutin/<uuid:poll_id>/liste-electorale/verification/",
-        views.roll_import_review,
-        name="roll_import_review",
+        views.roll_status,
+        name="roll_status",
     ),
     path(
         "scrutin/<uuid:poll_id>/bulletin-papier/",
