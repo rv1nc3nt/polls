@@ -50,7 +50,7 @@
         </li>
         {% if poll %}
           <li{% if not crumb_leaf %} aria-current="page"{% endif %}>
-            <a href="{% url 'backoffice:dashboard' poll.pk %}">{{ poll.title }}</a>
+            <a href="{% url 'backoffice:dashboard' poll.pk %}">{{ poll.display_title }}</a>
           </li>
         {% endif %}
         {% if crumb_leaf %}<li aria-current="page">{{ crumb_leaf }}</li>{% endif %}

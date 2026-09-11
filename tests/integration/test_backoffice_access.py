@@ -10,6 +10,7 @@ flag rather than a superuser.
 from __future__ import annotations
 
 import ast
+from datetime import timedelta
 from pathlib import Path
 
 import pytest
@@ -216,3 +217,27 @@ def test_the_poll_index_shows_the_operator_name(client: Client, operator: User) 
     body = client.get("/fr/mairie/").content.decode()
     assert "M. Durand" in body
     assert timezone.now().year  # sanity: the fixture DB is live
+
+
+def test_an_untitled_draft_still_has_a_visible_link_on_the_poll_index(
+    client: Client, operator: User
+) -> None:
+    """R-3.6, §3.8: a poll may sit in ``draft`` with no title yet — it is
+    entered after creation, and only opening is blocked on the gap. If the
+    list named it by ``title()`` the row's ``<a>`` would render with no text:
+    present in the markup, invisible and unclickable, so the poll could not
+    be reached to give it one."""
+    operator.is_commune_admin = True
+    operator.save(update_fields=["is_commune_admin"])
+    now = timezone.now()
+    poll = Poll.objects.create(
+        languages=["fr"],
+        opens_at=now + timedelta(days=1),
+        closes_at=now + timedelta(days=2),
+        paper_entry_deadline=now + timedelta(days=2),
+    )
+    assert poll.title() == ""
+
+    client.force_login(operator)
+    body = client.get("/fr/mairie/").content.decode()
+    assert f'href="/fr/mairie/scrutin/{poll.pk}/">(scrutin sans titre)</a>' in body

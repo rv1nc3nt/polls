@@ -61,7 +61,7 @@ v0.5 — functional scope only; no technical choices. Rules are numbered `R-x.y`
 
 **R-3.9** A poll, in whatever state, may be saved as a named template, carrying over the same elements a template supplies at creation (R-3.6). A template is not a poll: it has no title, description, options, dates, electorate or ballots, and is subject to no lifecycle; only its name, chosen by the operator, identifies it.
 
-**R-3.10** At the poll administrator's option, a poll still in the `draft` state may be announced: it then moves to the `announced` state, visible on the public site ahead of its opening. The propositions and the calendar are shown there, neither registration nor voting is offered, and the page states expressly that the poll is not yet open. Moving to this state freezes the configuration exactly as moving to the open state does (R-3.3), so the public page cannot change under a viewer's eyes. This step is optional; a poll still in the draft state appears on no public page.
+**R-3.10** At the poll administrator's option, a poll still in the `draft` state may be announced: it then moves to the `announced` state, visible on the public site ahead of its opening. The propositions and the calendar are shown there, neither registration nor voting is offered, and the page states expressly that the poll is not yet open. Moving to this state freezes the configuration exactly as moving to the open state does (R-3.3), so the public page cannot change under a viewer's eyes. Announcing is refused if the configuration is missing a translation in an enabled language (R-14.3), just as opening is: the public page cannot freeze, or show, an incomplete configuration. This step is optional; a poll still in the draft state appears on no public page.
 
 ---
 

@@ -34,19 +34,16 @@ def test_opening_takes_the_snapshot_and_the_seed_in_one_transaction(
 
 
 def test_t70_announcing_is_lighter_than_opening(open_window_poll: Poll) -> None:
-    """T-70, R-3.10: neither a missing translation nor an absent roll blocks
-    ``announce_poll`` — a preview needs neither, unlike opening (§3.8, §6.1) —
-    but fewer than two propositions still does. Configuration is frozen the
-    instant it runs (INV-6 already reads ``state != draft``)."""
-    open_window_poll.languages = ["fr", "en"]  # an English translation is missing everywhere
-    open_window_poll.save(update_fields=["languages"])
+    """T-70, R-3.10: an absent roll does not block ``announce_poll`` — a
+    preview needs no snapshot, unlike opening (§6.1) — but a missing
+    translation still does, exactly as it would for opening (§3.8): the
+    preview announcing freezes must not show a gap that only fell back
+    silently because nobody but the poll admin could see it. Configuration
+    is frozen the instant it runs (INV-6 already reads ``state != draft``)."""
     WorkingRollEntry.objects.all().delete()
     assert announcing_blockers(open_window_poll) == []
-    # Both would block opening, though — announcing is deliberately lighter.
-    assert set(opening_blockers(open_window_poll)) >= {
-        "no_roll_to_snapshot",
-        "missing_translation:title:en",
-    }
+    # Would block opening, though — announcing is lighter in this one respect.
+    assert "no_roll_to_snapshot" in opening_blockers(open_window_poll)
 
     poll = announce_poll(open_window_poll)
     assert poll.state == PollState.ANNOUNCED
@@ -57,6 +54,21 @@ def test_t70_announcing_is_lighter_than_opening(open_window_poll: Poll) -> None:
     poll.tally_method_version = "9"
     with pytest.raises(ValidationError, match="figée"):
         poll.save(update_fields=["tally_method_version"])
+
+
+def test_t70_announcing_refuses_a_missing_translation(open_window_poll: Poll) -> None:
+    """R-3.10, §3.8: unlike an absent roll, a missing translation blocks
+    ``announce_poll`` exactly as it blocks ``open_poll`` — the same
+    ``missing_translation`` blocker code, so the dashboard's ``describe_blocker``
+    needs no case of its own for this state."""
+    open_window_poll.languages = ["fr", "en"]  # an English translation is missing everywhere
+    open_window_poll.save(update_fields=["languages"])
+    assert "missing_translation:title:en" in announcing_blockers(open_window_poll)
+
+    with pytest.raises(TransitionRefused):
+        announce_poll(open_window_poll)
+    open_window_poll.refresh_from_db()
+    assert open_window_poll.state == PollState.DRAFT
 
 
 def test_open_poll_accepts_an_announced_poll_exactly_like_draft(
