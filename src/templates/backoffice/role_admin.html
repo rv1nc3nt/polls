@@ -19,7 +19,7 @@
       <option value="">{% translate "— choisir —" %}</option>
       {% for poll in polls %}
         <option value="{{ poll.pk }}"{% if selected_poll and poll.pk == selected_poll.pk %} selected{% endif %}>
-          {{ poll.title }} — {{ poll.get_state_display }}
+          {{ poll.display_title }} — {{ poll.get_state_display }}
         </option>
       {% endfor %}
     </select>
@@ -27,7 +27,7 @@
   </form>
 
   {% if selected_poll %}
-    <h2>{{ selected_poll.title }}</h2>
+    <h2>{{ selected_poll.display_title }}</h2>
 
     <table>
       <caption>{% translate "Rôles attribués sur ce scrutin" %}</caption>

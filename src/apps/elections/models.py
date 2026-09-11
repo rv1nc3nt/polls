@@ -197,6 +197,21 @@ class Poll(models.Model):
     def title(self, language: str | None = None) -> str:
         return self.translate(self.title_i18n, language)
 
+    def display_title(self, language: str | None = None) -> str:
+        """``title()``, with a placeholder where that would be empty.
+
+        R-3.6 lets a poll sit in ``draft`` with no title yet: it is entered
+        after creation, and neither ``announce_poll`` nor ``open_poll`` lets
+        the poll leave ``draft`` with the gap still open (``missing_translations``,
+        R-3.10, §3.8). The back-office screens that list every poll an
+        operator holds a role on (the landing page, the breadcrumb, "Rôles par
+        scrutin") name the poll by this, not ``title()``, since those lists
+        include ``draft`` polls: an untitled poll rendered as an ``<a>`` with
+        no text is present in the markup but invisible and unclickable in the
+        browser — indistinguishable from not being listed at all.
+        """
+        return self.title(language) or str(_("(scrutin sans titre)"))
+
     def description(self, language: str | None = None) -> str:
         return self.translate(self.description_i18n, language)
 

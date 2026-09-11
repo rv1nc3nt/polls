@@ -53,7 +53,7 @@
             {% if row.roles %}
               <ul class="rolelist">
                 {% for grant in row.roles %}
-                  <li>{{ grant.poll.title }} — {{ grant.get_role_display }}</li>
+                  <li>{{ grant.poll.display_title }} — {{ grant.get_role_display }}</li>
                 {% endfor %}
               </ul>
             {% else %}—{% endif %}

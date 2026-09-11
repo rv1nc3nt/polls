@@ -48,17 +48,21 @@ class TransitionRefused(Exception):
 def announcing_blockers(poll: Poll) -> list[str]:
     """Why ``announce_poll`` would refuse (R-3.10).
 
-    Deliberately lighter than ``opening_blockers``: a preview needs no roll
-    snapshot — none is taken until the poll actually opens — and no language
-    need be fully translated yet, since a gap already falls back to the
-    default language rather than to blank (§3.8). Fewer than two propositions
-    would not be a preview of anything, so that alone still blocks it.
+    Lighter than ``opening_blockers`` in one respect only: a preview needs no
+    roll snapshot, since none is taken until the poll actually opens (§6.1).
+    It does need a complete configuration, same as opening — R-3.10 requires
+    it, because announcing freezes the configuration exactly as opening does
+    (R-3.3) and the public preview it produces cannot show a translation gap
+    that would fall back silently for a viewer who never sees ``draft``.
+    Fewer than two propositions would not be a preview of anything either, so
+    that alone still blocks it too.
     """
     blockers: list[str] = []
     if poll.state != PollState.DRAFT:
         blockers.append("not_draft")
     if poll.options.count() < 2:
         blockers.append("fewer_than_two_options")
+    blockers += [f"missing_translation:{gap}" for gap in poll.missing_translations()]
     return blockers
 
 

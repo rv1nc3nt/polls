@@ -30,7 +30,7 @@
         {% for poll in polls %}
           <tr>
             <td>
-              <a href="{% url 'backoffice:dashboard' poll.pk %}">{{ poll.title }}</a>
+              <a href="{% url 'backoffice:dashboard' poll.pk %}">{{ poll.display_title }}</a>
               {% if poll.is_sandbox %} <span class="tag">{% translate "bac à sable" %}</span>{% endif %}
             </td>
             <td>{{ poll.get_state_display }}</td>
