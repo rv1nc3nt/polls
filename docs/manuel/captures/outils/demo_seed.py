@@ -19,7 +19,7 @@ from apps.elections.models import (
     TallyMethod,
     WorkingRollEntry,
 )
-from apps.elections.transitions import open_poll
+from apps.elections.transitions import announce_poll, open_poll
 from apps.registrations import services as reg
 from apps.registrations.models import Registration, RegistrationState
 from apps.ballots import services as bal
@@ -148,6 +148,73 @@ if not Poll.objects.filter(title_i18n__fr__startswith="Nom de la").exists():
     ):
         PollOption.objects.create(poll=draft, option_id=oid, label_i18n={"fr": label}, position=pos)
     PollRole.objects.get_or_create(poll=draft, user=poll_admin, role=Role.POLL_ADMIN, defaults={"granted_by": admin})
+
+# ---------------------------------------------------------------- announced poll
+if not Poll.objects.filter(title_i18n__fr__startswith="Tracé de la future piste cyclable").exists():
+    announced = Poll.objects.create(
+        title_i18n={"fr": "Tracé de la future piste cyclable"},
+        description_i18n={
+            "fr": "Deux tracés sont à l'étude pour relier le centre-bourg à la zone "
+            "d'activités. Consultation à titre consultatif ; l'ouverture du vote "
+            "est prévue dans un mois, le temps que chacun prenne connaissance "
+            "des deux options."
+        },
+        languages=["fr"],
+        opens_at=now + timedelta(days=30),
+        closes_at=now + timedelta(days=44),
+        paper_entry_deadline=now + timedelta(days=44),
+        tally_method=TallyMethod.PLURALITY,
+        require_complete_ranking=False,
+        allow_ballot_modification=True,
+    )
+    for pos, (oid, label) in enumerate(
+        [
+            ("nord", "Tracé nord — le long de la voie ferrée"),
+            ("sud", "Tracé sud — par la coulée verte"),
+        ]
+    ):
+        PollOption.objects.create(poll=announced, option_id=oid, label_i18n={"fr": label}, position=pos)
+    PollRole.objects.get_or_create(
+        poll=announced, user=poll_admin, role=Role.POLL_ADMIN, defaults={"granted_by": admin}
+    )
+    announce_poll(announced, actor=poll_admin)
+    announced.refresh_from_db()
+
+# ---------------------------------------------------------- open poll past its deadline
+# Demonstrates screen 2's manual *clôturer maintenant* (R-2.1): a poll whose
+# paper_entry_deadline has already passed but which the scheduler has not yet
+# closed — exactly the "may run late" case §4 describes. closes_at and
+# paper_entry_deadline are the two fields that stay mutable once a poll is no
+# longer draft (R-3.4), so they are set directly after opening rather than
+# through the (not-yet-implemented-here) reasoned extension flow.
+if not Poll.objects.filter(title_i18n__fr__startswith="Aire de jeux du parc").exists():
+    late = Poll.objects.create(
+        title_i18n={"fr": "Aire de jeux du parc des Tilleuls"},
+        description_i18n={
+            "fr": "Choix du type d'équipement pour la nouvelle aire de jeux du parc des Tilleuls."
+        },
+        languages=["fr"],
+        opens_at=now - timedelta(days=15),
+        closes_at=now + timedelta(days=1),
+        paper_entry_deadline=now + timedelta(days=1),
+        tally_method=TallyMethod.APPROVAL,
+    )
+    for pos, (oid, label) in enumerate(
+        [
+            ("toboggan", "Structure avec toboggan"),
+            ("grimpe", "Structure d'escalade"),
+            ("mixte", "Structure mixte"),
+        ]
+    ):
+        PollOption.objects.create(poll=late, option_id=oid, label_i18n={"fr": label}, position=pos)
+    open_poll(late)
+    late.refresh_from_db()
+    late.closes_at = now - timedelta(hours=2)
+    late.paper_entry_deadline = now - timedelta(hours=2)
+    late.save()
+    PollRole.objects.get_or_create(
+        poll=late, user=poll_admin, role=Role.POLL_ADMIN, defaults={"granted_by": admin}
+    )
 
 # ---------------------------------------------------------------- registrations + ballots
 def register_and_vote(last, first, dob, email, ranking=None, confirm=True):

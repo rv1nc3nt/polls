@@ -184,34 +184,233 @@ section:last-child { margin-bottom: 0; }
 .account { display: flex; gap: 0.75rem; align-items: center; }
 .account__name { font-weight: 600; }
 
-.pollnav {
+.account__public { white-space: nowrap; }
+
+.contentinfo { border-top: 1px solid var(--rule); color: var(--ink-quiet); font-size: 0.9rem; margin-top: 1rem; }
+
+/* ---- espace mairie shell (§6.5) ---------------------------------------
+   A classic layout: one fixed left-column menu, the same on every screen, with
+   the banner, messages, content and footer sitting beside it; a breadcrumb
+   pinned to the top of the content column so the operator can always see where
+   they are. No JavaScript — the column becomes a bar above the content on a
+   narrow screen (§14). The menu markup is `backoffice/_nav.html`; what it lists
+   is decided in `apps/backoffice/templatetags/backoffice_nav.py`. */
+
+body.bo { --bo-side: 15.5rem; }
+
+body.bo .banner,
+body.bo .messages,
+body.bo main,
+body.bo .contentinfo {
+  max-width: none;
+  margin-inline: 0;
+  margin-left: var(--bo-side);
+}
+body.bo main { padding: 0; }
+
+.bo-side {
+  position: fixed;
+  top: 3px;                 /* clears the bleu France rule on <body> */
+  left: 0;
+  bottom: 0;
+  width: var(--bo-side);
+  display: flex;
+  flex-direction: column;   /* so the tools block can sit at the foot */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--paper-quiet);
+  border-right: 1px solid var(--rule);
+  padding-bottom: 1.5rem;
+}
+/* The icon sprite is markup, not a picture: keep it out of the flow and the
+   accessibility tree (each entry still carries its text label). */
+.bo-ico-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+.bo-ico {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex: none;
+  margin-top: 0.1rem;
+  fill: none;
+  stroke: var(--ink-quiet);
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.bo-side__brand {
+  display: block;
+  padding: 1rem 1.15rem 0.85rem;
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  text-decoration: none;
+}
+.bo-side__brand:hover { color: var(--accent); }
+
+/* The global links: always directly under the wordmark, in the same order. */
+.bo-side__list--global { padding-top: 0.15rem; }
+
+/* The poll state separates the global links above from the poll's own groups
+   below. It is only present while a poll is in scope; the title is not
+   repeated here — the breadcrumb and the <h1> already carry it. */
+.bo-side__poll {
+  margin-top: 0.9rem;
+  padding: 0.7rem 1.15rem;
+  border-top: 1px solid var(--rule);
+}
+
+/* The poll state, written out — the wash only sorts it, it does not carry it
+   (R-14.1). A finished poll drops to a plain outline. */
+.bo-state {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.bo-state--closed,
+.bo-state--published {
+  background: var(--paper);
+  border-color: var(--rule);
+  color: var(--ink-quiet);
+}
+
+.bo-side__group {
+  margin: 1.1rem 0 0.2rem;
+  padding: 0 1.15rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-quiet);
+}
+.bo-side__poll + .bo-side__group { margin-top: 0.35rem; }
+.bo-side__list { list-style: none; margin: 0; padding: 0; }
+.bo-side__link {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.5rem 1.15rem;
+  color: var(--ink);
+  text-decoration: none;
+  border-left: 3px solid transparent;
+}
+.bo-side__text { display: flex; flex-direction: column; min-width: 0; }
+.bo-side__link:hover { background: var(--rule-soft); }
+.bo-side__link:hover .bo-ico { stroke: var(--ink); }
+.bo-side__link.is-current {
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
+}
+.bo-side__link.is-current .bo-ico { stroke: var(--accent); }
+
+/* A commune admin's entry for a role they have not granted themselves yet: the
+   link leads to the role screen, and the sub-label — not the colour — says so. */
+.bo-side__link.needs-grant { color: var(--ink-quiet); }
+.bo-side__grant {
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--ink-quiet);
+}
+
+/* Language and theme, at the foot of the panel (§6.5). `margin-top: auto`
+   pushes the block down while the menu is short, and it scrolls with the rest
+   once the menu is long. */
+.bo-side__tools {
+  margin-top: auto;
+  padding: 0.9rem 1.15rem 0;
+  border-top: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+.bo-side__tools .langswitch,
+.bo-side__tools .themeswitch { margin-top: 0; }
+.bo-side__lang { align-items: center; }
+.bo-side__lang label,
+.bo-side__theme > span {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-quiet);
+  align-self: start;
+}
+.bo-side__lang select { flex: 1 1 6rem; min-width: 0; min-height: 2.2rem; }
+/* The generic <button> is a bold filled CTA (§6.5's "wall of blue" is exactly
+   what a routine submit should not be here) — this one only re-submits the
+   form beside it, so it takes the same quiet, bordered treatment as the
+   theme toggle next to it, not the accent fill "Enregistrer" gets elsewhere. */
+.bo-side__lang button {
+  min-height: 2.2rem;
+  padding: 0.4rem 0.75rem;
+  font-weight: 500;
+  font-size: 0.85rem;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+}
+.bo-side__lang button:hover { opacity: 1; background: var(--paper-quiet); }
+.bo-side__tools .themeswitch { flex-direction: column; align-items: stretch; gap: 0.35rem; }
+.bo-side__tools .themeswitch [role="group"] { display: flex; }
+.bo-side__tools .themeswitch button { flex: 1; padding: 0.4rem 0.3rem; font-size: 0.8rem; }
+
+/* Breadcrumb: sticky, so "where am I" survives a long journal or tally. */
+.bo-crumb {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   background: var(--paper-quiet);
   border-bottom: 1px solid var(--rule);
-  padding-block: 0.85rem;
+  padding: 0.6rem clamp(1rem, 4vw, 2.5rem);
 }
-.pollnav__poll { margin: 0; font-weight: 600; }
-.pollnav__links {
+.bo-crumb ol {
   list-style: none;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.2rem 1.5rem;
-  margin: 0.55rem 0 0;
+  gap: 0.35rem;
+  margin: 0;
   padding: 0;
+  font-size: 0.85rem;
 }
-.pollnav__links a {
-  color: var(--ink);
-  text-decoration: none;
-  padding: 0.2rem 0;
-  border-bottom: 2px solid transparent;
-}
-.pollnav__links a:hover { border-bottom-color: var(--rule); }
-.pollnav__links a[aria-current="page"] {
-  font-weight: 700;
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-}
+.bo-crumb li { display: flex; gap: 0.35rem; align-items: baseline; }
+.bo-crumb li + li::before { content: "A"; color: var(--ink-quiet); }
+.bo-crumb a { color: var(--link); text-decoration: none; }
+.bo-crumb a:hover { text-decoration: underline; }
+.bo-crumb [aria-current="page"] { color: var(--ink-quiet); font-weight: 600; }
 
-.contentinfo { border-top: 1px solid var(--rule); color: var(--ink-quiet); font-size: 0.9rem; margin-top: 1rem; }
+.bo-main { padding: 1.75rem clamp(1rem, 4vw, 2.5rem) 3.5rem; }
+
+/* Narrow screens: no fixed column. It flows back into the page as a bar above
+   the content, between the banner and the breadcrumb. */
+@media (max-width: 52rem) {
+  body.bo { --bo-side: 0rem; }
+  body.bo .banner,
+  body.bo .messages,
+  body.bo main,
+  body.bo .contentinfo { margin-left: 0; }
+  .bo-side {
+    position: static;
+    width: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 0.5rem;
+  }
+  .bo-side__list { display: flex; flex-wrap: wrap; }
+  .bo-side__link,
+  .bo-side__link.is-current { border-left: 0; border-radius: var(--radius-sm); }
+  .bo-side__tools { margin-top: 0.75rem; flex-flow: row wrap; align-items: end; gap: 1rem 1.5rem; }
+  .bo-crumb { position: static; }
+}
 .langswitch, .themeswitch { display: flex; gap: 0.5rem; align-items: end; flex-wrap: wrap; margin-top: 0.75rem; }
 .langswitch label { font-weight: 400; }
 
@@ -339,6 +538,51 @@ fieldset {
 }
 legend { font-weight: 700; padding: 0 0.4rem; }
 
+/* Tabs (static/js/tabs.js), grouping screen 2's configuration fieldsets
+   (§6.5.2). Progressive enhancement: `[hidden]` on the list keeps it off
+   until the script wires it up, and every panel renders open below it —
+   flex-wrap rather than a scroll rail, so the five tabs stay reachable at a
+   phone width without introducing horizontal scrolling (R-14.2). */
+.tabs__list[hidden] { display: none; }
+.tabs__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 1.25rem;
+}
+.tabs__tab {
+  padding: 0.55rem 0.9rem;
+  font-weight: 500;
+  color: var(--ink);
+  background: none;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+.tabs__tab:hover { opacity: 1; background: var(--paper-quiet); }
+/* The selected tab carries the state in weight and a filled underline, not
+   colour alone (3.1) — `aria-selected` is the source of truth either way. */
+.tabs__tab.is-selected {
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--surface);
+  border-color: var(--rule);
+  border-bottom: 2px solid var(--surface);
+  margin-bottom: -1px;
+}
+/* A rejected submission opens on the first failing tab (tabs.js), but a
+   near-empty form fails several at once; the rest stayed unmarked with
+   nothing on screen pointing at them. Text, not a colour or a bare dot
+   (3.1): `.tabs__tab-flag` is the same wording every screen reader user
+   gets too, appended by tabs.js from the template's translated
+   data-tabs-error-label. */
+.tabs__tab-flag {
+  color: var(--focus);
+  font-weight: 700;
+  font-size: 0.85em;
+}
+
 /* The account-management disclosure stacks three small forms; space them and
    let each lay its label, field and button out in a row. */
 details form.inline {
@@ -351,6 +595,18 @@ details form.inline {
 details form.inline label { margin: 0; }
 
 .pollpicker { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: end; margin-bottom: 1.5rem; }
+
+/* ---- proposition editor (screen 2) --------------------------------- */
+
+/* Revealed by static/js/option-editor.js; the no-JS path never shows them. */
+.option-editor__add[hidden],
+.option-row__controls[hidden],
+.option-row__delete[hidden] { display: none; }
+.option-editor__add { margin-top: 0.25rem; }
+.option-row__delete label { display: inline-flex; align-items: center; gap: 0.4rem; }
+/* A stored row awaiting removal on save: kept in place, struck through, undoable. */
+.option-row--removed { opacity: 0.55; }
+.option-row--removed legend { text-decoration: line-through; }
 
 /* ---- tables ---------------------------------------------------------- */
 
@@ -533,18 +789,20 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 
 @media print {
   body { border-top: 0; }
-  .banner, .pollnav, .messages, .contentinfo, .langswitch, .themeswitch, .noprint { display: none !important; }
+  .banner, .bo-side, .bo-crumb, .messages, .contentinfo, .langswitch, .themeswitch, .noprint { display: none !important; }
   .receipt { border: none; border-radius: 0; box-shadow: none; padding: 0; max-width: none; }
-  main { margin: 0; padding: 0; max-width: none; }
+  main, body.bo main { margin: 0; padding: 0; max-width: none; }
+  .bo-main { padding: 0; }
   h1 { border-bottom: 0; }
 }
 
 </style>
 </head>
-<body>
+<body class="">
   <a class="skip" href="#contenu">Aller au contenu</a>
 
   <header class="banner">
+    
     <p class="site-name"><a href="/">Commune de Saint-Aubin-des-Bois</a></p>
     
   </header>
@@ -559,7 +817,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
   
 
   <form method="post">
-    <input type="hidden" name="csrfmiddlewaretoken" value="Z25Q34YpVcfD3DQfhoAshY4hR542drIhl10eJUZcTXZDQ7RwE3fomPRcD6dT1FXu">
+    <input type="hidden" name="csrfmiddlewaretoken" value="lZWGH6Qt8LmFW686Of4jpkdKSRNrGmzf0y366ejkNUZymhPNZNP9w2ML2t441vdd">
     
       <p class="field">
         <label for="id_last_name">
@@ -628,30 +886,35 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
     
     
 
-    <form action="/i18n/setlang/" method="post" class="langswitch">
-      <input type="hidden" name="csrfmiddlewaretoken" value="Z25Q34YpVcfD3DQfhoAshY4hR542drIhl10eJUZcTXZDQ7RwE3fomPRcD6dT1FXu">
-      <input type="hidden" name="next" value="/fr/inscription/d50d8aa0-5d13-4768-8761-26e939ddd14f/">
-      <label for="langswitch-select">Langue</label>
-      <select id="langswitch-select" name="language">
-        
-        
-          <option value="fr" lang="fr" selected>Français</option>
-        
-          <option value="en" lang="en">Anglais</option>
-        
-      </select>
-      <button type="submit">Changer</button>
-    </form>
-
     
-    <div class="themeswitch" data-theme-control hidden>
-      <span id="themeswitch-label">Thème</span>
-      <div role="group" aria-labelledby="themeswitch-label">
-        <button type="button" value="light">Clair</button>
-        <button type="button" value="dark">Sombre</button>
-        <button type="button" value="auto">Système</button>
+    
+      <form action="/i18n/setlang/" method="post" class="langswitch">
+        <input type="hidden" name="csrfmiddlewaretoken" value="lZWGH6Qt8LmFW686Of4jpkdKSRNrGmzf0y366ejkNUZymhPNZNP9w2ML2t441vdd">
+        <input type="hidden" name="next" value="/fr/inscription/b4950f6d-43a9-4ca8-937c-b8dde9476364/">
+        <label for="langswitch-select">Langue</label>
+        <select id="langswitch-select" name="language">
+          
+          
+            <option value="fr" lang="fr" selected>Français</option>
+          
+            <option value="en" lang="en">Anglais</option>
+          
+        </select>
+        <button type="submit">Changer</button>
+      </form>
+
+      
+      <div class="themeswitch" data-theme-control hidden>
+        <span id="themeswitch-label">Thème</span>
+        <div role="group" aria-labelledby="themeswitch-label">
+          <button type="button" value="light">Clair</button>
+          <button type="button" value="dark">Sombre</button>
+          <button type="button" value="auto">Système</button>
+        </div>
       </div>
-    </div>
+    
   </footer>
+
+  
 </body>
 </html>
