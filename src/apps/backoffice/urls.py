@@ -34,6 +34,16 @@ urlpatterns = [
     ),
     path("scrutin/<uuid:poll_id>/", views.poll_dashboard, name="dashboard"),
     path("scrutin/<uuid:poll_id>/configuration/", views.poll_config, name="poll_config"),
+    path(
+        "scrutin/<uuid:poll_id>/configuration/propositions/<uuid:option_id>/images/",
+        views.option_image_upload,
+        name="option_image_upload",
+    ),
+    path(
+        "scrutin/<uuid:poll_id>/configuration/images/<uuid:image_id>/supprimer/",
+        views.option_image_delete,
+        name="option_image_delete",
+    ),
     path("scrutin/<uuid:poll_id>/journal/", views.audit_log, name="audit_log"),
     path(
         "scrutin/<uuid:poll_id>/inscriptions/",

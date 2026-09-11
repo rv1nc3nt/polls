@@ -110,6 +110,19 @@ STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "var" / "static"
 STATICFILES_DIRS = [SRC_DIR / "static"]
 
+# R-3.12, §3.1 bis: the one kind of operator-uploaded file the platform
+# serves back to the public. Distinct from STATIC_ROOT — these are written at
+# runtime, not collected at deploy time — and, unlike it, part of what the
+# nightly backup (§14) must cover: the database alone no longer reconstructs
+# every public page once a poll has an option image. Like DJANGO_DB_PATH and
+# DJANGO_JOB_LOCK_DIR below, this must live outside the release tree: `uv run
+# python manage.py` resolves BASE_DIR from this file's own location, and a
+# deploy replaces the whole tree the release lives in on every release
+# (§15) — anything under it, media included, would otherwise be discarded
+# the moment the next release's symlink swap runs.
+MEDIA_URL = "media/"
+MEDIA_ROOT = Path(os.environ.get("DJANGO_MEDIA_ROOT", BASE_DIR / "var" / "media"))
+
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"

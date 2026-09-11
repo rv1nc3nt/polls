@@ -774,6 +774,23 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 .poll-index a { font-weight: 600; font-size: 1.05rem; }
 .poll-index .help { display: block; }
 
+/* ---- an option's extended description (R-3.12, §3.1 bis) ----------- */
+
+.option-details { margin: 0.5rem 0 0.75rem; max-width: var(--measure); }
+.option-details img { border-radius: 4px; }
+
+/* 16:9 responsive wrapper around the one iframe apps.elections.optioncontent
+   ever emits — width comes from the surrounding text column, not from the
+   iframe's own (fixed, sandboxed) attributes. */
+.youtube-embed { position: relative; width: 100%; max-width: var(--measure); aspect-ratio: 16 / 9; margin: 0.5rem 0; }
+.youtube-embed iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+
+/* ---- screen 2's per-proposition image manager (§6.5.2, R-3.12) ----- */
+
+.option-images { list-style: none; padding: 0; margin: 0 0 0.75rem; display: flex; flex-wrap: wrap; gap: 0.75rem; }
+.option-images li { display: flex; flex-direction: column; gap: 0.3rem; }
+.option-images__thumb { width: 8rem; height: 8rem; object-fit: cover; border-radius: 4px; border: 1px solid var(--rule-soft); }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; }
 }

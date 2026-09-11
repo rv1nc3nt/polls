@@ -83,9 +83,11 @@ from apps.ballots.ranking import BallotRefused
 from apps.core.codes import format_tracking_code
 from apps.core.models import PollRole, Role, User
 from apps.core.types import TrackingCode
-from apps.elections import closure, config, polltemplates, results_view, rollimport
+from apps.elections import closure, config, optionimages, polltemplates, results_view, rollimport
 from apps.elections.models import (
+    OptionImage,
     Poll,
+    PollOption,
     PollState,
     PollTemplate,
     RollEntry,
@@ -556,6 +558,51 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
             "template_form": template_form,
         },
     )
+
+
+@require_poll_role(Role.POLL_ADMIN)
+def option_image_upload(request: HttpRequest, poll: Poll, option_id: str) -> HttpResponse:
+    """Screen 2's image attachment (R-3.12, §3.1 bis).
+
+    A separate POST target from the configuration form: HTML forms do not
+    nest, so a proposition's images are managed in their own section of
+    poll_config.html, below the form that saves the rest of the
+    configuration, one per already-saved option. ``draft`` only, like every
+    other write this screen makes — ``optionimages.add_option_image`` is what
+    actually enforces that, and the INV-6 trigger of migration 0008 under it.
+    """
+    option = get_object_or_404(PollOption, pk=option_id, poll=poll)
+    if request.method == "POST":
+        upload = request.FILES.get("image")
+        if upload is None:
+            messages.error(request, _("Choisissez une image."))
+        else:
+            try:
+                optionimages.add_option_image(
+                    option,
+                    upload,
+                    alt_text=request.POST.get("alt_text", "").strip(),
+                    actor=current_operator(request),
+                )
+            except (config.ConfigurationLocked, optionimages.InvalidOptionImage) as refused:
+                messages.error(request, str(refused))
+            else:
+                messages.success(request, _("Image ajoutée."))
+    return redirect("backoffice:poll_config", poll_id=str(poll.pk))
+
+
+@require_poll_role(Role.POLL_ADMIN)
+def option_image_delete(request: HttpRequest, poll: Poll, image_id: str) -> HttpResponse:
+    """The mirror of ``option_image_upload`` above."""
+    image = get_object_or_404(OptionImage, pk=image_id, option__poll=poll)
+    if request.method == "POST":
+        try:
+            optionimages.remove_option_image(image, actor=current_operator(request))
+        except config.ConfigurationLocked as refused:
+            messages.error(request, str(refused))
+        else:
+            messages.success(request, _("Image supprimée."))
+    return redirect("backoffice:poll_config", poll_id=str(poll.pk))
 
 
 def _filters(request: HttpRequest) -> auditlog.Filters:

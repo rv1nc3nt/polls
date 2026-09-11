@@ -65,6 +65,8 @@ v0.5 — functional scope only; no technical choices. Rules are numbered `R-x.y`
 
 **R-3.11** From the `announced`, `open`, `closed` or `published` state, the poll administrator may withdraw the poll, for a mandatory reason logged in the audit log (R-12.2). Withdrawal is a state change, to the `withdrawn` state (R-3.2); it is irreversible, like every state change. On withdrawal the poll no longer appears on any public page in any form — propositions, calendar, live participation, an already-published result where one exists (R-11.2) — and the page that carried its address states only that it has been withdrawn, revealing none of its content. Withdrawal affects neither the ballots nor the audit log; its effect on the retention of identity data is that of R-13.3. It cannot erase a copy of the result a third party already obtained before it took place.
 
+**R-3.12** Each poll option may carry, in addition to its label (R-3.1), an extended description: formatted text (headings, lists, emphasis, links), which may include images hosted by the platform itself and video embedded from YouTube — to the exclusion of any other embedded content from an outside source. This description is optional, and unlike the label's, a missing translation of it is never an obstacle to announcing or opening the poll (R-3.10, R-14.3): an enabled language with no extended description shows the poll's default-language one, or shows nothing at all where that is itself absent. It is frozen with the rest of the configuration at the same moment as the label (R-3.3), and plays no part in the tally or in the closure hash (R-10.7).
+
 ---
 
 ## 4. Electorate

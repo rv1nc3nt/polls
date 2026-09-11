@@ -25,7 +25,7 @@ from django.shortcuts import get_object_or_404, render
 from django.utils.dateparse import parse_datetime
 
 from apps.audit.models import Action, AuditEvent, Reason
-from apps.elections import closure, results_view
+from apps.elections import closure, optioncontent, results_view
 from apps.elections.models import Poll, PollState
 from apps.registrations.models import Channel, Registration, RegistrationState
 
@@ -139,7 +139,13 @@ def poll_detail(request: HttpRequest, poll_id: str) -> HttpResponse:
             "title": poll.title(language),
             "description": poll.description(language),
             "options": [
-                {"option_id": option.option_id, "label": option.label(language)}
+                {
+                    "option_id": option.option_id,
+                    "label": option.label(language),
+                    # R-3.12, §3.1 bis: optional, so this is often empty —
+                    # never a reason not to show the proposition itself.
+                    "details_html": optioncontent.render_option_details(option, language),
+                }
                 for option in poll.options.all()
             ],
             "has_paper_window": poll.paper_entry_deadline > poll.closes_at,

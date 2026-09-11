@@ -30,7 +30,17 @@
   <section aria-labelledby="propositions">
     <h2 id="propositions">{% translate "Les propositions soumises" %}</h2>
     <ol class="propositions">
-      {% for option in options %}<li>{{ option.label }}</li>{% endfor %}
+      {% for option in options %}
+        <li>
+          {{ option.label }}
+          {% comment %}
+            R-3.12, §3.1 bis: optional, so often empty — rendered HTML,
+            already sanitised by apps.elections.optioncontent at view time,
+            never at save time.
+          {% endcomment %}
+          {% if option.details_html %}<div class="option-details">{{ option.details_html }}</div>{% endif %}
+        </li>
+      {% endfor %}
     </ol>
   </section>
 

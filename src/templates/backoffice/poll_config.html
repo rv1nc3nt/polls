@@ -108,6 +108,55 @@
     </form>
   </section>
 
+  <section aria-labelledby="option-images">
+    <h2 id="option-images">{% translate "Images des propositions" %}</h2>
+    {% comment %}
+      R-3.12, §3.1 bis: a separate POST target per option (option_image_upload/
+      option_image_delete) rather than a field in the configuration form above
+      — HTML forms do not nest. Only shown for propositions already saved: an
+      image needs an existing PollOption row to attach to, so a blank row added
+      by static/js/option-editor.js but not yet saved has nothing here to show.
+    {% endcomment %}
+    <p class="help">{% translate "Enregistrez d'abord une proposition ci-dessus pour lui ajouter des images ; elle apparaît ensuite ici. Recopiez le repère « image:… » affiché sous chaque image dans le texte de sa description étendue, entre parenthèses : ![texte alternatif](image:…)" %}</p>
+    {% for option in poll.options.all %}
+      <fieldset>
+        <legend>{{ option.label }} <span class="help">({{ option.option_id }})</span></legend>
+        {% if option.images.all %}
+          <ul class="option-images">
+            {% for image in option.images.all %}
+              <li>
+                <img src="{{ image.file.url }}" alt="{{ image.alt_text }}" class="option-images__thumb">
+                <input type="text" readonly value="image:{{ image.pk }}"
+                       aria-label="{% translate 'Repère à recopier dans la description' %}">
+                <form method="post"
+                      action="{% url 'backoffice:option_image_delete' poll_id=poll.pk image_id=image.pk %}"
+                      class="inline">
+                  {% csrf_token %}
+                  <button type="submit" class="secondary">{% translate "Supprimer cette image" %}</button>
+                </form>
+              </li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+        <form method="post"
+              action="{% url 'backoffice:option_image_upload' poll_id=poll.pk option_id=option.pk %}"
+              enctype="multipart/form-data" class="inline">
+          {% csrf_token %}
+          <p class="field">
+            <label for="image-{{ option.pk }}">{% translate "Ajouter une image" %}</label>
+            <input type="file" name="image" id="image-{{ option.pk }}"
+                   accept="image/png,image/jpeg,image/gif,image/webp" required>
+          </p>
+          <p class="field">
+            <label for="alt-{{ option.pk }}">{% translate "Texte alternatif" %}</label>
+            <input type="text" name="alt_text" id="alt-{{ option.pk }}" maxlength="300">
+          </p>
+          <button type="submit">{% translate "Ajouter" %}</button>
+        </form>
+      </fieldset>
+    {% endfor %}
+  </section>
+
 {% else %}
 
   {% comment %}

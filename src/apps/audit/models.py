@@ -31,6 +31,11 @@ class Action(models.TextChoices):
 
     POLL_CREATED = "poll_created", _("scrutin créé")
     POLL_CONFIG_CHANGED = "poll_config_changed", _("configuration modifiée")
+    # R-3.12: image uploads/removals are a screen-2 write like the rest of
+    # POLL_CONFIG_CHANGED, but naming which option changed needs its own code
+    # rather than the generic "changed" field list that one carries.
+    OPTION_IMAGE_ADDED = "option_image_added", _("image de proposition ajoutée")
+    OPTION_IMAGE_REMOVED = "option_image_removed", _("image de proposition supprimée")
     POLL_STATE_CHANGED = "poll_state_changed", _("transition d'état")
     POLL_CLOSES_AT_EXTENDED = "poll_closes_at_extended", _("clôture repoussée")
     POLL_WITHDRAWN = "poll_withdrawn", _("scrutin retiré")

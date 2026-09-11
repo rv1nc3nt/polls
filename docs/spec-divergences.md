@@ -453,3 +453,35 @@ imported and by whom, no form. §6.5's screen list and item 3 were corrected to
 match (screen 3 added to the commune-level exception, its description
 rewritten); `apps/elections/rollimport.py`'s module docstring, which had made
 the same "reached from one poll's back-office" claim, was corrected too.
+
+## 12. Option images are not yet in the backup/restore playbook
+
+**Specification, §14 (Backups).** "Since §3.1 bis, the database alone no
+longer reconstructs every public page: `DJANGO_MEDIA_ROOT` (option images,
+R-3.12) needs the same nightly coverage and the same off-host replication as
+the database snapshot."
+
+**What the code does.** `ansible/roles/polls/tasks/backup.yml` and
+`polls-backup.sh.j2` still snapshot only `db.sqlite3` — `VACUUM INTO`,
+integrity check, retention window, optional `rsync` to
+`polls_backup_replicate_to`. `provision.yml` creates
+`{{ polls_state_dir }}/media`, `polls.env.j2` points `DJANGO_MEDIA_ROOT` at it
+and nginx serves it, so uploads work end to end — but nothing backs the
+directory up, and `restore.yml` restores the database alone. A restore today
+brings back every poll's configuration, including `PollOption.details_i18n`
+text that references images by id, with the images themselves gone: a broken
+reference, not a wrong one, since rendering drops a reference to a missing
+`OptionImage` row rather than erroring (§3.1 bis) — but broken all the same.
+
+**Why this is recorded rather than fixed here.** Pairing a media snapshot with
+a database snapshot correctly needs a decision this file shouldn't make
+silently: whether a restore should refuse when the two don't correspond (a
+media directory older or newer than the chosen `db-*.sqlite3`), or accept the
+mismatch and report it, and how `molecule/restore` should assert either
+choice. That is a real piece of design, not a one-line addition to
+`polls-backup.sh.j2`.
+
+**Not settled.** Until this is done, an adopting commune's disaster-recovery
+story has a gap: instructions to any operator following R-3.12 in the field
+should say so, and `restore.yml`'s final report should probably say so too,
+until the fix lands.
