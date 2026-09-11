@@ -1,7 +1,7 @@
 # Implementation Specification — Commune Polling Platform
 
 **Client:** Commune de Sainte-Marie-du-Mont (Isère), France
-**Status:** v0.22 — implementation-ready functional spec. Stack decided (§14).
+**Status:** v0.23 — implementation-ready functional spec. Stack decided (§14).
 **Audience:** implementing agent / developer.
 
 The authoritative functional requirements carry the numbers `R-x.y`. This document restates them in implementation terms and adds the domain model, algorithms, invariants and acceptance tests. Where the two diverge, the requirements govern and this document is to be corrected. Cross-references to `R-x.y` appear throughout.
@@ -144,6 +144,14 @@ Rules:
 - Language is selected by URL prefix (`/fr/…`, `/en/…`) with Django's `i18n_patterns`, so a ballot link is language-explicit and shareable.
 - **Translations never touch the tally or the hash.** `ranking` stores option **ids**; the canonical serialisation of §9 contains ids and tracking codes only. Labels appear in the publication as a separate lookup table, so the closure hash and the result are independent of them — a property the verifier depends on. Labels are frozen with the rest of the configuration when the poll opens (R-3.3, INV-6): there is no path to add or correct a translation once a poll has left `draft`, and the published result therefore shows exactly the labels voters ranked.
 
+### 3.9 `PollTemplate` (R-3.6, R-3.9)
+
+`{id, name, tally_method, tally_method_version, require_complete_ranking, allow_ties_in_ballot, tiebreak_rule, paper_requires_signed_form, paper_requires_countersign, paper_requires_reconciliation, allow_ballot_modification, eligible_list_types, languages, created_at, created_by}`.
+
+Deliberately not a `Poll` with fields nulled out: a template carries only what R-3.9 lists — the tally mechanism and the ballot rules built around it — never `title`, `description`, `options` or any date; duplicating those belongs to duplicating an existing poll directly (R-3.6), a separate and still-unbuilt path (docs/spec-divergences.md #10). `name` is the one field a template has that a poll never does — *"scrutin de Condorcet"*, *"consultation simple à un tour"* — unique per commune so the creation screen's list is unambiguous. Commune-level, one catalogue rather than one per poll, like the mail settings of §6.5.12.
+
+Creating a poll from a template (§6.5) copies these fields onto the new `Poll` row and stops there: title, description and options are entered as for a blank creation. Saving a template from a poll reads the same fields off the source `Poll`, in any state — none of them change after `draft` (INV-6), so there is nothing a later edit could invalidate. Deleting a template affects no poll ever created from it: the fields were copied at creation time, not referenced.
+
 ---
 
 ## 4. State machine
@@ -269,18 +277,21 @@ If the voter has a paper ballot and attempts to vote online, refuse and direct t
 
 The administrative interface is purpose-built, not Django admin. It is used by council members and mairie staff, not by developers, and it therefore falls under RGAA like the rest of the site (R-14.1), must be in French, and must not expose destructive actions beside routine ones. Django admin is not included in the production URL configuration at all.
 
-Screens, gated by the per-poll roles of §3.7 — except 3, 10, 11 and 12, which
-are commune-level or pre-account and gated differently, as noted under each.
-Creating a poll is not itself numbered here: it is commune-level like 3, 10
-and 12 (a poll being created has no `poll_admin` yet to gate on) and reuses
-screen 2's form and option editor — a poll's initial configuration is the same
-shape as an edit of one (R-3.1) — plus `is_sandbox` (R-3.7), which screen 2
-never offers because it is fixed at creation. R-3.6's duplication of an
-existing poll or a template is not implemented; creation always starts from a
-blank configuration.
+Screens, gated by the per-poll roles of §3.7 — except 3, 10, 11, 12 and 13,
+which are commune-level or pre-account and gated differently, as noted under
+each. Creating a poll is not itself numbered here: it is commune-level like 3,
+10, 12 and 13 (a poll being created has no `poll_admin` yet to gate on) and
+reuses screen 2's form and option editor — a poll's initial configuration is
+the same shape as an edit of one (R-3.1) — plus `is_sandbox` (R-3.7), which
+screen 2 never offers because it is fixed at creation. The screen offers three
+starting points (R-3.6): blank; a named template (§3.9, screen 13), which
+carries over the tally mechanism and ballot rules only, leaving title,
+description and options to enter as for a blank poll; or duplicating an
+existing poll's full configuration including those three — not yet
+implemented, and tracked separately (docs/spec-divergences.md #10).
 
 1. **Tableau de bord** — state, opening and closing instants, registered / confirmed / voted counts by channel, pending review count, and the actions permitted in the current state. While the poll is in `draft` it also names every condition that would make `open_poll` refuse — a missing translation, an absent roll snapshot — so a gap is visible before the opening hour rather than at it (§4). In `open` it likewise names what would block `close_poll` — *clôture bloquée : n bulletins en attente de contreseing*.
-2. **Configuration du scrutin** — editable only in `draft`; read-only thereafter, with the closing-date extension (R-3.4) as a separate, reasoned action.
+2. **Configuration du scrutin** — editable only in `draft`; read-only thereafter, with the closing-date extension (R-3.4) as a separate, reasoned action. A commune admin additionally sees *enregistrer comme modèle* here, in every state (§3.9) — the fields it reads are frozen from `draft` onward (INV-6), so there is nothing later that reading them sooner could get wrong.
 3. **Import de la liste électorale** — commune-level, gated by the commune-admin flag rather than a poll's roles (R-2.1: importing the roll is the commune administrator's, not the poll administrator's), reached from the general menu and never from a poll's own. Upload, column mapping, validation report, preview, explicit confirmation (R-4.5). A poll's own menu carries a read-only counterpart instead — which import is currently in force, and when — open to that poll's `poll_admin` (docs/spec-divergences.md #11).
 4. **File d'attente des inscriptions** — registrations pending review, with roll search and near-match display; accept or reject with a mandatory reason (R-5.4).
 5. **Saisie d'un bulletin papier** — elector search against the snapshot, near-match confirmation, the blocking collision interstitial of R-9.3, ranking entry, then a printable receipt (R-8.4) rendered as an HTML page with a print stylesheet.
@@ -291,6 +302,7 @@ blank configuration.
 10. **Comptes et rôles** — operator accounts and per-poll role assignment.
 11. **Première installation** — a first-run wizard creating the commune record and the initial administrator, so an adopting commune never runs `createsuperuser`.
 12. **Paramètres de messagerie** — the SMTP relay (host, port, encryption, credentials, sending address), commune-level like screen 10 since one relay serves every poll. Editable by a commune admin only; a "send a test message" action exercises the settings already saved before anyone relies on them for a live poll. Absent settings fall back to the deployment's own configuration (§14, §15), so this is additive: a commune whose Ansible deploy already sets the relay is unaffected until an admin fills the screen in.
+13. **Modèles de scrutin** — commune-level like screens 10 and 12: the catalogue of named templates (§3.9) — name, tally method, creation date — with rename and delete. Nothing else creates or edits a template; screen 2's *enregistrer comme modèle* is the only writer. Deleting one here has no effect on a poll already created from it, since the fields were copied at creation time.
 
 Two rules govern all of them. Every mutating screen posts through the service functions of §5.1; no view writes through the ORM directly. And no screen anywhere displays a voter's identity alongside ballot content, except on the paper-entry screen, where the association is deliberate and logged.
 

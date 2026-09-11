@@ -51,11 +51,13 @@ v0.5 — périmètre fonctionnel uniquement ; aucun choix technique. Les règles
 
 **R-3.5** La clôture à la date et heure fixées est imposée côté serveur. Les bulletins et modifications parvenus postérieurement à cet instant sont refusés.
 
-**R-3.6** Un scrutin peut être créé par duplication d'un scrutin existant ou d'un modèle ; la duplication reprend la configuration, à l'exclusion du corps électoral et des bulletins.
+**R-3.6** Un scrutin peut être créé par duplication de l'intégralité de la configuration d'un scrutin existant (R-3.1), à l'exclusion du corps électoral et des bulletins ; ou à partir d'un modèle nommé (R-3.9), qui ne transmet que la méthode de dépouillement et sa version, les contraintes de bulletin, la règle de départage, les exigences de forme des bulletins papier, la faculté de modifier son bulletin, les types de liste ouvrant droit de vote et les langues activées — l'intitulé, la description et les options du nouveau scrutin restent à saisir.
 
 **R-3.7** Un scrutin marqué comme scrutin d'essai est exclu des listes publiques, des résultats publiés et de toute statistique. Cette qualité est fixée à la création et n'est pas modifiable.
 
 **R-3.8** Plusieurs scrutins peuvent se dérouler simultanément auprès du même corps électoral. Chacun est indépendant à tous égards : inscription distincte, copie figée distincte de la liste électorale, jetons distincts, bulletins distincts.
+
+**R-3.9** Un scrutin, à quelque état qu'il soit, peut être enregistré comme modèle nommé, reprenant les mêmes éléments qu'un modèle transmet à la création (R-3.6). Un modèle n'est pas un scrutin : il n'a ni intitulé, ni description, ni options, ni dates, ni corps électoral, ni bulletins, et n'est soumis à aucun cycle de vie ; seul son nom, choisi par l'opérateur, l'identifie.
 
 ---
 

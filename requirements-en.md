@@ -53,11 +53,13 @@ v0.5 — functional scope only; no technical choices. Rules are numbered `R-x.y`
 
 **R-3.5** Closure at the fixed date and time is enforced server-side. Ballots and modifications arriving after that instant are refused.
 
-**R-3.6** A poll may be created by duplicating an existing poll or a template; the duplication carries over the configuration, excluding the electorate and the ballots.
+**R-3.6** A poll may be created by duplicating the full configuration of an existing poll (R-3.1), excluding the electorate and the ballots; or from a named template (R-3.9), which carries over only the tally method and its version, the ballot constraints, the tie-break rule, the formal requirements applicable to paper ballots, whether the ballot may be modified, the list types conferring eligibility, and the enabled languages — the new poll's title, description and options remain to be entered.
 
 **R-3.7** A poll marked as a test poll is excluded from public listings, from published results and from all statistics. This quality is fixed at creation and is not modifiable.
 
 **R-3.8** Several polls may run simultaneously among the same electorate. Each is independent in every respect: separate registration, separate frozen copy of the electoral roll, separate tokens, separate ballots.
+
+**R-3.9** A poll, in whatever state, may be saved as a named template, carrying over the same elements a template supplies at creation (R-3.6). A template is not a poll: it has no title, description, options, dates, electorate or ballots, and is subject to no lifecycle; only its name, chosen by the operator, identifies it.
 
 ---
 

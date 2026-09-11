@@ -313,20 +313,36 @@ on the poll (§3.7's split, same as `role_admin`): the screen redirects to
 "Rôles par scrutin" for the new poll so that granting one stays a separate,
 audited step.
 
-**Why R-3.6 is left out.** "A poll may be created by duplicating an existing
-poll or a template" is a convenience on top of creation, not a substitute for
-it — the gap this closes is that there was no base case at all, template or
-not. Duplication carries its own decisions (what a "template" is, whether a
-sandbox poll can be a source) that are worth their own review rather than
-folding into the fix for a missing screen. The create screen always starts
-from a blank configuration until that follow-up lands.
+**Why R-3.6 was left out at first.** "A poll may be created by duplicating an
+existing poll or a template" is a convenience on top of creation, not a
+substitute for it — the gap this item closes is that there was no base case
+at all, template or not. Duplication carried its own decisions (what a
+"template" is, whether a sandbox poll can be a source) that were worth their
+own review rather than folding into the fix for a missing screen. The create
+screen started from a blank configuration only until that review landed.
 
-**Not settled by amending the requirements.** Nothing in R-3.1–R-3.8
-contradicts this — the requirements describe what a poll is and how it may
-optionally be duplicated, never how the specification's back office is meant
-to expose plain creation. §6.5's screen list has been amended to name the gap
-and how it is closed; R-3.6 (duplication) remains open, tracked here rather
-than in a requirements edit.
+**The template half settled (2026-09-11), by amending the requirements.**
+R-3.6 bundled two different sources — "an existing poll" and "a template" —
+under one phrase, "the configuration," without saying what a template itself
+is or how one is produced; that omission is exactly what made it a
+convenience nobody could build yet. A new R-3.9 supplies the missing half: a
+template is a named, commune-level object distinct from a poll, carrying the
+tally mechanism and ballot rules only — never `title`, `description` or
+`options`, which a direct poll duplication would keep and a template-built
+poll enters fresh, same as a blank one. §3.9 and §6.5 (new screen 13, plus
+*enregistrer comme modèle* on screen 2) describe the resulting design. This
+settles the *design* question the way §0 asks divergences to be settled where
+possible — by correcting the requirements rather than leaving the spec to
+paper over a gap — but the code is still to follow: neither the template
+route nor direct duplication is implemented, and the create screen still
+starts from a blank configuration only.
+
+**Direct duplication of an existing poll remains open on its own terms.**
+R-3.9 settled the template half only. Cloning a poll's `title`, `description`
+and `options` verbatim raises questions a template sidesteps by not carrying
+them at all — whether a sandbox poll may be a source, whether per-language
+content missing at the source should block the clone the way it blocks
+opening (§3.8) — and stays tracked here rather than folded into this item.
 
 ## 11. Screen 3 (import de la liste électorale) was gated per poll
 
