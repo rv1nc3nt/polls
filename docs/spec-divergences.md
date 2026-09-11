@@ -321,21 +321,24 @@ at all, template or not. Duplication carried its own decisions (what a
 own review rather than folding into the fix for a missing screen. The create
 screen started from a blank configuration only until that review landed.
 
-**The template half settled (2026-09-11), by amending the requirements.**
-R-3.6 bundled two different sources — "an existing poll" and "a template" —
-under one phrase, "the configuration," without saying what a template itself
-is or how one is produced; that omission is exactly what made it a
-convenience nobody could build yet. A new R-3.9 supplies the missing half: a
-template is a named, commune-level object distinct from a poll, carrying the
-tally mechanism and ballot rules only — never `title`, `description` or
-`options`, which a direct poll duplication would keep and a template-built
-poll enters fresh, same as a blank one. §3.9 and §6.5 (new screen 13, plus
-*enregistrer comme modèle* on screen 2) describe the resulting design. This
-settles the *design* question the way §0 asks divergences to be settled where
-possible — by correcting the requirements rather than leaving the spec to
-paper over a gap — but the code is still to follow: neither the template
-route nor direct duplication is implemented, and the create screen still
-starts from a blank configuration only.
+**The template half settled and built (2026-09-11), by amending the
+requirements.** R-3.6 bundled two different sources — "an existing poll" and
+"a template" — under one phrase, "the configuration," without saying what a
+template itself is or how one is produced; that omission is exactly what made
+it a convenience nobody could build yet. A new R-3.9 supplies the missing
+half: a template is a named, commune-level object distinct from a poll,
+carrying the tally mechanism and ballot rules only — never `title`,
+`description` or `options`, which a direct poll duplication would keep and a
+template-built poll enters fresh, same as a blank one. §3.9 and §6.5 (screen
+13, plus *enregistrer comme modèle* on screen 2) describe the design, and both
+are now built: `apps.elections.models.PollTemplate` is the row,
+`apps.elections.polltemplates` the one writer (`save_as_template`, callable in
+any poll state since INV-6 freezes the fields it reads from `draft` onward;
+`rename` and `delete`), and "Nouveau scrutin"'s `?modele=` seeds the creation
+form from a chosen template's mechanism fields alone. This settles the divergence
+the way §0 asks — by correcting the requirements rather than leaving the spec
+to paper over a gap — and closes it: direct duplication is what remains
+open, tracked below.
 
 **Direct duplication of an existing poll remains open on its own terms.**
 R-3.9 settled the template half only. Cloning a poll's `title`, `description`

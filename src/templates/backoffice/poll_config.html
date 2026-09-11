@@ -18,6 +18,31 @@
   </ul>
 {% endif %}
 
+{% if commune_admin %}
+  <section aria-labelledby="save-template">
+    <h2 id="save-template">{% translate "Enregistrer comme modèle" %}</h2>
+    {% comment %}
+      §3.9: reads the tally mechanism and the ballot rules, never the
+      intitulé, la description or the propositions. Available in every
+      state — these fields are frozen from `draft` onward (INV-6), so there
+      is nothing a later edit could invalidate.
+    {% endcomment %}
+    <p class="help">{% translate "Enregistre la méthode de dépouillement et les règles de bulletin de ce scrutin comme modèle nommé, réutilisable à la création d'un futur scrutin. Ni l'intitulé, ni la description, ni les propositions ne sont repris." %}</p>
+    <form method="post" class="inline">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="save_template">
+      {% for field in template_form %}
+        <p class="field">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+        </p>
+      {% endfor %}
+      <button type="submit">{% translate "Enregistrer comme modèle" %}</button>
+    </form>
+  </section>
+{% endif %}
+
 {% if editable %}
   {% comment %}
     R-3.3: the configuration is freely modifiable while the poll is in

@@ -547,3 +547,13 @@ class MailTestForm(forms.Form):
     """Screen 12's "envoyer un message de test" action."""
 
     recipient = forms.EmailField(label=_("Adresse de test"))
+
+
+# --- Screen 13: modèles de scrutin (§6.5.13) -------------------------------
+
+
+class TemplateNameForm(forms.Form):
+    """One field, shared by screen 2's *enregistrer comme modèle* (§3.9) and
+    screen 13's rename — both write nothing but a name."""
+
+    name = forms.CharField(label=_("Nom du modèle"), max_length=200)

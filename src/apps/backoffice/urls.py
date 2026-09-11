@@ -21,6 +21,7 @@ urlpatterns = [
     path("comptes/", views.account_admin, name="account_admin"),
     path("comptes/roles/", views.role_admin, name="role_admin"),
     path("messagerie/", views.mail_settings, name="mail_settings"),
+    path("modeles/", views.template_admin, name="template_admin"),
     # Commune-level (R-2.1: the commune administrator imports the roll, not a
     # poll admin), like comptes/ and messagerie/ above — never
     # scrutin/<poll_id>/…, so no poll submenu can reach it (§3.2,
