@@ -19,6 +19,7 @@ from __future__ import annotations
 from django.conf import settings
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
+from django.db.models import QuerySet
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.utils.dateparse import parse_datetime
@@ -28,9 +29,16 @@ from apps.elections import closure, results_view
 from apps.elections.models import Poll, PollState
 from apps.registrations.models import Channel, Registration, RegistrationState
 
-#: The states a poll is visible to the public in at all: a ``draft`` poll is
-#: not yet a poll anyone may see (§6.6 speaks only of open and published).
-_PUBLIC_STATES = (PollState.OPEN, PollState.CLOSED, PollState.PUBLISHED)
+#: The states a poll is visible to the public in at all. ``draft`` is
+#: deliberately absent — a poll not yet even ``announced`` is not one anyone
+#: may see (§6.6, R-3.10); ``announced`` is the early preview, config already
+#: frozen (INV-6) so the page cannot change under a viewer's eyes.
+_PUBLIC_STATES = (PollState.ANNOUNCED, PollState.OPEN, PollState.CLOSED, PollState.PUBLISHED)
+
+
+def _public_polls() -> QuerySet[Poll]:
+    """Every poll a member of the public may see at all (INV-8, §6.6)."""
+    return Poll.objects.filter(is_sandbox=False, state__in=_PUBLIC_STATES)
 
 
 def health(request: HttpRequest) -> JsonResponse:
@@ -47,7 +55,7 @@ def health(request: HttpRequest) -> JsonResponse:
 
 def poll_list(request: HttpRequest) -> HttpResponse:
     """INV-8: sandbox polls never appear in public listings (T-15)."""
-    polls = Poll.objects.filter(is_sandbox=False, state__in=_PUBLIC_STATES).order_by("-opens_at")
+    polls = _public_polls().order_by("-opens_at")
     return render(request, "publicsite/poll_list.html", {"polls": polls})
 
 
@@ -104,11 +112,13 @@ def poll_detail(request: HttpRequest, poll_id: str) -> HttpResponse:
     is configured (§6.4), any logged extension (R-3.4) and the
     consultative-status notice (R-1.4, rendered by ``base.html`` on every
     page). Participation appears only through ``_live_participation``, which
-    returns ``None`` unless the poll is open and configured for it (T-20).
+    returns ``None`` unless the poll is open and configured for it (T-20). An
+    ``announced`` poll (R-3.10) reaches here too; ``is_preview`` marks that
+    page instead of ``is_open``, so it gets the "not yet open" notice rather
+    than the registration link — nothing here is votable before the poll
+    actually opens.
     """
-    poll = get_object_or_404(
-        Poll.objects.filter(is_sandbox=False, state__in=_PUBLIC_STATES), pk=poll_id
-    )
+    poll = get_object_or_404(_public_polls(), pk=poll_id)
     language = request.LANGUAGE_CODE
     return render(
         request,
@@ -124,6 +134,7 @@ def poll_detail(request: HttpRequest, poll_id: str) -> HttpResponse:
             "has_paper_window": poll.paper_entry_deadline > poll.closes_at,
             "extensions": _extensions(poll),
             "participation": _live_participation(poll),
+            "is_preview": poll.state == PollState.ANNOUNCED,
             "is_open": poll.state == PollState.OPEN,
             "is_published": poll.state == PollState.PUBLISHED,
         },

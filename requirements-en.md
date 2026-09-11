@@ -28,7 +28,7 @@ v0.5 — functional scope only; no technical choices. Rules are numbered `R-x.y`
 | Role | Permissions |
 |---|---|
 | Commune administrator | Creates polls, assigns the roles specific to each poll, imports the electoral roll. This role does not of itself carry any access to ballots. |
-| Poll administrator | Modifies the configuration while the poll is in draft; opens, closes and publishes the poll; rules on registrations flagged for manual review. |
+| Poll administrator | Modifies the configuration while the poll is in draft; announces, opens, closes and publishes the poll; rules on registrations flagged for manual review. |
 | Entry operator (council member) | Enters, corrects and deletes the poll's paper ballots; issues receipts. |
 | Auditor | Read-only access to the poll configuration, to the anonymised list of ballots and to the entirety of the audit log. |
 | Elector | Registers, casts and, where the poll permits, modifies their vote; verifies the recording of their own ballot. |
@@ -45,9 +45,9 @@ v0.5 — functional scope only; no technical choices. Rules are numbered `R-x.y`
 
 **R-3.1** A poll comprises: a title; a description; an ordered list of at least two options; an opening date and time; a closing date and time; a timezone; a tally method and its version; the ballot constraints (complete ranking required or not, ties permitted or not); a tie-break rule; whether an elector may modify a cast ballot (R-7.1); whether participation figures are displayed while the poll is open (R-11.5); the list types conferring eligibility (R-4.7); the enabled languages (R-14.3); the formal requirements applicable to paper ballots (R-8.2); a frozen copy of the electoral roll; a test-poll indicator; a state.
 
-**R-3.2** State changes are strictly ordered: `draft → open → closed → published`. No transition is reversible.
+**R-3.2** State changes are strictly ordered: `draft → [announced] → open → closed → published`. The `announced` state is an optional step (R-3.10): a poll may also go straight from `draft` to `open`. No transition is reversible.
 
-**R-3.3** The configuration is freely modifiable in the `draft` state and becomes immutable upon transition to the `open` state.
+**R-3.3** The configuration is freely modifiable in the `draft` state and becomes immutable as soon as the poll leaves that state, whether it moves to `announced` or straight to `open`.
 
 **R-3.4** Sole exception to R-3.3: the closing date may be extended while the poll is open. The extension is recorded in the audit log with the identity of the operator, the timestamp and a mandatory reason, and is displayed on the public page of the poll.
 
@@ -60,6 +60,8 @@ v0.5 — functional scope only; no technical choices. Rules are numbered `R-x.y`
 **R-3.8** Several polls may run simultaneously among the same electorate. Each is independent in every respect: separate registration, separate frozen copy of the electoral roll, separate tokens, separate ballots.
 
 **R-3.9** A poll, in whatever state, may be saved as a named template, carrying over the same elements a template supplies at creation (R-3.6). A template is not a poll: it has no title, description, options, dates, electorate or ballots, and is subject to no lifecycle; only its name, chosen by the operator, identifies it.
+
+**R-3.10** At the poll administrator's option, a poll still in the `draft` state may be announced: it then moves to the `announced` state, visible on the public site ahead of its opening. The propositions and the calendar are shown there, neither registration nor voting is offered, and the page states expressly that the poll is not yet open. Moving to this state freezes the configuration exactly as moving to the open state does (R-3.3), so the public page cannot change under a viewer's eyes. This step is optional; a poll still in the draft state appears on no public page.
 
 ---
 
@@ -248,7 +250,7 @@ No library pseudo-random generator is used, reproducibility having to depend nei
 
 **R-13.3** Retention periods: identity data (registration records, frozen copy of the electoral roll, association of paper ballots with electors) are deleted on expiry of a period of two months running from closure of the poll, and the fields declared under R-12.4 are erased from the audit log at the same term. The starting point is closure and not publication: a poll that closes but is never published — an unresolved physical tie-break, an abandoned result — would otherwise keep this data indefinitely. Anonymised ballots, the published result and the log itself are retained beyond that term.
 
-**R-13.3 bis** The electoral roll, once imported but not yet frozen into any poll (R-4.3), is deleted on expiry of a period of two months running from its import, where no poll is then in the `draft` state — the only state in which a poll would still freeze it at opening. Only the import's provenance (file name, hash, row count, operator, date) is retained thereafter, in the audit log; the identity data itself is not.
+**R-13.3 bis** The electoral roll, once imported but not yet frozen into any poll (R-4.3), is deleted on expiry of a period of two months running from its import, where no poll is then in the `draft` or `announced` state (R-3.10) — the only two states in which a poll would still freeze it at opening. Only the import's provenance (file name, hash, row count, operator, date) is retained thereafter, in the audit log; the identity data itself is not.
 
 **R-13.4** The salts used to derive the tokens are specific to each poll, so that the platform permits no correlation of the participation of the same person in two distinct polls. No cross-poll participation report is provided.
 

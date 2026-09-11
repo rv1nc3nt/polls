@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load i18n tz %}
-{# SPDX-License-Identifier: 0BSD — sandbox and draft polls are excluded in the view (INV-8). #}
+{# SPDX-License-Identifier: 0BSD — sandbox and draft polls are excluded; announced is the early preview (INV-8, R-3.10). #}
 
 {% block title %}{% translate "Consultations" %}{% endblock %}
 
@@ -13,7 +13,9 @@
         <li>
           <a href="{% url 'publicsite:poll_detail' poll.id %}">{{ poll.title }}</a>
           <span class="help">
-            {% if poll.state == "open" %}
+            {% if poll.state == "announced" %}
+              {% blocktranslate with when=poll.opens_at|timezone:poll.timezone|date:"DATETIME_FORMAT" %}à venir — ouverture le {{ when }}{% endblocktranslate %}
+            {% elif poll.state == "open" %}
               {% blocktranslate with when=poll.closes_at|timezone:poll.timezone|date:"DATETIME_FORMAT" %}ouverte — clôture le {{ when }}{% endblocktranslate %}
             {% elif poll.state == "published" %}
               {% translate "close — résultats publiés" %}

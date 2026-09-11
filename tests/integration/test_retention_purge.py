@@ -42,7 +42,7 @@ from apps.elections.retention import (
     purge_working_roll,
     working_roll_due,
 )
-from apps.elections.transitions import close_poll, open_poll, publish_poll
+from apps.elections.transitions import announce_poll, close_poll, open_poll, publish_poll
 from apps.registrations import services as registrations
 from apps.registrations.models import (
     DuplicateAttempt,
@@ -459,8 +459,9 @@ def _aged_import(operator: User) -> RollImport:
 
 def test_t66_working_roll_purged_only_once_idle_and_aged(db: None) -> None:
     """R-13.3 bis: the working roll is purged two months after import, and only
-    where no poll is left ``draft`` to still freeze it at opening — an
-    ``open`` poll already holds its own copy and does not postpone this."""
+    where no poll is left ``draft`` **or** ``announced`` to still freeze it at
+    opening (R-3.10) — an ``open`` poll already holds its own copy and does
+    not postpone this."""
     operator = User.objects.create_user(username="op.roll", password="x", full_name="Opérateur")
     _roll_entry("Dupont", "Émile", "12/05/1970", "1970-05-12")
     roll_import = _aged_import(operator)
@@ -470,7 +471,12 @@ def test_t66_working_roll_purged_only_once_idle_and_aged(db: None) -> None:
     assert purge_working_roll() == 0
     assert WorkingRollEntry.objects.exists()
 
-    open_poll(draft)  # no poll left in draft now
+    announced = _poll("Aperçu public")
+    announce_poll(announced)  # a detour, not a different destination (R-3.10)
+    open_poll(draft)  # neither draft nor announced is left now
+    assert working_roll_due() is False
+
+    open_poll(Poll.objects.get(pk=announced.pk))  # no poll left in draft or announced now
     assert working_roll_due() is True
     assert purge_working_roll() == 1
     assert not WorkingRollEntry.objects.exists()

@@ -1,13 +1,22 @@
 {% extends "base.html" %}
 {% load i18n tz %}
-{# SPDX-License-Identifier: 0BSD — sandbox and draft polls 404 in the view (INV-8, §6.6). #}
+{# SPDX-License-Identifier: 0BSD — sandbox and draft polls 404 here; `announced` is the early preview (INV-8, R-3.10). #}
 
 {% block title %}{{ title }}{% endblock %}
 
 {% block content %}
   <h1>{{ title }}</h1>
 
-  {% if is_open %}
+  {% if is_preview %}
+    {% comment %} R-3.10: the poll is `announced` — an early preview the poll admin chose to
+       offer. Points at the configured opening instant rather than at a
+       registration link nothing behind it would accept yet (§5.1: the window
+       checks gate on the clock, not on `state`). The configuration shown is
+       already frozen (INV-6, same as `open`), so unlike a `draft` this is not
+       provisional. {% endcomment %}
+    <p class="status">{% blocktranslate with when=poll.opens_at|timezone:poll.timezone|date:"DATETIME_FORMAT" %}Ce scrutin n'est pas encore ouvert. Ouverture prévue le {{ when }}.{% endblocktranslate %}</p>
+    <p class="help">{% translate "La configuration ci-dessous est arrêtée et ne changera plus (R-3.3) ; seul le vote n'est pas encore ouvert." %}</p>
+  {% elif is_open %}
     <p class="status">{% translate "Consultation ouverte." %}</p>
   {% elif is_published %}
     <p class="status">{% translate "Consultation close. Les résultats sont publiés." %}

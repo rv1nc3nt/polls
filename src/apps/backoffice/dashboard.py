@@ -87,6 +87,8 @@ def describe_blocker(code: str) -> str:
     match head:
         case "not_draft":
             return _("Le scrutin n'est plus en brouillon.")
+        case "not_draft_or_announced":
+            return _("Le scrutin doit être en brouillon ou annoncé pour pouvoir s'ouvrir.")
         case "not_open":
             return _("Le scrutin n'est pas ouvert.")
         case "fewer_than_two_options":
@@ -120,7 +122,7 @@ def blockers(poll: Poll) -> list[str]:
     advertised hour is the worst outcome available here, and a closure that
     stops on an uncountersigned ballot is the second worst.
     """
-    if poll.state == PollState.DRAFT:
+    if poll.state in (PollState.DRAFT, PollState.ANNOUNCED):
         return [describe_blocker(code) for code in opening_blockers(poll)]
     if poll.state == PollState.OPEN:
         return [describe_blocker(code) for code in closing_blockers(poll)]
@@ -159,6 +161,21 @@ def _actions_for_state(poll: Poll) -> list[PermittedAction]:
             return [
                 PermittedAction(
                     _("Configurer le scrutin"),
+                    (Role.POLL_ADMIN,),
+                    url_name="backoffice:poll_config",
+                ),
+                PermittedAction(
+                    _("Consulter la liste électorale"),
+                    (Role.POLL_ADMIN,),
+                    url_name="backoffice:roll_status",
+                ),
+            ]
+        case PollState.ANNOUNCED:
+            # R-3.10: config is already frozen (INV-6), same as `open` — the
+            # screen 2 link is read-only plus *ouvrir maintenant*.
+            return [
+                PermittedAction(
+                    _("Consulter la configuration"),
                     (Role.POLL_ADMIN,),
                     url_name="backoffice:poll_config",
                 ),

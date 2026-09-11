@@ -1787,3 +1787,94 @@ msgstr "Delete this template"
 #: templates/backoffice/template_admin.html
 msgid "Aucun modèle enregistré."
 msgstr "No template saved."
+
+# R-2.1/§4 manual open-close (screen 2) and R-3.10 early preview,
+# added by hand for the same reason the header explains: gettext was
+# not run for this change either.
+msgid "Visible sur le site public avant l'ouverture"
+msgstr "Visible on the public site before opening"
+
+msgid "Permet à l'électeur de découvrir les propositions et de s'y préparer avant l'ouverture — surtout utile quand le bulletin ne peut plus être modifié une fois voté (R-3.10). La page indique que le scrutin n'est pas encore ouvert et que la configuration peut encore changer d'ici là (R-3.3) ; ni inscription ni vote n'y sont proposés."
+msgstr "Lets an elector discover the propositions and think them over before opening — most useful when the ballot can no longer be modified once cast (R-3.10). The page states that the poll is not yet open and that the configuration may still change before then (R-3.3); neither registration nor voting is offered there."
+
+msgid "Motif de clôture forcée (si des bulletins attendent un contreseing)"
+msgstr "Reason for forced closure (if any ballots await countersignature)"
+
+msgid "Le scrutin s'ouvre normalement tout seul à la date d'ouverture configurée, même en retard si besoin. Vous pouvez aussi l'ouvrir maintenant vous-même, y compris par avance : la liste électorale sera figée à cet instant, mais personne ne pourra voter avant l'heure d'ouverture configurée."
+msgstr "The poll normally opens by itself at the configured opening date, even late if need be. You may also open it yourself right now, including ahead of time: the electoral roll will be frozen at that instant, but nobody can vote before the configured opening time."
+
+msgid "Ouvrir le scrutin maintenant"
+msgstr "Open the poll now"
+
+msgid "Visible avant l'ouverture"
+msgstr "Visible before opening"
+
+msgid "L'échéance de saisie des bulletins papier est atteinte : vous pouvez clore le scrutin maintenant plutôt que d'attendre la prochaine exécution de la tâche planifiée."
+msgstr "The paper-entry deadline has been reached: you may close the poll now instead of waiting for the next scheduled run."
+
+msgid "Le motif n'est exigé que si des bulletins papier attendent encore un contreseing (R-8.7 bis)."
+msgstr "The reason is required only if paper ballots are still awaiting countersignature (R-8.7 bis)."
+
+msgid "Clôturer le scrutin maintenant"
+msgstr "Close the poll now"
+
+msgid "La clôture manuelle sera proposée ici une fois l'échéance de saisie des bulletins papier atteinte."
+msgstr "Manual closure will be offered here once the paper-entry deadline is reached."
+
+msgid "Scrutin ouvert."
+msgstr "Poll opened."
+
+msgid "La clôture manuelle n'est possible qu'une fois l'échéance atteinte."
+msgstr "Manual closure is only possible once the deadline is reached."
+
+msgid "Scrutin clos."
+msgstr "Poll closed."
+
+msgid "Ce scrutin n'est pas encore ouvert. Ouverture prévue le %(when)s."
+msgstr "This poll is not yet open. Opening scheduled for %(when)s."
+
+msgid "Cette page est fournie à titre indicatif : tant que le scrutin est en préparation, propositions et dates peuvent encore changer (R-3.3)."
+msgstr "This page is provided for information only: while the poll is still in preparation, the propositions and dates may still change (R-3.3)."
+
+msgid "à venir — ouverture le %(when)s"
+msgstr "upcoming — opens on %(when)s"
+
+
+# R-3.10 redesign: the `announced` state, added by hand for the same
+# reason as the header explains.
+msgid "Scrutin annoncé."
+msgstr "Poll announced."
+
+msgid "Le scrutin doit être en brouillon ou annoncé."
+msgstr "The poll must be in draft or announced."
+
+msgid "Le scrutin doit être en brouillon ou annoncé pour pouvoir s'ouvrir."
+msgstr "The poll must be in draft or announced to be able to open."
+
+msgid "Consulter la configuration"
+msgstr "View the configuration"
+
+msgid "Annonce refusée : configuration incomplète."
+msgstr "Announcement refused: incomplete configuration."
+
+msgid "Annonce"
+msgstr "Announcement"
+
+msgid "Annoncer le scrutin maintenant"
+msgstr "Announce the poll now"
+
+msgid "Rend ce scrutin visible sur le site public avant son ouverture : propositions et calendrier affichés, sans inscription ni vote possibles. La configuration se fige au moment de l'annonce, comme à l'ouverture (R-3.3) — utile en particulier si le bulletin ne pourra plus être modifié une fois voté."
+msgstr "Makes this poll visible on the public site before it opens: propositions and calendar are shown, with neither registration nor voting possible. The configuration freezes the moment it is announced, same as at opening (R-3.3) — most useful when the ballot can no longer be modified once cast."
+
+msgid "Le scrutin s'ouvre normalement tout seul à la date d'ouverture configurée, même en retard si besoin. Vous pouvez aussi l'ouvrir maintenant vous-même, y compris par avance et sans passer par l'annonce : la liste électorale sera figée à cet instant, mais personne ne pourra voter avant l'heure d'ouverture configurée."
+msgstr "The poll normally opens by itself at the configured opening date, even late if need be. You may also open it yourself right now, including ahead of time and without going through the announcement: the electoral roll will be frozen at that instant, but nobody can vote before the configured opening time."
+
+msgid "Ce scrutin est annoncé : il est visible sur le site public, mais le vote n'est pas encore ouvert."
+msgstr "This poll is announced: it is visible on the public site, but voting is not yet open."
+
+msgid "Le scrutin s'ouvre normalement tout seul à la date d'ouverture configurée, même en retard si besoin. Vous pouvez aussi l'ouvrir maintenant vous-même, y compris par avance."
+msgstr "The poll normally opens by itself at the configured opening date, even late if need be. You may also open it yourself right now, including ahead of time."
+
+msgid "La configuration ci-dessous est arrêtée et ne changera plus (R-3.3) ; seul le vote n'est pas encore ouvert."
+msgstr "The configuration below is settled and will not change further (R-3.3); only the vote is not yet open."
+

@@ -6,7 +6,10 @@ greps the tree to assert that (``tests/integration/test_single_transition.py``).
 The transition table is here, the guards are here, and the audit event is
 written in the same transaction as the state write.
 
-``draft → open → closed → published``, irreversible (R-3.2).
+``draft → [announced] → open → closed → published``, irreversible (R-3.2).
+``announced`` is an optional waypoint (R-3.10): ``open_poll`` accepts either
+``draft`` or ``announced`` as its source, so a poll that never announces
+itself still goes straight ``draft → open`` as before.
 """
 
 from __future__ import annotations
@@ -25,10 +28,11 @@ from apps.core.models import User
 
 from .models import Poll, PollState, RollEntry, WorkingRollEntry
 
-TRANSITIONS: dict[str, str] = {
-    PollState.DRAFT: PollState.OPEN,
-    PollState.OPEN: PollState.CLOSED,
-    PollState.CLOSED: PollState.PUBLISHED,
+TRANSITIONS: dict[str, tuple[str, ...]] = {
+    PollState.DRAFT: (PollState.ANNOUNCED, PollState.OPEN),
+    PollState.ANNOUNCED: (PollState.OPEN,),
+    PollState.OPEN: (PollState.CLOSED,),
+    PollState.CLOSED: (PollState.PUBLISHED,),
 }
 
 
@@ -41,16 +45,33 @@ class TransitionRefused(Exception):
         self.blockers = blockers or []
 
 
-def opening_blockers(poll: Poll) -> list[str]:
-    """Why ``open_poll`` would refuse (§4, T-53).
+def announcing_blockers(poll: Poll) -> list[str]:
+    """Why ``announce_poll`` would refuse (R-3.10).
 
-    Named on the dashboard while the poll is still in ``draft``, so a gap is
-    visible before the opening hour rather than at it. A silent non-opening is
-    the worst outcome available here.
+    Deliberately lighter than ``opening_blockers``: a preview needs no roll
+    snapshot — none is taken until the poll actually opens — and no language
+    need be fully translated yet, since a gap already falls back to the
+    default language rather than to blank (§3.8). Fewer than two propositions
+    would not be a preview of anything, so that alone still blocks it.
     """
     blockers: list[str] = []
     if poll.state != PollState.DRAFT:
         blockers.append("not_draft")
+    if poll.options.count() < 2:
+        blockers.append("fewer_than_two_options")
+    return blockers
+
+
+def opening_blockers(poll: Poll) -> list[str]:
+    """Why ``open_poll`` would refuse (§4, T-53).
+
+    Named on the dashboard while the poll is still ``draft`` or ``announced``,
+    so a gap is visible before the opening hour rather than at it. A silent
+    non-opening is the worst outcome available here.
+    """
+    blockers: list[str] = []
+    if poll.state not in (PollState.DRAFT, PollState.ANNOUNCED):
+        blockers.append("not_draft_or_announced")
     if poll.options.count() < 2:
         blockers.append("fewer_than_two_options")
     blockers += [f"missing_translation:{gap}" for gap in poll.missing_translations()]
@@ -77,14 +98,64 @@ def closing_blockers(poll: Poll) -> list[str]:
     return blockers
 
 
+def announce_poll(poll: Poll, actor: User | None = None) -> Poll:
+    """``draft → announced`` (R-3.10).
+
+    Manual only, from screen 2 (R-2.1) — nothing schedules it, since nothing
+    about *when* a poll should become an early preview follows from a
+    configured instant the way opening and closing do. Optional: a poll admin
+    who does not want one never calls this, and ``open_poll`` still accepts
+    ``draft`` directly. Config freezes the moment this runs, same as opening
+    does — ``Poll.save()`` and the INV-6 trigger both key off ``state !=
+    draft``, so a poll past this point cannot change under a viewer's eyes.
+    """
+    try:
+        return _announce_poll_locked(poll, actor)
+    except TransitionRefused as refusal:
+        # As in open_poll/close_poll: logged after the rollback (§4).
+        audit.record(
+            action=Action.JOB_REFUSED,
+            poll=poll,
+            actor=actor,
+            object_ref=audit.ref(poll),
+            after={"command": "announce_poll", "blockers": refusal.blockers},
+        )
+        raise
+
+
+@transaction.atomic
+def _announce_poll_locked(poll: Poll, actor: User | None) -> Poll:
+    poll = Poll.objects.select_for_update().get(pk=poll.pk)
+    blockers = announcing_blockers(poll)
+    if blockers:
+        raise TransitionRefused(_("Annonce refusée : configuration incomplète."), blockers)
+
+    poll.state = PollState.ANNOUNCED
+    poll.save(update_fields=["state"])
+    audit.record(
+        action=Action.POLL_STATE_CHANGED,
+        poll=poll,
+        actor=actor,
+        object_ref=audit.ref(poll),
+        before={"state": PollState.DRAFT},
+        after={"state": PollState.ANNOUNCED},
+    )
+    return poll
+
+
 def open_poll(poll: Poll, actor: User | None = None, now: datetime | None = None) -> Poll:
     """``draft → open``.
 
     The transition with side effects: the roll snapshot (§6.1) and
     ``opening_seed`` are written in the same transaction as the state, so two
-    concurrent runs cannot produce two snapshots or two seeds (T-51). Selection
-    by the caller is state-based — ``state = draft AND opens_at ≤ now`` — so a
-    host that was down opens the poll late rather than never.
+    concurrent runs cannot produce two snapshots or two seeds (T-51). Source
+    state is ``draft`` **or** ``announced`` (R-3.10) — whichever the poll is
+    in, the effects are identical. Two callers: the scheduled ``open_poll``
+    command, selecting on ``state IN (draft, announced) AND opens_at ≤ now``
+    so a host that was down opens the poll late rather than never; and the
+    poll admin, by hand, from screen 2 (R-2.1), at any time — including ahead
+    of ``opens_at``, which is harmless since the window checks of §5.1 gate
+    voting on the clock and never on ``state`` (T-67).
     """
     try:
         return _open_poll_locked(poll, actor, now)
@@ -109,6 +180,7 @@ def _open_poll_locked(poll: Poll, actor: User | None, now: datetime | None) -> P
     if blockers:
         raise TransitionRefused(_("Ouverture refusée : configuration incomplète."), blockers)
 
+    previous_state = poll.state  # draft or announced (R-3.10) — kept for the audit event below
     RollEntry.objects.bulk_create(
         RollEntry(
             poll=poll,
@@ -139,7 +211,7 @@ def _open_poll_locked(poll: Poll, actor: User | None, now: datetime | None) -> P
         poll=poll,
         actor=actor,
         object_ref=audit.ref(poll),
-        before={"state": PollState.DRAFT},
+        before={"state": previous_state},
         after={"state": PollState.OPEN, "opened_at": (now or timezone.now()).isoformat()},
     )
     return poll
@@ -162,7 +234,13 @@ def close_poll(
 
     ``override_reason`` is the poll admin's mandatory code for closing with
     ``pending_countersign`` ballots outstanding; it is logged and appears in the
-    publication (T-19, T-32). It cannot be supplied by a scheduled command.
+    publication (T-19, T-32). It cannot be supplied by a scheduled command — it
+    is exactly the parameter the poll admin's manual trigger on screen 2
+    exists to supply (R-2.1). Unlike ``open_poll``, that screen offers the
+    manual call only once ``paper_entry_deadline`` has passed: an earlier
+    close would freeze ``closure_hash`` and the counts above the ballots the
+    window checks of §5.1 would still legitimately go on accepting, since they
+    read the clock and not ``state`` (T-68).
     """
     try:
         return _close_poll_locked(poll, actor, override_reason, now)

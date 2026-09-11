@@ -93,7 +93,14 @@ from apps.elections.models import (
     default_eligible_list_types,
 )
 from apps.elections.retention import RETENTION
-from apps.elections.transitions import TransitionRefused, extend_closes_at, publish_poll
+from apps.elections.transitions import (
+    TransitionRefused,
+    announce_poll,
+    close_poll,
+    extend_closes_at,
+    open_poll,
+    publish_poll,
+)
 from apps.elections.windows import WindowClosed
 from apps.registrations import mail as registration_mail
 from apps.registrations import services as registrations
@@ -110,6 +117,7 @@ from .access import (
     require_poll_role,
 )
 from .forms import (
+    ClosureOverrideForm,
     ExtensionForm,
     FirstRunForm,
     GrantRoleForm,
@@ -285,10 +293,12 @@ def poll_dashboard(request: HttpRequest, poll: Poll) -> HttpResponse:
     instant and the paper deadline as much as an admin does, and none of what
     is here identifies a voter.
 
-    The screen exists mainly for its blockers. §4 leaves ``open_poll`` and
-    ``close_poll`` to a scheduler that may run late, twice, or not at all, so
-    the condition that would make either refuse has to be visible before the
-    hour it would fire rather than discovered at it.
+    The screen exists mainly for its blockers. ``open_poll`` and
+    ``close_poll`` normally run unattended, on a scheduler that may run late,
+    twice, or not at all (§4) — and, since the same guarded functions back
+    screen 2's manual *ouvrir/clôturer maintenant* (R-2.1), the condition that
+    would make either refuse has to be visible before anyone reaches for that
+    button too, not only before the hour the job would fire.
     """
     return render(
         request,
@@ -311,13 +321,36 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
     once the poll is ``open``. Poll admin only — configuration and closure are
     the admin's, not the entry operator's (§3.7).
 
-    Two forms, never both live: the ``draft`` poll gets the configuration
-    editor, every other state gets the read-only view (plus the extension form
-    while ``open``). The POST branch follows from ``poll.state`` alone, so
-    neither form needs an action discriminator — except *enregistrer comme
-    modèle* (§3.9), checked first and by its own ``action`` field so it never
-    gets mistaken for a config or extension submission: it is available to a
-    commune admin in every state, not only ``draft``.
+    Also where R-2.1's "annonce, ouvre, clôt" is exercised by hand (§4,
+    docs/spec-divergences.md):
+
+    - *Annoncer maintenant* (``draft → announced``, R-3.10) — optional, and
+      only while ``draft``: the poll admin who wants an early public preview
+      takes this detour, config freezing the moment it runs, same as opening
+      does (INV-6 already reads ``state != draft``).
+    - *Ouvrir maintenant* (``draft`` or ``announced`` → ``open``) — at any
+      time, since nothing in the window checks of §5.1 depends on ``state``
+      having moved: a poll opened early still cannot be voted in before its
+      configured ``opens_at``.
+    - *Clôturer maintenant* (``open → closed``) — offered only once
+      ``paper_entry_deadline`` has passed: closing early would freeze
+      ``closure_hash`` and the §9 counts ahead of ballots the write path would
+      still legitimately accept, and would hide screens 5–7 from the entry
+      operator before the window they cover has actually closed.
+
+    All three go through the same guarded functions the scheduled commands
+    use (``announcing_blockers``/``opening_blockers``/``closing_blockers``),
+    so a poll that could not open or close by cron cannot be forced through
+    here either — except the countersignature override, which cron cannot
+    supply and only a human can.
+
+    Four forms, never more than one live: the ``draft`` poll gets the
+    configuration editor (plus *annoncer* and *ouvrir maintenant*); every
+    other state gets the read-only view (plus *ouvrir maintenant* while
+    ``announced``, or the extension form and *clôturer maintenant* while
+    ``open``). The POST branch follows from ``poll.state`` and the ``action``
+    field, which also carries *enregistrer comme modèle* (§3.9) — available to
+    a commune admin in every state, not only ``draft``.
     """
     languages = list(poll.languages) or [poll.default_language]
     on_post = request.method == "POST"
@@ -344,7 +377,57 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
             else:
                 messages.success(request, _("Modèle enregistré."))
                 return redirect("backoffice:poll_config", poll_id=str(poll.pk))
-    configuring = on_post and not saving_template
+
+    announcing = action == "announce_poll"
+    if announcing:
+        # The button only ever renders on a ``draft`` poll (below); reaching
+        # here otherwise is a forged or stale request.
+        if poll.state != PollState.DRAFT:
+            raise PermissionDenied(_("Le scrutin n'est plus en brouillon."))
+        try:
+            announce_poll(poll, actor=operator)
+        except TransitionRefused as refused:
+            messages.error(request, str(refused))
+        else:
+            messages.success(request, _("Scrutin annoncé."))
+            return redirect("backoffice:poll_config", poll_id=str(poll.pk))
+
+    opening = action == "open_poll"
+    if opening:
+        # The button only ever renders on a ``draft`` or ``announced`` poll
+        # (below); reaching here otherwise is a forged or stale request.
+        if poll.state not in (PollState.DRAFT, PollState.ANNOUNCED):
+            raise PermissionDenied(_("Le scrutin doit être en brouillon ou annoncé."))
+        try:
+            open_poll(poll, actor=operator)
+        except TransitionRefused as refused:
+            messages.error(request, str(refused))
+        else:
+            messages.success(request, _("Scrutin ouvert."))
+            return redirect("backoffice:poll_config", poll_id=str(poll.pk))
+
+    closing = action == "close_poll"
+    closing_form = ClosureOverrideForm(request.POST if closing else None)
+    if closing:
+        # As above: the form only ever renders on an ``open`` poll whose
+        # ``paper_entry_deadline`` has passed.
+        if poll.state != PollState.OPEN:
+            raise PermissionDenied(_("Le scrutin n'est pas ouvert."))
+        if poll.paper_entry_deadline > timezone.now():
+            raise PermissionDenied(
+                _("La clôture manuelle n'est possible qu'une fois l'échéance atteinte.")
+            )
+        if closing_form.is_valid():
+            reason = closing_form.cleaned_data["reason"]
+            try:
+                close_poll(poll, actor=operator, override_reason=reason)
+            except TransitionRefused as refused:
+                messages.error(request, str(refused))
+            else:
+                messages.success(request, _("Scrutin clos."))
+                return redirect("backoffice:poll_config", poll_id=str(poll.pk))
+
+    configuring = on_post and not saving_template and not announcing and not opening and not closing
 
     if poll.state == PollState.DRAFT:
         form = PollConfigForm(
@@ -407,7 +490,12 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
             "poll": poll,
             "editable": False,
             "options": poll.options.all(),
+            "can_open_now": poll.state == PollState.ANNOUNCED,
             "extension": extension,
+            "closing_form": closing_form if poll.state == PollState.OPEN else None,
+            "can_close_now": (
+                poll.state == PollState.OPEN and poll.paper_entry_deadline <= timezone.now()
+            ),
             "warnings": config_warnings(poll),
             "commune_admin": commune_admin,
             "template_form": template_form,
@@ -722,17 +810,19 @@ def roll_import_review(request: HttpRequest) -> HttpResponse:
 def roll_status(request: HttpRequest, poll: Poll) -> HttpResponse:
     """A poll's own view of the electoral roll (§6.1, §3.2, R-4.4).
 
-    Before the poll leaves ``draft`` it has no roll of its own yet (R-4.3): the
-    working roll — commune-wide, imported from the general menu — is what will
-    be frozen at opening, so this shows the same provenance ``roll_import``
-    shows a commune admin (filename, row count, when, by whom), minus the
-    form; importing happens from the general menu or not at all. From
-    ``open`` onward this instead browses the poll's own frozen copy: R-4.4 is
-    why ``auditor`` is in the gate alongside ``poll_admin``, and nothing is
-    lost by letting either look at any point past ``draft``, so the gate does
-    not itself distinguish before/after closure.
+    Before the poll opens it has no roll of its own yet (R-4.3) — true in
+    ``draft`` and, since the snapshot is taken at ``open`` regardless of
+    whether the poll paused at ``announced`` first (R-3.10), still true there
+    too: the working roll — commune-wide, imported from the general menu — is
+    what will be frozen at opening, so this shows the same provenance
+    ``roll_import`` shows a commune admin (filename, row count, when, by
+    whom), minus the form; importing happens from the general menu or not at
+    all. From ``open`` onward this instead browses the poll's own frozen copy:
+    R-4.4 is why ``auditor`` is in the gate alongside ``poll_admin``, and
+    nothing is lost by letting either look at any point past ``open``, so the
+    gate does not itself distinguish before/after closure.
     """
-    if poll.state == PollState.DRAFT:
+    if poll.state in (PollState.DRAFT, PollState.ANNOUNCED):
         return render(
             request,
             "backoffice/roll_status.html",

@@ -221,6 +221,28 @@ def test_state_machine_is_irreversible(open_window_poll: Poll) -> None:
         )
 
 
+def test_t71_the_optional_announced_waypoint_is_legal_but_no_detour_from_it(
+    open_window_poll: Poll,
+) -> None:
+    """T-71, R-3.10: ``draft → announced`` and ``announced → open`` are legal
+    additions to the table above; ``announced`` is still a strict waypoint —
+    no path leads back out of it except forward to ``open``."""
+    raw("UPDATE elections_poll SET state = 'announced' WHERE id = %s", [pk(open_window_poll)])
+    with pytest.raises(Exception, match="R-3.2"), transaction.atomic():
+        raw("UPDATE elections_poll SET state = 'draft' WHERE id = %s", [pk(open_window_poll)])
+    with pytest.raises(Exception, match="R-3.2"), transaction.atomic():
+        raw(
+            "UPDATE elections_poll SET state = 'closed' WHERE id = %s",
+            [pk(open_window_poll)],
+        )
+    raw("UPDATE elections_poll SET state = 'open' WHERE id = %s", [pk(open_window_poll)])
+    with pytest.raises(Exception, match="R-3.2"), transaction.atomic():
+        raw(
+            "UPDATE elections_poll SET state = 'announced' WHERE id = %s",
+            [pk(open_window_poll)],
+        )
+
+
 def test_inv7_roll_snapshot_is_immutable_and_purgeable_only_after_closure(
     open_window_poll: Poll,
 ) -> None:

@@ -18,7 +18,17 @@ from apps.core.crypto import new_token_salt
 
 
 class PollState(models.TextChoices):
+    """``draft → [announced] → open → closed → published`` (R-3.2).
+
+    ``announced`` is an optional waypoint, not a required one (R-3.10): a poll
+    may go straight ``draft → open`` as before, or pause at ``announced`` —
+    publicly visible, configuration already frozen (INV-6 already reads
+    ``state != draft``, so this falls out of the existing rule without a
+    change to it) — for as long as the poll admin likes before opening it.
+    """
+
     DRAFT = "draft", _("brouillon")
+    ANNOUNCED = "announced", _("annoncé")
     OPEN = "open", _("ouvert")
     CLOSED = "closed", _("clos")
     PUBLISHED = "published", _("publié")

@@ -101,17 +101,18 @@ def working_roll_due(now: datetime | None = None) -> bool:
 
     Anchored on the latest import, not on any poll's closure — there is no
     poll to anchor on before one opens, and this purge exists precisely for
-    the roll no poll ever did. "In use" means a poll currently ``draft``: that
-    is the only state that still reads ``WorkingRollEntry`` at
-    ``draft → open`` (§3.2); an ``open``, ``closed`` or ``published`` poll
-    already holds its own frozen ``RollEntry`` copy and never looks at the
-    working roll again, so its existence does not postpone this purge.
+    the roll no poll ever did. "In use" means a poll currently ``draft`` **or**
+    ``announced`` (R-3.10): both still read ``WorkingRollEntry`` at ``open``
+    (§3.2, §4) — announcing early is a detour, not a different destination —
+    while an ``open``, ``closed`` or ``published`` poll already holds its own
+    frozen ``RollEntry`` copy and never looks at the working roll again, so its
+    existence does not postpone this purge.
     """
     now = now or timezone.now()
     latest = RollImport.objects.order_by("-imported_at").first()
     if latest is None or latest.imported_at > now - RETENTION:
         return False
-    return not Poll.objects.filter(state=PollState.DRAFT).exists()
+    return not Poll.objects.filter(state__in=(PollState.DRAFT, PollState.ANNOUNCED)).exists()
 
 
 @transaction.atomic

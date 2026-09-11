@@ -347,6 +347,83 @@ them at all — whether a sandbox poll may be a source, whether per-language
 content missing at the source should block the clone the way it blocks
 opening (§3.8) — and stays tracked here rather than folded into this item.
 
+## 12. Nothing ever called `open_poll` or `close_poll` by hand
+
+**Requirements, R-2.1.** The role table gives the *administrateur de scrutin*
+the power to "ouvre, clôt et publie le scrutin" — opens, closes and publishes
+the poll — the same three verbs, in a row, for the same role. (R-2.1 has since
+gained a fourth, "annonce" — item 13 below — but that one was never a gap the
+way these three were: R-3.10's `announced` state didn't exist yet to have a
+missing button.)
+
+**Specification, §4, as it read until now.** "Both boundary transitions are
+scheduled, and neither is trusted to be punctual" — `draft → open` and
+`open → closed` were described, and built, as exclusively the work of the
+`open_poll`/`close_poll` cron commands. Screen 2 (§6.5) offered nothing to
+call either one; only *publier* (screen 9, `transitions.publish_poll`) had a
+button. R-2.1's "ouvre, clôt" had no code behind it at all — not a case of the
+spec disagreeing with the requirements so much as the spec never having been
+asked to reconcile the two, since nobody had traced R-2.1's verb against §4
+until this was raised.
+
+**What the code does now.** Screen 2 gained two actions, both going through
+the same guarded transition functions the scheduled commands call
+(`opening_blockers`/`closing_blockers`), so nothing a cron run would refuse
+can be forced through by hand either:
+
+- *Ouvrir maintenant* — offered throughout `draft` (and, since item 13,
+  `announced`), at any time, including ahead of `opens_at`. Safe to allow
+  early: the ballot and registration write paths (`apps.elections.windows`)
+  gate on the clock against `opens_at` itself, never on `state`, so opening
+  early moves the roll snapshot and `opening_seed` sooner but admits no vote
+  and no registration before the configured instant.
+- *Clôturer maintenant* — offered only once `paper_entry_deadline` has
+  passed, never before. Early closure is not safe the same way: `closure_hash`
+  and the §9 counts are computed once, at the instant `close_poll` runs, while
+  the same clock-only write paths keep accepting ballots and registrations up
+  to the real deadline regardless of `state`. A manual close ahead of the
+  deadline would freeze a hash that omits ballots the window would still
+  legitimately accept, and would hide the paper-entry screens from the entry
+  operator before their window has actually closed — so the two manual
+  transitions are deliberately not symmetric. This is also the only caller of
+  `close_poll`'s `override_reason` (R-8.7 bis): nothing before this called it
+  with a reason, since a scheduled command cannot supply one.
+
+**Settled (2026-09-11).** §4 was corrected to describe both the scheduled and
+the manual path, with the asymmetry above stated inline; §6.5's screen-2 entry
+and §12's acceptance tests (T-67, T-68) were updated to match. No requirements
+change was needed — R-2.1 already said this; the specification and the code
+were the two that had to catch up.
+
+## 13. R-3.10's early preview is a state, not a flag
+
+Not a divergence discovered after the fact — recorded because the first
+attempt at R-3.10 (same day) got this wrong and it is worth saying why, rather
+than leaving a future reader to wonder why the obvious-looking alternative was
+rejected.
+
+**The rejected design.** A `visible_before_opening` boolean on `Poll`,
+editable like any other `draft` field, with the public site showing a poll in
+`draft` whenever the flag was set. This worked, but a `draft` poll is — by
+R-3.3 — one whose configuration is *still freely modifiable*: the public page
+would have had to either show content that could change under a viewer's eyes
+between two requests, or the feature would have had to freeze configuration
+early on some basis *other* than the state field INV-6 already keys off,
+duplicating that mechanism for one flag.
+
+**What the code does instead.** `PollState` gained a fifth value, `announced`,
+sitting optionally between `draft` and `open` (R-3.2, R-3.10). Reaching it is
+a transition (`announce_poll`, manual only, screen 2, R-2.1) like the others,
+not a field edit, so it freezes configuration through the *existing* INV-6
+trigger (`state != draft`) rather than a new mechanism — and a `draft` poll
+is, and remains, invisible on every public page under every configuration,
+which is what R-3.10 actually needed to guarantee.
+
+**Settled (2026-09-11).** Decided and built the same day the flag-based
+version was replaced; no period where the flag design shipped. R-3.10, R-3.1,
+R-3.2, R-3.3 and R-13.3 bis were written for the state-based design from the
+start of this entry's existence in the requirements.
+
 ## 11. Screen 3 (import de la liste électorale) was gated per poll
 
 **Requirements, R-2.1's role table.** "Commune administrator — Creates polls,

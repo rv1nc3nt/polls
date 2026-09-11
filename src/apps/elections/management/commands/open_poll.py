@@ -1,10 +1,12 @@
 # SPDX-License-Identifier: 0BSD
-"""``draft → open`` at ``opens_at`` (§4).
+"""``draft → open`` or ``announced → open`` at ``opens_at`` (§4).
 
-Selection is state-based — ``state = draft AND opens_at ≤ now`` — so a host that
-was down opens the poll late rather than never (T-51). A refusal is loud: the
-poll stays in ``draft``, the blocking reason is logged, and the command exits
-non-zero (T-53). It never opens a partially configured poll.
+Selection is state-based — ``state IN (draft, announced) AND opens_at ≤ now``
+— so a host that was down opens the poll late rather than never (T-51). A poll
+that paused at ``announced`` (R-3.10) opens exactly the same way as one that
+never did. A refusal is loud: the poll stays where it was, the blocking reason
+is logged, and the command exits non-zero (T-53). It never opens a partially
+configured poll.
 """
 
 from __future__ import annotations
@@ -24,7 +26,9 @@ class Command(JobCommand):
     job_name = "open_poll"
 
     def handle_job(self, run: JobRun, **options: Any) -> None:
-        due = Poll.objects.filter(state=PollState.DRAFT, opens_at__lte=timezone.now())
+        due = Poll.objects.filter(
+            state__in=(PollState.DRAFT, PollState.ANNOUNCED), opens_at__lte=timezone.now()
+        )
         opened, refused = [], []
         for poll in due:
             if options.get("dry_run"):
