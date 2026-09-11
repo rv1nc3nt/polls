@@ -61,6 +61,28 @@
         }
       }
 
+      // A `required` field inside a tab that is not the open one is,
+      // per the HTML spec, barred from constraint validation while its
+      // panel is `[hidden]`: the browser cannot focus it to report the
+      // problem, so a submit that fails only on a field in a background
+      // tab is silently refused — no page reload, nothing rendered, the
+      // POST never leaves the browser (screen 2's opens_at/closes_at/
+      // paper_entry_deadline, all required, sit on the "Calendrier" tab,
+      // which is never the one that opens first). Capturing `invalid`
+      // ahead of the browser's own handling and revealing that field's
+      // tab first is what lets native validation actually show something.
+      container.addEventListener(
+        "invalid",
+        function (event) {
+          var panel = event.target.closest("[data-tabs-panel]");
+          var index = panel ? panels.indexOf(panel) : -1;
+          if (index !== -1 && panels[index].hidden) {
+            activate(index, false);
+          }
+        },
+        true
+      );
+
       list.addEventListener("click", function (event) {
         var tab = event.target.closest("[data-tabs-tab]");
         var index = tab ? tabs.indexOf(tab) : -1;
