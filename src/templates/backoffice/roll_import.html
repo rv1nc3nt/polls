@@ -37,4 +37,66 @@
     </p>
     <button type="submit">{% translate "Charger le fichier" %}</button>
   </form>
+
+  <h2>{% translate "Consulter la liste en vigueur" %}</h2>
+  {% comment %}
+    A plain browse, not R-8.3's near-match confirmation (§6.5.5): this pages
+    through everyone on WorkingRollEntry, alphabetically, narrowed by a plain
+    substring — nothing is being confirmed against a person standing in front
+    of an operator here.
+  {% endcomment %}
+  <form method="get" class="filters" role="search" aria-label="{% translate 'Rechercher dans la liste électorale' %}">
+    <p>
+      <label for="q">{% translate "Rechercher" %}</label>
+      <input id="q" type="search" name="q" value="{{ query }}">
+    </p>
+    <button type="submit">{% translate "Rechercher" %}</button>
+  </form>
+
+  <table>
+    <caption>
+      {% blocktranslate count total=page.paginator.count trimmed %}
+        {{ total }} électeur inscrit
+      {% plural %}
+        {{ total }} électeurs inscrits
+      {% endblocktranslate %}
+    </caption>
+    <thead>
+      <tr>
+        <th scope="col">{% translate "Nom de naissance" %}</th>
+        <th scope="col">{% translate "Nom d'usage" %}</th>
+        <th scope="col">{% translate "Prénoms" %}</th>
+        <th scope="col">{% translate "Date de naissance" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for entry in page.object_list %}
+        <tr>
+          <td>{{ entry.birth_name }}</td>
+          <td>{{ entry.usual_name }}</td>
+          <td>{{ entry.first_names }}</td>
+          <td>
+            {{ entry.date_of_birth }}
+            {% if entry.date_uncertain %}<span class="notice">{% translate "(incertaine)" %}</span>{% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="4">{% translate "Aucun électeur ne correspond." %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if page.has_other_pages %}
+    {% with keep="&q="|add:query %}
+    <nav class="pagination" aria-label="{% translate 'Pages de la liste' %}">
+      {% if page.has_previous %}
+        <a href="?page={{ page.previous_page_number }}{{ keep }}">{% translate "Page précédente" %}</a>
+      {% endif %}
+      <span>{% blocktranslate with current=page.number total=page.paginator.num_pages %}Page {{ current }} sur {{ total }}{% endblocktranslate %}</span>
+      {% if page.has_next %}
+        <a href="?page={{ page.next_page_number }}{{ keep }}">{% translate "Page suivante" %}</a>
+      {% endif %}
+    </nav>
+    {% endwith %}
+  {% endif %}
 {% endblock %}

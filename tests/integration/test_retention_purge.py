@@ -32,9 +32,16 @@ from apps.elections.models import (
     PollOption,
     PollState,
     RollEntry,
+    RollImport,
     WorkingRollEntry,
 )
-from apps.elections.retention import RETENTION, due_polls, purge
+from apps.elections.retention import (
+    RETENTION,
+    due_polls,
+    purge,
+    purge_working_roll,
+    working_roll_due,
+)
 from apps.elections.transitions import close_poll, open_poll, publish_poll
 from apps.registrations import services as registrations
 from apps.registrations.models import (
@@ -432,3 +439,66 @@ def test_t55_no_audit_event_carries_identity_before_or_after_the_purge(db: None)
     assert event is not None
     with pytest.raises(Exception, match="INV-3"), transaction.atomic():
         _raw("UPDATE audit_auditevent SET reason = 'other' WHERE id = %s", [event.pk.hex])
+
+
+# --- T-66 -----------------------------------------------------------------
+
+
+def _aged_import(operator: User) -> RollImport:
+    """A ``RollImport`` row backdated past the working-roll retention term
+    (R-13.3 bis) — ``imported_at`` is ``auto_now_add``, so it can only be moved
+    with a bare ``update``, same trick as ``_age_past_retention`` above."""
+    roll_import = RollImport.objects.create(
+        filename="roll.csv", file_sha256=b"\x00" * 32, row_count=1, imported_by=operator
+    )
+    RollImport.objects.filter(pk=roll_import.pk).update(
+        imported_at=timezone.now() - RETENTION - timedelta(days=1)
+    )
+    return roll_import
+
+
+def test_t66_working_roll_purged_only_once_idle_and_aged(db: None) -> None:
+    """R-13.3 bis: the working roll is purged two months after import, and only
+    where no poll is left ``draft`` to still freeze it at opening — an
+    ``open`` poll already holds its own copy and does not postpone this."""
+    operator = User.objects.create_user(username="op.roll", password="x", full_name="Opérateur")
+    _roll_entry("Dupont", "Émile", "12/05/1970", "1970-05-12")
+    roll_import = _aged_import(operator)
+    draft = _poll("En préparation")  # left in draft: still able to freeze this roll
+
+    assert working_roll_due() is False
+    assert purge_working_roll() == 0
+    assert WorkingRollEntry.objects.exists()
+
+    open_poll(draft)  # no poll left in draft now
+    assert working_roll_due() is True
+    assert purge_working_roll() == 1
+    assert not WorkingRollEntry.objects.exists()
+
+    # Provenance survives; only the identity data goes.
+    assert RollImport.objects.filter(pk=roll_import.pk).exists()
+    assert AuditEvent.objects.filter(action=Action.WORKING_ROLL_PURGED).count() == 1
+
+    # Idempotent: a re-run finds nothing left to delete and logs nothing more.
+    assert purge_working_roll() == 0
+    assert AuditEvent.objects.filter(action=Action.WORKING_ROLL_PURGED).count() == 1
+
+
+def test_t66_a_fresh_import_is_never_due(db: None) -> None:
+    """An import less than two months old is never due, in use or not."""
+    operator = User.objects.create_user(username="op.roll", password="x", full_name="Opérateur")
+    _roll_entry("Dupont", "Émile", "12/05/1970", "1970-05-12")
+    RollImport.objects.create(
+        filename="roll.csv", file_sha256=b"\x00" * 32, row_count=1, imported_by=operator
+    )
+    assert working_roll_due() is False
+
+
+def test_t66_the_command_purges_the_working_roll_alongside_closed_polls(db: None) -> None:
+    """The ``retention_purge`` command runs both purges in one pass."""
+    operator = User.objects.create_user(username="op.roll", password="x", full_name="Opérateur")
+    _roll_entry("Dupont", "Émile", "12/05/1970", "1970-05-12")
+    _aged_import(operator)
+    # No draft poll at all: the working roll is idle from the outset.
+    call_command("retention_purge")
+    assert not WorkingRollEntry.objects.exists()

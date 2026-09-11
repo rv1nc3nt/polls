@@ -396,3 +396,86 @@ def test_roll_status_carries_no_form_to_import_from(
     ).content.decode()
     assert 'type="file"' not in body
     assert "Charger le fichier" not in body
+
+
+# --- T-65: R-4.4, once the poll has left draft --------------------------------
+
+
+def test_t65_poll_admin_and_auditor_browse_the_frozen_copy_once_open(
+    client: Client, open_window_poll: Poll, operator: User
+) -> None:
+    """From ``open`` onward ``roll_status`` browses this poll's own frozen
+    copy, not the working roll — open to poll_admin and, per R-4.4, auditor."""
+    open_poll(open_window_poll)
+    poll = Poll.objects.get(pk=open_window_poll.pk)
+    url = f"/fr/mairie/scrutin/{poll.pk}/liste-electorale/"
+
+    PollRole.objects.create(poll=poll, user=operator, role=Role.POLL_ADMIN)
+    client.force_login(operator)
+    assert "Dupont" in client.get(url).content.decode()
+
+    auditor = User.objects.create_user(username="v.leroy", password="x", full_name="V. Leroy")
+    PollRole.objects.create(poll=poll, user=auditor, role=Role.AUDITOR)
+    client.force_login(auditor)
+    assert "Dupont" in client.get(url).content.decode()
+
+
+def test_t65_entry_operator_is_refused_roll_status_even_though_open(
+    client: Client, open_window_poll: Poll, operator: User
+) -> None:
+    """R-4.4 names ``poll_admin`` and ``auditor``, not every per-poll role."""
+    open_poll(open_window_poll)
+    poll = Poll.objects.get(pk=open_window_poll.pk)
+    PollRole.objects.create(poll=poll, user=operator, role=Role.ENTRY_OPERATOR)
+    client.force_login(operator)
+    assert client.get(f"/fr/mairie/scrutin/{poll.pk}/liste-electorale/").status_code == 403
+
+
+def test_roll_status_search_narrows_the_frozen_copy(
+    client: Client, open_window_poll: Poll, operator: User
+) -> None:
+    WorkingRollEntry.objects.create(
+        birth_name="Nguyen",
+        first_names="Thi Lan",
+        date_of_birth="21/11/1990",
+        date_of_birth_parsed="1990-11-21",
+        list_types=["principale"],
+    )
+    open_poll(open_window_poll)
+    poll = Poll.objects.get(pk=open_window_poll.pk)
+    PollRole.objects.create(poll=poll, user=operator, role=Role.POLL_ADMIN)
+    client.force_login(operator)
+    url = f"/fr/mairie/scrutin/{poll.pk}/liste-electorale/"
+
+    body = client.get(url, {"q": "Nguyen"}).content.decode()
+    assert "Nguyen" in body
+    assert "Dupont" not in body
+
+
+# --- Screen 3's own search over the working roll -----------------------------
+
+
+def test_screen_3_search_narrows_the_working_roll(client: Client, operator: User) -> None:
+    """A plain browse of ``WorkingRollEntry``, distinct from R-8.3's near-match
+    confirmation (§6.5.5): no scoring, just a substring across the roll.
+
+    Names deliberately avoid the operator's own ("P. Martin", shown in the
+    page chrome on every screen) so a hit there cannot be mistaken for one in
+    the roll table.
+    """
+    _make_commune_admin(operator)
+    WorkingRollEntry.objects.create(
+        birth_name="Dupont", first_names="Émile", date_of_birth="14/03/1962", list_types=["a"]
+    )
+    WorkingRollEntry.objects.create(
+        birth_name="Lefevre", first_names="Alice", date_of_birth="01/01/1980", list_types=["a"]
+    )
+    client.force_login(operator)
+
+    body = client.get("/fr/mairie/liste-electorale/", {"q": "Dupont"}).content.decode()
+    assert "Dupont" in body
+    assert "Lefevre" not in body
+
+    unfiltered = client.get("/fr/mairie/liste-electorale/").content.decode()
+    assert "Dupont" in unfiltered
+    assert "Lefevre" in unfiltered
