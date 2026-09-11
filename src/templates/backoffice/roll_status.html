@@ -6,22 +6,88 @@
 {% block heading %}{% translate "Liste électorale" %}{% endblock %}
 
 {% block screen %}
-  {% comment %}
-    R-2.1, §3.2: read-only. WorkingRollEntry is commune-wide, so this is not
-    "this poll's" roll — it is the roll every poll still in draft will pick up
-    at opening. Importing a new one is a commune administrator's action, from
-    the general menu, never from here (docs/spec-divergences.md #11).
-  {% endcomment %}
-  {% if current %}
-    <dl class="facts">
-      <dt>{% translate "Fichier" %}</dt><dd>{{ current.filename }}</dd>
-      <dt>{% translate "Lignes importées" %}</dt><dd>{{ current.row_count }}</dd>
-      <dt>{% translate "Importée le" %}</dt><dd>{{ current.imported_at }}</dd>
-      <dt>{% translate "Par" %}</dt><dd>{{ current.imported_by }}</dd>
-    </dl>
-  {% else %}
-    <p class="notice">{% translate "Aucune liste électorale n'a encore été importée." %}</p>
-  {% endif %}
+  {% if draft %}
+    {% comment %}
+      R-2.1, §3.2: read-only. WorkingRollEntry is commune-wide, so this is not
+      "this poll's" roll — it is the roll every poll still in draft will pick up
+      at opening. Importing a new one is a commune administrator's action, from
+      the general menu, never from here (docs/spec-divergences.md #11).
+    {% endcomment %}
+    {% if current %}
+      <dl class="facts">
+        <dt>{% translate "Fichier" %}</dt><dd>{{ current.filename }}</dd>
+        <dt>{% translate "Lignes importées" %}</dt><dd>{{ current.row_count }}</dd>
+        <dt>{% translate "Importée le" %}</dt><dd>{{ current.imported_at }}</dd>
+        <dt>{% translate "Par" %}</dt><dd>{{ current.imported_by }}</dd>
+      </dl>
+    {% else %}
+      <p class="notice">{% translate "Aucune liste électorale n'a encore été importée." %}</p>
+    {% endif %}
 
-  <p class="help">{% translate "L'import d'une nouvelle liste se fait depuis le menu général « Liste électorale », par un administrateur de la commune, et s'applique à tous les scrutins." %}</p>
+    <p class="help">{% translate "L'import d'une nouvelle liste se fait depuis le menu général « Liste électorale », par un administrateur de la commune, et s'applique à tous les scrutins." %}</p>
+  {% else %}
+    {% comment %}
+      R-4.4: from the poll's opening onward this browses its own frozen copy
+      (§3.2, R-4.3), not the working roll — open to poll_admin and auditor
+      alike, so that who was eligible to vote stays verifiable.
+    {% endcomment %}
+    {% if purged %}
+      <p class="notice">{% translate "Les données de cette liste ont été supprimées à l'expiration du délai de rétention de deux mois (règle R-13.3)." %}</p>
+    {% else %}
+      <form method="get" class="filters" role="search" aria-label="{% translate 'Rechercher dans la liste électorale' %}">
+        <p>
+          <label for="q">{% translate "Rechercher" %}</label>
+          <input id="q" type="search" name="q" value="{{ query }}">
+        </p>
+        <button type="submit">{% translate "Rechercher" %}</button>
+      </form>
+
+      <table>
+        <caption>
+          {% blocktranslate count total=page.paginator.count trimmed %}
+            {{ total }} électeur inscrit
+          {% plural %}
+            {{ total }} électeurs inscrits
+          {% endblocktranslate %}
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">{% translate "Nom de naissance" %}</th>
+            <th scope="col">{% translate "Nom d'usage" %}</th>
+            <th scope="col">{% translate "Prénoms" %}</th>
+            <th scope="col">{% translate "Date de naissance" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for entry in page.object_list %}
+            <tr>
+              <td>{{ entry.birth_name }}</td>
+              <td>{{ entry.usual_name }}</td>
+              <td>{{ entry.first_names }}</td>
+              <td>
+                {{ entry.date_of_birth }}
+                {% if entry.date_uncertain %}<span class="notice">{% translate "(incertaine)" %}</span>{% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="4">{% translate "Aucun électeur ne correspond." %}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      {% if page.has_other_pages %}
+        {% with keep="&q="|add:query %}
+        <nav class="pagination" aria-label="{% translate 'Pages de la liste' %}">
+          {% if page.has_previous %}
+            <a href="?page={{ page.previous_page_number }}{{ keep }}">{% translate "Page précédente" %}</a>
+          {% endif %}
+          <span>{% blocktranslate with current=page.number total=page.paginator.num_pages %}Page {{ current }} sur {{ total }}{% endblocktranslate %}</span>
+          {% if page.has_next %}
+            <a href="?page={{ page.next_page_number }}{{ keep }}">{% translate "Page suivante" %}</a>
+          {% endif %}
+        </nav>
+        {% endwith %}
+      {% endif %}
+    {% endif %}
+  {% endif %}
 {% endblock %}

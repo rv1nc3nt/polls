@@ -36,8 +36,11 @@ rôles), whose read model and write path are both ``accounts.py``; screen 11
 takes a ``poll`` argument, so the per-poll roles screen 10 *assigns* are still
 not access to a poll's screens for the commune admin who assigns them (§3.7).
 Screen 3 (R-2.1: importing the roll is the commune administrator's) also has
-``roll_status``, a poll-scoped read-only addition showing which import is in
-force and when — see docs/spec-divergences.md #11. Screen 11 runs before any
+``roll_status``, a poll-scoped addition open to that poll's ``poll_admin`` and,
+per R-4.4, its ``auditor``: while the poll is ``draft`` it shows which import
+is in force and when, same as it always did; once the poll has its own frozen
+copy it browses that instead — see docs/spec-divergences.md #11. Screen 11
+runs before any
 account exists, so it cannot use either gate: ``require_first_run`` opens it
 only while no account has been created.
 
@@ -66,6 +69,7 @@ from django.db import transaction
 from django.http import Http404, HttpRequest, HttpResponse, HttpResponseBase, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.utils.timezone import get_current_timezone
 from django.utils.translation import gettext as _
@@ -85,15 +89,17 @@ from apps.elections.models import (
     PollState,
     PollTemplate,
     RollEntry,
+    WorkingRollEntry,
     default_eligible_list_types,
 )
+from apps.elections.retention import RETENTION
 from apps.elections.transitions import TransitionRefused, extend_closes_at, publish_poll
 from apps.elections.windows import WindowClosed
 from apps.registrations import mail as registration_mail
 from apps.registrations import services as registrations
 from apps.registrations.models import Channel, Registration
 
-from . import accounts, auditlog, dashboard, firstrun, mailsettings, paper, review
+from . import accounts, auditlog, dashboard, firstrun, mailsettings, paper, review, rollbrowse
 from .access import (
     accessible_polls,
     current_operator,
@@ -597,7 +603,7 @@ def registration_decide(request: HttpRequest, poll: Poll) -> HttpResponse:
 # what every other draft poll would pick up at opening — a poll submenu is
 # exactly the wrong place to invite that confusion from. See
 # docs/spec-divergences.md #11. ``roll_status`` below is what a poll's own menu
-# offers instead: read-only, no import action.
+# offers instead: no import action there, ever — only a view of the roll (R-4.4).
 
 #: The parsed file, held between the upload step and the review step.
 _ROLL_DRAFT_SESSION_KEY = "roll_import_draft"
@@ -610,8 +616,10 @@ def roll_import(request: HttpRequest) -> HttpResponse:
     Accepts the file, parses it, and stores the parsed table in the session for
     the review step. Nothing is written yet: a bad file is caught here, before
     anything durable exists to clean up. Also shows the currently in-force
-    import (filename, row count, when, by whom), so this screen answers "what
-    is imported now" as well as offering to replace it.
+    import (filename, row count, when, by whom) and a plain name search over
+    it (R-4.4's spirit extended to the working roll, though nothing requires
+    it here), so this screen answers "who is on the roll right now" as well as
+    offering to replace it.
     """
     error = ""
     if request.method == "POST":
@@ -634,10 +642,15 @@ def roll_import(request: HttpRequest) -> HttpResponse:
                 }
                 return redirect("backoffice:roll_import_review")
 
+    query = (request.GET.get("q") or "").strip()
+    page = Paginator(
+        rollbrowse.search(WorkingRollEntry.objects.all(), query), rollbrowse.PAGE_SIZE
+    ).get_page(request.GET.get("page"))
+
     return render(
         request,
         "backoffice/roll_import.html",
-        {"error": error, "current": rollimport.latest_import()},
+        {"error": error, "current": rollimport.latest_import(), "page": page, "query": query},
     )
 
 
@@ -705,19 +718,46 @@ def roll_import_review(request: HttpRequest) -> HttpResponse:
     return render(request, "backoffice/roll_import_review.html", context)
 
 
-@require_poll_role(Role.POLL_ADMIN)
+@require_poll_role(Role.POLL_ADMIN, Role.AUDITOR)
 def roll_status(request: HttpRequest, poll: Poll) -> HttpResponse:
-    """A poll's read-only view of the working roll (§6.1, §3.2).
+    """A poll's own view of the electoral roll (§6.1, §3.2, R-4.4).
 
-    Not this poll's roll — the working roll, commune-wide — which is why there
-    is nothing to act on here: filename, row count, when it was imported and by
-    whom, same as ``roll_import`` shows a commune admin, minus the form.
-    Importing happens from the general menu (``roll_import``) or not at all.
+    Before the poll leaves ``draft`` it has no roll of its own yet (R-4.3): the
+    working roll — commune-wide, imported from the general menu — is what will
+    be frozen at opening, so this shows the same provenance ``roll_import``
+    shows a commune admin (filename, row count, when, by whom), minus the
+    form; importing happens from the general menu or not at all. From
+    ``open`` onward this instead browses the poll's own frozen copy: R-4.4 is
+    why ``auditor`` is in the gate alongside ``poll_admin``, and nothing is
+    lost by letting either look at any point past ``draft``, so the gate does
+    not itself distinguish before/after closure.
     """
+    if poll.state == PollState.DRAFT:
+        return render(
+            request,
+            "backoffice/roll_status.html",
+            {"poll": poll, "draft": True, "current": rollimport.latest_import()},
+        )
+
+    entries = RollEntry.objects.filter(poll=poll)
+    query = (request.GET.get("q") or "").strip()
+    page = Paginator(rollbrowse.search(entries, query), rollbrowse.PAGE_SIZE).get_page(
+        request.GET.get("page")
+    )
+    # A poll closed long enough ago has had its frozen copy purged (R-13.3);
+    # told apart from "nothing matched" or "the roll was empty", the same
+    # distinction the audit screen draws for a dangling reference (§10).
+    purged = (
+        poll.state in (PollState.CLOSED, PollState.PUBLISHED)
+        and poll.closed_at is not None
+        and timezone.now() >= poll.closed_at + RETENTION
+        and not entries.exists()
+    )
+
     return render(
         request,
         "backoffice/roll_status.html",
-        {"poll": poll, "current": rollimport.latest_import()},
+        {"poll": poll, "draft": False, "page": page, "query": query, "purged": purged},
     )
 
 

@@ -58,6 +58,7 @@ class Action(models.TextChoices):
     TEMPLATE_DELETED = "template_deleted", _("modèle supprimé")
     AUDIT_LOG_ACCESSED = "audit_log_accessed", _("journal consulté")
     RETENTION_PURGE = "retention_purge", _("purge de rétention")
+    WORKING_ROLL_PURGED = "working_roll_purged", _("liste de travail purgée")
     JOB_REFUSED = "job_refused", _("tâche planifiée refusée")
 
 

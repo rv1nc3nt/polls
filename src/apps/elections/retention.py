@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: 0BSD
-"""The retention purge (§11, R-13.3).
+"""The retention purges (§11, R-13.3, R-13.3 bis).
 
-Two months after **closure**, not after publication: a poll that closes and is
+Two purges, two anchors. A poll's frozen roll and identity data are purged two
+months after **closure**, not after publication: a poll that closes and is
 never published — an unresolved physical tie-break, an abandoned result — would
 otherwise keep its identity data for ever. The basis for holding it ends when
 the poll is over, not when somebody gets round to announcing the outcome.
@@ -17,7 +18,13 @@ anchor is closure: a poll that closes and is never published must still purge.
 only, so deleting the referenced rows is what anonymises the log (T-14, T-54,
 T-55).
 
-Idempotent: a re-run finds nothing left to delete and says so.
+The working roll (``WorkingRollEntry``) has no poll to anchor on before one
+opens, so it is purged two months after **import** instead, where no poll is
+``draft`` to still consume it (R-13.3 bis, §11) — see ``working_roll_due`` and
+``purge_working_roll`` below. Unlike ``RollEntry`` it carries no protecting
+trigger, since ``apply_import`` already deletes it at will.
+
+Both purges are idempotent: a re-run finds nothing left to delete and says so.
 """
 
 from __future__ import annotations
@@ -33,7 +40,7 @@ from apps.audit.models import Action, Reason
 from apps.ballots.models import PaperBallotLink
 from apps.registrations.models import DuplicateAttempt, Registration
 
-from .models import Poll, PollState, RollEntry
+from .models import Poll, PollState, RollEntry, RollImport, WorkingRollEntry
 
 RETENTION = timedelta(days=61)
 
@@ -87,3 +94,44 @@ def purge(poll: Poll) -> PurgeReport:
         reason=Reason.DEADLINE_REACHED,
     )
     return report
+
+
+def working_roll_due(now: datetime | None = None) -> bool:
+    """R-13.3 bis: is the working roll due for purge?
+
+    Anchored on the latest import, not on any poll's closure — there is no
+    poll to anchor on before one opens, and this purge exists precisely for
+    the roll no poll ever did. "In use" means a poll currently ``draft``: that
+    is the only state that still reads ``WorkingRollEntry`` at
+    ``draft → open`` (§3.2); an ``open``, ``closed`` or ``published`` poll
+    already holds its own frozen ``RollEntry`` copy and never looks at the
+    working roll again, so its existence does not postpone this purge.
+    """
+    now = now or timezone.now()
+    latest = RollImport.objects.order_by("-imported_at").first()
+    if latest is None or latest.imported_at > now - RETENTION:
+        return False
+    return not Poll.objects.filter(state=PollState.DRAFT).exists()
+
+
+@transaction.atomic
+def purge_working_roll() -> int:
+    """Delete ``WorkingRollEntry`` where due (R-13.3 bis). Idempotent: a
+    re-run, or a call while not due, finds nothing to delete and logs nothing.
+
+    ``RollImport`` (filename, hash, row count, operator, date) is provenance,
+    not identity data, and is left alone — the same distinction the per-poll
+    purge draws between ``RollEntry`` and ``AuditEvent`` (§10, §11).
+    """
+    if not working_roll_due():
+        return 0
+    deleted = WorkingRollEntry.objects.all().delete()[0]
+    if deleted:
+        latest = RollImport.objects.order_by("-imported_at").first()
+        audit.record(
+            action=Action.WORKING_ROLL_PURGED,
+            object_ref=audit.ref(latest) if latest is not None else "",
+            after={"working_roll_entries": deleted},
+            reason=Reason.DEADLINE_REACHED,
+        )
+    return deleted
