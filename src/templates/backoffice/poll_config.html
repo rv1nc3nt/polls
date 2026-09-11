@@ -139,7 +139,8 @@
 
 {% block body_end %}
   {% if editable %}
-    {# Draft only: the add / remove-a-proposition enhancement (§6.5.2). #}
+    {# Draft only: the tab grouping and the add / remove-a-proposition enhancement (§6.5.2). #}
+    <script src="{% static 'js/tabs.js' %}" defer></script>
     <script src="{% static 'js/option-editor.js' %}" defer></script>
   {% endif %}
 {% endblock %}
