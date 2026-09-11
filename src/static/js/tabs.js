@@ -16,7 +16,11 @@
   tab instead of the first one: a config save posts back to this same page
   (poll_config.html, poll_create.html), and a validation error must surface on
   the tab it failed on rather than hide behind whichever one opens by default
-  (R-14.1).
+  (R-14.1). Every other tab whose panel also holds a `.error` is labelled too
+  (`.tabs__tab-flag`, text from the container's `data-tabs-error-label`): a
+  poll created with most of the form left blank fails several tabs at once,
+  and only ever opening the first left the rest of the errors hidden with
+  nothing on screen pointing at them.
 */
 (function () {
   "use strict";
@@ -89,13 +93,28 @@
         activate(next, true);
       });
 
+      // Translated in the template, not here (same reasoning as
+      // option-editor.js's data-label-remove): interface text stays out of
+      // this file so it is not a second place a translator has to find.
+      var errorLabel = container.getAttribute("data-tabs-error-label") || "";
+
       var initial = 0;
-      panels.some(function (panel, index) {
-        if (panel.querySelector(".error")) {
-          initial = index;
-          return true;
+      var foundInitial = false;
+      panels.forEach(function (panel, index) {
+        if (!panel.querySelector(".error")) {
+          return;
         }
-        return false;
+        if (errorLabel) {
+          var note = document.createElement("span");
+          note.className = "tabs__tab-flag";
+          note.textContent = errorLabel;
+          tabs[index].appendChild(document.createTextNode(" "));
+          tabs[index].appendChild(note);
+        }
+        if (!foundInitial) {
+          initial = index;
+          foundInitial = true;
+        }
       });
 
       activate(initial, false);

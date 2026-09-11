@@ -157,6 +157,30 @@ def test_fewer_than_two_propositions_is_refused(admin_client: Client) -> None:
     assert not AuditEvent.objects.filter(action=Action.POLL_CREATED).exists()
 
 
+def test_a_mostly_blank_submission_reports_every_failing_tab(admin_client: Client) -> None:
+    """A poll created with almost every field left empty fails validation on
+    several of the tabbed panels at once (§6.5.2): too few propositions and
+    missing calendar dates. static/js/tabs.js only ever opens the first
+    failing tab, so every field-level error the server renders here must
+    actually reach the page — the survivor otherwise sits in a tab nothing
+    ever points the operator at. The container also carries the label
+    tabs.js flags the other failing tabs with, so that marking degrades
+    gracefully rather than silently doing nothing without it.
+    """
+    data = _payload()
+    del data["opens_at"], data["closes_at"], data["paper_entry_deadline"]
+    data["opt-1-option_id"] = ""
+    data["opt-1-label_fr"] = ""
+    response = admin_client.post(URL, data)
+
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert "au moins deux propositions" in content
+    assert content.count("Ce champ est obligatoire") >= 3
+    assert "data-tabs-error-label=" in content
+    assert not Poll.objects.filter(title_i18n__fr="Aménagement de la place").exists()
+
+
 def test_a_closing_instant_before_the_opening_one_is_refused(admin_client: Client) -> None:
     now = timezone.now()
     data = _payload(closes_at=_dt(now))

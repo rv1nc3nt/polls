@@ -23,7 +23,7 @@
   {% for message in form.non_field_errors %}<p class="error" role="alert">{{ message }}</p>{% endfor %}
 {% endif %}
 
-<div class="tabs" data-tabs>
+<div class="tabs" data-tabs data-tabs-error-label="{% translate '(des champs à corriger)' %}">
   <div class="tabs__list" data-tabs-list hidden>
     <button type="button" class="tabs__tab" data-tabs-tab>{% translate "Contenu & langues" %}</button>
     <button type="button" class="tabs__tab" data-tabs-tab>{% translate "Propositions" %}</button>
