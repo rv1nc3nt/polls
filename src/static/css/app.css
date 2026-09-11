@@ -562,6 +562,17 @@ legend { font-weight: 700; padding: 0 0.4rem; }
   border-bottom: 2px solid var(--surface);
   margin-bottom: -1px;
 }
+/* A rejected submission opens on the first failing tab (tabs.js), but a
+   near-empty form fails several at once; the rest stayed unmarked with
+   nothing on screen pointing at them. Text, not a colour or a bare dot
+   (3.1): `.tabs__tab-flag` is the same wording every screen reader user
+   gets too, appended by tabs.js from the template's translated
+   data-tabs-error-label. */
+.tabs__tab-flag {
+  color: var(--focus);
+  font-weight: 700;
+  font-size: 0.85em;
+}
 
 /* The account-management disclosure stacks three small forms; space them and
    let each lay its label, field and button out in a row. */
