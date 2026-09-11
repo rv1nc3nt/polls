@@ -241,20 +241,19 @@ body.bo main { padding: 0; }
 /* The global links: always directly under the wordmark, in the same order. */
 .bo-side__list--global { padding-top: 0.15rem; }
 
-/* The poll header — title and state — separates the global links above from the
-   poll's own groups below. It is only present while a poll is in scope. */
+/* The poll state separates the global links above from the poll's own groups
+   below. It is only present while a poll is in scope; the title is not
+   repeated here — the breadcrumb and the <h1> already carry it. */
 .bo-side__poll {
   margin-top: 0.9rem;
-  padding: 0.85rem 1.15rem 0.35rem;
+  padding: 0.7rem 1.15rem;
   border-top: 1px solid var(--rule);
 }
-.bo-side__poll-name { display: block; font-weight: 600; line-height: 1.3; }
 
 /* The poll state, written out — the wash only sorts it, it does not carry it
    (R-14.1). A finished poll drops to a plain outline. */
 .bo-state {
   display: inline-block;
-  margin-top: 0.5rem;
   padding: 0.15rem 0.55rem;
   border: 1px solid transparent;
   border-radius: 999px;
@@ -338,7 +337,20 @@ body.bo main { padding: 0; }
   align-self: start;
 }
 .bo-side__lang select { flex: 1 1 6rem; min-width: 0; min-height: 2.2rem; }
-.bo-side__lang button { padding: 0.45rem 0.7rem; }
+/* The generic <button> is a bold filled CTA (§6.5's "wall of blue" is exactly
+   what a routine submit should not be here) — this one only re-submits the
+   form beside it, so it takes the same quiet, bordered treatment as the
+   theme toggle next to it, not the accent fill "Enregistrer" gets elsewhere. */
+.bo-side__lang button {
+  min-height: 2.2rem;
+  padding: 0.4rem 0.75rem;
+  font-weight: 500;
+  font-size: 0.85rem;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+}
+.bo-side__lang button:hover { opacity: 1; background: var(--paper-quiet); }
 .bo-side__tools .themeswitch { flex-direction: column; align-items: stretch; gap: 0.35rem; }
 .bo-side__tools .themeswitch [role="group"] { display: flex; }
 .bo-side__tools .themeswitch button { flex: 1; padding: 0.4rem 0.3rem; font-size: 0.8rem; }
