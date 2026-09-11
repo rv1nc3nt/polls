@@ -21,6 +21,15 @@
   poll created with most of the form left blank fails several tabs at once,
   and only ever opening the first left the rest of the errors hidden with
   nothing on screen pointing at them.
+
+  A browser's own "please fill out this field" bubble is worded in the
+  browser's UI language, not the page's — `<html lang>` doesn't touch it, so
+  an operator with French content and an English browser got an English
+  bubble in the middle of an otherwise French screen. `data-tabs-required-
+  message` (also from the template, R-14) overrides it via
+  `setCustomValidity` the moment a required field is found invalid; the
+  `input`/`change` listener clears that override again so a field the
+  operator then fills in is judged on its actual value, not stuck invalid.
 */
 (function () {
   "use strict";
@@ -61,6 +70,8 @@
         }
       }
 
+      var requiredMessage = container.getAttribute("data-tabs-required-message") || "";
+
       // A `required` field inside a tab that is not the open one is,
       // per the HTML spec, barred from constraint validation while its
       // panel is `[hidden]`: the browser cannot focus it to report the
@@ -70,14 +81,34 @@
       // paper_entry_deadline, all required, sit on the "Calendrier" tab,
       // which is never the one that opens first). Capturing `invalid`
       // ahead of the browser's own handling and revealing that field's
-      // tab first is what lets native validation actually show something.
+      // tab first is what lets native validation actually show something,
+      // and setting a translated message on it is what makes that
+      // something be in the operator's language.
       container.addEventListener(
         "invalid",
         function (event) {
-          var panel = event.target.closest("[data-tabs-panel]");
+          var field = event.target;
+          if (requiredMessage && field.validity && field.validity.valueMissing) {
+            field.setCustomValidity(requiredMessage);
+          }
+          var panel = field.closest("[data-tabs-panel]");
           var index = panel ? panels.indexOf(panel) : -1;
           if (index !== -1 && panels[index].hidden) {
             activate(index, false);
+          }
+        },
+        true
+      );
+
+      // setCustomValidity is sticky — left alone, a field we've marked
+      // invalid stays invalid forever, even after the operator fixes it.
+      // Clearing it on every change hands validity back to the field's own
+      // rules, so a corrected field is seen as corrected.
+      container.addEventListener(
+        "input",
+        function (event) {
+          if (event.target.setCustomValidity) {
+            event.target.setCustomValidity("");
           }
         },
         true

@@ -1738,6 +1738,14 @@ msgstr "Load"
 msgid "Champs pré-remplis depuis le modèle « %(name)s »."
 msgstr "Fields pre-filled from the template “%(name)s”."
 
+#: templates/backoffice/_poll_config_fields.html
+msgid "(des champs à corriger)"
+msgstr "(fields to fix)"
+
+#: templates/backoffice/_poll_config_fields.html
+msgid "Ce champ est obligatoire."
+msgstr "This field is required."
+
 #: templates/backoffice/template_admin.html apps/backoffice/templatetags/backoffice_nav.py
 msgid "Modèles de scrutin"
 msgstr "Poll templates"
