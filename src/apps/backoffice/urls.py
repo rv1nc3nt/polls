@@ -14,6 +14,7 @@ app_name = "backoffice"
 # the commune-admin flag.
 urlpatterns = [
     path("", views.poll_index, name="poll_index"),
+    path("nouveau/", views.poll_create, name="poll_create"),
     path("installation/", views.first_run, name="first_run"),
     path("connexion/", views.OperatorLoginView.as_view(), name="login"),
     path("deconnexion/", views.OperatorLogoutView.as_view(), name="logout"),

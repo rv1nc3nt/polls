@@ -89,6 +89,7 @@ class _Group:
 #: open to any signed-in operator; the other two need the commune-admin flag.
 _GLOBAL_ITEMS: tuple[_Item, ...] = (
     _Item(_("Scrutins"), "poll_index", icon="polls"),
+    _Item(_("Nouveau scrutin"), "poll_create", (_COMMUNE,), icon="new"),
     _Item(_("Comptes opérateurs"), "account_admin", (_COMMUNE,), icon="accounts"),
     _Item(_("Rôles par scrutin"), "role_admin", (_COMMUNE,), icon="roles"),
     _Item(_("Messagerie"), "mail_settings", (_COMMUNE,), icon="mail"),

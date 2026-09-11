@@ -1,0 +1,40 @@
+{% extends "backoffice/base.html" %}
+{% load i18n static %}
+{# SPDX-License-Identifier: 0BSD #}
+
+{% block screen_title %}{% translate "Nouveau scrutin" %}{% endblock %}
+{% block heading %}{% translate "Nouveau scrutin" %}{% endblock %}
+
+{% block screen %}
+
+<p class="notice">{% translate "Toute la configuration reste modifiable tant que le scrutin est en brouillon (R-3.3) ; vous n'avez pas besoin de tout renseigner ici. Une fois créé, allez sur « Rôles par scrutin » pour vous attribuer un rôle : la création n'en donne aucun (§3.7)." %}</p>
+
+<form method="post">
+  {% csrf_token %}
+
+  {% include "backoffice/_poll_config_fields.html" %}
+
+  <fieldset>
+    <legend>{% translate "Nature du scrutin" %}</legend>
+    {% comment %}
+      R-3.7: fixed for good the moment the poll is created — the one field
+      screen 2 never offers, because by the time screen 2 exists it is already
+      too late to set it.
+    {% endcomment %}
+    <p class="field">
+      <label for="{{ form.is_sandbox.id_for_label }}">{{ form.is_sandbox.label }}</label>
+      <span class="help">{{ form.is_sandbox.help_text }}</span>
+      {{ form.is_sandbox }}
+      {% for message in form.is_sandbox.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+    </p>
+  </fieldset>
+
+  <button type="submit">{% translate "Créer le scrutin" %}</button>
+</form>
+
+{% endblock %}
+
+{% block body_end %}
+  {# Same progressive enhancement as screen 2's editor (§6.5.2). #}
+  <script src="{% static 'js/option-editor.js' %}" defer></script>
+{% endblock %}
