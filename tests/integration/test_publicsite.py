@@ -37,6 +37,7 @@ from apps.elections.transitions import (
     extend_closes_at,
     open_poll,
     publish_poll,
+    withdraw_poll,
 )
 from apps.registrations.models import Channel, Registration, RegistrationState
 
@@ -518,3 +519,56 @@ def test_a_sandbox_poll_stays_hidden_even_once_announced(client: Client, db: Non
     assert poll.state == "announced"
     assert client.get(f"/fr/scrutin/{poll.pk}/").status_code == 404
     assert poll.title() not in client.get("/fr/").content.decode()
+
+
+# --- withdrawal: nothing remains public (R-3.11, T-75) ---------------------
+
+
+def test_t75_a_withdrawn_poll_shows_only_a_fixed_notice(client: Client, db: None) -> None:
+    """A poll withdrawn from ``announced``, from ``open`` and from
+    ``published``: the listing never names any of them, the detail page shows
+    only the fixed notice with none of the poll's own content, and the
+    results page, its CSV and its JSON all 404 for the ``published`` one —
+    exactly as they would for a poll that was never published at all (§6.6)."""
+    announced = Poll.objects.get(
+        pk=withdraw_poll(announce_poll(_make_poll()), reason=Reason.OTHER).pk
+    )
+
+    opened_source = _make_poll()
+    open_poll(opened_source)
+    opened = Poll.objects.get(
+        pk=withdraw_poll(Poll.objects.get(pk=opened_source.pk), reason=Reason.OTHER).pk
+    )
+
+    published_source = _make_poll()
+    open_poll(published_source)
+    _register(published_source, "voter1", channel=Channel.ONLINE)
+    _cast(published_source, [[["a"], ["b"], ["c"]]])
+    close_poll(published_source)
+    publish_poll(
+        Poll.objects.get(pk=published_source.pk),
+        User.objects.create_user(username="p.admin2", password="x"),
+    )
+    published = Poll.objects.get(
+        pk=withdraw_poll(Poll.objects.get(pk=published_source.pk), reason=Reason.OTHER).pk
+    )
+
+    listing = client.get("/fr/").content.decode()
+    for poll in (announced, opened, published):
+        assert poll.title() not in listing
+
+    for poll in (announced, opened, published):
+        response = client.get(f"/fr/scrutin/{poll.pk}/")
+        assert response.status_code == 200
+        body = response.content.decode()
+        assert "Ce scrutin a été retiré." in body
+        assert poll.title() not in body
+        assert poll.description() not in body
+        assert "Les propositions soumises" not in body
+        assert "Calendrier" not in body
+
+    for fmt in (None, "csv", "json"):
+        url = f"/fr/scrutin/{published.pk}/resultats/"
+        if fmt:
+            url += f"?format={fmt}"
+        assert client.get(url).status_code == 404

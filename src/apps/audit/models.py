@@ -33,6 +33,7 @@ class Action(models.TextChoices):
     POLL_CONFIG_CHANGED = "poll_config_changed", _("configuration modifiée")
     POLL_STATE_CHANGED = "poll_state_changed", _("transition d'état")
     POLL_CLOSES_AT_EXTENDED = "poll_closes_at_extended", _("clôture repoussée")
+    POLL_WITHDRAWN = "poll_withdrawn", _("scrutin retiré")
     ROLL_IMPORTED = "roll_imported", _("liste électorale importée")
     ROLL_SNAPSHOT_TAKEN = "roll_snapshot_taken", _("copie figée prise")
     REGISTRATION_REVIEWED = "registration_reviewed", _("inscription examinée")

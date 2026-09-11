@@ -364,6 +364,30 @@ class ClosureOverrideForm(forms.Form):
     )
 
 
+#: R-3.11's reason vocabulary. Narrowed like ``EXTENSION_REASONS`` above: the
+#: full ``Reason`` set includes ballot- and registration-review codes that
+#: would be valid enum values and false records here (§10).
+WITHDRAWAL_REASONS: tuple[Reason, ...] = (
+    Reason.ADMINISTRATIVE_DECISION,
+    Reason.OTHER,
+)
+
+
+class WithdrawalForm(forms.Form):
+    """Screen 2's manual ``withdraw_poll`` trigger (R-3.11).
+
+    Unlike ``ClosureOverrideForm``'s reason, this one is required unconditionally
+    — ``withdrawing_blockers`` refuses a missing reason exactly as it refuses
+    the wrong source state, so the field matches that here rather than leaving
+    it to come back as a named blocker.
+    """
+
+    reason = forms.ChoiceField(
+        label=_("Motif du retrait (obligatoire)"),
+        choices=[(reason.value, reason.label) for reason in WITHDRAWAL_REASONS],
+    )
+
+
 def config_initial(poll: Poll) -> dict[str, Any]:
     """The bound values for ``PollConfigForm`` on a GET.
 

@@ -9,7 +9,9 @@ written in the same transaction as the state write.
 ``draft → [announced] → open → closed → published``, irreversible (R-3.2).
 ``announced`` is an optional waypoint (R-3.10): ``open_poll`` accepts either
 ``draft`` or ``announced`` as its source, so a poll that never announces
-itself still goes straight ``draft → open`` as before.
+itself still goes straight ``draft → open`` as before. A fifth, terminal
+state, ``withdrawn``, branches off ``announced``, ``open``, ``closed`` or
+``published`` through ``withdraw_poll`` (R-3.11) and joins nothing.
 """
 
 from __future__ import annotations
@@ -30,9 +32,10 @@ from .models import Poll, PollState, RollEntry, WorkingRollEntry
 
 TRANSITIONS: dict[str, tuple[str, ...]] = {
     PollState.DRAFT: (PollState.ANNOUNCED, PollState.OPEN),
-    PollState.ANNOUNCED: (PollState.OPEN,),
-    PollState.OPEN: (PollState.CLOSED,),
-    PollState.CLOSED: (PollState.PUBLISHED,),
+    PollState.ANNOUNCED: (PollState.OPEN, PollState.WITHDRAWN),
+    PollState.OPEN: (PollState.CLOSED, PollState.WITHDRAWN),
+    PollState.CLOSED: (PollState.PUBLISHED, PollState.WITHDRAWN),
+    PollState.PUBLISHED: (PollState.WITHDRAWN,),
 }
 
 
@@ -398,6 +401,88 @@ def extend_closes_at(
             "closes_at": poll.closes_at.isoformat(),
             "paper_entry_deadline": poll.paper_entry_deadline.isoformat(),
         },
+        reason=reason,
+    )
+    return poll
+
+
+def withdrawing_blockers(poll: Poll, reason: Reason | str) -> list[str]:
+    """Why ``withdraw_poll`` would refuse (R-3.11).
+
+    Shorter than the other guards: nothing about configuration or the roll
+    bears on a poll whose only remaining business is to stop being shown.
+    Just the source state — ``announced``, ``open``, ``closed`` or
+    ``published``, never ``draft``, which has *delete* for that — and the
+    reason, mandatory here and checked in the service, not only in the form
+    (§6.5), since this guard is what a forged or stale request still has to
+    pass.
+    """
+    blockers: list[str] = []
+    if poll.state not in (
+        PollState.ANNOUNCED,
+        PollState.OPEN,
+        PollState.CLOSED,
+        PollState.PUBLISHED,
+    ):
+        blockers.append("not_withdrawable")
+    if not reason:
+        blockers.append("reason_required")
+    return blockers
+
+
+def withdraw_poll(
+    poll: Poll,
+    actor: User | None = None,
+    reason: Reason | str = "",
+    now: datetime | None = None,
+) -> Poll:
+    """``announced``/``open``/``closed``/``published`` → ``withdrawn`` (R-3.11).
+
+    Manual only, from screen 2 — nothing schedules it, and nothing about
+    *when* a poll should be pulled follows from a configured instant the way
+    opening and closing do (§4). Irreversible like every transition (R-3.2).
+
+    Leaves ballots, ``closure_hash`` and the audit log exactly as they were:
+    withdrawal is a visibility change, not a deletion. Its only writes beyond
+    ``state`` are ``withdrawn_at`` — the retention anchor R-13.3 needs for a
+    poll pulled before ever reaching ``closed`` (§11) — and the audit event
+    the mandatory reason is attached to.
+    """
+    try:
+        return _withdraw_poll_locked(poll, actor, reason, now)
+    except TransitionRefused as refusal:
+        # As in announce_poll/open_poll/close_poll: logged after the rollback,
+        # or not at all (§4).
+        audit.record(
+            action=Action.JOB_REFUSED,
+            poll=poll,
+            actor=actor,
+            object_ref=audit.ref(poll),
+            after={"command": "withdraw_poll", "blockers": refusal.blockers},
+        )
+        raise
+
+
+@transaction.atomic
+def _withdraw_poll_locked(
+    poll: Poll, actor: User | None, reason: Reason | str, now: datetime | None
+) -> Poll:
+    poll = Poll.objects.select_for_update().get(pk=poll.pk)
+    blockers = withdrawing_blockers(poll, reason)
+    if blockers:
+        raise TransitionRefused(_("Retrait refusé."), blockers)
+
+    previous_state = poll.state
+    poll.withdrawn_at = now or timezone.now()
+    poll.state = PollState.WITHDRAWN
+    poll.save(update_fields=["withdrawn_at", "state"])
+    audit.record(
+        action=Action.POLL_WITHDRAWN,
+        poll=poll,
+        actor=actor,
+        object_ref=audit.ref(poll),
+        before={"state": previous_state},
+        after={"state": PollState.WITHDRAWN, "withdrawn_at": poll.withdrawn_at.isoformat()},
         reason=reason,
     )
     return poll

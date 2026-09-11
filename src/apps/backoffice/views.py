@@ -75,7 +75,7 @@ from django.utils.timezone import get_current_timezone
 from django.utils.translation import gettext as _
 
 from apps.audit import services as audit
-from apps.audit.models import Action, Reason
+from apps.audit.models import Action, AuditEvent, Reason
 from apps.ballots import services as ballots
 from apps.ballots.forms import RankingForm
 from apps.ballots.models import Ballot, BallotSource, BallotStatus, PaperBallotLink
@@ -100,6 +100,7 @@ from apps.elections.transitions import (
     extend_closes_at,
     open_poll,
     publish_poll,
+    withdraw_poll,
 )
 from apps.elections.windows import WindowClosed
 from apps.registrations import mail as registration_mail
@@ -128,6 +129,7 @@ from .forms import (
     PollConfigForm,
     PollCreateForm,
     TemplateNameForm,
+    WithdrawalForm,
     config_initial,
     config_warnings,
     option_drafts,
@@ -337,6 +339,11 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
       ``closure_hash`` and the §9 counts ahead of ballots the write path would
       still legitimately accept, and would hide screens 5–7 from the entry
       operator before the window they cover has actually closed.
+    - *Retirer le scrutin* (``announced``/``open``/``closed``/``published`` →
+      ``withdrawn``, R-3.11) — at any time from any of those four, with a
+      mandatory reason; unlike the other three this one has no scheduled
+      counterpart at all, and once it succeeds this same screen becomes the
+      ``withdrawn`` read-only view, naming the reason and the instant.
 
     All three go through the same guarded functions the scheduled commands
     use (``announcing_blockers``/``opening_blockers``/``closing_blockers``),
@@ -427,7 +434,35 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
                 messages.success(request, _("Scrutin clos."))
                 return redirect("backoffice:poll_config", poll_id=str(poll.pk))
 
-    configuring = on_post and not saving_template and not announcing and not opening and not closing
+    withdrawing = action == "withdraw_poll"
+    withdrawal_form = WithdrawalForm(request.POST if withdrawing else None)
+    if withdrawing:
+        # As above: the form only ever renders on a withdrawable poll (below);
+        # reaching here otherwise is a forged or stale request.
+        if poll.state not in (
+            PollState.ANNOUNCED,
+            PollState.OPEN,
+            PollState.CLOSED,
+            PollState.PUBLISHED,
+        ):
+            raise PermissionDenied(_("Le scrutin ne peut pas être retiré dans cet état."))
+        if withdrawal_form.is_valid():
+            try:
+                withdraw_poll(poll, actor=operator, reason=withdrawal_form.cleaned_data["reason"])
+            except TransitionRefused as refused:
+                messages.error(request, str(refused))
+            else:
+                messages.success(request, _("Scrutin retiré."))
+                return redirect("backoffice:poll_config", poll_id=str(poll.pk))
+
+    configuring = (
+        on_post
+        and not saving_template
+        and not announcing
+        and not opening
+        and not closing
+        and not withdrawing
+    )
 
     if poll.state == PollState.DRAFT:
         form = PollConfigForm(
@@ -483,6 +518,23 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
             messages.success(request, _("Date de clôture repoussée."))
             return redirect("backoffice:poll_config", poll_id=str(poll.pk))
 
+    can_withdraw = poll.state in (
+        PollState.ANNOUNCED,
+        PollState.OPEN,
+        PollState.CLOSED,
+        PollState.PUBLISHED,
+    )
+    withdrawal_event = None
+    if poll.state == PollState.WITHDRAWN:
+        # R-3.11: the reason and the instant, for the poll admin who withdrew
+        # it — never for the public site, which shows this poll nothing at
+        # all (§6.6).
+        withdrawal_event = (
+            AuditEvent.objects.filter(poll=poll, action=Action.POLL_WITHDRAWN)
+            .order_by("-at")
+            .first()
+        )
+
     return render(
         request,
         "backoffice/poll_config.html",
@@ -496,6 +548,9 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
             "can_close_now": (
                 poll.state == PollState.OPEN and poll.paper_entry_deadline <= timezone.now()
             ),
+            "can_withdraw": can_withdraw,
+            "withdrawal_form": withdrawal_form if can_withdraw else None,
+            "withdrawal_event": withdrawal_event,
             "warnings": config_warnings(poll),
             "commune_admin": commune_admin,
             "template_form": template_form,

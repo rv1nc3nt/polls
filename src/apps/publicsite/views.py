@@ -117,7 +117,18 @@ def poll_detail(request: HttpRequest, poll_id: str) -> HttpResponse:
     page instead of ``is_open``, so it gets the "not yet open" notice rather
     than the registration link — nothing here is votable before the poll
     actually opens.
+
+    A ``withdrawn`` poll (R-3.11) is deliberately not in ``_public_polls()`` —
+    the listing must not name it — but its URL is not left to a plain 404
+    either: someone may already hold the link. Fetched separately below and
+    answered with a fixed notice carrying none of its content, exactly as
+    §6.6 describes.
     """
+    withdrawn = Poll.objects.filter(
+        is_sandbox=False, state=PollState.WITHDRAWN, pk=poll_id
+    ).exists()
+    if withdrawn:
+        return render(request, "publicsite/poll_withdrawn.html", {})
     poll = get_object_or_404(_public_polls(), pk=poll_id)
     language = request.LANGUAGE_CODE
     return render(

@@ -49,7 +49,10 @@ class Participation:
 
 
 def participation(poll: Poll) -> Participation:
-    if poll.state in {PollState.CLOSED, PollState.PUBLISHED}:
+    # A poll withdrawn (R-3.11) after passing through `closed` already has
+    # `frozen_counts`; one withdrawn straight from `announced` or `open` never
+    # closed and falls to the live count below, same as `draft` or `open`.
+    if poll.state in {PollState.CLOSED, PollState.PUBLISHED} or poll.frozen_counts:
         counts = poll.frozen_counts or frozen_counts(poll)
         return Participation(
             as_at_closure=True,
@@ -231,6 +234,16 @@ def _actions_for_state(poll: Poll) -> list[PermittedAction]:
                     _("Consulter le dépouillement et la publication"),
                     (Role.POLL_ADMIN,),
                     url_name="backoffice:results_publish",
+                )
+            ]
+        case PollState.WITHDRAWN:
+            # R-3.11: nothing left to do but consult — screen 2's read-only
+            # view names the reason and the instant.
+            return [
+                PermittedAction(
+                    _("Consulter le scrutin retiré"),
+                    (Role.POLL_ADMIN,),
+                    url_name="backoffice:poll_config",
                 )
             ]
         case _:

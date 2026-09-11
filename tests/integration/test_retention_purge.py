@@ -42,7 +42,13 @@ from apps.elections.retention import (
     purge_working_roll,
     working_roll_due,
 )
-from apps.elections.transitions import announce_poll, close_poll, open_poll, publish_poll
+from apps.elections.transitions import (
+    announce_poll,
+    close_poll,
+    open_poll,
+    publish_poll,
+    withdraw_poll,
+)
 from apps.registrations import services as registrations
 from apps.registrations.models import (
     DuplicateAttempt,
@@ -168,6 +174,14 @@ def _age_past_retention(poll: Poll) -> None:
     Poll.objects.filter(pk=poll.pk).update(
         closed_at=past, closes_at=past, paper_entry_deadline=past
     )
+
+
+def _age_withdrawn_at_past_retention(poll: Poll) -> None:
+    """Push ``withdrawn_at`` back beyond the retention term, leaving
+    ``closed_at`` alone — the anchor ``due_polls`` reads for a poll withdrawn
+    without ever passing through ``closed`` (R-13.3, §11)."""
+    past = timezone.now() - RETENTION - timedelta(days=1)
+    Poll.objects.filter(pk=poll.pk).update(withdrawn_at=past)
 
 
 def _sql_time(moment: datetime) -> str:
@@ -508,3 +522,52 @@ def test_t66_the_command_purges_the_working_roll_alongside_closed_polls(db: None
     # No draft poll at all: the working roll is idle from the outset.
     call_command("retention_purge")
     assert not WorkingRollEntry.objects.exists()
+
+
+# --- T-76: the withdrawal anchor (R-3.11, R-13.3) --------------------------
+
+
+def test_t76_a_poll_withdrawn_before_closure_purges_on_withdrawn_at(db: None) -> None:
+    """A poll pulled straight from ``announced`` has no ``closed_at`` at all;
+    without the ``withdrawn_at`` anchor it would never become due."""
+    poll = _poll("Aperçu retiré")
+    _roll_entry("Dupont", "Émile", "12/05/1970", "1970-05-12")
+    withdrawn = withdraw_poll(announce_poll(poll), reason=Reason.ADMINISTRATIVE_DECISION)
+    assert withdrawn.closed_at is None
+    assert withdrawn.withdrawn_at is not None
+
+    # Not yet due: withdrawn a moment ago, not two months back.
+    assert withdrawn not in due_polls()
+
+    _age_withdrawn_at_past_retention(withdrawn)
+    assert Poll.objects.get(pk=withdrawn.pk) in due_polls()
+    report = purge(Poll.objects.get(pk=withdrawn.pk))
+    assert report.roll_entries == 0  # never opened: no snapshot was ever taken
+    assert AuditEvent.objects.filter(action=Action.RETENTION_PURGE, poll=withdrawn).exists()
+
+
+def test_t76_a_poll_withdrawn_after_closure_keeps_the_closure_anchor(db: None) -> None:
+    """Withdrawn from ``published``, this poll has both a ``closed_at`` and a
+    later ``withdrawn_at``; the earlier, correct anchor is ``closed_at`` —
+    aging only it, and leaving ``withdrawn_at`` recent, is still enough."""
+    operator = User.objects.create_user(username="op.retention", password="x")
+    poll = _poll("Publié puis retiré")
+    _roll_entry("Dupont", "Émile", "12/05/1970", "1970-05-12")
+    open_poll(poll)
+    poll = Poll.objects.get(pk=poll.pk)
+    close_poll(poll)
+    poll = Poll.objects.get(pk=poll.pk)
+    published = publish_poll(poll, operator)
+    withdrawn = withdraw_poll(published, reason=Reason.ADMINISTRATIVE_DECISION)
+    assert withdrawn.closed_at is not None
+    assert withdrawn.withdrawn_at is not None
+    assert withdrawn.closed_at < withdrawn.withdrawn_at
+
+    # Age only closed_at, as a real poll's would already be by the time
+    # withdrawn_at (set moments ago in this test) also ages past the term.
+    Poll.objects.filter(pk=withdrawn.pk).update(
+        closed_at=timezone.now() - RETENTION - timedelta(days=1)
+    )
+    assert Poll.objects.get(pk=withdrawn.pk) in due_polls()
+    report = purge(Poll.objects.get(pk=withdrawn.pk))
+    assert report.roll_entries == 1
