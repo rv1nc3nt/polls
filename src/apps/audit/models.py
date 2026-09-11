@@ -52,6 +52,7 @@ class Action(models.TextChoices):
     RESULTS_PUBLISHED = "results_published", _("résultats publiés")
     ROLE_ASSIGNED = "role_assigned", _("rôle attribué")
     ROLE_REVOKED = "role_revoked", _("rôle retiré")
+    MAIL_SETTINGS_CHANGED = "mail_settings_changed", _("paramètres de messagerie modifiés")
     AUDIT_LOG_ACCESSED = "audit_log_accessed", _("journal consulté")
     RETENTION_PURGE = "retention_purge", _("purge de rétention")
     JOB_REFUSED = "job_refused", _("tâche planifiée refusée")

@@ -28,7 +28,10 @@ All four gates run in CI and must be green before a commit lands.
 ## Layout
 
 `src/config/` project settings and URLs · `src/apps/core/` types, crypto,
-canonical serialisation, name matching, tracking codes, job locking ·
+canonical serialisation, name matching, tracking codes, job locking, the
+SMTP relay (`mailbackend.py`) and the reversible encryption its stored
+password uses (`secretstore.py`, distinct from `crypto.py`'s one-way §7
+scheme) ·
 `src/apps/elections/` poll, options, snapshot, transitions, voting window,
 closure, retention, `rollimport.py` (§6.1: parsing, mapping, validation, the
 transactional apply shared by the CLI and screen 3) ·

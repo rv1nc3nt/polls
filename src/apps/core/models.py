@@ -9,6 +9,11 @@ the account itself.
 ``Commune`` is the one commune this instance serves (R-1.3, R-1.5) and the
 data-controller identity its notices carry (R-13.1, R-13.2). It is created by
 the first-run wizard (§6.5.11) alongside the initial administrator.
+
+``MailSettings`` is the commune's SMTP relay, configured from screen 12
+(§6.5.12) instead of only the environment (§14): deliverability is the most
+fragile dependency in the design, and tuning it is a task for after go-live,
+per commune, which an env-var restart cannot do without ops help.
 """
 
 from __future__ import annotations
@@ -18,6 +23,8 @@ import uuid
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+
+from . import secretstore
 
 
 class Commune(models.Model):
@@ -72,6 +79,81 @@ class Commune(models.Model):
     def current(cls) -> Commune | None:
         """The commune record, or ``None`` before first-run has created it."""
         return cls.objects.filter(pk=1).first()
+
+
+class MailEncryption(models.TextChoices):
+    NONE = "none", _("aucun")
+    STARTTLS = "starttls", _("STARTTLS")
+    SSL = "ssl", _("SSL/TLS implicite")
+
+
+class MailSettings(models.Model):
+    """The commune's SMTP relay (§6.5.12). One instance, one relay: ``id`` is
+    pinned to ``1`` exactly like ``Commune`` above, for the same reason —
+    ``MailSettings.current()`` is unambiguous with no "get the latest"
+    convention.
+
+    Absent (no row at all) means "use the environment configuration of §14 /
+    §15" — ``apps.core.mailbackend`` falls back to it, so an adopting commune
+    whose Ansible deploy already sets ``DJANGO_EMAIL_HOST`` keeps working
+    unchanged until an admin deliberately fills this screen in.
+
+    The password is the one secret this database stores reversibly rather
+    than hashed (contrast every operator password, §14) — an SMTP relay needs
+    it back in plaintext to authenticate — so it is never stored directly.
+    ``set_password``/``get_password`` are the only way in or out, through
+    ``apps.core.secretstore``; nothing else on this model, and no template,
+    ever sees ``password_encrypted``.
+    """
+
+    id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
+    host = models.CharField(_("serveur SMTP"), max_length=255)
+    port = models.PositiveIntegerField(_("port"), default=587)
+    encryption = models.CharField(
+        _("chiffrement"),
+        max_length=10,
+        choices=MailEncryption.choices,
+        default=MailEncryption.STARTTLS,
+    )
+    username = models.CharField(_("identifiant"), max_length=255, blank=True)
+    password_encrypted = models.TextField(_("mot de passe (chiffré)"), blank=True, default="")
+    from_email = models.EmailField(
+        _("adresse d'expédition"),
+        blank=True,
+        help_text=_(
+            "Laissez vide pour utiliser l'adresse par défaut du déploiement. Doit "
+            "généralement correspondre au compte authentifié auprès du serveur."
+        ),
+    )
+    updated_at = models.DateTimeField(_("dernière modification"), auto_now=True)
+
+    class Meta:
+        verbose_name = _("paramètres de messagerie")
+        verbose_name_plural = _("paramètres de messagerie")
+        constraints = [
+            models.CheckConstraint(condition=models.Q(id=1), name="mail_settings_is_singleton"),
+        ]
+
+    def __str__(self) -> str:
+        return self.host or str(_("(non configuré)"))
+
+    @classmethod
+    def current(cls) -> MailSettings | None:
+        """The saved relay settings, or ``None`` where none have been saved —
+        the signal ``mailbackend`` reads to fall back to the environment."""
+        return cls.objects.filter(pk=1).first()
+
+    def set_password(self, raw_password: str) -> None:
+        """Encrypts and stores. Does not save the row — callers already do,
+        alongside the other fields, in one write (``mailsettings.save``)."""
+        self.password_encrypted = secretstore.encrypt(raw_password) if raw_password else ""
+
+    def get_password(self) -> str:
+        """The plaintext password, decrypted on demand for one SMTP
+        connection. Raises ``secretstore.SecretUnreadable`` if ``SECRET_KEY``
+        has changed since it was saved — a re-entry, not a silent empty
+        password reaching the relay as an anonymous login attempt."""
+        return secretstore.decrypt(self.password_encrypted) if self.password_encrypted else ""
 
 
 class User(AbstractUser):

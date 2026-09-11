@@ -64,9 +64,12 @@ polls_python_version: "3.13"
 polls_bind: "127.0.0.1:8000"
 polls_gunicorn_workers: 3
 
-# --- SMTP (§15 step 9). prod.py requires DJANGO_EMAIL_HOST to be set; the
-# default lets the service boot on a host with no relay configured yet, at the
-# cost of the smoke mail failing until it is. Password comes from ansible-vault.
+# --- SMTP (§15 step 9). prod.py no longer requires DJANGO_EMAIL_HOST — a
+# commune admin can set the relay instead from the back-office (§6.5.12) — but
+# this role still renders it, as the default configuration screen 12 falls
+# back to until someone fills it in. The default lets the service boot on a
+# host with no relay configured yet, at the cost of the smoke mail failing
+# until one is set, here or on screen 12. Password comes from ansible-vault.
 polls_email_host: localhost
 polls_email_port: 587
 polls_email_user: ""

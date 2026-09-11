@@ -124,6 +124,12 @@ LOGIN_URL = "backoffice:login"
 LOGIN_REDIRECT_URL = "backoffice:poll_index"
 LOGOUT_REDIRECT_URL = "backoffice:login"
 
+# Every environment routes through the same backend (§6.5.12): it checks
+# MailSettings (screen 12) on each send and falls back to
+# EMAIL_FALLBACK_BACKEND, set per environment below, where no admin has
+# configured one yet — exactly what EMAIL_BACKEND used to point at directly.
+EMAIL_BACKEND = "apps.core.mailbackend.ConfigurableEmailBackend"
+
 DEFAULT_FROM_EMAIL = os.environ.get("DJANGO_FROM_EMAIL", "mairie@example.fr")
 
 # Links in outgoing mail (§6.2 step 7). A management command sending reminders

@@ -28,7 +28,7 @@ from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.utils.translation import gettext_lazy as _
 
 from apps.audit.models import Reason
-from apps.core.models import Role, User
+from apps.core.models import MailSettings, Role, User
 from apps.elections import config
 from apps.elections.models import ListType, Poll, TallyMethod, TiebreakRule
 
@@ -487,3 +487,44 @@ class GrantRoleForm(forms.Form):
         empty_label=_("— choisir —"),
     )
     role = forms.ChoiceField(label=_("Rôle"), choices=Role.choices)
+
+
+# --- Screen 12: paramètres de messagerie (§6.5.12) ------------------------
+
+
+class MailSettingsForm(forms.ModelForm):  # type: ignore[type-arg]  # not subscriptable at runtime
+    """The SMTP relay. The password is entered here but never redisplayed —
+    ``instance`` never puts it back in ``initial`` (it lives encrypted, off
+    this form's fields entirely) — and a blank submission keeps whatever is
+    already stored (``mailsettings.save``)."""
+
+    raw_password = forms.CharField(
+        label=_("Mot de passe"),
+        widget=forms.PasswordInput(render_value=False),
+        required=False,
+        help_text=_("Laissez vide pour conserver le mot de passe déjà enregistré."),
+    )
+
+    class Meta:
+        model = MailSettings
+        fields = ("host", "port", "encryption", "username", "from_email")
+        labels = {
+            "host": _("Serveur SMTP"),
+            "port": _("Port"),
+            "encryption": _("Chiffrement"),
+            "username": _("Identifiant"),
+            "from_email": _("Adresse d'expédition"),
+        }
+        widgets = {"encryption": forms.RadioSelect}
+
+    def clean_port(self) -> int:
+        port: int = self.cleaned_data["port"]
+        if not 1 <= port <= 65535:
+            raise forms.ValidationError(_("Le port doit être compris entre 1 et 65535."))
+        return port
+
+
+class MailTestForm(forms.Form):
+    """Screen 12's "envoyer un message de test" action."""
+
+    recipient = forms.EmailField(label=_("Adresse de test"))

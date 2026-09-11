@@ -1,13 +1,20 @@
 # SPDX-License-Identifier: 0BSD
 """Production settings. Every value of consequence comes from the environment
-file rendered by Ansible (§15); nothing is defaulted to a working value here."""
+file rendered by Ansible (§15); nothing is defaulted to a working value here —
+the one exception is the SMTP relay, which screen 12 (§6.5.12) can supply
+instead, so its env vars are optional rather than required."""
 
 import os
 
 from .base import *
 
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = os.environ["DJANGO_EMAIL_HOST"]
+# The fallback ConfigurableEmailBackend uses while no admin has saved SMTP
+# settings on screen 12 (§6.5.12) — the same env vars this used to be the
+# whole of. DJANGO_EMAIL_HOST is no longer required at start-up: a commune
+# that configures the relay entirely from the back-office needs none of these,
+# and one that already sets them through Ansible is unaffected.
+EMAIL_FALLBACK_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = os.environ.get("DJANGO_EMAIL_HOST", "")
 EMAIL_PORT = int(os.environ.get("DJANGO_EMAIL_PORT", "587"))
 EMAIL_HOST_USER = os.environ.get("DJANGO_EMAIL_USER", "")
 EMAIL_HOST_PASSWORD = os.environ.get("DJANGO_EMAIL_PASSWORD", "")

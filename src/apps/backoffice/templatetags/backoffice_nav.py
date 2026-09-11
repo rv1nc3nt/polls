@@ -91,6 +91,7 @@ _GLOBAL_ITEMS: tuple[_Item, ...] = (
     _Item(_("Scrutins"), "poll_index", icon="polls"),
     _Item(_("Comptes opérateurs"), "account_admin", (_COMMUNE,), icon="accounts"),
     _Item(_("Rôles par scrutin"), "role_admin", (_COMMUNE,), icon="roles"),
+    _Item(_("Messagerie"), "mail_settings", (_COMMUNE,), icon="mail"),
 )
 
 #: Added below the global links when a poll is in scope, grouped in the order the

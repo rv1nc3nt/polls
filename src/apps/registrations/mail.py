@@ -28,6 +28,7 @@ from django.utils import translation
 from django.utils.translation import gettext as _
 
 from apps.core.codes import format_tracking_code
+from apps.core.mailbackend import default_from_email
 from apps.core.types import Token, TrackingCode
 
 from .models import Registration
@@ -96,7 +97,7 @@ def send_ballot_receipt(
         }
         subject = _("Votre bulletin est enregistré : %(poll)s") % {"poll": context["poll_title"]}
         body = render_to_string("registrations/mail/ballot_receipt.txt", context)
-    return send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [registration.email])
+    return send_mail(subject, body, default_from_email(), [registration.email])
 
 
 def send_confirmation(registration: Registration, token: Token) -> int:
@@ -118,7 +119,7 @@ def send_confirmation(registration: Registration, token: Token) -> int:
         }
         subject = _("Confirmez votre inscription : %(poll)s") % {"poll": context["poll_title"]}
         body = render_to_string("registrations/mail/confirmation.txt", context)
-    return send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [registration.email])
+    return send_mail(subject, body, default_from_email(), [registration.email])
 
 
 def send_reminder(registration: Registration) -> int:
@@ -136,4 +137,4 @@ def send_reminder(registration: Registration) -> int:
             "poll": context["poll_title"]
         }
         body = render_to_string("registrations/mail/reminder.txt", context)
-    return send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [registration.email])
+    return send_mail(subject, body, default_from_email(), [registration.email])

@@ -269,7 +269,8 @@ If the voter has a paper ballot and attempts to vote online, refuse and direct t
 
 The administrative interface is purpose-built, not Django admin. It is used by council members and mairie staff, not by developers, and it therefore falls under RGAA like the rest of the site (R-14.1), must be in French, and must not expose destructive actions beside routine ones. Django admin is not included in the production URL configuration at all.
 
-Screens, all scoped to a poll and gated by the per-poll roles of §3.7:
+Screens, gated by the per-poll roles of §3.7 — except 10, 11 and 12, which
+are commune-level or pre-account and gated differently, as noted under each:
 
 1. **Tableau de bord** — state, opening and closing instants, registered / confirmed / voted counts by channel, pending review count, and the actions permitted in the current state. While the poll is in `draft` it also names every condition that would make `open_poll` refuse — a missing translation, an absent roll snapshot — so a gap is visible before the opening hour rather than at it (§4). In `open` it likewise names what would block `close_poll` — *clôture bloquée : n bulletins en attente de contreseing*.
 2. **Configuration du scrutin** — editable only in `draft`; read-only thereafter, with the closing-date extension (R-3.4) as a separate, reasoned action.
@@ -282,6 +283,7 @@ Screens, all scoped to a poll and gated by the per-poll roles of §3.7:
 9. **Clôture et publication** — closure hash, tally derivation, tie-break computation where applicable, and the publication action.
 10. **Comptes et rôles** — operator accounts and per-poll role assignment.
 11. **Première installation** — a first-run wizard creating the commune record and the initial administrator, so an adopting commune never runs `createsuperuser`.
+12. **Paramètres de messagerie** — the SMTP relay (host, port, encryption, credentials, sending address), commune-level like screen 10 since one relay serves every poll. Editable by a commune admin only; a "send a test message" action exercises the settings already saved before anyone relies on them for a live poll. Absent settings fall back to the deployment's own configuration (§14, §15), so this is additive: a commune whose Ansible deploy already sets the relay is unaffected until an admin fills the screen in.
 
 Two rules govern all of them. Every mutating screen posts through the service functions of §5.1; no view writes through the ORM directly. And no screen anywhere displays a voter's identity alongside ballot content, except on the paper-entry screen, where the association is deliberate and logged.
 
@@ -515,7 +517,7 @@ The choice is made for the project's second life rather than its first. This is 
 
 **Django** on the current LTS. SQLite in WAL mode by default; PostgreSQL supported through the ORM for larger adopters, with the caveat that the triggers of §5.1 are SQLite dialect and must be rewritten in PL/pgSQL, and that a test suite running against both backends is the only way to keep the two in step. Keep SQLite the sole supported backend until a commune actually asks for the other.
 
-**Dependencies stay few.** `openpyxl` for the xlsx roll import (R-4.2); the standard library for CSV, hashing and randomness; Django's own SMTP backend for mail; `argon2-cffi` for the handful of operator passwords. No Celery, no Redis, no queue: background work is management commands (`import_roll`, `open_poll`, `send_reminders`, `close_poll`, `run_tally`, `retention_purge`), which keeps it individually runnable, observable and testable. Lockfile committed.
+**Dependencies stay few.** `openpyxl` for the xlsx roll import (R-4.2); the standard library for CSV, hashing and randomness; Django's own SMTP backend for mail, wrapped so it can also be configured from the back-office (§6.5.12) rather than only the environment; `argon2-cffi` for the handful of operator passwords; `cryptography` for the one secret the database stores reversibly rather than hashed — the SMTP password behind that screen, which a relay needs back in plaintext to authenticate. No Celery, no Redis, no queue: background work is management commands (`import_roll`, `open_poll`, `send_reminders`, `close_poll`, `run_tally`, `retention_purge`), which keeps it individually runnable, observable and testable. Lockfile committed.
 
 **Scheduler-agnostic jobs.** Nothing in the application knows what invokes these commands: cron, systemd timers, a container orchestrator, or a person at a terminal are all equivalent. That portability imposes four requirements on the commands themselves, since the weaker schedulers guarantee none of them.
 

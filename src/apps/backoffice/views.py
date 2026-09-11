@@ -28,14 +28,15 @@ Here so far, additionally: screen 9 (clôture et publication), whose read model
 is ``elections.results_view`` (shared with the public results page) and whose
 write paths are ``elections.closure`` (the physical tie-break) and
 ``elections.transitions.publish_poll``; screen 10 (comptes et
-rôles), whose read model and write path are both ``accounts.py``; and screen 11
-(première installation), whose write path is ``firstrun.py``. Screen 10 is
-commune-level — it goes through ``require_commune_admin``, not
-``require_poll_role``, and neither of its views takes a ``poll`` argument, so the
-per-poll roles it *assigns* are still not access to a poll's screens for the
-commune admin who assigns them (§3.7). Screen 11 runs before any account exists,
-so it cannot use either gate: ``require_first_run`` opens it only while no
-account has been created.
+rôles), whose read model and write path are both ``accounts.py``; screen 11
+(première installation), whose write path is ``firstrun.py``; and screen 12
+(paramètres de messagerie, §6.5.12), whose read model and write path are both
+``mailsettings.py``. Screens 10 and 12 are commune-level — they go through
+``require_commune_admin``, not ``require_poll_role``, and neither of their
+views takes a ``poll`` argument, so the per-poll roles screen 10 *assigns* are
+still not access to a poll's screens for the commune admin who assigns them
+(§3.7). Screen 11 runs before any account exists, so it cannot use either
+gate: ``require_first_run`` opens it only while no account has been created.
 """
 
 from __future__ import annotations
@@ -73,7 +74,7 @@ from apps.registrations import mail as registration_mail
 from apps.registrations import services as registrations
 from apps.registrations.models import Channel, Registration
 
-from . import accounts, auditlog, dashboard, firstrun, paper, review
+from . import accounts, auditlog, dashboard, firstrun, mailsettings, paper, review
 from .access import (
     accessible_polls,
     current_operator,
@@ -87,6 +88,8 @@ from .forms import (
     ExtensionForm,
     FirstRunForm,
     GrantRoleForm,
+    MailSettingsForm,
+    MailTestForm,
     NewAccountForm,
     OptionFormSet,
     PollConfigForm,
@@ -987,4 +990,70 @@ def role_admin(request: HttpRequest) -> HttpResponse:
             "holders": accounts.role_holders(poll) if poll is not None else [],
             "grant_form": grant_form,
         },
+    )
+
+
+# --- Screen 12: paramètres de messagerie (§6.5.12) -------------------------
+#
+# Commune-level, like screen 10: ``require_commune_admin``, no ``poll``
+# argument. One relay serves every poll, so this is not a per-poll setting.
+
+
+@require_commune_admin
+def mail_settings(request: HttpRequest) -> HttpResponse:
+    """Screen 12 — the commune's SMTP relay (§6.5.12), admin-only (§3.7).
+
+    Two actions on one screen: "save" writes the settings through
+    ``mailsettings.save`` (audited, §10), and "test" sends a real message
+    through whatever is already saved, so a mistyped host or a stale password
+    shows up here rather than in a confirmation mail nobody received (§14).
+    Testing needs settings saved first — it exercises the stored row, not the
+    unsaved form, so there is never a question of which one was tested.
+    """
+    config = mailsettings.current()
+    testing = request.method == "POST" and request.POST.get("action") == "test"
+    form = MailSettingsForm(
+        request.POST if request.method == "POST" and not testing else None, instance=config
+    )
+    test_form = MailTestForm(request.POST if testing else None)
+
+    if request.method == "POST":
+        operator = current_operator(request)
+        if testing:
+            if test_form.is_valid():
+                if config is None or not config.host:
+                    messages.error(
+                        request, _("Enregistrez d'abord les paramètres avant de les tester.")
+                    )
+                else:
+                    recipient = test_form.cleaned_data["recipient"]
+                    try:
+                        mailsettings.send_test(config, recipient=recipient)
+                    except mailsettings.TestSendFailed as failed:
+                        messages.error(
+                            request, _("Échec de l'envoi : %(error)s") % {"error": str(failed)}
+                        )
+                    else:
+                        messages.success(
+                            request,
+                            _("Message de test envoyé à %(to)s.") % {"to": recipient},
+                        )
+            return redirect("backoffice:mail_settings")
+        if form.is_valid():
+            draft = mailsettings.MailSettingsDraft(
+                host=form.cleaned_data["host"],
+                port=form.cleaned_data["port"],
+                encryption=form.cleaned_data["encryption"],
+                username=form.cleaned_data["username"],
+                from_email=form.cleaned_data["from_email"],
+                raw_password=form.cleaned_data["raw_password"],
+            )
+            mailsettings.save(draft, actor=operator)
+            messages.success(request, _("Paramètres de messagerie enregistrés."))
+            return redirect("backoffice:mail_settings")
+
+    return render(
+        request,
+        "backoffice/mail_settings.html",
+        {"form": form, "test_form": test_form, "config": config},
     )

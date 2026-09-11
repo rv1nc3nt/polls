@@ -19,6 +19,7 @@ urlpatterns = [
     path("deconnexion/", views.OperatorLogoutView.as_view(), name="logout"),
     path("comptes/", views.account_admin, name="account_admin"),
     path("comptes/roles/", views.role_admin, name="role_admin"),
+    path("messagerie/", views.mail_settings, name="mail_settings"),
     path("scrutin/<uuid:poll_id>/", views.poll_dashboard, name="dashboard"),
     path("scrutin/<uuid:poll_id>/configuration/", views.poll_config, name="poll_config"),
     path("scrutin/<uuid:poll_id>/journal/", views.audit_log, name="audit_log"),

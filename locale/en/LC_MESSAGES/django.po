@@ -1429,3 +1429,158 @@ msgstr "Mairie area navigation"
 #: templates/backoffice/_nav.html
 msgid "rôle à s’attribuer"
 msgstr "role to assign yourself"
+
+#: apps/audit/models.py
+msgid "paramètres de messagerie modifiés"
+msgstr "mail settings changed"
+
+#: apps/core/models.py
+msgid "serveur SMTP"
+msgstr "SMTP server"
+
+#: apps/core/models.py
+msgid "port"
+msgstr "port"
+
+#: apps/core/models.py
+msgid "chiffrement"
+msgstr "encryption"
+
+#: apps/core/models.py
+msgid "STARTTLS"
+msgstr "STARTTLS"
+
+#: apps/core/models.py
+msgid "SSL/TLS implicite"
+msgstr "Implicit SSL/TLS"
+
+#: apps/core/models.py
+msgid "identifiant"
+msgstr "username"
+
+#: apps/core/models.py
+msgid "mot de passe (chiffré)"
+msgstr "password (encrypted)"
+
+#: apps/core/models.py
+msgid "adresse d'expédition"
+msgstr "sending address"
+
+#: apps/core/models.py
+msgid ""
+"Laissez vide pour utiliser l'adresse par défaut du déploiement. Doit "
+"généralement correspondre au compte authentifié auprès du serveur."
+msgstr ""
+"Leave blank to use the deployment's default address. Should usually match "
+"the account authenticated with the server."
+
+#: apps/core/models.py
+msgid "dernière modification"
+msgstr "last changed"
+
+#: apps/core/models.py
+msgid "paramètres de messagerie"
+msgstr "mail settings"
+
+#: apps/core/models.py
+msgid "(non configuré)"
+msgstr "(not configured)"
+
+#: apps/backoffice/forms.py
+msgid "Laissez vide pour conserver le mot de passe déjà enregistré."
+msgstr "Leave blank to keep the password already stored."
+
+#: apps/backoffice/forms.py
+msgid "Serveur SMTP"
+msgstr "SMTP server"
+
+#: apps/backoffice/forms.py
+msgid "Port"
+msgstr "Port"
+
+#: apps/backoffice/forms.py
+msgid "Chiffrement"
+msgstr "Encryption"
+
+#: apps/backoffice/forms.py
+msgid "Adresse d'expédition"
+msgstr "Sending address"
+
+#: apps/backoffice/forms.py
+msgid "Le port doit être compris entre 1 et 65535."
+msgstr "The port must be between 1 and 65535."
+
+#: apps/backoffice/forms.py
+msgid "Adresse de test"
+msgstr "Test address"
+
+#: apps/backoffice/mailsettings.py
+msgid "Message de test — espace mairie"
+msgstr "Test message — mairie area"
+
+#: apps/backoffice/mailsettings.py
+msgid ""
+"Ceci est un message de test envoyé depuis les paramètres de "
+"messagerie de l'espace mairie. Si vous le recevez, le serveur "
+"SMTP configuré est joignable et accepte ces identifiants."
+msgstr ""
+"This is a test message sent from the mail settings of the mairie area. If "
+"you receive it, the configured SMTP server is reachable and accepts "
+"these credentials."
+
+#: apps/backoffice/mailsettings.py
+msgid "L'envoi a échoué sans message d'erreur du serveur."
+msgstr "The send failed with no error message from the server."
+
+#: apps/backoffice/views.py
+msgid "Enregistrez d'abord les paramètres avant de les tester."
+msgstr "Save the settings first, before testing them."
+
+#: apps/backoffice/views.py
+msgid "Échec de l'envoi : %(error)s"
+msgstr "Send failed: %(error)s"
+
+#: apps/backoffice/views.py
+msgid "Message de test envoyé à %(to)s."
+msgstr "Test message sent to %(to)s."
+
+#: apps/backoffice/views.py
+msgid "Paramètres de messagerie enregistrés."
+msgstr "Mail settings saved."
+
+#: apps/backoffice/templatetags/backoffice_nav.py
+msgid "Messagerie"
+msgstr "Mail"
+
+#: templates/backoffice/mail_settings.html
+msgid "Paramètres de messagerie"
+msgstr "Mail settings"
+
+#: templates/backoffice/mail_settings.html
+msgid ""
+"Aucun paramètre enregistré : les envois utilisent la configuration du "
+"déploiement (variables d'environnement). Enregistrez des paramètres "
+"ci-dessous pour la remplacer."
+msgstr ""
+"No settings saved: sending uses the deployment configuration "
+"(environment variables). Save settings below to replace it."
+
+#: templates/backoffice/mail_settings.html
+msgid "Enregistrer"
+msgstr "Save"
+
+#: templates/backoffice/mail_settings.html
+msgid "Vérifier les paramètres"
+msgstr "Check the settings"
+
+#: templates/backoffice/mail_settings.html
+msgid ""
+"Envoie un message réel avec les paramètres déjà enregistrés ci-dessus, "
+"pour vérifier qu'ils sont corrects avant l'ouverture d'un scrutin."
+msgstr ""
+"Sends a real message with the settings already saved above, to check "
+"that they are correct before a poll opens."
+
+#: templates/backoffice/mail_settings.html
+msgid "Envoyer un message de test"
+msgstr "Send a test message"
