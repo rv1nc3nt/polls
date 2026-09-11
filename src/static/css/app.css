@@ -586,6 +586,8 @@ details form.inline {
 details form.inline label { margin: 0; }
 
 .pollpicker { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: end; margin-bottom: 1.5rem; }
+/* Revealed by static/js/poll-picker-filter.js; the no-JS path never shows it. */
+.pollpicker [data-poll-filter-wrap][hidden] { display: none; }
 
 /* ---- proposition editor (screen 2) --------------------------------- */
 

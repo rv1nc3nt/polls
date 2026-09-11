@@ -28,7 +28,7 @@ from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.utils.translation import gettext_lazy as _
 
 from apps.audit.models import Reason
-from apps.core.models import MailSettings, Role, User
+from apps.core.models import MailSettings, User
 from apps.elections import config
 from apps.elections.models import ListType, Poll, TallyMethod, TiebreakRule
 
@@ -569,17 +569,6 @@ class FirstRunForm(forms.Form):
         if password and confirm and password != confirm:
             self.add_error("raw_password_confirm", _("Les deux mots de passe diffèrent."))
         return cleaned
-
-
-class GrantRoleForm(forms.Form):
-    """Assign one per-poll role of §3.7 to an active account (R-2.1)."""
-
-    account = forms.ModelChoiceField(
-        label=_("Compte"),
-        queryset=User.objects.filter(is_active=True).order_by("username"),
-        empty_label=_("— choisir —"),
-    )
-    role = forms.ChoiceField(label=_("Rôle"), choices=Role.choices)
 
 
 # --- Screen 12: paramètres de messagerie (§6.5.12) ------------------------
