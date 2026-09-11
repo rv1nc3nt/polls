@@ -28,6 +28,8 @@ ROOT = Path("/home/claude/Projects/polls")
 OUT = ROOT / "docs" / "manuel" / "captures"
 OUT.mkdir(parents=True, exist_ok=True)
 CSS = (ROOT / "src" / "static" / "css" / "app.css").read_text(encoding="utf-8")
+TABS_JS = (ROOT / "src" / "static" / "js" / "tabs.js").read_text(encoding="utf-8")
+OPTION_EDITOR_JS = (ROOT / "src" / "static" / "js" / "option-editor.js").read_text(encoding="utf-8")
 
 poll = Poll.objects.get(title_i18n__fr__startswith="Réaménagement")
 draft = Poll.objects.get(state=PollState.DRAFT)
@@ -51,6 +53,22 @@ def save(name: str, html: str) -> None:
     # stand-alone capture has no server to load it from and does not need it —
     # the control stays hidden and the OS theme drives the page, as designed.
     html = re.sub(r'\s*<script src="[^"]*theme\.js[^"]*"></script>', "", html)
+    # tabs.js and option-editor.js are *not* dropped the same way: screen 2's
+    # configuration editor (13-mairie-configuration-brouillon) is the tabbed
+    # view, and the capture should show what an operator actually sees, not
+    # the no-JS fallback of every fieldset stacked open. A root-relative
+    # `<script src="/static/...">` 404s under `file://`, so inline both in
+    # place — same treatment as app.css above.
+    # (lambda replacements: the JS source has backslashes re.sub would
+    # otherwise read as backreferences)
+    html = re.sub(
+        r'<script src="[^"]*\btabs\.js[^"]*" defer></script>', lambda _: f"<script>\n{TABS_JS}\n</script>", html
+    )
+    html = re.sub(
+        r'<script src="[^"]*\boption-editor\.js[^"]*" defer></script>',
+        lambda _: f"<script>\n{OPTION_EDITOR_JS}\n</script>",
+        html,
+    )
     # Drop `autofocus` (login username, paper-entry search): the headless render
     # would freeze that field focused, drawing a :focus-visible ring on one
     # control and making the form look lopsided. A capture shows the resting

@@ -1741,8 +1741,345 @@ Choix du nom de l&#x27;équipement en cours de construction rue des Écoles.</te
   
   
     
-    <script src="/static/js/tabs.js" defer></script>
-    <script src="/static/js/option-editor.js" defer></script>
+    <script>
+/* SPDX-License-Identifier: 0BSD */
+
+/*
+  Generic ARIA tabs (§6.5.2), progressive enhancement over a stack of
+  sections. Without this file `[data-tabs-panel]` elements just render in
+  document order — the tablist stays `hidden`, since a button with nothing
+  wired to it would do nothing but confuse a visitor (same reasoning as
+  static/js/theme.js's control and static/js/option-editor.js's add button).
+
+  Markup contract: a `[data-tabs]` container holds one `[data-tabs-list]` of
+  plain `[data-tabs-tab]` buttons — same count, same order as its direct
+  `[data-tabs-panel]` children, matched by position. This script adds every
+  ARIA role and relationship itself, so a template author writes neither.
+
+  On activation, the first panel containing a `.error` becomes the initial
+  tab instead of the first one: a config save posts back to this same page
+  (poll_config.html, poll_create.html), and a validation error must surface on
+  the tab it failed on rather than hide behind whichever one opens by default
+  (R-14.1). Every other tab whose panel also holds a `.error` is labelled too
+  (`.tabs__tab-flag`, text from the container's `data-tabs-error-label`): a
+  poll created with most of the form left blank fails several tabs at once,
+  and only ever opening the first left the rest of the errors hidden with
+  nothing on screen pointing at them.
+
+  A browser's own "please fill out this field" bubble is worded in the
+  browser's UI language, not the page's — `<html lang>` doesn't touch it, so
+  an operator with French content and an English browser got an English
+  bubble in the middle of an otherwise French screen. `data-tabs-required-
+  message` (also from the template, R-14) overrides it via
+  `setCustomValidity` the moment a required field is found invalid; the
+  `input`/`change` listener clears that override again so a field the
+  operator then fills in is judged on its actual value, not stuck invalid.
+*/
+(function () {
+  "use strict";
+
+  document.addEventListener("DOMContentLoaded", function () {
+    var containers = document.querySelectorAll("[data-tabs]");
+    Array.prototype.forEach.call(containers, function (container) {
+      var list = container.querySelector("[data-tabs-list]");
+      var tabs = list ? Array.prototype.slice.call(list.querySelectorAll("[data-tabs-tab]")) : [];
+      var panels = Array.prototype.slice.call(container.querySelectorAll("[data-tabs-panel]"));
+      if (!list || tabs.length < 2 || tabs.length !== panels.length) {
+        return;
+      }
+
+      list.setAttribute("role", "tablist");
+
+      tabs.forEach(function (tab, index) {
+        var panel = panels[index];
+        var tabId = "tabs-tab-" + panel.id;
+        tab.id = tabId;
+        tab.setAttribute("role", "tab");
+        tab.setAttribute("aria-controls", panel.id);
+        panel.setAttribute("role", "tabpanel");
+        panel.setAttribute("aria-labelledby", tabId);
+        panel.setAttribute("tabindex", "0");
+      });
+
+      function activate(index, moveFocus) {
+        tabs.forEach(function (tab, i) {
+          var selected = i === index;
+          tab.setAttribute("aria-selected", selected ? "true" : "false");
+          tab.tabIndex = selected ? 0 : -1;
+          tab.classList.toggle("is-selected", selected);
+          panels[i].hidden = !selected;
+        });
+        if (moveFocus) {
+          tabs[index].focus();
+        }
+      }
+
+      var requiredMessage = container.getAttribute("data-tabs-required-message") || "";
+
+      // A `required` field inside a tab that is not the open one is,
+      // per the HTML spec, barred from constraint validation while its
+      // panel is `[hidden]`: the browser cannot focus it to report the
+      // problem, so a submit that fails only on a field in a background
+      // tab is silently refused — no page reload, nothing rendered, the
+      // POST never leaves the browser (screen 2's opens_at/closes_at/
+      // paper_entry_deadline, all required, sit on the "Calendrier" tab,
+      // which is never the one that opens first). Capturing `invalid`
+      // ahead of the browser's own handling and revealing that field's
+      // tab first is what lets native validation actually show something,
+      // and setting a translated message on it is what makes that
+      // something be in the operator's language.
+      container.addEventListener(
+        "invalid",
+        function (event) {
+          var field = event.target;
+          if (requiredMessage && field.validity && field.validity.valueMissing) {
+            field.setCustomValidity(requiredMessage);
+          }
+          var panel = field.closest("[data-tabs-panel]");
+          var index = panel ? panels.indexOf(panel) : -1;
+          if (index !== -1 && panels[index].hidden) {
+            activate(index, false);
+          }
+        },
+        true
+      );
+
+      // setCustomValidity is sticky — left alone, a field we've marked
+      // invalid stays invalid forever, even after the operator fixes it.
+      // Clearing it on every change hands validity back to the field's own
+      // rules, so a corrected field is seen as corrected.
+      container.addEventListener(
+        "input",
+        function (event) {
+          if (event.target.setCustomValidity) {
+            event.target.setCustomValidity("");
+          }
+        },
+        true
+      );
+
+      list.addEventListener("click", function (event) {
+        var tab = event.target.closest("[data-tabs-tab]");
+        var index = tab ? tabs.indexOf(tab) : -1;
+        if (index !== -1) {
+          activate(index, false);
+        }
+      });
+
+      // Roving tabindex, left/right/Home/End — the standard tablist keyboard
+      // pattern (RGAA 12.7 / R-14.1): only the selected tab sits in the Tab
+      // order, and the arrow keys move both focus and the open panel.
+      list.addEventListener("keydown", function (event) {
+        var current = tabs.indexOf(document.activeElement);
+        if (current === -1) {
+          return;
+        }
+        var next = null;
+        if (event.key === "ArrowRight") {
+          next = (current + 1) % tabs.length;
+        } else if (event.key === "ArrowLeft") {
+          next = (current - 1 + tabs.length) % tabs.length;
+        } else if (event.key === "Home") {
+          next = 0;
+        } else if (event.key === "End") {
+          next = tabs.length - 1;
+        } else {
+          return;
+        }
+        event.preventDefault();
+        activate(next, true);
+      });
+
+      // Translated in the template, not here (same reasoning as
+      // option-editor.js's data-label-remove): interface text stays out of
+      // this file so it is not a second place a translator has to find.
+      var errorLabel = container.getAttribute("data-tabs-error-label") || "";
+
+      var initial = 0;
+      var foundInitial = false;
+      panels.forEach(function (panel, index) {
+        if (!panel.querySelector(".error")) {
+          return;
+        }
+        if (errorLabel) {
+          var note = document.createElement("span");
+          note.className = "tabs__tab-flag";
+          note.textContent = errorLabel;
+          tabs[index].appendChild(document.createTextNode(" "));
+          tabs[index].appendChild(note);
+        }
+        if (!foundInitial) {
+          initial = index;
+          foundInitial = true;
+        }
+      });
+
+      activate(initial, false);
+      list.hidden = false;
+    });
+  });
+})();
+
+</script>
+    <script>
+/* SPDX-License-Identifier: 0BSD */
+
+/*
+  Configuration editor — add and remove a proposition (§6.5.2, R-3.1).
+
+  Progressive enhancement over the Django formset in poll_config.html. Without
+  this file the editor still works: it renders `extra` blank rows to fill in,
+  and each row's DELETE checkbox drops that row on save. This script layers an
+  « Ajouter une proposition » button and a per-row « Retirer » button on top,
+  and keeps the formset management form (TOTAL_FORMS) and the row indices in
+  step so the POST still parses.
+
+  A row that is already stored — its hidden `pk` is set — is never torn out of
+  the DOM: removing it ticks its DELETE box, which the server honours on save
+  and which stays undoable until then. A row with no `pk` (a blank `extra` row,
+  or one this script added) is removed outright and the rows after it are
+  renumbered.
+
+  R-3.1's floor of two propositions is the server's to enforce — the formset
+  raises. Here it only disables the « Retirer » buttons once two live rows are
+  left, so the ordinary case never reaches that error.
+*/
+(function () {
+  "use strict";
+
+  // The `opt-<index>-` segment of a formset field name / id, `__prefix__` in
+  // the <template> pattern.
+  var INDEX_RE = /(opt-)(\d+|__prefix__)(-)/;
+  var PLACEHOLDER = /__prefix__/g;
+
+  document.addEventListener("DOMContentLoaded", function () {
+    var editor = document.querySelector("[data-option-editor]");
+    if (!editor) {
+      return;
+    }
+
+    var rowsBox = editor.querySelector("[data-option-rows]");
+    var template = editor.querySelector("[data-option-template]");
+    var addWrap = editor.querySelector("[data-option-add]");
+    var addButton = editor.querySelector("[data-option-add-button]");
+    var totalField = document.getElementById("id_opt-TOTAL_FORMS");
+    if (!rowsBox || !template || !addWrap || !addButton || !totalField) {
+      return;
+    }
+
+    function rows() {
+      return Array.prototype.slice.call(rowsBox.querySelectorAll("[data-option-row]"));
+    }
+
+    function isStored(row) {
+      var pk = row.querySelector('[name$="-pk"]');
+      return !!(pk && pk.value);
+    }
+
+    function isRemoved(row) {
+      return row.classList.contains("option-row--removed");
+    }
+
+    // Rewrite one row's field indices to `index`: input/select/textarea `name`
+    // and `id`, label `for`, `aria-describedby`, and the visible legend number.
+    function renumber(row, index) {
+      var nodes = row.querySelectorAll("input, select, textarea, label");
+      Array.prototype.forEach.call(nodes, function (node) {
+        ["name", "id", "for", "aria-describedby"].forEach(function (attr) {
+          var value = node.getAttribute(attr);
+          if (value) {
+            node.setAttribute(attr, value.replace(INDEX_RE, "$1" + index + "$3"));
+          }
+        });
+      });
+      var number = row.querySelector("[data-option-number]");
+      if (number) {
+        number.textContent = String(index + 1);
+      }
+    }
+
+    // Re-index every row from its DOM position and bring the management form
+    // and the « Retirer » buttons back in line.
+    function sync() {
+      var all = rows();
+      all.forEach(renumber);
+      totalField.value = String(all.length);
+
+      var live = all.filter(function (row) {
+        return !isRemoved(row);
+      }).length;
+      all.forEach(function (row) {
+        var button = row.querySelector("[data-option-remove]");
+        if (button) {
+          button.disabled = !isRemoved(row) && live <= 2;
+        }
+      });
+    }
+
+    // Reveal the per-row button; fold the raw DELETE checkbox away — it is now
+    // driven by that button but must stay in the DOM to POST.
+    function wireRow(row) {
+      var removeWrap = row.querySelector("[data-option-remove-wrap]");
+      var deleteRow = row.querySelector("[data-option-delete]");
+      if (removeWrap) {
+        removeWrap.hidden = false;
+      }
+      if (deleteRow) {
+        deleteRow.hidden = true;
+      }
+    }
+
+    rowsBox.addEventListener("click", function (event) {
+      var button = event.target.closest("[data-option-remove]");
+      if (!button) {
+        return;
+      }
+      var row = button.closest("[data-option-row]");
+      if (!row) {
+        return;
+      }
+
+      if (isStored(row)) {
+        var removed = !isRemoved(row);
+        var box = row.querySelector('[name$="-DELETE"]');
+        row.classList.toggle("option-row--removed", removed);
+        if (box) {
+          box.checked = removed;
+        }
+        button.textContent = button.getAttribute(
+          removed ? "data-label-undo" : "data-label-remove"
+        );
+      } else {
+        row.parentNode.removeChild(row);
+        // The row that had focus is gone; land somewhere sensible.
+        addButton.focus();
+      }
+      sync();
+    });
+
+    addButton.addEventListener("click", function () {
+      var holder = document.createElement("div");
+      holder.innerHTML = template.innerHTML.replace(PLACEHOLDER, String(rows().length));
+      var row = holder.querySelector("[data-option-row]");
+      if (!row) {
+        return;
+      }
+      rowsBox.appendChild(row);
+      wireRow(row);
+      sync();
+      var first = row.querySelector("input, select, textarea");
+      if (first) {
+        first.focus();
+      }
+    });
+
+    rows().forEach(wireRow);
+    addWrap.hidden = false;
+    sync();
+  });
+})();
+
+</script>
   
 
 </body>
