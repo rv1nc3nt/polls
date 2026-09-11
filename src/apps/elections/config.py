@@ -29,7 +29,7 @@ scrutin" to grant one, themselves or someone else, as a separate, logged step.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from django.db import transaction
@@ -102,7 +102,11 @@ def create_poll(draft: ConfigDraft, *, is_sandbox: bool, actor: User) -> Poll:
     poll.save()
     for position, row in enumerate(draft.options or []):
         PollOption.objects.create(
-            poll=poll, option_id=row.option_id, label_i18n=row.labels, position=position
+            poll=poll,
+            option_id=row.option_id,
+            label_i18n=row.labels,
+            details_i18n=row.details,
+            position=position,
         )
     audit.record(
         action=Action.POLL_CREATED,
@@ -124,11 +128,14 @@ class OptionDraft:
     ``pk`` is the existing ``PollOption`` id where the row edits one and empty
     where it adds one. ``labels`` is ``{language: text}`` over the poll's
     enabled languages; a language left blank is a gap the dashboard names as an
-    opening blocker (§3.8), not an error to raise here.
+    opening blocker (§3.8), not an error to raise here. ``details`` is the same
+    shape for the optional extended description of R-3.12 (§3.1 bis) — a gap
+    there is never a blocker, opening or otherwise.
     """
 
     option_id: str
     labels: dict[str, str]
+    details: dict[str, str] = field(default_factory=dict)
     pk: str = ""
 
 
@@ -220,6 +227,7 @@ def _apply_options(poll: Poll, options: list[OptionDraft]) -> bool:
                 poll=poll,
                 option_id=row.option_id,
                 label_i18n=row.labels,
+                details_i18n=row.details,
                 position=position,
             )
             dirty = True
@@ -228,12 +236,14 @@ def _apply_options(poll: Poll, options: list[OptionDraft]) -> bool:
         if (
             current.option_id != row.option_id
             or current.label_i18n != row.labels
+            or current.details_i18n != row.details
             or current.position != position
         ):
             current.option_id = row.option_id
             current.label_i18n = row.labels
+            current.details_i18n = row.details
             current.position = position
-            current.save(update_fields=["option_id", "label_i18n", "position"])
+            current.save(update_fields=["option_id", "label_i18n", "details_i18n", "position"])
             dirty = True
 
     stale = set(existing) - kept

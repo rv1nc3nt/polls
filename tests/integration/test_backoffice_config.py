@@ -161,6 +161,26 @@ def test_saving_persists_the_change_and_logs_which_fields_moved(
     assert "title_i18n" in event.after["changed"]
 
 
+def test_option_extended_description_is_saved_and_is_optional(
+    client: Client, open_window_poll: Poll, admin_user: User
+) -> None:
+    """R-3.12, §3.1 bis: the field round-trips through the same form as the
+    label, and leaving it blank on the other options is not an error — unlike
+    a blank label, nothing here requires it."""
+    _grant(open_window_poll, admin_user, Role.POLL_ADMIN)
+    client.force_login(admin_user)
+
+    data = _payload(open_window_poll)
+    data["opt-0-details_fr"] = "## Titre\n\nUne **description** étendue."
+    response = client.post(_url(open_window_poll), data)
+    assert response.status_code == 302
+
+    options = list(open_window_poll.options.order_by("position"))
+    assert options[0].details_i18n == {"fr": "## Titre\n\nUne **description** étendue."}
+    assert options[1].details_i18n == {}
+    assert open_window_poll.missing_translations() == []
+
+
 def test_options_can_be_relabelled_and_added(
     client: Client, open_window_poll: Poll, admin_user: User
 ) -> None:

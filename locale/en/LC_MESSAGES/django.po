@@ -29,6 +29,14 @@ msgid "configuration modifiée"
 msgstr "configuration changed"
 
 #: apps/audit/models.py
+msgid "image de proposition ajoutée"
+msgstr "proposition image added"
+
+#: apps/audit/models.py
+msgid "image de proposition supprimée"
+msgstr "proposition image removed"
+
+#: apps/audit/models.py
 msgid "transition d'état"
 msgstr "state transition"
 

@@ -264,6 +264,22 @@ class OptionForm(forms.Form):
                 max_length=300,
                 required=False,
             )
+        for code in content_languages:
+            # R-3.12, §3.1 bis: unlike the label above, never a translation
+            # gate — left blank in one language, this option simply shows the
+            # poll's default-language text there instead (§3.8).
+            self.fields[f"details_{code}"] = forms.CharField(
+                label=_("Description étendue (%(lang)s)") % {"lang": _language_name(code)},
+                help_text=_(
+                    "Facultatif. Mise en forme Markdown : titres avec ##, listes avec -, "
+                    "emphase avec *…* ou **…**, liens en [texte](url). Pour une image déjà "
+                    "déposée ci-dessous : ![texte alternatif](image:IDENTIFIANT). Pour une "
+                    "vidéo YouTube, un bloc à part sur ses propres lignes : "
+                    "```youtube puis l'identifiant à onze caractères de la vidéo, puis ``` ."
+                ),
+                widget=forms.Textarea(attrs={"rows": 6}),
+                required=False,
+            )
 
     def _has_label(self) -> bool:
         return any(self.cleaned_data.get(f"label_{code}") for code in self.content_languages)
@@ -283,9 +299,13 @@ class OptionForm(forms.Form):
         if cleaned.get("DELETE") or self.is_blank():
             return None
         labels = {code: cleaned.get(f"label_{code}", "").strip() for code in self.content_languages}
+        details = {
+            code: cleaned.get(f"details_{code}", "").strip() for code in self.content_languages
+        }
         return config.OptionDraft(
             option_id=cleaned["option_id"],
             labels={code: text for code, text in labels.items() if text},
+            details={code: text for code, text in details.items() if text},
             pk=cleaned.get("pk", ""),
         )
 
@@ -411,6 +431,8 @@ def option_initial(poll: Poll) -> list[dict[str, Any]]:
         row: dict[str, Any] = {"pk": str(option.pk), "option_id": option.option_id}
         for code, text in option.label_i18n.items():
             row[f"label_{code}"] = text
+        for code, text in option.details_i18n.items():
+            row[f"details_{code}"] = text
         rows.append(row)
     return rows
 

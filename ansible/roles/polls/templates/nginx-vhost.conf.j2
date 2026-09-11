@@ -65,6 +65,15 @@ server {
         expires 30d;
     }
 
+    # R-3.12: option images. Unlike /static/, not under the release tree —
+    # DJANGO_MEDIA_ROOT is {{ polls_state_dir }}/media, which a redeploy's
+    # symlink swap never touches (§15).
+    location /media/ {
+        alias {{ polls_state_dir }}/media/;
+        access_log off;
+        expires 30d;
+    }
+
     location / {
         limit_req zone=polls_write burst=10 nodelay;
         proxy_pass http://{{ polls_bind }};

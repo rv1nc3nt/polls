@@ -115,6 +115,9 @@
     - { path: "{{ polls_config_dir }}", owner: root, mode: "0750" }
     - { path: "{{ polls_state_dir }}" }
     - { path: "{{ polls_state_dir }}/locks" }
+    # R-3.12: option images (DJANGO_MEDIA_ROOT), group-readable like the
+    # collected static files below — nginx serves both directly.
+    - { path: "{{ polls_state_dir }}/media", mode: "0750" }
     - { path: "{{ polls_backup_dir }}", mode: "0700" }
 
 - name: Let nginx read the collected static files

@@ -8,6 +8,7 @@ holds against ``update()``, raw SQL, the Django shell and a future maintainer.
 
 from __future__ import annotations
 
+import uuid
 from datetime import datetime, timedelta
 
 import pytest
@@ -18,7 +19,7 @@ from apps.audit import services as audit
 from apps.audit.models import Action, AuditEvent
 from apps.ballots.models import Ballot, BallotSource, BallotStatus
 from apps.core.codes import new_tracking_code
-from apps.elections.models import Poll
+from apps.elections.models import OptionImage, Poll
 
 
 def raw(sql: str, params: list[str] | None = None) -> None:
@@ -207,6 +208,35 @@ def test_t4_poll_configuration_is_frozen_outside_draft(open_window_poll: Poll) -
         "UPDATE elections_poll SET closes_at = %s, paper_entry_deadline = %s WHERE id = %s",
         [sql_time(later), sql_time(later), pk(open_window_poll)],
     )
+
+
+def test_t80_option_image_frozen_outside_draft(open_window_poll: Poll) -> None:
+    """INV-6 extended to ``OptionImage`` (R-3.12, §3.1 bis).
+
+    The table carries no ``poll`` column of its own, so "frozen outside
+    draft" is read through ``option_id`` rather than directly — the one INV-6
+    trigger here that does not just compare ``OLD``/``NEW`` against
+    ``elections_poll`` by ``poll_id``.
+    """
+    option = open_window_poll.options.first()
+    assert option is not None
+    image = OptionImage.objects.create(
+        option=option, content_type="image/png", content_hash="a" * 64
+    )
+    raw("UPDATE elections_poll SET state = 'open' WHERE id = %s", [pk(open_window_poll)])
+
+    with pytest.raises(Exception, match="INV-6"), transaction.atomic():
+        raw(
+            "INSERT INTO elections_optionimage "
+            "(id, option_id, file, content_type, content_hash, alt_text, uploaded_at) "
+            "VALUES (%s, %s, '', 'image/png', %s, '', %s)",
+            [uuid.uuid4().hex, pk(option), "b" * 64, sql_time(timezone.now())],
+        )
+    with pytest.raises(Exception, match="INV-6"), transaction.atomic():
+        raw("UPDATE elections_optionimage SET alt_text = 'x' WHERE id = %s", [pk(image)])
+    with pytest.raises(Exception, match="INV-6"), transaction.atomic():
+        raw("DELETE FROM elections_optionimage WHERE id = %s", [pk(image)])
+    assert OptionImage.objects.filter(pk=image.pk, alt_text="").exists()
 
 
 def test_state_machine_is_irreversible(open_window_poll: Poll) -> None:

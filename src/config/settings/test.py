@@ -1,7 +1,14 @@
 # SPDX-License-Identifier: 0BSD
+import tempfile
+from pathlib import Path
+
 from .base import *
 
 DEBUG = False
+# R-3.12: a throwaway directory, not var/media/ in the working tree — option
+# image tests (tests/integration/test_option_content.py) write real files, and
+# the repository is not where those belong.
+MEDIA_ROOT = Path(tempfile.mkdtemp(prefix="polls-test-media-"))
 SECRET_KEY = "test-only-not-a-secret"  # noqa: S105
 ALLOWED_HOSTS = ["testserver", "localhost"]
 # The fallback ConfigurableEmailBackend uses while no test has saved a
