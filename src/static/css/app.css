@@ -517,6 +517,40 @@ fieldset {
 }
 legend { font-weight: 700; padding: 0 0.4rem; }
 
+/* Tabs (static/js/tabs.js), grouping screen 2's configuration fieldsets
+   (§6.5.2). Progressive enhancement: `[hidden]` on the list keeps it off
+   until the script wires it up, and every panel renders open below it —
+   flex-wrap rather than a scroll rail, so the five tabs stay reachable at a
+   phone width without introducing horizontal scrolling (R-14.2). */
+.tabs__list[hidden] { display: none; }
+.tabs__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 1.25rem;
+}
+.tabs__tab {
+  padding: 0.55rem 0.9rem;
+  font-weight: 500;
+  color: var(--ink);
+  background: none;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+.tabs__tab:hover { opacity: 1; background: var(--paper-quiet); }
+/* The selected tab carries the state in weight and a filled underline, not
+   colour alone (3.1) — `aria-selected` is the source of truth either way. */
+.tabs__tab.is-selected {
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--surface);
+  border-color: var(--rule);
+  border-bottom: 2px solid var(--surface);
+  margin-bottom: -1px;
+}
+
 /* The account-management disclosure stacks three small forms; space them and
    let each lay its label, field and button out in a row. */
 details form.inline {
