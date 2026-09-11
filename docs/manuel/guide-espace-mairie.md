@@ -24,7 +24,7 @@ la commune (R-2.1).
 | Rôle | Portée | Permissions |
 |---|---|---|
 | **Administrateur de la commune** | commune | Crée les scrutins ; attribue les rôles de chaque scrutin ; importe la liste électorale. **Ne donne accès à aucun bulletin** ni à aucun écran d'un scrutin en particulier. |
-| **Administrateur du scrutin** | un scrutin | Modifie la configuration tant que le scrutin est en brouillon ; ouvre, clôt et publie ; statue sur les inscriptions mises en examen ; reporte la date de clôture. |
+| **Administrateur du scrutin** | un scrutin | Modifie la configuration tant que le scrutin est en brouillon ; annonce, ouvre, clôt et publie ; statue sur les inscriptions mises en examen ; reporte la date de clôture. |
 | **Opérateur de saisie** (élu·e) | un scrutin | Saisit, corrige et supprime les bulletins papier ; délivre les reçus. |
 | **Auditeur** | un scrutin | Lecture seule : configuration, liste anonymisée des bulletins, **intégralité** du journal d'audit. |
 
@@ -78,22 +78,61 @@ Toute attribution de rôle est tracée au journal (§10).
 ## 3. Cycle de vie d'un scrutin
 
 ```
-brouillon  ──►  ouvert  ──►  clos  ──►  publié
+brouillon  ──►  [annoncé]  ──►  ouvert  ──►  clos  ──►  publié
 ```
 
-**Aucune transition n'est réversible** (R-3.2). Les changements d'état sont
-opérés par les tâches planifiées (`open_poll`, `close_poll`) selon les dates du
-scrutin, ou par l'administrateur du scrutin depuis le tableau de bord quand
-l'action est permise dans l'état courant. `Poll.state` n'est écrit que par un
-seul module (`apps/elections/transitions.py`).
+**Aucune transition n'est réversible** (R-3.2). `Poll.state` n'est écrit que
+par un seul module (`apps/elections/transitions.py`). Chaque changement d'état
+a deux origines possibles :
 
-- **brouillon → ouvert** : fige une **copie immuable de la liste électorale**
-  (R-4.3) et tire la **graine d'ouverture** (pour un éventuel départage, R-10.5).
+- une **tâche planifiée** (`open_poll`, `close_poll`), qui peut tourner en
+  retard, deux fois, ou pas du tout — d'où le tableau de bord qui nomme à
+  l'avance ce qui bloquerait la transition suivante (ci-dessous) ;
+- l'administrateur du scrutin, **à la main**, depuis l'écran de
+  **configuration** (écran 2, §4) : *Annoncer maintenant*, *Ouvrir maintenant*
+  et *Clôturer maintenant* (R-2.1). Les trois passent par les mêmes fonctions
+  gardées que les tâches planifiées, donc un scrutin qui ne pourrait pas
+  s'ouvrir ou se clore tout seul ne peut pas non plus être forcé depuis
+  l'écran — à l'exception du passage outre au contreseing (§8), que seul un
+  humain peut motiver.
+
+- **brouillon → annoncé** (R-3.10, optionnelle) : rend le scrutin visible sur
+  le site public — propositions et calendrier, sans inscription ni vote
+  possibles — avant même son ouverture. Fige la configuration au même instant
+  que l'ouverture l'aurait fait (même déclencheur INV-6), pour qu'elle ne
+  change pas sous les yeux de qui la consulte déjà. Un administrateur qui n'en
+  a pas l'usage passe directement de brouillon à ouvert, comme avant que cette
+  étape existe.
+- **brouillon ou annoncé → ouvert** : fige une **copie immuable de la liste
+  électorale** (R-4.3) et tire la **graine d'ouverture** (pour un éventuel
+  départage, R-10.5). *Ouvrir maintenant* est permis à tout moment, y compris
+  avant l'heure d'ouverture configurée : cela ne fait rien voter en avance,
+  puisque les contrôles de fenêtre (§5.1) portent sur l'horloge, jamais sur
+  l'état.
 - **ouvert → clos** : calcule l'**empreinte de clôture** sur l'ensemble des
   bulletins retenus et **fige les compteurs de participation**. Ne dépouille
-  pas.
+  pas. *Clôturer maintenant* n'est proposé qu'une fois l'échéance de saisie
+  des bulletins papier atteinte — clore plus tôt figerait l'empreinte et les
+  compteurs par avance de bulletins que la fenêtre d'écriture accepterait
+  encore légitimement.
 - **clos → publié** : le dépouillement (fonction pure) est exécuté et les
   artefacts de §9 deviennent publics.
+
+**Figure 12a — Configuration en lecture seule d'un scrutin annoncé, avec *Ouvrir maintenant*.**
+
+![Configuration en lecture seule d'un scrutin annoncé, avec Ouvrir maintenant](captures/img/12a-mairie-configuration-annoncee.png)
+
+**Figure 12b — Configuration d'un scrutin ouvert dont l'échéance est dépassée : *Clôturer maintenant* est proposé.**
+
+![Configuration d'un scrutin ouvert dont l'échéance est dépassée : Clôturer maintenant est proposé](captures/img/12b-mairie-configuration-cloture-manuelle.png)
+
+> Un scrutin annoncé reste visible tel quel sur le site public jusqu'à son
+> ouverture : la page ne peut pas changer sous les yeux d'un électeur qui
+> l'aurait déjà consultée, puisque la configuration est figée dès l'annonce.
+>
+> **Figure 02a — Page publique d'un scrutin annoncé.**
+>
+> ![Page publique d'un scrutin annoncé](captures/img/02a-site-public-scrutin-annonce.png)
 
 ### Tableau de bord (écran 1)
 
@@ -126,11 +165,13 @@ ou non de la participation en cours de scrutin ; types de listes conférant
 l'éligibilité ; langues activées ; exigences formelles du canal papier ;
 indicateur « scrutin test ».
 
-### La configuration se fige à l'ouverture
+### La configuration se fige à l'annonce ou à l'ouverture
 
-Elle est **librement modifiable en brouillon**, **immuable dès l'ouverture**
-(R-3.3, INV-6). La règle est tenue par un **déclencheur de base de données**, pas
-seulement par l'application.
+Elle est **librement modifiable en brouillon**, **immuable dès que le scrutin
+quitte le brouillon** — que ce soit à l'annonce (§3) ou, pour un scrutin qui ne
+s'annonce pas, à l'ouverture directement (R-3.3, INV-6). La règle est tenue par
+un **déclencheur de base de données**, pas seulement par l'application : les
+deux transitions figent au même titre, `state != draft`.
 
 **Seule exception** : la **date de clôture** peut être **reportée** pendant que
 le scrutin est ouvert (R-3.4), par une action séparée et motivée. Le report est
@@ -164,13 +205,17 @@ chaque langue activée. **Un scrutin ne peut pas être ouvert tant qu'une
 traduction manque** ; une traduction absente retombe sur la langue par défaut du
 scrutin, jamais sur rien. Le français fait foi.
 
-**Figure 13 — Configuration modifiable (scrutin en brouillon).**
+**Figure 13 — Configuration modifiable (scrutin en brouillon), avec *Annoncer* et *Ouvrir maintenant* en bas de formulaire.**
 
-![Configuration modifiable (scrutin en brouillon)](captures/img/13-mairie-configuration-brouillon.png)
+![Configuration modifiable (scrutin en brouillon), avec Annoncer et Ouvrir maintenant en bas de formulaire](captures/img/13-mairie-configuration-brouillon.png)
 
 **Figure 12 — Configuration en lecture seule (scrutin ouvert), avec le report de clôture comme action distincte.**
 
 ![Configuration en lecture seule (scrutin ouvert), avec le report de clôture comme action distincte](captures/img/12-mairie-configuration-lecture.png)
+
+> Les figures 12a, 12b et 02a (§3) montrent ce même écran dans les états
+> **annoncé** et **ouvert au-delà de son échéance**, et ce que le second
+> montre sur le site public.
 
 ### Méthodes de dépouillement (R-10.3)
 
@@ -207,17 +252,48 @@ si l'inscription postale est configurée.
 
 ### Étapes (R-4.5)
 
-1. **Choix du fichier** `.csv` ou `.xlsx` et **correspondance des colonnes**.
-2. **Rapport de validation préalable**.
-3. **Aperçu** soumis à **confirmation expresse**.
-4. **Exécution transactionnelle** : tout ou rien.
+1. **Choix du fichier** `.csv` ou `.xlsx`.
+2. **Correspondance des colonnes**, **rapport de validation préalable** et
+   **aperçu**, sur un second écran, soumis à **confirmation expresse**.
+3. **Exécution transactionnelle** : tout ou rien.
 
 L'import est inscrit au journal avec le **nom du fichier, son empreinte SHA-256,
 le nombre de lignes** et l'identité de l'opérateur.
 
-**Figure 15 — Import de la liste électorale, étape 1 (choix du fichier et correspondance des colonnes).**
+**Figure 15 — Écran 3 : dépôt du fichier et consultation de la liste en vigueur.**
 
-![Import de la liste électorale, étape 1 (choix du fichier et correspondance des colonnes)](captures/img/15-mairie-import-liste.png)
+![Écran 3 : dépôt du fichier et consultation de la liste en vigueur](captures/img/15-mairie-import-liste.png)
+
+### Consulter la liste en vigueur
+
+Le même écran affiche, sous le formulaire de dépôt, la liste actuellement en
+vigueur — nom de naissance, nom d'usage, prénoms, date de naissance —
+paginée et cherchable par sous-chaîne. C'est une consultation alphabétique
+simple, distincte de la confirmation par ressemblance de l'écran de saisie
+papier (§7) : elle répond à « qui figure sur la liste en ce moment », pas à
+« quelle entrée correspond à la personne présente ».
+
+### La copie figée d'un scrutin reste consultable (R-4.4)
+
+Une fois un scrutin ouvert, son propre menu **« Liste électorale »** ne montre
+plus le statut de l'import commune mais sa **copie figée à lui**
+(`RollEntry`), avec la même recherche paginée — ouverte à
+l'**administrateur du scrutin** comme à l'**auditeur**, pour que qui était
+éligible reste vérifiable après coup. Une liste dont la rétention de deux mois
+(R-13.3) est passée l'indique explicitement plutôt que de se confondre avec une
+liste vide ou une recherche sans résultat.
+
+**Figure 15a — Copie figée de la liste électorale d'un scrutin ouvert.**
+
+![Copie figée de la liste électorale d'un scrutin ouvert](captures/img/15a-mairie-liste-electorale-scrutin.png)
+
+### Rétention de la liste de travail non consommée (R-13.3 bis)
+
+Une liste importée mais qu'aucun scrutin encore en **brouillon ou annoncé** ne
+consomme plus est **supprimée deux mois après son import** — même job
+planifié, même verrou que la purge par scrutin (§11) ; seules les entrées de
+travail disparaissent, la provenance de l'import (`RollImport` : nom du
+fichier, empreinte, nombre de lignes) et le journal restent.
 
 ### Le rapport informe, il ne bloque pas
 
@@ -483,7 +559,11 @@ rétention la reprend.
   auteur, sa date et son motif. Point de départ : la **clôture**, pas la
   publication (un scrutin clos jamais publié conserverait sinon ces données
   indéfiniment). Les bulletins anonymisés, le résultat publié et le journal sont
-  conservés au-delà.
+  conservés au-delà. La **liste de travail** importée (§5) obéit à une règle
+  voisine mais distincte (R-13.3 bis) : elle est supprimée **deux mois après
+  son import**, sauf tant qu'un scrutin encore en **brouillon ou annoncé** doit
+  la consommer à son ouverture — un point de départ différent (l'import, pas
+  la clôture) puisqu'elle n'appartient à aucun scrutin en particulier.
 - L'accès aux **données d'identité** est restreint à l'**administrateur du
   scrutin** (risque résiduel R-13.4 bis, dont l'acceptation relève de la
   commune).

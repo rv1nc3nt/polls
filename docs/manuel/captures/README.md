@@ -41,6 +41,7 @@ facultatif.
 |---|---|---|
 | `01-site-public-liste.html` | Liste publique des consultations | électeur |
 | `02-site-public-scrutin.html` | Page publique d'un scrutin ouvert | électeur |
+| `02a-site-public-scrutin-annonce.html` | Page publique d'un scrutin annoncé, pas encore ouvert (R-3.10) | électeur |
 | `03-inscription-formulaire.html` | Formulaire d'inscription | électeur |
 | `04-inscription-confirmee.html` | Accusé — courriel de confirmation envoyé | électeur |
 | `05-inscription-en-examen.html` | Accusé — inscription mise en examen | électeur |
@@ -51,9 +52,12 @@ facultatif.
 | `10-mairie-index-scrutins.html` | Liste des scrutins de l'espace mairie | espace mairie |
 | `11-mairie-tableau-de-bord.html` | Tableau de bord d'un scrutin | espace mairie |
 | `12-mairie-configuration-lecture.html` | Configuration en lecture seule (scrutin ouvert) | espace mairie |
-| `13-mairie-configuration-brouillon.html` | Configuration modifiable (brouillon) | espace mairie |
+| `12a-mairie-configuration-annoncee.html` | Configuration en lecture seule (scrutin annoncé), avec *Ouvrir maintenant* (R-3.10) | espace mairie |
+| `12b-mairie-configuration-cloture-manuelle.html` | Configuration (scrutin ouvert, échéance dépassée), avec *Clôturer maintenant* (R-2.1) | espace mairie |
+| `13-mairie-configuration-brouillon.html` | Configuration modifiable (brouillon), avec *Annoncer* et *Ouvrir maintenant* | espace mairie |
 | `14-mairie-file-inscriptions.html` | File d'attente des inscriptions | espace mairie |
-| `15-mairie-import-liste.html` | Import de la liste électorale — étape 1 | espace mairie |
+| `15-mairie-import-liste.html` | Écran 3 (commune) : dépôt du fichier et consultation de la liste de travail en vigueur | espace mairie |
+| `15a-mairie-liste-electorale-scrutin.html` | Copie figée de la liste électorale d'un scrutin ouvert, browsable (R-4.4) | espace mairie |
 | `16-mairie-bulletin-papier.html` | Saisie d'un bulletin papier — recherche | espace mairie |
 | `16a-mairie-bulletin-papier-recherche.html` | Résultats de recherche d'électeur | espace mairie |
 | `16b-mairie-bulletins-papier-liste.html` | Liste des bulletins papier saisis | espace mairie |

@@ -184,34 +184,233 @@ section:last-child { margin-bottom: 0; }
 .account { display: flex; gap: 0.75rem; align-items: center; }
 .account__name { font-weight: 600; }
 
-.pollnav {
+.account__public { white-space: nowrap; }
+
+.contentinfo { border-top: 1px solid var(--rule); color: var(--ink-quiet); font-size: 0.9rem; margin-top: 1rem; }
+
+/* ---- espace mairie shell (§6.5) ---------------------------------------
+   A classic layout: one fixed left-column menu, the same on every screen, with
+   the banner, messages, content and footer sitting beside it; a breadcrumb
+   pinned to the top of the content column so the operator can always see where
+   they are. No JavaScript — the column becomes a bar above the content on a
+   narrow screen (§14). The menu markup is `backoffice/_nav.html`; what it lists
+   is decided in `apps/backoffice/templatetags/backoffice_nav.py`. */
+
+body.bo { --bo-side: 15.5rem; }
+
+body.bo .banner,
+body.bo .messages,
+body.bo main,
+body.bo .contentinfo {
+  max-width: none;
+  margin-inline: 0;
+  margin-left: var(--bo-side);
+}
+body.bo main { padding: 0; }
+
+.bo-side {
+  position: fixed;
+  top: 3px;                 /* clears the bleu France rule on <body> */
+  left: 0;
+  bottom: 0;
+  width: var(--bo-side);
+  display: flex;
+  flex-direction: column;   /* so the tools block can sit at the foot */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--paper-quiet);
+  border-right: 1px solid var(--rule);
+  padding-bottom: 1.5rem;
+}
+/* The icon sprite is markup, not a picture: keep it out of the flow and the
+   accessibility tree (each entry still carries its text label). */
+.bo-ico-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+.bo-ico {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex: none;
+  margin-top: 0.1rem;
+  fill: none;
+  stroke: var(--ink-quiet);
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.bo-side__brand {
+  display: block;
+  padding: 1rem 1.15rem 0.85rem;
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  text-decoration: none;
+}
+.bo-side__brand:hover { color: var(--accent); }
+
+/* The global links: always directly under the wordmark, in the same order. */
+.bo-side__list--global { padding-top: 0.15rem; }
+
+/* The poll state separates the global links above from the poll's own groups
+   below. It is only present while a poll is in scope; the title is not
+   repeated here — the breadcrumb and the <h1> already carry it. */
+.bo-side__poll {
+  margin-top: 0.9rem;
+  padding: 0.7rem 1.15rem;
+  border-top: 1px solid var(--rule);
+}
+
+/* The poll state, written out — the wash only sorts it, it does not carry it
+   (R-14.1). A finished poll drops to a plain outline. */
+.bo-state {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.bo-state--closed,
+.bo-state--published {
+  background: var(--paper);
+  border-color: var(--rule);
+  color: var(--ink-quiet);
+}
+
+.bo-side__group {
+  margin: 1.1rem 0 0.2rem;
+  padding: 0 1.15rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-quiet);
+}
+.bo-side__poll + .bo-side__group { margin-top: 0.35rem; }
+.bo-side__list { list-style: none; margin: 0; padding: 0; }
+.bo-side__link {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.5rem 1.15rem;
+  color: var(--ink);
+  text-decoration: none;
+  border-left: 3px solid transparent;
+}
+.bo-side__text { display: flex; flex-direction: column; min-width: 0; }
+.bo-side__link:hover { background: var(--rule-soft); }
+.bo-side__link:hover .bo-ico { stroke: var(--ink); }
+.bo-side__link.is-current {
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
+}
+.bo-side__link.is-current .bo-ico { stroke: var(--accent); }
+
+/* A commune admin's entry for a role they have not granted themselves yet: the
+   link leads to the role screen, and the sub-label — not the colour — says so. */
+.bo-side__link.needs-grant { color: var(--ink-quiet); }
+.bo-side__grant {
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--ink-quiet);
+}
+
+/* Language and theme, at the foot of the panel (§6.5). `margin-top: auto`
+   pushes the block down while the menu is short, and it scrolls with the rest
+   once the menu is long. */
+.bo-side__tools {
+  margin-top: auto;
+  padding: 0.9rem 1.15rem 0;
+  border-top: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+.bo-side__tools .langswitch,
+.bo-side__tools .themeswitch { margin-top: 0; }
+.bo-side__lang { align-items: center; }
+.bo-side__lang label,
+.bo-side__theme > span {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-quiet);
+  align-self: start;
+}
+.bo-side__lang select { flex: 1 1 6rem; min-width: 0; min-height: 2.2rem; }
+/* The generic <button> is a bold filled CTA (§6.5's "wall of blue" is exactly
+   what a routine submit should not be here) — this one only re-submits the
+   form beside it, so it takes the same quiet, bordered treatment as the
+   theme toggle next to it, not the accent fill "Enregistrer" gets elsewhere. */
+.bo-side__lang button {
+  min-height: 2.2rem;
+  padding: 0.4rem 0.75rem;
+  font-weight: 500;
+  font-size: 0.85rem;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+}
+.bo-side__lang button:hover { opacity: 1; background: var(--paper-quiet); }
+.bo-side__tools .themeswitch { flex-direction: column; align-items: stretch; gap: 0.35rem; }
+.bo-side__tools .themeswitch [role="group"] { display: flex; }
+.bo-side__tools .themeswitch button { flex: 1; padding: 0.4rem 0.3rem; font-size: 0.8rem; }
+
+/* Breadcrumb: sticky, so "where am I" survives a long journal or tally. */
+.bo-crumb {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   background: var(--paper-quiet);
   border-bottom: 1px solid var(--rule);
-  padding-block: 0.85rem;
+  padding: 0.6rem clamp(1rem, 4vw, 2.5rem);
 }
-.pollnav__poll { margin: 0; font-weight: 600; }
-.pollnav__links {
+.bo-crumb ol {
   list-style: none;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.2rem 1.5rem;
-  margin: 0.55rem 0 0;
+  gap: 0.35rem;
+  margin: 0;
   padding: 0;
+  font-size: 0.85rem;
 }
-.pollnav__links a {
-  color: var(--ink);
-  text-decoration: none;
-  padding: 0.2rem 0;
-  border-bottom: 2px solid transparent;
-}
-.pollnav__links a:hover { border-bottom-color: var(--rule); }
-.pollnav__links a[aria-current="page"] {
-  font-weight: 700;
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-}
+.bo-crumb li { display: flex; gap: 0.35rem; align-items: baseline; }
+.bo-crumb li + li::before { content: "A"; color: var(--ink-quiet); }
+.bo-crumb a { color: var(--link); text-decoration: none; }
+.bo-crumb a:hover { text-decoration: underline; }
+.bo-crumb [aria-current="page"] { color: var(--ink-quiet); font-weight: 600; }
 
-.contentinfo { border-top: 1px solid var(--rule); color: var(--ink-quiet); font-size: 0.9rem; margin-top: 1rem; }
+.bo-main { padding: 1.75rem clamp(1rem, 4vw, 2.5rem) 3.5rem; }
+
+/* Narrow screens: no fixed column. It flows back into the page as a bar above
+   the content, between the banner and the breadcrumb. */
+@media (max-width: 52rem) {
+  body.bo { --bo-side: 0rem; }
+  body.bo .banner,
+  body.bo .messages,
+  body.bo main,
+  body.bo .contentinfo { margin-left: 0; }
+  .bo-side {
+    position: static;
+    width: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 0.5rem;
+  }
+  .bo-side__list { display: flex; flex-wrap: wrap; }
+  .bo-side__link,
+  .bo-side__link.is-current { border-left: 0; border-radius: var(--radius-sm); }
+  .bo-side__tools { margin-top: 0.75rem; flex-flow: row wrap; align-items: end; gap: 1rem 1.5rem; }
+  .bo-crumb { position: static; }
+}
 .langswitch, .themeswitch { display: flex; gap: 0.5rem; align-items: end; flex-wrap: wrap; margin-top: 0.75rem; }
 .langswitch label { font-weight: 400; }
 
@@ -339,6 +538,51 @@ fieldset {
 }
 legend { font-weight: 700; padding: 0 0.4rem; }
 
+/* Tabs (static/js/tabs.js), grouping screen 2's configuration fieldsets
+   (§6.5.2). Progressive enhancement: `[hidden]` on the list keeps it off
+   until the script wires it up, and every panel renders open below it —
+   flex-wrap rather than a scroll rail, so the five tabs stay reachable at a
+   phone width without introducing horizontal scrolling (R-14.2). */
+.tabs__list[hidden] { display: none; }
+.tabs__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 1.25rem;
+}
+.tabs__tab {
+  padding: 0.55rem 0.9rem;
+  font-weight: 500;
+  color: var(--ink);
+  background: none;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+.tabs__tab:hover { opacity: 1; background: var(--paper-quiet); }
+/* The selected tab carries the state in weight and a filled underline, not
+   colour alone (3.1) — `aria-selected` is the source of truth either way. */
+.tabs__tab.is-selected {
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--surface);
+  border-color: var(--rule);
+  border-bottom: 2px solid var(--surface);
+  margin-bottom: -1px;
+}
+/* A rejected submission opens on the first failing tab (tabs.js), but a
+   near-empty form fails several at once; the rest stayed unmarked with
+   nothing on screen pointing at them. Text, not a colour or a bare dot
+   (3.1): `.tabs__tab-flag` is the same wording every screen reader user
+   gets too, appended by tabs.js from the template's translated
+   data-tabs-error-label. */
+.tabs__tab-flag {
+  color: var(--focus);
+  font-weight: 700;
+  font-size: 0.85em;
+}
+
 /* The account-management disclosure stacks three small forms; space them and
    let each lay its label, field and button out in a row. */
 details form.inline {
@@ -351,6 +595,18 @@ details form.inline {
 details form.inline label { margin: 0; }
 
 .pollpicker { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: end; margin-bottom: 1.5rem; }
+
+/* ---- proposition editor (screen 2) --------------------------------- */
+
+/* Revealed by static/js/option-editor.js; the no-JS path never shows them. */
+.option-editor__add[hidden],
+.option-row__controls[hidden],
+.option-row__delete[hidden] { display: none; }
+.option-editor__add { margin-top: 0.25rem; }
+.option-row__delete label { display: inline-flex; align-items: center; gap: 0.4rem; }
+/* A stored row awaiting removal on save: kept in place, struck through, undoable. */
+.option-row--removed { opacity: 0.55; }
+.option-row--removed legend { text-decoration: line-through; }
 
 /* ---- tables ---------------------------------------------------------- */
 
@@ -533,26 +789,30 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 
 @media print {
   body { border-top: 0; }
-  .banner, .pollnav, .messages, .contentinfo, .langswitch, .themeswitch, .noprint { display: none !important; }
+  .banner, .bo-side, .bo-crumb, .messages, .contentinfo, .langswitch, .themeswitch, .noprint { display: none !important; }
   .receipt { border: none; border-radius: 0; box-shadow: none; padding: 0; max-width: none; }
-  main { margin: 0; padding: 0; max-width: none; }
+  main, body.bo main { margin: 0; padding: 0; max-width: none; }
+  .bo-main { padding: 0; }
   h1 { border-bottom: 0; }
 }
 
 </style>
 </head>
-<body>
+<body class="bo">
   <a class="skip" href="#contenu">Aller au contenu</a>
 
   <header class="banner">
-    <p class="site-name"><a href="/">Commune de Saint-Aubin-des-Bois</a></p>
+    
+    <p class="site-name"><a href="/fr/mairie/">Commune de Saint-Aubin-des-Bois</a></p>
     
   
     <div class="account">
       
       <span class="account__name">Sophie Blanchard</span>
+      
+      <a class="account__public" href="/" target="_blank" rel="noopener">Voir le site public</a>
       <form action="/fr/mairie/deconnexion/" method="post">
-        <input type="hidden" name="csrfmiddlewaretoken" value="4ruLdfvmk6Fnc7bJ5zHePp08lToyLrT64XnkuZ1B6Y4YgrVyZb9hbVJehoXgcM4n">
+        <input type="hidden" name="csrfmiddlewaretoken" value="dkwuXWEOntCFDq7K4USDkfx0YSw864nQj4Su0GgMT9t8M5aQAfYjS7miwpWWp0ET">
         <button type="submit">Se déconnecter</button>
       </form>
     </div>
@@ -561,25 +821,143 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
   </header>
 
   
-  
-    <nav class="pollnav" aria-label="Navigation du scrutin">
-      <p class="pollnav__poll">Réaménagement de la place de la Mairie — ouvert</p>
-      
-  <ul class="pollnav__links">
-    <li><a href="/fr/mairie/scrutin/d50d8aa0-5d13-4768-8761-26e939ddd14f/">Tableau de bord</a></li>
-    <li><a href="/fr/mairie/scrutin/d50d8aa0-5d13-4768-8761-26e939ddd14f/bulletin-papier/">Saisie</a></li>
-    <li><a href="/fr/mairie/scrutin/d50d8aa0-5d13-4768-8761-26e939ddd14f/bulletins-papier/" aria-current="page">Bulletins papier</a></li>
-  </ul>
 
-    </nav>
+
+
+
+<svg class="bo-ico-sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="ico-polls" viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="M4.5 12.5 12 16.5l7.5-4"/></symbol>
+  <symbol id="ico-new" viewBox="0 0 24 24"><path d="M12 4.5v15"/><path d="M4.5 12h15"/></symbol>
+  <symbol id="ico-accounts" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.7-3 2.9-4.8 5.5-4.8S13.8 16 14.5 19"/><path d="M15.8 5.3a3 3 0 0 1 0 5.6"/><path d="M17.2 14.4c2.1.5 3.6 2.3 4.3 4.6"/></symbol>
+  <symbol id="ico-roles" viewBox="0 0 24 24"><circle cx="8.5" cy="14.5" r="3.7"/><path d="m11.1 11.9 8.4-8.4"/><path d="m16.5 6.5 2.5 2.5"/><path d="m14 9 2.5 2.5"/></symbol>
+  <symbol id="ico-mail" viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="1.5"/><path d="m4.5 7 7.5 6 7.5-6"/></symbol>
+  <symbol id="ico-templates" viewBox="0 0 24 24"><rect x="3.5" y="6.5" width="13" height="14" rx="1.3"/><path d="M8 3.5h9.5a1.3 1.3 0 0 1 1.3 1.3V17"/><path d="M7 11h7"/><path d="M7 14.5h7"/></symbol>
+  <symbol id="ico-dashboard" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.2"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.2"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.2"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.2"/></symbol>
+  <symbol id="ico-config" viewBox="0 0 24 24"><path d="M4 7h8"/><path d="M17 7h3"/><path d="M4 17h3"/><path d="M11 17h9"/><circle cx="14.5" cy="7" r="2.4"/><circle cx="7.5" cy="17" r="2.4"/></symbol>
+  <symbol id="ico-roll" viewBox="0 0 24 24"><path d="M9 6h11"/><path d="M9 12h11"/><path d="M9 18h11"/><circle cx="4.6" cy="6" r="1.15"/><circle cx="4.6" cy="12" r="1.15"/><circle cx="4.6" cy="18" r="1.15"/></symbol>
+  <symbol id="ico-registrations" viewBox="0 0 24 24"><path d="M4 13 5.8 5.6A2 2 0 0 1 7.7 4h8.6a2 2 0 0 1 1.9 1.6L20 13v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M4 13h4l2 3h4l2-3h4"/></symbol>
+  <symbol id="ico-entry" viewBox="0 0 24 24"><path d="m13.5 6.5 4 4"/><path d="M4 20l1-4.5L15.5 5a2.1 2.1 0 0 1 3 0l.5.5a2.1 2.1 0 0 1 0 3L8.5 19Z"/></symbol>
+  <symbol id="ico-paper" viewBox="0 0 24 24"><path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V8Z"/><path d="M14 3v5h4"/><path d="M9.5 13h5"/><path d="M9.5 16.5h5"/></symbol>
+  <symbol id="ico-countersign" viewBox="0 0 24 24"><path d="M3 12.5 6.5 16 14 7.5"/><path d="m13 15 1.6 1.5L21 9"/></symbol>
+  <symbol id="ico-tally" viewBox="0 0 24 24"><path d="M4 20h16"/><path d="M6.5 20v-6"/><path d="M12 20V5"/><path d="M17.5 20v-9"/></symbol>
+  <symbol id="ico-audit" viewBox="0 0 24 24"><path d="m12 3.5 7 2.4v5.3c0 4.6-3 7.4-7 8.8-4-1.4-7-4.2-7-8.8V5.9Z"/><path d="m9 12 2 2 4-4.5"/></symbol>
+</svg>
+
+<nav class="bo-side" aria-label="Navigation de l’espace mairie">
+  <a class="bo-side__brand" href="/fr/mairie/">Espace mairie</a>
+
   
+    <ul class="bo-side__list bo-side__list--global">
+      
+        <li>
+          <a class="bo-side__link"
+             href="/fr/mairie/">
+            <svg class="bo-ico" aria-hidden="true"><use href="#ico-polls"></use></svg>
+            <span class="bo-side__text">Scrutins</span>
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    
+    <div class="bo-side__poll">
+      <span class="bo-state bo-state--open">ouvert</span>
+    </div>
+    
+      <p class="bo-side__group" id="bo-grp-1">Scrutin</p>
+      <ul class="bo-side__list" aria-labelledby="bo-grp-1">
+        
+          <li>
+            
+            <a class="bo-side__link"
+               href="/fr/mairie/scrutin/b4950f6d-43a9-4ca8-937c-b8dde9476364/">
+              <svg class="bo-ico" aria-hidden="true"><use href="#ico-dashboard"></use></svg>
+              <span class="bo-side__text">Tableau de bord</span>
+            </a>
+          </li>
+        
+      </ul>
+    
+      <p class="bo-side__group" id="bo-grp-2">Bulletins papier</p>
+      <ul class="bo-side__list" aria-labelledby="bo-grp-2">
+        
+          <li>
+            
+            <a class="bo-side__link"
+               href="/fr/mairie/scrutin/b4950f6d-43a9-4ca8-937c-b8dde9476364/bulletin-papier/">
+              <svg class="bo-ico" aria-hidden="true"><use href="#ico-entry"></use></svg>
+              <span class="bo-side__text">Saisie</span>
+            </a>
+          </li>
+        
+          <li>
+            
+            <a class="bo-side__link is-current"
+               href="/fr/mairie/scrutin/b4950f6d-43a9-4ca8-937c-b8dde9476364/bulletins-papier/" aria-current="page">
+              <svg class="bo-ico" aria-hidden="true"><use href="#ico-paper"></use></svg>
+              <span class="bo-side__text">Bulletins papier</span>
+            </a>
+          </li>
+        
+      </ul>
+    
+  
+
+  
+  <div class="bo-side__tools">
+    <form class="langswitch bo-side__lang" action="/i18n/setlang/" method="post">
+      <input type="hidden" name="csrfmiddlewaretoken" value="dkwuXWEOntCFDq7K4USDkfx0YSw864nQj4Su0GgMT9t8M5aQAfYjS7miwpWWp0ET">
+      <input type="hidden" name="next" value="/fr/mairie/scrutin/b4950f6d-43a9-4ca8-937c-b8dde9476364/bulletins-papier/">
+      <label for="bo-lang-select">Langue</label>
+      <select id="bo-lang-select" name="language">
+        
+        
+        
+          <option value="fr" lang="fr" selected>Français</option>
+        
+          <option value="en" lang="en">Anglais</option>
+        
+      </select>
+      <button type="submit">Changer</button>
+    </form>
+
+    <div class="themeswitch bo-side__theme" data-theme-control hidden>
+      <span id="bo-theme-label">Thème</span>
+      <div role="group" aria-labelledby="bo-theme-label">
+        <button type="button" value="light">Clair</button>
+        <button type="button" value="dark">Sombre</button>
+        <button type="button" value="auto">Système</button>
+      </div>
+    </div>
+  </div>
+</nav>
 
 
   
 
   <main id="contenu">
-  <h1>Bulletins papier</h1>
   
+    
+    <nav class="bo-crumb" aria-label="Fil d’Ariane">
+      <ol>
+        <li>
+          <a href="/fr/mairie/">Scrutins</a>
+        </li>
+        
+          <li>
+            <a href="/fr/mairie/scrutin/b4950f6d-43a9-4ca8-937c-b8dde9476364/">Réaménagement de la place de la Mairie</a>
+          </li>
+        
+        <li aria-current="page">Bulletins papier</li>
+      </ol>
+    </nav>
+  
+
+  <div class="bo-main">
+    <h1>Bulletins papier</h1>
+    
   
   <table>
     <caption>Bulletins papier de ce scrutin</caption>
@@ -601,17 +979,18 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
             Traoré Aminata
             
           </td>
-          <td><code>CN89JSY56F</code></td>
+          <td><code>WF33PFFV6D</code></td>
           <td>1</td>
           <td>courant</td>
           <td>Sophie Blanchard</td>
-          <td>9 septembre 2026 21:28</td>
-          <td><a href="/fr/mairie/scrutin/d50d8aa0-5d13-4768-8761-26e939ddd14f/bulletin-papier/315d3a0a-4eaa-4755-91c2-21a6474eaf3c/">Ouvrir</a></td>
+          <td>11 septembre 2026 15:08</td>
+          <td><a href="/fr/mairie/scrutin/b4950f6d-43a9-4ca8-937c-b8dde9476364/bulletin-papier/89a9c4b7-2d85-46e7-b49d-6ebe71ef51dd/">Ouvrir</a></td>
         </tr>
       
     </tbody>
   </table>
 
+  </div>
 </main>
 
   <footer class="contentinfo">
@@ -621,30 +1000,10 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
     
     
 
-    <form action="/i18n/setlang/" method="post" class="langswitch">
-      <input type="hidden" name="csrfmiddlewaretoken" value="4ruLdfvmk6Fnc7bJ5zHePp08lToyLrT64XnkuZ1B6Y4YgrVyZb9hbVJehoXgcM4n">
-      <input type="hidden" name="next" value="/fr/mairie/scrutin/d50d8aa0-5d13-4768-8761-26e939ddd14f/bulletins-papier/">
-      <label for="langswitch-select">Langue</label>
-      <select id="langswitch-select" name="language">
-        
-        
-          <option value="fr" lang="fr" selected>Français</option>
-        
-          <option value="en" lang="en">Anglais</option>
-        
-      </select>
-      <button type="submit">Changer</button>
-    </form>
-
     
-    <div class="themeswitch" data-theme-control hidden>
-      <span id="themeswitch-label">Thème</span>
-      <div role="group" aria-labelledby="themeswitch-label">
-        <button type="button" value="light">Clair</button>
-        <button type="button" value="dark">Sombre</button>
-        <button type="button" value="auto">Système</button>
-      </div>
-    </div>
+    
   </footer>
+
+  
 </body>
 </html>

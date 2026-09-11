@@ -114,7 +114,24 @@ de base qui le tient. **Seule** la **date de clôture** peut être reportée
 faut un nouveau scrutin. Aucune transition n'est réversible.
 
 ### Peut-on revenir de « clos » à « ouvert » ?
-Non. `brouillon → ouvert → clos → publié`, sans retour (R-3.2).
+Non. `brouillon → [annoncé] → ouvert → clos → publié`, sans retour (R-3.2).
+« Annoncé » est une étape facultative : un scrutin peut aussi passer directement
+de brouillon à ouvert.
+
+### Peut-on ouvrir ou clore un scrutin sans attendre la tâche planifiée ?
+Oui, depuis l'écran de configuration (écran 2) : *Annoncer maintenant*, *Ouvrir
+maintenant* et *Clôturer maintenant* (R-2.1). *Ouvrir maintenant* est permis à
+tout moment, y compris par avance — cela ne fait voter personne avant l'heure
+configurée. *Clôturer maintenant* n'apparaît qu'une fois l'échéance de saisie
+des bulletins papier atteinte.
+
+### À quoi sert l'état « annoncé » ?
+À rendre un scrutin visible sur le site public — propositions et calendrier —
+avant son ouverture, sans inscription ni vote possibles (R-3.10). Utile
+notamment si le scrutin n'autorisera pas la modification d'un bulletin déjà
+voté : les électeurs peuvent réfléchir aux propositions avant de voter. La
+configuration se fige au moment de l'annonce, comme elle l'aurait fait à
+l'ouverture.
 
 ### L'import de la liste électorale signale des doublons et des dates douteuses. Dois-je corriger le fichier ?
 Non. Le rapport **informe, il ne bloque pas**. Seuls une colonne obligatoire non
@@ -126,6 +143,18 @@ Les cas douteux arrivent ensuite dans la file d'attente des inscriptions.
 ### Un nouvel import va-t-il changer un scrutin déjà ouvert ?
 Non. L'import remplace la **liste de travail** ; un scrutin ouvert travaille sur
 sa **copie figée** prise à l'ouverture.
+
+### Peut-on consulter le détail de la liste électorale, pas seulement son statut ?
+Oui, sur les deux écrans : le menu général « Liste électorale » (commune)
+montre la liste de travail en vigueur, paginée et cherchable ; le menu
+« Liste électorale » d'un scrutin déjà ouvert montre sa **propre copie figée**
+(R-4.4), accessible à l'administrateur du scrutin et à l'auditeur.
+
+### La liste de travail importée est-elle conservée indéfiniment si personne ne l'utilise ?
+Non. Une liste importée mais qu'aucun scrutin encore en brouillon (ou annoncé)
+ne consomme plus est supprimée deux mois après son import (R-13.3 bis) —
+distinct de la rétention de la copie figée d'un scrutin, qui part de sa
+clôture (R-13.3).
 
 ### Un électeur dit être inscrit mais le rapprochement échoue.
 Sa demande part en **file d'attente des inscriptions**. Comparez la déclaration

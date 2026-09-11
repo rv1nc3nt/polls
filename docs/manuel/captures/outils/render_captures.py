@@ -29,7 +29,7 @@ OUT = ROOT / "docs" / "manuel" / "captures"
 OUT.mkdir(parents=True, exist_ok=True)
 CSS = (ROOT / "src" / "static" / "css" / "app.css").read_text(encoding="utf-8")
 
-poll = Poll.objects.get(state=PollState.OPEN)
+poll = Poll.objects.get(title_i18n__fr__startswith="Réaménagement")
 draft = Poll.objects.get(state=PollState.DRAFT)
 pub = Poll.objects.get(state=PollState.PUBLISHED)
 admin = User.objects.get(username="m.rousseau")
@@ -78,6 +78,10 @@ get(anon, f"/fr/inscription/{poll.pk}/recu/pending_review/", "05-inscription-en-
 get(anon, f"/fr/scrutin/{pub.pk}/resultats/", "20-site-public-resultats.html")
 get(anon, "/fr/mairie/connexion/", "06-mairie-connexion.html")
 
+# --- announced poll: public preview, no registration nor vote (R-3.10) ------
+announced = Poll.objects.get(title_i18n__fr__startswith="Tracé de la future piste cyclable")
+get(anon, f"/fr/scrutin/{announced.pk}/", "02a-site-public-scrutin-annonce.html")
+
 # --- ballot: first cast (channel none) -------------------------------------
 garnier = Registration.objects.get(poll=poll, email_canonical="h.garnier@example.fr")
 token = reg.issue_token(garnier)  # fresh plaintext; only voter_hash is stored
@@ -103,6 +107,9 @@ ca.force_login(admin)
 get(ca, "/fr/mairie/", "10-mairie-index-scrutins.html")
 get(ca, "/fr/mairie/comptes/", "18-mairie-comptes.html")
 get(ca, "/fr/mairie/comptes/roles/", "19-mairie-roles.html")
+# Screen 3 (upload + working-roll browse, R-4.4's spirit extended to it) is
+# commune-level, reached from the general menu — not a poll's own URL.
+get(ca, "/fr/mairie/liste-electorale/", "15-mairie-import-liste.html")
 
 pa = Client()
 pa.force_login(padmin)
@@ -110,8 +117,17 @@ get(pa, f"/fr/mairie/scrutin/{poll.pk}/", "11-mairie-tableau-de-bord.html")
 get(pa, f"/fr/mairie/scrutin/{poll.pk}/configuration/", "12-mairie-configuration-lecture.html")
 get(pa, f"/fr/mairie/scrutin/{draft.pk}/configuration/", "13-mairie-configuration-brouillon.html")
 get(pa, f"/fr/mairie/scrutin/{poll.pk}/inscriptions/", "14-mairie-file-inscriptions.html")
-get(pa, f"/fr/mairie/scrutin/{poll.pk}/liste-electorale/", "15-mairie-import-liste.html")
+# A poll's own read-only view of its frozen roll copy, browsable per R-4.4.
+get(pa, f"/fr/mairie/scrutin/{poll.pk}/liste-electorale/", "15a-mairie-liste-electorale-scrutin.html")
 get(pa, f"/fr/mairie/scrutin/{pub.pk}/depouillement/", "17-mairie-depouillement.html")
+
+# --- announced poll: config read-only, with *ouvrir maintenant* (R-3.10) ----
+announced_pa = Poll.objects.get(title_i18n__fr__startswith="Tracé de la future piste cyclable")
+get(pa, f"/fr/mairie/scrutin/{announced_pa.pk}/configuration/", "12a-mairie-configuration-annoncee.html")
+
+# --- open poll past its deadline: config read-only, *clôturer maintenant* --
+late_poll = Poll.objects.get(title_i18n__fr__startswith="Aire de jeux du parc")
+get(pa, f"/fr/mairie/scrutin/{late_poll.pk}/configuration/", "12b-mairie-configuration-cloture-manuelle.html")
 
 eo = Client()
 eo.force_login(operator)
