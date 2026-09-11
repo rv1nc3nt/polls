@@ -327,3 +327,33 @@ optionally be duplicated, never how the specification's back office is meant
 to expose plain creation. §6.5's screen list has been amended to name the gap
 and how it is closed; R-3.6 (duplication) remains open, tracked here rather
 than in a requirements edit.
+
+## 11. Screen 3 (import de la liste électorale) was gated per poll
+
+**Requirements, R-2.1's role table.** "Commune administrator — Creates polls,
+assigns the roles specific to each poll, **imports the electoral roll**. This
+role does not of itself carry any access to ballots." The roll import is
+explicitly a commune administrator's action, not a poll administrator's.
+
+**Specification, §6.5.** The screen list read "Screens, gated by the per-poll
+roles of §3.7 — except 10, 11 and 12" — screen 3 among the nine gated per poll,
+contradicting R-2.1 directly.
+
+**What the code did.** `roll_import` and `roll_import_review` were
+`@require_poll_role(Role.POLL_ADMIN)`, reached from one poll's own menu at
+`scrutin/<poll_id>/liste-electorale/`. This was backwards on its own terms
+quite apart from R-2.1: `WorkingRollEntry` is commune-wide (§3.2), so an import
+started from one poll's back-office silently replaced what *every* poll still
+in `draft` would pick up at its opening — a poll submenu is exactly the wrong
+place to invite that confusion from, and a user of the back-office noticed the
+same thing from the UI side before this was traced to R-2.1.
+
+**Settled (2026-09-11).** The two screens moved to the general menu, gated by
+`require_commune_admin` like screens 10 and 12, at `liste-electorale/` and
+`liste-electorale/verification/` with no poll in the URL at all. A poll's own
+menu keeps a read-only entry, `roll_status` (`require_poll_role(POLL_ADMIN)`,
+`scrutin/<poll_id>/liste-electorale/`) — filename, row count, when it was
+imported and by whom, no form. §6.5's screen list and item 3 were corrected to
+match (screen 3 added to the commune-level exception, its description
+rewritten); `apps/elections/rollimport.py`'s module docstring, which had made
+the same "reached from one poll's back-office" claim, was corrected too.

@@ -546,6 +546,9 @@ msgstr "No action is open to you in this state."
 msgid "Aucune liste électorale importée : rien à figer à l'ouverture."
 msgstr "No electoral roll imported: nothing to freeze at opening."
 
+msgid "Aucune liste électorale n'a encore été importée."
+msgstr "No electoral roll has been imported yet."
+
 msgid "Auteur"
 msgstr "Actor"
 
@@ -579,6 +582,9 @@ msgstr "Configure the poll"
 msgid "Confirmées"
 msgstr "Confirmed"
 
+msgid "Consulter la liste électorale"
+msgstr "View the electoral roll"
+
 msgid "Consulter le journal d'audit"
 msgstr "Read the audit log"
 
@@ -608,9 +614,6 @@ msgstr "Paper ballot keying deadline"
 
 msgid "Il faut au moins deux propositions."
 msgstr "At least two propositions are required."
-
-msgid "Importer la liste électorale"
-msgstr "Import the electoral roll"
 
 msgid "Inscriptions"
 msgstr "Registrations"
@@ -1012,6 +1015,9 @@ msgstr "UTF-8 or Latin-1 encoding, detected automatically."
 msgid "Encodage non reconnu (ni UTF-8 ni Latin-1)."
 msgstr "Unrecognised encoding (neither UTF-8 nor Latin-1)."
 
+msgid "Fichier"
+msgstr "File"
+
 msgid "Fichier (.csv ou .xlsx)"
 msgstr "File (.csv or .xlsx)"
 
@@ -1023,6 +1029,12 @@ msgstr "Electoral roll import"
 
 msgid "Import refusé : corrigez le fichier source et rechargez-le. Rien n'a été écrit."
 msgstr "Import refused: fix the source file and reload it. Nothing has been written."
+
+msgid "Importée le"
+msgstr "Imported on"
+
+msgid "L'import d'une nouvelle liste se fait depuis le menu général « Liste électorale », par un administrateur de la commune, et s'applique à tous les scrutins."
+msgstr "Importing a new roll is done from the general “Electoral roll” menu, by a commune administrator, and applies to every poll."
 
 msgid "Le classeur ne contient aucune feuille."
 msgstr "The workbook contains no sheet."
@@ -1036,11 +1048,17 @@ msgstr "The file is empty."
 msgid "Ligne"
 msgstr "Row"
 
+msgid "Lignes importées"
+msgstr "Rows imported"
+
 msgid "Liste électorale"
 msgstr "Electoral roll"
 
 msgid "Liste électorale importée : %(count)s inscrit(s)."
 msgstr "Electoral roll imported: %(count)s elector(s)."
+
+msgid "Par"
+msgstr "By"
 
 msgid "Rapport de validation"
 msgstr "Validation report"

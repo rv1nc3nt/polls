@@ -151,8 +151,10 @@ taken — that costs more than it saves.
 - Under `mypy --strict`, `voter_hash(...) != ballot_hash(...)` is a
   non-overlapping comparison. That is the point (§5.1); convert with `bytes()`
   in a test that deliberately compares them.
-- `WorkingRollEntry` is commune-wide, not poll-scoped (§3.2) — screen 3 is
-  reached from one poll but replaces every poll's future snapshot. The
+- `WorkingRollEntry` is commune-wide, not poll-scoped (§3.2) — screen 3 (the
+  import itself, commune-level, R-2.1) replaces it for every poll at once; a
+  poll's own menu only shows a read-only `roll_status` of what is currently
+  imported and when (`docs/spec-divergences.md` #11). The
   `open_window_poll` fixture seeds one row of it, so a test asserting an exact
   `WorkingRollEntry.objects.count()` after an import must count that row too.
 - Latin-1 decodes every byte 0–255, so a CSV upload can never fail to decode —

@@ -163,9 +163,9 @@ def _actions_for_state(poll: Poll) -> list[PermittedAction]:
                     url_name="backoffice:poll_config",
                 ),
                 PermittedAction(
-                    _("Importer la liste électorale"),
+                    _("Consulter la liste électorale"),
                     (Role.POLL_ADMIN,),
-                    url_name="backoffice:roll_import",
+                    url_name="backoffice:roll_status",
                 ),
             ]
         case PollState.OPEN:

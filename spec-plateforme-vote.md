@@ -269,19 +269,19 @@ If the voter has a paper ballot and attempts to vote online, refuse and direct t
 
 The administrative interface is purpose-built, not Django admin. It is used by council members and mairie staff, not by developers, and it therefore falls under RGAA like the rest of the site (R-14.1), must be in French, and must not expose destructive actions beside routine ones. Django admin is not included in the production URL configuration at all.
 
-Screens, gated by the per-poll roles of §3.7 — except 10, 11 and 12, which
+Screens, gated by the per-poll roles of §3.7 — except 3, 10, 11 and 12, which
 are commune-level or pre-account and gated differently, as noted under each.
-Creating a poll is not itself numbered here: it is commune-level like 10 and
-12 (a poll being created has no `poll_admin` yet to gate on) and reuses screen
-2's form and option editor — a poll's initial configuration is the same shape
-as an edit of one (R-3.1) — plus `is_sandbox` (R-3.7), which screen 2 never
-offers because it is fixed at creation. R-3.6's duplication of an existing
-poll or a template is not implemented; creation always starts from a blank
-configuration.
+Creating a poll is not itself numbered here: it is commune-level like 3, 10
+and 12 (a poll being created has no `poll_admin` yet to gate on) and reuses
+screen 2's form and option editor — a poll's initial configuration is the same
+shape as an edit of one (R-3.1) — plus `is_sandbox` (R-3.7), which screen 2
+never offers because it is fixed at creation. R-3.6's duplication of an
+existing poll or a template is not implemented; creation always starts from a
+blank configuration.
 
 1. **Tableau de bord** — state, opening and closing instants, registered / confirmed / voted counts by channel, pending review count, and the actions permitted in the current state. While the poll is in `draft` it also names every condition that would make `open_poll` refuse — a missing translation, an absent roll snapshot — so a gap is visible before the opening hour rather than at it (§4). In `open` it likewise names what would block `close_poll` — *clôture bloquée : n bulletins en attente de contreseing*.
 2. **Configuration du scrutin** — editable only in `draft`; read-only thereafter, with the closing-date extension (R-3.4) as a separate, reasoned action.
-3. **Import de la liste électorale** — upload, column mapping, validation report, preview, explicit confirmation (R-4.5).
+3. **Import de la liste électorale** — commune-level, gated by the commune-admin flag rather than a poll's roles (R-2.1: importing the roll is the commune administrator's, not the poll administrator's), reached from the general menu and never from a poll's own. Upload, column mapping, validation report, preview, explicit confirmation (R-4.5). A poll's own menu carries a read-only counterpart instead — which import is currently in force, and when — open to that poll's `poll_admin` (docs/spec-divergences.md #11).
 4. **File d'attente des inscriptions** — registrations pending review, with roll search and near-match display; accept or reject with a mandatory reason (R-5.4).
 5. **Saisie d'un bulletin papier** — elector search against the snapshot, near-match confirmation, the blocking collision interstitial of R-9.3, ranking entry, then a printable receipt (R-8.4) rendered as an HTML page with a print stylesheet.
 6. **Rectification et suppression d'un bulletin papier** — reason mandatory, before/after logged (R-8.5).

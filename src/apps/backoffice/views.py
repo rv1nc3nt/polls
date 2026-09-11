@@ -31,12 +31,15 @@ write paths are ``elections.closure`` (the physical tie-break) and
 rôles), whose read model and write path are both ``accounts.py``; screen 11
 (première installation), whose write path is ``firstrun.py``; and screen 12
 (paramètres de messagerie, §6.5.12), whose read model and write path are both
-``mailsettings.py``. Screens 10 and 12 are commune-level — they go through
-``require_commune_admin``, not ``require_poll_role``, and neither of their
-views takes a ``poll`` argument, so the per-poll roles screen 10 *assigns* are
-still not access to a poll's screens for the commune admin who assigns them
-(§3.7). Screen 11 runs before any account exists, so it cannot use either
-gate: ``require_first_run`` opens it only while no account has been created.
+``mailsettings.py``. Screens 3, 10 and 12 are commune-level — they go through
+``require_commune_admin``, not ``require_poll_role``, and none of their views
+takes a ``poll`` argument, so the per-poll roles screen 10 *assigns* are still
+not access to a poll's screens for the commune admin who assigns them (§3.7).
+Screen 3 (R-2.1: importing the roll is the commune administrator's) also has
+``roll_status``, a poll-scoped read-only addition showing which import is in
+force and when — see docs/spec-divergences.md #11. Screen 11 runs before any
+account exists, so it cannot use either gate: ``require_first_run`` opens it
+only while no account has been created.
 
 Here so far, additionally: "Nouveau scrutin" (§6.5, docs/spec-divergences.md
 #10), the create step the numbered screens never included — commune-level
@@ -512,21 +515,30 @@ def registration_decide(request: HttpRequest, poll: Poll) -> HttpResponse:
 
 
 # --- Screen 3: import de la liste électorale (§6.5.3, §6.1) -----------------
+#
+# Commune-level (R-2.1: "the commune administrator … imports the electoral
+# roll", not the poll administrator), gated by ``require_commune_admin`` like
+# screens 10 and 12 and reached only from the general menu. It used to be a
+# poll-scoped screen, which was backwards: ``WorkingRollEntry`` is commune-wide
+# (§3.2), so an import started from one poll's back-office silently replaced
+# what every other draft poll would pick up at opening — a poll submenu is
+# exactly the wrong place to invite that confusion from. See
+# docs/spec-divergences.md #11. ``roll_status`` below is what a poll's own menu
+# offers instead: read-only, no import action.
 
-#: The parsed file, held between the upload step and the review step. Keyed to
-#: the session rather than the poll: ``WorkingRollEntry`` is commune-wide
-#: (§3.2), so an in-progress import is not "this poll's" import even though the
-#: screen that started it is scoped to one.
+#: The parsed file, held between the upload step and the review step.
 _ROLL_DRAFT_SESSION_KEY = "roll_import_draft"
 
 
-@require_poll_role(Role.POLL_ADMIN)
-def roll_import(request: HttpRequest, poll: Poll) -> HttpResponse:
+@require_commune_admin
+def roll_import(request: HttpRequest) -> HttpResponse:
     """Screen 3, step 1 — upload (§6.1, §6.5.3).
 
     Accepts the file, parses it, and stores the parsed table in the session for
     the review step. Nothing is written yet: a bad file is caught here, before
-    anything durable exists to clean up.
+    anything durable exists to clean up. Also shows the currently in-force
+    import (filename, row count, when, by whom), so this screen answers "what
+    is imported now" as well as offering to replace it.
     """
     error = ""
     if request.method == "POST":
@@ -547,13 +559,17 @@ def roll_import(request: HttpRequest, poll: Poll) -> HttpResponse:
                     "headers": table.headers,
                     "rows": table.rows,
                 }
-                return redirect("backoffice:roll_import_review", poll_id=str(poll.pk))
+                return redirect("backoffice:roll_import_review")
 
-    return render(request, "backoffice/roll_import.html", {"poll": poll, "error": error})
+    return render(
+        request,
+        "backoffice/roll_import.html",
+        {"error": error, "current": rollimport.latest_import()},
+    )
 
 
-@require_poll_role(Role.POLL_ADMIN)
-def roll_import_review(request: HttpRequest, poll: Poll) -> HttpResponse:
+@require_commune_admin
+def roll_import_review(request: HttpRequest) -> HttpResponse:
     """Screen 3, steps 2–5 — column mapping, validation report, preview,
     explicit confirmation (§6.1, R-4.5), all on one page.
 
@@ -565,7 +581,7 @@ def roll_import_review(request: HttpRequest, poll: Poll) -> HttpResponse:
     draft = request.session.get(_ROLL_DRAFT_SESSION_KEY)
     if draft is None:
         messages.error(request, _("Aucun import en cours. Recommencez."))
-        return redirect("backoffice:roll_import", poll_id=str(poll.pk))
+        return redirect("backoffice:roll_import")
 
     table = rollimport.Table(headers=draft["headers"], rows=draft["rows"])
     guessed = rollimport.guess_mapping(table.headers)
@@ -575,7 +591,6 @@ def roll_import_review(request: HttpRequest, poll: Poll) -> HttpResponse:
     mapping = {name: header for name, header in mapping.items() if header}
 
     context: dict[str, object] = {
-        "poll": poll,
         "filename": draft["filename"],
         "headers": table.headers,
         # Paired here rather than looked up in the template by a variable key,
@@ -612,9 +627,25 @@ def roll_import_review(request: HttpRequest, poll: Poll) -> HttpResponse:
             request,
             _("Liste électorale importée : %(count)s inscrit(s).") % {"count": len(entries)},
         )
-        return redirect("backoffice:dashboard", poll_id=str(poll.pk))
+        return redirect("backoffice:roll_import")
 
     return render(request, "backoffice/roll_import_review.html", context)
+
+
+@require_poll_role(Role.POLL_ADMIN)
+def roll_status(request: HttpRequest, poll: Poll) -> HttpResponse:
+    """A poll's read-only view of the working roll (§6.1, §3.2).
+
+    Not this poll's roll — the working roll, commune-wide — which is why there
+    is nothing to act on here: filename, row count, when it was imported and by
+    whom, same as ``roll_import`` shows a commune admin, minus the form.
+    Importing happens from the general menu (``roll_import``) or not at all.
+    """
+    return render(
+        request,
+        "backoffice/roll_status.html",
+        {"poll": poll, "current": rollimport.latest_import()},
+    )
 
 
 def _validated_reason(posted: str, permitted: tuple[Reason, ...]) -> str:
