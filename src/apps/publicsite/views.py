@@ -54,9 +54,25 @@ def health(request: HttpRequest) -> JsonResponse:
 
 
 def poll_list(request: HttpRequest) -> HttpResponse:
-    """INV-8: sandbox polls never appear in public listings (T-15)."""
-    polls = _public_polls().order_by("-opens_at")
-    return render(request, "publicsite/poll_list.html", {"polls": polls})
+    """INV-8: sandbox polls never appear in public listings (T-15).
+
+    A published poll's outcome is surfaced here too, not just on its own page:
+    the winner (or tie, or "no ballot retained") is recomputed with
+    ``results_view.result_view`` — the same read model the results page
+    itself uses — and shown beside the listing with a link into the detail
+    (R-11.2, R-11.4). Shaped into plain dicts here, one per row, because the
+    template cannot index ``result_view``'s dataclass by a variable poll id
+    (see ``results_view``'s own docstring).
+    """
+    language = request.LANGUAGE_CODE
+    rows = []
+    for poll in _public_polls().order_by("-opens_at"):
+        outcome = None
+        if poll.state == PollState.PUBLISHED:
+            view = results_view.result_view(poll)
+            outcome = {"winner": view.winner, "tied": view.tied}
+        rows.append({"poll": poll, "title": poll.title(language), "outcome": outcome})
+    return render(request, "publicsite/poll_list.html", {"rows": rows})
 
 
 def _extensions(poll: Poll) -> list[dict[str, object]]:

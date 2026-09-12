@@ -1933,3 +1933,18 @@ msgstr "The poll normally opens by itself at the configured opening date, even l
 msgid "La configuration ci-dessous est arrêtée et ne changera plus (R-3.3) ; seul le vote n'est pas encore ouvert."
 msgstr "The configuration below is settled and will not change further (R-3.3); only the vote is not yet open."
 
+# publicsite/poll_list.html (R-11.2, R-11.4): the landing page surfaces a
+# published poll's outcome, not only its own page — added by hand for the
+# same reason as the header explains.
+msgid "Résultat : « %(label)s » retenue."
+msgstr "Result: “%(label)s” carried."
+
+msgid "Résultat : égalité."
+msgstr "Result: a tie."
+
+msgid "Résultat : aucun bulletin retenu."
+msgstr "Result: no ballot was retained."
+
+msgid "Voir le résultat détaillé →"
+msgstr "See the detailed result →"
+

@@ -8,9 +8,9 @@
   <h1>{% blocktranslate with title=poll.title %}Résultats : « {{ title }} »{% endblocktranslate %}</h1>
   <p><a href="{% url 'publicsite:poll_detail' poll.id %}">{% translate "← Revenir à la page de la consultation" %}</a></p>
 
-  <section aria-labelledby="issue">
-    <h2 id="issue">{% translate "Issue" %}</h2>
-    <p class="outcome">
+  <section aria-labelledby="issue" class="result-hero">
+    <h2 id="issue" class="result-hero__eyebrow">{% translate "Issue" %}</h2>
+    <p class="outcome result-hero__outcome">
       {% if view.winner %}
         {% blocktranslate with label=view.winner.label %}Proposition retenue : {{ label }}.{% endblocktranslate %}
       {% elif view.tied %}
