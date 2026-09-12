@@ -69,6 +69,12 @@ jobs:
           python-version: "3.13"
       - name: Install Molecule and the container driver
         run: pip install "molecule-plugins[docker]" molecule ansible-core
+      # molecule-plugins' own create.yml/destroy.yml (not this repo's) drive
+      # the container through community.docker.docker_container; ansible-core
+      # ships no collections, so without this the destroy step at the end of
+      # `dependency, cleanup, destroy, ...` fails before anything else runs.
+      - name: Install Ansible collections for the docker driver
+        run: ansible-galaxy collection install -r ansible/requirements.yml
       # Docker is already running on the runner; no daemon setup needed.
       - name: T-38 — deploy idempotence and --check
         working-directory: ansible
