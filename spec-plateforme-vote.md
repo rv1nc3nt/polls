@@ -170,6 +170,12 @@ Deliberately not a `Poll` with fields nulled out: a template carries only what R
 
 Creating a poll from a template (§6.5) copies these fields onto the new `Poll` row and stops there: title, description and options are entered as for a blank creation. Saving a template from a poll reads the same fields off the source `Poll`, in any state — none of them change after `draft` (INV-6), so there is nothing a later edit could invalidate. Deleting a template affects no poll ever created from it: the fields were copied at creation time, not referenced.
 
+### 3.10 `Commune` (R-1.3, R-1.5, R-13.1/2, §6.5.11, §6.5.14)
+
+`{id, name, data_protection_referent, data_protection_contact, public_base_url, logo, logo_content_type, logo_content_hash, favicon, favicon_content_type, favicon_content_hash}`.
+
+The one commune this instance serves (R-1.3, R-1.5): a singleton, `id` pinned to `1` by a check constraint, unlike every other table here. Created by the first-run wizard (§6.5.11) alongside the initial `commune_admin` account, and edited afterwards from screen 14 (§6.5.14) — the wizard and that screen are the only writers. `name`, `data_protection_referent` and `data_protection_contact` are R-13.1/13.2's data-controller identity, required at install. `public_base_url`, `logo` and `favicon` are all optional and independent of each other and of the required fields: blank means "use the deployment's own configuration" for the first, "show nothing beyond the commune name" or "let the browser use its own placeholder" for the other two. The `*_content_type`/`*_content_hash` pairs are how `logo`/`favicon` are stored content-addressed, the same shape `OptionImage` uses for `content_hash` (§3.1 bis) — a changed image gets a new path, never an overwrite a cache could still be showing.
+
 ---
 
 ## 4. State machine
@@ -310,7 +316,7 @@ If the voter has a paper ballot and attempts to vote online, refuse and direct t
 
 The administrative interface is purpose-built, not Django admin. It is used by council members and mairie staff, not by developers, and it therefore falls under RGAA like the rest of the site (R-14.1), must be in French, and must not expose destructive actions beside routine ones. Django admin is not included in the production URL configuration at all.
 
-Screens, gated by the per-poll roles of §3.7 — except 3, 10, 11, 12 and 13,
+Screens, gated by the per-poll roles of §3.7 — except 3, 10, 11, 12, 13 and 14,
 which are commune-level or pre-account and gated differently, as noted under
 each. Creating a poll is not itself numbered here: it is commune-level like 3,
 10, 12 and 13 (a poll being created has no `poll_admin` yet to gate on) and
@@ -336,6 +342,7 @@ implemented, and tracked separately (docs/spec-divergences.md #10).
 11. **Première installation** — a first-run wizard creating the commune record and the initial administrator, so an adopting commune never runs `createsuperuser`.
 12. **Paramètres de messagerie** — the SMTP relay (host, port, encryption, credentials, sending address), commune-level like screen 10 since one relay serves every poll. Editable by a commune admin only; a "send a test message" action exercises the settings already saved before anyone relies on them for a live poll. Absent settings fall back to the deployment's own configuration (§14, §15), so this is additive: a commune whose Ansible deploy already sets the relay is unaffected until an admin fills the screen in.
 13. **Modèles de scrutin** — commune-level like screens 10 and 12: the catalogue of named templates (§3.9) — name, tally method, creation date — with rename and delete. Nothing else creates or edits a template; screen 2's *enregistrer comme modèle* is the only writer. Deleting one here has no effect on a poll already created from it, since the fields were copied at creation time.
+14. **Paramètres de la commune** — commune-level like screens 10, 12 and 13: the commune record screen 11 creates (name, data-protection referent and contact, R-13.1/2), editable afterwards rather than fixed at installation, plus the site's own address used to compose the links in outgoing mail (§6.2 step 7). Left blank, a poll's mail keeps using the deployment's own configuration (§14, §15), the same additive fallback screen 12 gives the mail relay — so an adopting commune is unaffected until an admin fills this screen in. Also here, both optional and independent of each other: a logo, shown in the page header in place of the plain commune name, and a favicon, the browser-tab icon. Content-sniffed and stored the same way as a proposition's image (R-3.12) — never trusted by declared content-type or filename extension, and never SVG, which this application has no means to sanitise before serving back.
 
 Two rules govern all of them. Every mutating screen posts through the service functions of §5.1; no view writes through the ORM directly. And no screen anywhere displays a voter's identity alongside ballot content, except on the paper-entry screen, where the association is deliberate and logged.
 
@@ -576,7 +583,7 @@ T-16 and T-38 need a throwaway host (a container or a virtual machine under Mole
 1. The option labels for the first poll, in each enabled language.
 2. Which languages are enabled beyond French.
 3. `opens_at` / `closes_at`.
-4. Named data-protection referent for the privacy notice.
+4. Named data-protection referent for the privacy notice — `Commune.data_protection_referent` (§3.10).
 5. Which of `paper_requires_signed_form`, `paper_requires_countersign`, `paper_requires_reconciliation` are enabled for the first poll — all default false.
 6. Acceptance of the residual correlation risk at R-13.4 bis.
 7. Whether a paper keying window is used and how long it runs (`paper_entry_deadline`); the default is none, the deadline sitting on `closes_at`.
@@ -625,7 +632,7 @@ Note what this leaves genuinely scheduled: opening, closure, reminders and reten
 
 **Quality gates.** `mypy --strict`, `ruff`, and the invariant tests of §5.1 and §12 in CI, running against SQLite and, if the PostgreSQL backend is ever enabled, against both.
 
-**Deployment.** gunicorn behind nginx, database file on local disk. The long-running web process still needs a supervisor — systemd on a Debian host, the runtime's own restart policy in the container image — but that is a property of the target, not a dependency of the application. TLS via the `ngx_http_acme_module` (nginx-acme) where a vendor-packaged build is available — it needs a `resolver` in the `http` block, a listener on port 80 for the HTTP-01 challenge, and a `state_path` holding the account key and certificate private keys, which is subject to the same access restrictions as the backups. A self-compiled dynamic module must be rebuilt on every nginx upgrade, so on a machine meant to be left alone, certbot is the lower-maintenance choice despite being an extra component. Set `X-Forwarded-Proto` and `X-Forwarded-For` and honour them, or secure-cookie flags and rate limiting will both misbehave. Backups: nightly `VACUUM INTO` snapshot plus off-host replication. `poll.token_salt` lives in the database and therefore in the backups, so backup access is ballot-secrecy-relevant. Since §3.1 bis, the database alone no longer reconstructs every public page: `DJANGO_MEDIA_ROOT` (option images, R-3.12) needs the same nightly coverage and the same off-host replication as the database snapshot — see docs/spec-divergences.md for where the current playbook still falls short of that.
+**Deployment.** gunicorn behind nginx, database file on local disk. The long-running web process still needs a supervisor — systemd on a Debian host, the runtime's own restart policy in the container image — but that is a property of the target, not a dependency of the application. TLS via the `ngx_http_acme_module` (nginx-acme) where a vendor-packaged build is available — it needs a `resolver` in the `http` block, a listener on port 80 for the HTTP-01 challenge, and a `state_path` holding the account key and certificate private keys, which is subject to the same access restrictions as the backups. A self-compiled dynamic module must be rebuilt on every nginx upgrade, so on a machine meant to be left alone, certbot is the lower-maintenance choice despite being an extra component. Set `X-Forwarded-Proto` and `X-Forwarded-For` and honour them, or secure-cookie flags and rate limiting will both misbehave. Backups: nightly `VACUUM INTO` snapshot plus off-host replication. `poll.token_salt` lives in the database and therefore in the backups, so backup access is ballot-secrecy-relevant. Since §3.1 bis, the database alone no longer reconstructs every public page: `DJANGO_MEDIA_ROOT` (option images, R-3.12; the commune logo and favicon, §6.5.14) needs the same nightly coverage and the same off-host replication as the database snapshot — see docs/spec-divergences.md for where the current playbook still falls short of that.
 
 **Email.** SMTP relay with SPF, DKIM and DMARC aligned on the commune's domain. Deliverability is the most fragile dependency in the design: every online ballot passes through a confirmation email, and mail from a small self-hosted domain is routinely filtered. Run a test send to real mailboxes across the common providers before opening the first poll, and give the mairie a documented procedure for voters who report receiving nothing.
 

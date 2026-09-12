@@ -293,6 +293,39 @@ def test_t25_the_confirmation_mail_carries_no_tracking_code(live_poll: Poll) -> 
     assert registration.declared_dob not in body
 
 
+def test_the_ballot_link_falls_back_to_the_deployment_address(live_poll: Poll) -> None:
+    """No ``Commune`` row (or a blank ``public_base_url``, §6.5.14): the link
+    is built from ``DJANGO_PUBLIC_BASE_URL``, exactly as before screen 14
+    existed."""
+    from apps.registrations import mail as registration_mail
+
+    registration, token = _register(live_poll)
+    assert token is not None
+    registration_mail.send_confirmation(registration, token)
+    body = django_mail.outbox[0].body
+    assert "http://localhost:8000/" in body  # test settings' PUBLIC_BASE_URL
+
+
+def test_the_ballot_link_uses_the_commune_address_once_one_is_set(live_poll: Poll) -> None:
+    """§6.5.14: an admin-set ``public_base_url`` overrides the deployment
+    default, without anything else about the send changing."""
+    from apps.core.models import Commune
+    from apps.registrations import mail as registration_mail
+
+    Commune.objects.create(
+        name="Sainte-Marie-du-Mont",
+        data_protection_referent="x",
+        data_protection_contact="y",
+        public_base_url="https://vote.sainte-marie-du-mont.example.fr",
+    )
+    registration, token = _register(live_poll)
+    assert token is not None
+    registration_mail.send_confirmation(registration, token)
+    body = django_mail.outbox[0].body
+    assert "https://vote.sainte-marie-du-mont.example.fr/" in body
+    assert "localhost:8000" not in body
+
+
 def test_the_mail_warns_that_losing_it_loses_modification(live_poll: Poll) -> None:
     """R-5.6 and R-7.6, and only where modification is actually enabled: where
     it is off the point is moot and the mail should not raise it (§7)."""

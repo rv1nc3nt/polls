@@ -172,6 +172,7 @@ section:last-child { margin-bottom: 0; }
 .site-name { font-weight: 700; margin: 0; font-size: 1.15rem; letter-spacing: -0.01em; }
 .site-name a { color: var(--ink); text-decoration: none; }
 .site-name a:hover { color: var(--accent); }
+.site-logo { display: block; max-height: 2.25rem; width: auto; }
 .account { display: flex; gap: 0.75rem; align-items: center; }
 .account__name { font-weight: 600; }
 
@@ -775,6 +776,36 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
   border-left: 4px solid var(--accent);
   padding-left: 0.9rem;
 }
+/* The results page's own outcome (R-11.2): a card set apart from the
+   derivation and verification sections below it, so the winner (or tie, or
+   "no ballot retained") is the first thing read on the page, not one line
+   among the tally details. */
+.result-hero {
+  background: var(--accent-soft);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  margin: 0 0 1.5rem;
+  max-width: var(--measure);
+}
+.result-hero__eyebrow {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-quiet);
+}
+.result-hero__outcome {
+  font-size: 1.6rem;
+  line-height: 1.3;
+  border-left: 0;
+  padding-left: 0;
+  margin: 0 0 1rem;
+  max-width: none;
+}
+/* Nested inside the hero (which is itself the card), the .facts treatment
+   would be a card in a card — same fix as .review .facts above. */
+.result-hero .facts { box-shadow: none; border: 0; background: none; padding: 0; margin: 0; }
 .legal { border-top: 1px solid var(--rule); padding-top: 1rem; }
 .legal p { max-width: var(--measure); }
 .poll-index { list-style: none; padding: 0; }
@@ -782,6 +813,11 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 .poll-index li:first-child { border-top: 1px solid var(--rule-soft); }
 .poll-index a { font-weight: 600; font-size: 1.05rem; }
 .poll-index .help { display: block; }
+/* A published poll's outcome, surfaced on the landing page itself (R-11.2,
+   R-11.4) rather than left for a click into the poll's own page — the
+   smaller sibling of .outcome on the results page. */
+.outcome--compact { font-size: 1rem; margin: 0.5rem 0 0; padding-left: 0.7rem; border-left-width: 3px; }
+.outcome--compact a { margin-left: 0.5rem; white-space: nowrap; }
 
 /* ---- an option's extended description (R-3.12, §3.1 bis) ----------- */
 
@@ -799,6 +835,11 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 .option-images { list-style: none; padding: 0; margin: 0 0 0.75rem; display: flex; flex-wrap: wrap; gap: 0.75rem; }
 .option-images li { display: flex; flex-direction: column; gap: 0.3rem; }
 .option-images__thumb { width: 8rem; height: 8rem; object-fit: cover; border-radius: 4px; border: 1px solid var(--rule-soft); }
+
+/* ---- screen 14's logo and favicon (§6.5.14) ------------------------ */
+
+.commune-branding__preview { max-width: 12rem; max-height: 6rem; width: auto; height: auto; border-radius: 4px; border: 1px solid var(--rule-soft); }
+.commune-branding__preview--favicon { max-width: 4rem; max-height: 4rem; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; }

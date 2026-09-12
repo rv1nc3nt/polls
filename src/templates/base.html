@@ -11,6 +11,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{% if commune %}{{ commune.name }}{% else %}{% translate "Consultation citoyenne" %}{% endif %}{% endblock %}</title>
+  {% comment %} §6.5.14, optional: an admin-set favicon replaces the browser's default
+     placeholder icon. Absent commune.favicon, no <link> is rendered at all — a
+     missing one is not an error, and a browser already falls back to its own
+     default without one. {% endcomment %}
+  {% if commune.favicon %}
+    <link rel="icon" type="{{ commune.favicon_content_type }}" href="{{ commune.favicon.url }}">
+  {% endif %}
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
   {% comment %} Synchronous, before <body>: it sets data-theme from the stored
      choice so the page never flashes the other theme (§14, R-14.1). {% endcomment %}
@@ -23,7 +30,7 @@
     {% comment %} `home_url` is `/` on the public site; the espace mairie points it at
        « Scrutins » instead, so a signed-in operator clicking the name stays on the
        back office rather than landing on the public pages. {% endcomment %}
-    <p class="site-name"><a href="{% block home_url %}/{% endblock %}">{% if commune %}{{ commune.name }}{% else %}{% translate "Consultation citoyenne" %}{% endif %}</a></p>
+    <p class="site-name"><a href="{% block home_url %}/{% endblock %}">{% if commune.logo %}<img src="{{ commune.logo.url }}" alt="{{ commune.name }}" class="site-logo">{% elif commune %}{{ commune.name }}{% else %}{% translate "Consultation citoyenne" %}{% endif %}</a></p>
     {% block header_extra %}{% endblock %}
   </header>
 

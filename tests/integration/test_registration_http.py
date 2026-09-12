@@ -82,6 +82,53 @@ def test_the_privacy_notice_names_the_commune_referent_once_installed(
     assert "rgpd@sainte-marie-du-mont.example.fr" in body
 
 
+def test_no_favicon_link_without_one_set(client: Client, live_poll: Poll) -> None:
+    """§6.5.14, optional: a missing favicon is not an error, and a browser
+    already falls back to its own default without a ``<link>`` at all."""
+    body = client.get(f"/fr/inscription/{live_poll.pk}/").content.decode()
+    assert '<link rel="icon"' not in body
+
+
+def test_the_favicon_link_appears_once_one_is_set(client: Client, live_poll: Poll) -> None:
+    from django.core.files.base import ContentFile
+
+    commune = Commune.objects.create(
+        name="Sainte-Marie-du-Mont",
+        data_protection_referent="x",
+        data_protection_contact="y",
+    )
+    commune.favicon_content_type = "image/png"
+    commune.favicon_content_hash = "deadbeef"
+    commune.favicon.save("icon.png", ContentFile(b"\x89PNG\r\n\x1a\n"), save=True)
+
+    body = client.get(f"/fr/inscription/{live_poll.pk}/").content.decode()
+    assert '<link rel="icon" type="image/png" href="' in body
+    assert commune.favicon.url in body
+
+
+def test_the_header_shows_the_logo_in_place_of_the_commune_name_once_one_is_set(
+    client: Client, live_poll: Poll
+) -> None:
+    from django.core.files.base import ContentFile
+
+    commune = Commune.objects.create(
+        name="Sainte-Marie-du-Mont",
+        data_protection_referent="x",
+        data_protection_contact="y",
+    )
+    body_without_logo = client.get(f"/fr/inscription/{live_poll.pk}/").content.decode()
+    assert "Sainte-Marie-du-Mont</a>" in body_without_logo
+
+    commune.logo_content_type = "image/png"
+    commune.logo_content_hash = "deadbeef"
+    commune.logo.save("logo.png", ContentFile(b"\x89PNG\r\n\x1a\n"), save=True)
+
+    body_with_logo = client.get(f"/fr/inscription/{live_poll.pk}/").content.decode()
+    assert '<img src="' in body_with_logo
+    assert commune.logo.url in body_with_logo
+    assert 'alt="Sainte-Marie-du-Mont"' in body_with_logo
+
+
 def test_a_matched_registration_is_told_to_check_its_mail(
     client: Client, live_poll: Poll, django_capture_on_commit_callbacks: Callable[..., Any]
 ) -> None:

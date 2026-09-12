@@ -1,0 +1,73 @@
+{% extends "backoffice/base.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD #}
+
+{% block screen_title %}{% translate "Commune" %}{% endblock %}
+{% block heading %}{% translate "Paramètres de la commune" %}{% endblock %}
+
+{% block screen %}
+  {% comment %}
+    §6.5.14: the commune record the first-run wizard created (§6.5.11),
+    editable from here afterwards — name, data-protection referent (R-13.2),
+    and the site's own address used to compose links in outgoing mail (§6.2
+    step 7). Commune-level and admin-only (§3.7), like screens 10, 12 and 13.
+  {% endcomment %}
+  <form method="post">
+    {% csrf_token %}
+    {% for field in form %}
+      <p class="field">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {% if field.help_text %}<span class="help">{{ field.help_text }}</span>{% endif %}
+        {{ field }}
+        {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+      </p>
+    {% endfor %}
+    <button type="submit">{% translate "Enregistrer" %}</button>
+  </form>
+
+  {% comment %}
+    Both optional (§6.5.14) and each its own POST target, outside the form
+    above — a blank file input does not mean "keep the current one", so
+    upload always replaces and removal is a separate action, the same shape
+    as a proposition's image (R-3.12, option_image_upload/_delete).
+  {% endcomment %}
+  <section aria-labelledby="commune-logo">
+    <h2 id="commune-logo">{% translate "Logo" %}</h2>
+    <p class="help">{% translate "Affiché dans l'en-tête à la place du nom de la commune. PNG, JPEG, GIF ou WebP, 2 Mo maximum." %}</p>
+    {% if commune.logo %}
+      <p><img src="{{ commune.logo.url }}" alt="" class="commune-branding__preview"></p>
+      <form method="post" action="{% url 'backoffice:commune_logo_remove' %}" class="inline">
+        {% csrf_token %}
+        <button type="submit" class="secondary">{% translate "Supprimer le logo" %}</button>
+      </form>
+    {% endif %}
+    <form method="post" action="{% url 'backoffice:commune_logo_upload' %}" enctype="multipart/form-data" class="inline">
+      {% csrf_token %}
+      <p class="field">
+        <label for="commune-logo-file">{% translate "Remplacer le logo" %}</label>
+        <input type="file" name="logo" id="commune-logo-file" accept="image/png,image/jpeg,image/gif,image/webp" required>
+      </p>
+      <button type="submit">{% translate "Envoyer" %}</button>
+    </form>
+  </section>
+
+  <section aria-labelledby="commune-favicon">
+    <h2 id="commune-favicon">{% translate "Favicon" %}</h2>
+    <p class="help">{% translate "L'icône affichée dans l'onglet du navigateur. ICO, PNG, JPEG, GIF ou WebP, 256 Ko maximum." %}</p>
+    {% if commune.favicon %}
+      <p><img src="{{ commune.favicon.url }}" alt="" class="commune-branding__preview commune-branding__preview--favicon"></p>
+      <form method="post" action="{% url 'backoffice:commune_favicon_remove' %}" class="inline">
+        {% csrf_token %}
+        <button type="submit" class="secondary">{% translate "Supprimer le favicon" %}</button>
+      </form>
+    {% endif %}
+    <form method="post" action="{% url 'backoffice:commune_favicon_upload' %}" enctype="multipart/form-data" class="inline">
+      {% csrf_token %}
+      <p class="field">
+        <label for="commune-favicon-file">{% translate "Remplacer le favicon" %}</label>
+        <input type="file" name="favicon" id="commune-favicon-file" accept="image/x-icon,image/png,image/jpeg,image/gif,image/webp" required>
+      </p>
+      <button type="submit">{% translate "Envoyer" %}</button>
+    </form>
+  </section>
+{% endblock %}

@@ -29,6 +29,7 @@ from django.utils.translation import gettext as _
 
 from apps.core.codes import format_tracking_code
 from apps.core.mailbackend import default_from_email
+from apps.core.models import Commune
 from apps.core.types import Token, TrackingCode
 
 from .models import Registration
@@ -37,11 +38,16 @@ from .models import Registration
 def _absolute(path: str) -> str:
     """A link a mail client can follow.
 
-    ``PUBLIC_BASE_URL`` is deployment configuration (§15): the request that
-    triggered the send may be a management command with no host at all, so the
-    site's own address cannot be inferred here.
+    The request that triggered the send may be a management command with no
+    host at all, so the site's own address cannot be inferred here. It comes
+    from ``Commune.public_base_url`` (screen 14, §6.5.14) where an admin has
+    set one, and otherwise from ``PUBLIC_BASE_URL`` — deployment configuration
+    (§15) — exactly as before that screen existed. Same fallback shape as
+    ``mailbackend``'s reading of ``MailSettings``.
     """
-    return f"{settings.PUBLIC_BASE_URL.rstrip('/')}{path}"
+    commune = Commune.current()
+    base = (commune.public_base_url if commune else "") or settings.PUBLIC_BASE_URL
+    return f"{base.rstrip('/')}{path}"
 
 
 def ballot_url(registration: Registration, token: Token) -> str:

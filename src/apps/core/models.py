@@ -8,7 +8,8 @@ the account itself.
 
 ``Commune`` is the one commune this instance serves (R-1.3, R-1.5) and the
 data-controller identity its notices carry (R-13.1, R-13.2). It is created by
-the first-run wizard (§6.5.11) alongside the initial administrator.
+the first-run wizard (§6.5.11) alongside the initial administrator, and edited
+afterwards from screen 14 (§6.5.14).
 
 ``MailSettings`` is the commune's SMTP relay, configured from screen 12
 (§6.5.12) instead of only the environment (§14): deliverability is the most
@@ -24,7 +25,24 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from . import secretstore
+from . import images, secretstore
+
+
+def commune_logo_path(instance: Commune, filename: str) -> str:
+    """Content-addressed, like an option's image (R-3.12,
+    ``apps.elections.models.option_image_path``): a changed logo gets a new
+    URL, so a browser that already cached the old one under its old name is
+    never left showing it. ``instance.logo_content_hash`` and
+    ``.logo_content_type`` are set by ``apps.backoffice.communesettings.set_logo``
+    before it calls ``instance.logo.save(...)``, which is what invokes this."""
+    ext = images.EXTENSIONS[instance.logo_content_type]
+    return f"commune/logo-{instance.logo_content_hash}{ext}"
+
+
+def commune_favicon_path(instance: Commune, filename: str) -> str:
+    """The favicon's counterpart to ``commune_logo_path`` above."""
+    ext = images.EXTENSIONS[instance.favicon_content_type]
+    return f"commune/favicon-{instance.favicon_content_hash}{ext}"
 
 
 class Commune(models.Model):
@@ -35,9 +53,10 @@ class Commune(models.Model):
     pinned to ``1`` and a check constraint holds it there, which is what lets
     ``Commune.current()`` be unambiguous without a "get the latest" convention.
     The row is created by the first-run wizard (§6.5.11) so that an adopting
-    commune never edits the source to name itself; the wizard is the only
-    writer for now, the deferred-configuration items of §13 — the
-    data-protection referent above all — being what the record exists to hold.
+    commune never edits the source to name itself; screen 14 (§6.5.14,
+    ``apps.backoffice.communesettings``) is the only writer afterwards, the
+    deferred-configuration items of §13 — the data-protection referent above
+    all — being what the record exists to hold.
     """
 
     id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
@@ -64,6 +83,37 @@ class Commune(models.Model):
         max_length=300,
         help_text=_("Adresse électronique ou postale, publiée dans la notice d'information."),
     )
+    # Links in outgoing mail (§6.2 step 7) need an absolute address, and a
+    # management command sending reminders has no request to read a host from
+    # (apps.registrations.mail._absolute). Blank means "use the deployment's own
+    # DJANGO_PUBLIC_BASE_URL (§14, §15)" — the same additive fallback screen 12
+    # gives MailSettings — so an adopting commune whose Ansible deploy already
+    # sets it is unaffected until an admin fills this field in from screen 14.
+    public_base_url = models.CharField(
+        _("adresse du site"),
+        max_length=200,
+        blank=True,
+        default="",
+        help_text=_(
+            "Ex. : https://votecommune.fr — sans barre oblique finale. Utilisée pour "
+            "composer les liens des courriels envoyés aux électeurs. Laissez vide pour "
+            "utiliser l'adresse configurée au déploiement."
+        ),
+    )
+    # §6.5.14, both optional — shown in the page header in place of the plain
+    # commune name, and as the browser-tab icon, where one is set. Uploaded and
+    # removed through apps.backoffice.communesettings, never through this form
+    # directly: unlike the text fields above, a blank file input does not mean
+    # "keep the current one" the way a blank password does on screen 12, so the
+    # write path needs an explicit remove action, not a diff against a posted
+    # value (§10, R-14.1: an ``alt`` naming the commune, not the file, follows
+    # from the name field already required above).
+    logo = models.FileField(_("logo"), upload_to=commune_logo_path, blank=True, default="")
+    logo_content_type = models.CharField(max_length=40, blank=True, default="")
+    logo_content_hash = models.CharField(max_length=64, blank=True, default="")
+    favicon = models.FileField(_("favicon"), upload_to=commune_favicon_path, blank=True, default="")
+    favicon_content_type = models.CharField(max_length=40, blank=True, default="")
+    favicon_content_hash = models.CharField(max_length=64, blank=True, default="")
 
     class Meta:
         verbose_name = _("commune")
