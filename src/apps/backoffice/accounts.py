@@ -128,15 +128,6 @@ def set_password(account: User, *, raw_password: str, actor: User) -> None:
     account.save(update_fields=["password"])
 
 
-def role_holders(poll: Poll) -> list[PollRole]:
-    """Who holds which per-poll role on ``poll``, with the granting operator."""
-    return list(
-        PollRole.objects.filter(poll=poll)
-        .select_related("user", "granted_by")
-        .order_by("role", "user__username")
-    )
-
-
 @dataclass(frozen=True)
 class RoleCell:
     """One checkbox of the role grid: a role of §3.7, and whether the row's
@@ -165,9 +156,10 @@ def role_grid(poll: Poll) -> list[RoleGridRow]:
     once a commune has more than a handful of comptes. Only active accounts
     appear: ``grant_role`` refuses a deactivated one, so a checkbox that can
     never be ticked would just be confusing. A role granted before an account
-    was deactivated still shows in ``role_holders``' table above the grid and
-    is withdrawn from there, one row at a time, unaffected by the grid
-    leaving the account out.
+    was deactivated is left alone rather than dropped from under it — it
+    stays out of the grid, and so out of ``sync_roles``' reach, until the
+    account is reactivated and its row (with that grant already ticked)
+    comes back.
     """
     grants = PollRole.objects.filter(poll=poll).only("user_id", "role")
     granted = {(grant.user_id, grant.role) for grant in grants}

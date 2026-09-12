@@ -83,7 +83,7 @@ from apps.ballots.forms import RankingForm
 from apps.ballots.models import Ballot, BallotSource, BallotStatus, PaperBallotLink
 from apps.ballots.ranking import BallotRefused
 from apps.core.codes import format_tracking_code
-from apps.core.models import PollRole, Role, User
+from apps.core.models import Role, User
 from apps.core.types import TrackingCode
 from apps.elections import closure, config, optionimages, polltemplates, results_view, rollimport
 from apps.elections.models import (
@@ -1396,12 +1396,17 @@ def role_admin(request: HttpRequest) -> HttpResponse:
     One poll at a time, chosen from a searchable, paginated list
     (``_poll_list_page``; ``?scrutin=`` on the way back to reselect it) rather
     than a dropdown of the commune's entire poll history. Roles are then set
-    as a grid, one row per active account and one
+    as a single grid, one row per active account and one
     checkbox per role of §3.7 (``accounts.role_grid``), submitted together and
     diffed against what is already granted (``accounts.sync_roles``) so only
     the boxes that actually changed write an event. Nothing here touches the
     ORM directly; the commune admin doing the assigning gains no access to the
     poll's screens by it — that is the whole point of §3.7's split.
+
+    The grid only lists active accounts (``accounts.role_grid``), so a grant
+    held by an account deactivated since is left alone rather than dropped
+    off the grid unticked — clearing it takes reactivating the account first,
+    which brings its row and current grants back into the grid to untick.
     """
     poll_id = request.POST.get("poll") or request.GET.get("scrutin") or ""
     poll = get_object_or_404(Poll, pk=poll_id) if poll_id else None
@@ -1411,11 +1416,6 @@ def role_admin(request: HttpRequest) -> HttpResponse:
         operator = current_operator(request)
         back = f"{reverse('backoffice:role_admin')}?scrutin={poll.pk}"
         action = request.POST.get("action", "")
-        if action == "revoke":
-            grant = get_object_or_404(PollRole, pk=request.POST.get("grant", ""), poll=poll)
-            accounts.revoke_role(grant, actor=operator)
-            messages.success(request, _("Rôle retiré."))
-            return redirect(back)
         if action == "sync_roles":
             account_ids = request.POST.getlist("grid_account")
             desired = {
@@ -1443,7 +1443,6 @@ def role_admin(request: HttpRequest) -> HttpResponse:
             "etat": filters.state,
             "etat_choices": PollState.choices,
             "selected_poll": poll,
-            "holders": accounts.role_holders(poll) if poll is not None else [],
             "grid": accounts.role_grid(poll) if poll is not None else [],
             "roles": Role.choices,
         },
