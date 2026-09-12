@@ -55,6 +55,7 @@ below.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
@@ -64,7 +65,7 @@ from django.contrib.auth import login, password_validation
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, LogoutView
 from django.core.exceptions import PermissionDenied, ValidationError
-from django.core.paginator import Paginator
+from django.core.paginator import Page, Paginator
 from django.db import transaction
 from django.db.models import Case, IntegerField, QuerySet, Value, When
 from django.http import Http404, HttpRequest, HttpResponse, HttpResponseBase, JsonResponse
@@ -1327,12 +1328,10 @@ def account_admin(request: HttpRequest) -> HttpResponse:
     )
 
 
-#: Picker order for screen 10's poll dropdown: the states an operator is
+#: Default order for screen 10's poll list: the states an operator is
 #: actually likely to be assigning roles on (open, then announced, then a
 #: draft still being staffed up) before the ones role changes rarely touch
-#: any more. Grouped, not just sorted, so ``role_admin.html``'s ``regroup``
-#: can put an ``<optgroup>`` per état — the plain flat list stopped scaling
-#: once a commune had more than a season's worth of polls in its history.
+#: any more.
 _POLL_PICKER_ORDER = [
     PollState.OPEN,
     PollState.ANNOUNCED,
@@ -1341,6 +1340,10 @@ _POLL_PICKER_ORDER = [
     PollState.PUBLISHED,
     PollState.WITHDRAWN,
 ]
+
+#: Matches the audit screen's page size (§6.5.8) — no reason for this list to
+#: differ.
+_POLL_LIST_PAGE_SIZE = 50
 
 
 def _polls_for_picker() -> QuerySet[Poll]:
@@ -1351,13 +1354,49 @@ def _polls_for_picker() -> QuerySet[Poll]:
     return Poll.objects.order_by(priority, "-created_at")
 
 
+@dataclass(frozen=True)
+class _PollListFilters:
+    query: str
+    state: str
+
+
+def _poll_list_page(request: HttpRequest) -> tuple[_PollListFilters, Page[Poll]]:
+    """Screen 10's poll list: a search box and an état filter narrowing a
+    plain paginated table, in place of the ``<select>`` (even a client-side
+    filtered one) that used to hold every poll the commune has ever run. A
+    dropdown ships every option to the browser and degrades once a commune
+    has more than a season's worth of polls in its history — the same reason
+    the audit log (``audit_log``) and the roll browser (``rollbrowse``) are
+    a GET search over a ``Paginator``, not a pick-list.
+
+    ``title_i18n`` is per-language JSON (§3.8), not a plain column, so the
+    text search runs in Python against ``display_title()`` rather than as a
+    query — one commune's poll history is small enough to hold in memory for
+    this, unlike the working roll ``rollbrowse`` searches in the database.
+    """
+    filters = _PollListFilters(
+        query=request.GET.get("q", "").strip(),
+        state=request.GET.get("etat", ""),
+    )
+    queryset = _polls_for_picker()
+    if filters.state:
+        queryset = queryset.filter(state=filters.state)
+    polls: QuerySet[Poll] | list[Poll] = queryset
+    if filters.query:
+        needle = filters.query.casefold()
+        polls = [poll for poll in polls if needle in poll.display_title().casefold()]
+    page = Paginator(polls, _POLL_LIST_PAGE_SIZE).get_page(request.GET.get("page"))
+    return filters, page
+
+
 @require_commune_admin
 def role_admin(request: HttpRequest) -> HttpResponse:
     """Screen 10, part two — per-poll role assignment (R-2.1, §3.7, §6.5.10).
 
-    One poll at a time, chosen from the picker (``?scrutin=`` on the way
-    back) — grouped by état and, with ``poll-picker-filter.js``, filterable by
-    name. Roles are then set as a grid, one row per active account and one
+    One poll at a time, chosen from a searchable, paginated list
+    (``_poll_list_page``; ``?scrutin=`` on the way back to reselect it) rather
+    than a dropdown of the commune's entire poll history. Roles are then set
+    as a grid, one row per active account and one
     checkbox per role of §3.7 (``accounts.role_grid``), submitted together and
     diffed against what is already granted (``accounts.sync_roles``) so only
     the boxes that actually changed write an event. Nothing here touches the
@@ -1366,6 +1405,7 @@ def role_admin(request: HttpRequest) -> HttpResponse:
     """
     poll_id = request.POST.get("poll") or request.GET.get("scrutin") or ""
     poll = get_object_or_404(Poll, pk=poll_id) if poll_id else None
+    filters, page = _poll_list_page(request)
 
     if request.method == "POST" and poll is not None:
         operator = current_operator(request)
@@ -1398,7 +1438,10 @@ def role_admin(request: HttpRequest) -> HttpResponse:
         request,
         "backoffice/role_admin.html",
         {
-            "polls": _polls_for_picker(),
+            "page": page,
+            "query": filters.query,
+            "etat": filters.state,
+            "etat_choices": PollState.choices,
             "selected_poll": poll,
             "holders": accounts.role_holders(poll) if poll is not None else [],
             "grid": accounts.role_grid(poll) if poll is not None else [],

@@ -16,7 +16,7 @@ from django.test import Client
 from apps.audit.models import Action, AuditEvent
 from apps.backoffice.access import has_poll_role
 from apps.core.models import PollRole, Role, User
-from apps.elections.models import Poll
+from apps.elections.models import Poll, PollState
 
 ACCOUNTS_URL = "/fr/mairie/comptes/"
 ROLES_URL = "/fr/mairie/comptes/roles/"
@@ -334,6 +334,47 @@ def test_the_roles_screen_without_a_poll_lists_the_polls(
 ) -> None:
     body = admin_client.get(ROLES_URL).content.decode()
     assert open_window_poll.title() in body
+
+
+def _second_poll(reference: Poll, *, title: str) -> Poll:
+    """A second, unrelated poll — same window as ``reference`` so its shared
+    fields don't matter, distinct only in the ``title_i18n`` the list search
+    is exercised against."""
+    return Poll.objects.create(
+        title_i18n={"fr": title},
+        description_i18n={"fr": "Sans rapport."},
+        languages=["fr"],
+        opens_at=reference.opens_at,
+        closes_at=reference.closes_at,
+        paper_entry_deadline=reference.paper_entry_deadline,
+    )
+
+
+def test_the_poll_list_can_be_searched_by_title(
+    admin_client: Client, open_window_poll: Poll
+) -> None:
+    """The list replacing the old dropdown (views._poll_list_page) narrows by
+    a plain substring of the title, run in Python since ``title_i18n`` is
+    per-language JSON rather than a column a query can match."""
+    other = _second_poll(open_window_poll, title="Autre scrutin")
+    body = admin_client.get(ROLES_URL, {"q": "Aménagement"}).content.decode()
+    assert open_window_poll.title() in body
+    assert other.title() not in body
+
+
+def test_the_poll_list_can_be_filtered_by_état(
+    admin_client: Client, open_window_poll: Poll
+) -> None:
+    """Both polls sit in ``draft`` fresh out of ``Poll.objects.create`` — the
+    état filter excludes them once asked for a state neither is in, without
+    needing a real transition to prove the filter works."""
+    other = _second_poll(open_window_poll, title="Autre scrutin")
+    same_state = admin_client.get(ROLES_URL, {"etat": PollState.DRAFT}).content.decode()
+    assert open_window_poll.title() in same_state
+    assert other.title() in same_state
+    other_state = admin_client.get(ROLES_URL, {"etat": PollState.OPEN}).content.decode()
+    assert open_window_poll.title() not in other_state
+    assert other.title() not in other_state
 
 
 def test_an_absent_poll_on_the_roles_screen_is_a_404(admin_client: Client) -> None:

@@ -1,5 +1,5 @@
 {% extends "backoffice/base.html" %}
-{% load i18n static %}
+{% load i18n %}
 {# SPDX-License-Identifier: 0BSD #}
 
 {% block screen_title %}{% translate "Rôles par scrutin" %}{% endblock %}
@@ -13,33 +13,75 @@
   {% endcomment %}
   <p class="notice">{% translate "Les rôles sont attribués scrutin par scrutin. Chaque attribution et chaque retrait est inscrit au journal d'audit du scrutin." %}</p>
 
-  <form method="get" class="pollpicker" data-poll-picker>
-    {% comment %}
-      Grouped by état (views._polls_for_picker) so the list stays readable
-      once a commune has more than a season's worth of polls; the search box
-      is revealed by poll-picker-filter.js and stays hidden without it, same
-      reasoning as option-editor.js's « Ajouter » button.
-    {% endcomment %}
-    <p class="field" data-poll-filter-wrap hidden>
-      <label for="poll-filter">{% translate "Rechercher un scrutin" %}</label>
-      <input type="search" id="poll-filter" data-poll-filter autocomplete="off">
+  {% comment %}
+    A search box and an état filter over a plain paginated table
+    (views._poll_list_page), not a <select> of the commune's entire poll
+    history — the same shape as the audit log and the roll browser. A
+    dropdown, even one filtered client-side as this screen's used to be,
+    still ships every poll to the browser and degrades once a commune has
+    run more than a season's worth of them.
+  {% endcomment %}
+  <form method="get" class="filters" role="search" aria-label="{% translate 'Rechercher un scrutin' %}">
+    <p>
+      <label for="q">{% translate "Rechercher un scrutin" %}</label>
+      <input id="q" type="search" name="q" value="{{ query }}">
     </p>
-    <label for="scrutin">{% translate "Scrutin" %}</label>
-    <select id="scrutin" name="scrutin" data-poll-select>
-      <option value="">{% translate "— choisir —" %}</option>
-      {% regroup polls by get_state_display as poll_state_groups %}
-      {% for group in poll_state_groups %}
-        <optgroup label="{{ group.grouper }}">
-          {% for poll in group.list %}
-            <option value="{{ poll.pk }}" data-poll-search="{{ poll.display_title }}"{% if selected_poll and poll.pk == selected_poll.pk %} selected{% endif %}>
-              {{ poll.display_title }}
-            </option>
-          {% endfor %}
-        </optgroup>
-      {% endfor %}
-    </select>
-    <button type="submit">{% translate "Afficher" %}</button>
+    {% if etat %}<input type="hidden" name="etat" value="{{ etat }}">{% endif %}
+    <button type="submit">{% translate "Rechercher" %}</button>
   </form>
+
+  <p class="tags" aria-label="{% translate 'Filtrer par état' %}">
+    <a href="?q={{ query }}"{% if not etat %} class="tag active"{% else %} class="tag"{% endif %}>{% translate "Tous" %}</a>
+    {% for value, label in etat_choices %}
+      <a href="?q={{ query }}&etat={{ value }}"{% if etat == value %} class="tag active"{% else %} class="tag"{% endif %}>{{ label }}</a>
+    {% endfor %}
+  </p>
+
+  <table>
+    <caption>
+      {% blocktranslate count total=page.paginator.count trimmed %}
+        {{ total }} scrutin
+      {% plural %}
+        {{ total }} scrutins
+      {% endblocktranslate %}
+    </caption>
+    <thead>
+      <tr>
+        <th scope="col">{% translate "Scrutin" %}</th>
+        <th scope="col">{% translate "État" %}</th>
+        <th scope="col">{% translate "Clôture" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for poll in page.object_list %}
+        <tr{% if selected_poll and poll.pk == selected_poll.pk %} class="selected"{% endif %}>
+          <td>
+            <a href="?scrutin={{ poll.pk }}&q={{ query }}&etat={{ etat }}">{{ poll.display_title }}</a>
+            {% if poll.is_sandbox %} <span class="tag">{% translate "bac à sable" %}</span>{% endif %}
+            {% if selected_poll and poll.pk == selected_poll.pk %} <span class="tag">{% translate "affiché ci-dessous" %}</span>{% endif %}
+          </td>
+          <td>{{ poll.get_state_display }}</td>
+          <td>{{ poll.closes_at }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="3">{% translate "Aucun scrutin ne correspond." %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if page.has_other_pages %}
+    {% with keep="&q="|add:query|add:"&etat="|add:etat %}
+    <nav class="pagination" aria-label="{% translate 'Pages de la liste' %}">
+      {% if page.has_previous %}
+        <a href="?page={{ page.previous_page_number }}{{ keep }}">{% translate "Page précédente" %}</a>
+      {% endif %}
+      <span>{% blocktranslate with current=page.number total=page.paginator.num_pages %}Page {{ current }} sur {{ total }}{% endblocktranslate %}</span>
+      {% if page.has_next %}
+        <a href="?page={{ page.next_page_number }}{{ keep }}">{% translate "Page suivante" %}</a>
+      {% endif %}
+    </nav>
+    {% endwith %}
+  {% endif %}
 
   {% if selected_poll %}
     <h2>{{ selected_poll.display_title }}</h2>
@@ -123,10 +165,6 @@
       <button type="submit">{% translate "Enregistrer les rôles" %}</button>
     </form>
   {% else %}
-    <p>{% translate "Choisissez un scrutin pour voir et modifier ses rôles." %}</p>
+    <p>{% translate "Choisissez un scrutin dans la liste ci-dessus pour voir et modifier ses rôles." %}</p>
   {% endif %}
-{% endblock %}
-
-{% block body_end %}
-  <script src="{% static 'js/poll-picker-filter.js' %}" defer></script>
 {% endblock %}
