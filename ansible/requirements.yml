@@ -3,9 +3,14 @@
 # Not a dependency of the `polls` role itself — molecule.yml disables galaxy
 # dependency resolution (dependency.enabled: false) so this file is never
 # consulted by molecule. It exists for CI to install ahead of `molecule test`:
-# the docker driver's own bundled create.yml/destroy.yml (in molecule-plugins,
-# not this repo) call community.docker.docker_container, and ansible-core
-# ships no collections of its own.
+# the docker driver's own bundled playbooks (in molecule-plugins, not this
+# repo) call community.docker.docker_container and, in create.yml's context
+# sync, ansible.posix.synchronize — Ansible resolves every module a playbook
+# names at parse time, `when: not pre_build_image` or not, so `pre_build_image:
+# true` (molecule.yml, both scenarios) skips running that task but not this.
+# ansible-core ships no collections of its own.
 collections:
   - name: community.docker
     version: "5.3.0"
+  - name: ansible.posix
+    version: "2.2.2"
