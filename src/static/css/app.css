@@ -585,9 +585,16 @@ details form.inline {
 }
 details form.inline label { margin: 0; }
 
-.pollpicker { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: end; margin-bottom: 1.5rem; }
-/* Revealed by static/js/poll-picker-filter.js; the no-JS path never shows it. */
-.pollpicker [data-poll-filter-wrap][hidden] { display: none; }
+/* État filter chips above a paginated list (screen 10's poll list, roll
+   browser and others to come) — a fixed handful of states, unlike the list
+   itself, so plain links read better here than another <select>. */
+.tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0 0 1rem; padding: 0; }
+.tags .tag { text-decoration: none; color: inherit; }
+.tags .tag.active { background: var(--accent-soft); border-color: var(--accent); font-weight: 600; }
+
+/* The row a list is currently drilled into (screen 10's poll list, the
+   scrutin whose roles are shown below it). */
+tbody tr.selected th, tbody tr.selected td { background: var(--accent-soft); }
 
 /* ---- proposition editor (screen 2) --------------------------------- */
 
