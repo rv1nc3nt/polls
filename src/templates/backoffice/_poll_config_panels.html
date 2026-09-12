@@ -185,6 +185,7 @@
       {% if field.name == "paper_requires_signed_form" or field.name == "paper_requires_countersign" or field.name == "paper_requires_reconciliation" %}
         <p class="field">
           <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {% if field.help_text %}<span class="help">{{ field.help_text }}</span>{% endif %}
           {{ field }}
           {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
         </p>

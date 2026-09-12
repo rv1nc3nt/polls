@@ -85,29 +85,86 @@ class PollConfigForm(forms.Form):
     )
 
     tally_method = forms.ChoiceField(
-        label=_("Méthode de dépouillement"), choices=TallyMethod.choices
+        label=_("Méthode de dépouillement"),
+        choices=TallyMethod.choices,
+        help_text=_(
+            "Schulze : chaque bulletin classe les propositions par préférence ; la "
+            "gagnante bat chacune des autres en confrontation directe ou par un chemin "
+            "de préférences plus fort — adapté à une question à plusieurs options (§8.1). "
+            "Majoritaire : compte la première préférence de chaque bulletin, comme un "
+            "scrutin classique à un tour. Par assentiment : compte chaque proposition "
+            "approuvée sur le bulletin, sans classement — utile pour « cochez toutes "
+            "celles qui conviennent » (§8.2)."
+        ),
     )
     tally_method_version = forms.CharField(
-        label=_("Version de la méthode"), max_length=20, initial="1"
+        label=_("Version de la méthode"),
+        max_length=20,
+        initial="1",
+        help_text=_(
+            "Figée avec le scrutin : un résultat déjà publié reste reproductible même si "
+            "le calcul évolue ensuite pour les scrutins suivants (R-10.2)."
+        ),
     )
     require_complete_ranking = forms.BooleanField(
-        label=_("Classement complet obligatoire"), required=False
+        label=_("Classement complet obligatoire"),
+        required=False,
+        help_text=_(
+            "Un bulletin doit-il classer toutes les propositions ? Sinon, celles qu'un "
+            "électeur laisse de côté comptent ex æquo en dernière position (R-10.4). "
+            "S'applique quelle que soit la méthode de dépouillement choisie ci-dessus."
+        ),
     )
     allow_ties_in_ballot = forms.BooleanField(
-        label=_("Ex æquo autorisés sur un bulletin"), required=False
+        label=_("Ex æquo autorisés sur un bulletin"),
+        required=False,
+        help_text=_(
+            "Permet à un électeur de placer plusieurs propositions au même rang, y "
+            "compris en tête. Avec la méthode majoritaire, une égalité en tête donne "
+            "une voix à chacune des propositions concernées — presque toujours une "
+            "erreur de configuration pour une question à choix unique (§8.2)."
+        ),
     )
     tiebreak_rule = forms.ChoiceField(
-        label=_("Départage en cas d'égalité"), choices=TiebreakRule.choices
+        label=_("Départage en cas d'égalité"),
+        choices=TiebreakRule.choices,
+        help_text=_(
+            "Si le dépouillement ne peut départager deux propositions : « tirage au "
+            "sort calculé » recalcule un ordre reproductible à partir de l'empreinte de "
+            "clôture, imprévisible et non truquable avant celle-ci (§8.3) ; « tirage au "
+            "sort physique » suspend le dépouillement, le résultat étant saisi ensuite "
+            "par un administrateur du scrutin après un tirage au sort en mairie "
+            "(R-10.5, R-10.5 bis)."
+        ),
     )
 
     paper_requires_signed_form = forms.BooleanField(
-        label=_("Formulaire signé exigé pour un bulletin papier"), required=False
+        label=_("Formulaire signé exigé pour un bulletin papier"),
+        required=False,
+        help_text=_(
+            "Exige la collecte d'un formulaire papier portant le classement, la "
+            "déclaration sur l'honneur et l'identité de l'électeur avant la saisie "
+            "(R-8.2 bis). En son absence, ces informations figurent sur le reçu remis "
+            "à l'électeur (R-8.4)."
+        ),
     )
     paper_requires_countersign = forms.BooleanField(
-        label=_("Contreseing d'un second opérateur exigé"), required=False
+        label=_("Contreseing d'un second opérateur exigé"),
+        required=False,
+        help_text=_(
+            "Le bulletin saisi n'est compté qu'après validation par un second opérateur "
+            "nommé ; la clôture du scrutin est refusée tant qu'une saisie attend ce "
+            "contreseing, sauf motif dérogatoire du poll admin (R-8.7, R-8.7 bis)."
+        ),
     )
     paper_requires_reconciliation = forms.BooleanField(
-        label=_("Rapprochement des bulletins papier exigé"), required=False
+        label=_("Rapprochement des bulletins papier exigé"),
+        required=False,
+        help_text=_(
+            "Les formulaires papier sont conservés par la commune et rapprochés des "
+            "bulletins enregistrés à la clôture, dans un procès-verbal signé et "
+            "archivé ; à défaut, le journal d'audit en tient lieu (R-8.6)."
+        ),
     )
 
     allow_ballot_modification = forms.BooleanField(
@@ -598,6 +655,18 @@ class MailSettingsForm(forms.ModelForm):  # type: ignore[type-arg]  # not subscr
             "from_email": _("Adresse d'expédition"),
         }
         widgets = {"encryption": forms.RadioSelect}
+        help_texts = {
+            "port": _(
+                "Le port dépend du chiffrement choisi ci-dessous : 587 pour STARTTLS, "
+                "465 pour SSL/TLS implicite, 25 sans chiffrement — à vérifier auprès de "
+                "l'hébergeur de messagerie."
+            ),
+            "encryption": _(
+                "STARTTLS : connexion normale puis passage en chiffré (le plus courant). "
+                "SSL/TLS implicite : chiffré dès la connexion. Aucun : à réserver à un "
+                "relais interne de confiance, jamais à un envoi sur internet."
+            ),
+        }
 
     def clean_port(self) -> int:
         port: int = self.cleaned_data["port"]

@@ -87,6 +87,16 @@
     <h2>{{ selected_poll.display_title }}</h2>
 
     {% comment %}
+      §3.7: what each role opens, for whoever is ticking the boxes below —
+      the column headers alone name the role, not what it grants.
+    {% endcomment %}
+    <p class="help">
+      {% translate "Administrateur du scrutin : configuration, tableau de bord, inscriptions, saisie et rectification des bulletins papier, clôture et publication." %}
+      {% translate "Opérateur de saisie : saisie des bulletins papier et contreseing." %}
+      {% translate "Auditeur : journal d'audit et, une fois le scrutin ouvert, consultation de sa liste électorale figée (R-4.4)." %}
+    </p>
+
+    {% comment %}
       One row per active account (accounts.role_grid) and one checkbox per
       role of §3.7, submitted together — replaces both the old
       account-then-role pair of dropdowns, which meant one round trip per
