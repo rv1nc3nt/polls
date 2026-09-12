@@ -6,6 +6,10 @@
 # PROVIDE: polls
 # REQUIRE: LOGIN
 # KEYWORD: shutdown
+#
+# shellcheck disable=SC1091  # rc.subr lives on the target, not here
+# shellcheck disable=SC2034  # rc.subr sources this and reads these by name
+# shellcheck disable=SC1090  # polls_config is the operator's env file, not a fixed path
 
 . /etc/rc.subr
 
@@ -13,11 +17,11 @@ name="polls"
 rcvar="polls_enable"
 
 load_rc_config $name
-: ${polls_enable:="NO"}
-: ${polls_prefix:="/usr/local/polls"}
-: ${polls_config:="/usr/local/etc/polls/polls.env"}
-: ${polls_user:="polls"}
-: ${polls_log:="/var/log/polls.log"}
+: "${polls_enable:=NO}"
+: "${polls_prefix:=/usr/local/polls}"
+: "${polls_config:=/usr/local/etc/polls/polls.env}"
+: "${polls_user:=polls}"
+: "${polls_log:=/var/log/polls.log}"
 
 pidfile="/var/run/${name}.pid"
 # daemon(8) with -r restarts a crashed process: the non-systemd targets must not

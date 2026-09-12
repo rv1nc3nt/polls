@@ -7,10 +7,10 @@
 #     run — same bytes, same row counts;
 #   * the deployed instance is actually up (/sante answers).
 #
-# The role is still scaffolding (roles/polls/tasks/*.yml are debug stubs). Each
-# assertion that needs a real artefact is guarded: until the artefact exists the
-# task warns and is skipped, so this scenario proves the harness today and grows
-# teeth the moment deploy.yml, provision.yml and backup.yml are implemented.
+# deploy.yml, provision.yml and backup.yml are implemented now, so every
+# assertion below runs for real; the guards that skip-and-warn when an
+# artefact is missing are dead weight kept only so this scenario still degrades
+# gracefully if a task is ever reverted to a stub.
 
 - name: T-38 — a --check run over the converged host is clean
   hosts: localhost
