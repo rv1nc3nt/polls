@@ -11,12 +11,18 @@
 #
 # Nothing here changes state: the checks report reality, so every task is
 # changed_when:false and a re-run of the play is still idempotent (T-38).
+# check_mode: false on the two read-only checks below for the same reason —
+# molecule's --check pass (verify.yml, T-38) still expects /sante to actually
+# answer; without the override, `command` and `uri` skip themselves under
+# --check and polls_smoke_sante never gets a `json` key, which crashes the
+# next assert's fail_msg/success_msg templating instead of reporting reality.
 
 - name: The polls web service is active
   ansible.builtin.command:
     cmd: systemctl is-active polls.service
   register: polls_smoke_active
   changed_when: false
+  check_mode: false
   failed_when: (polls_smoke_active.stdout | trim) != "active"
 
 - name: /sante answers on the loopback
@@ -26,6 +32,7 @@
     url: "http://{{ polls_bind }}/sante"
   register: polls_smoke_sante
   changed_when: false
+  check_mode: false
   retries: 5
   delay: 3
   until: polls_smoke_sante.status == 200

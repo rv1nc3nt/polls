@@ -65,11 +65,26 @@
   hosts: localhost
   gather_facts: false
   tasks:
+    - name: Write a companion inventory that puts the instance in [polls]
+      # restore.yml targets `hosts: polls`, the group name a real inventory.ini
+      # defines (inventory.example.ini). Molecule's own generated inventory
+      # only carries the throwaway container under the magic `all`/`ungrouped`
+      # groups, and aliasing `polls` to either via `:children` silently drops
+      # the membership instead of erroring — ansible-core recomputes both
+      # specially and does not honour a manual child assignment to them — so
+      # list the concrete host(s) by name instead.
+      ansible.builtin.copy:
+        dest: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/polls-group.ini"
+        content: |
+          [polls]
+          {{ groups['all'] | join('\n') }}
+
     - name: Run restore.yml against the throwaway host
       ansible.builtin.command:
         cmd: >-
           ansible-playbook
           -i {{ lookup('env', 'MOLECULE_INVENTORY_FILE') }}
+          -i {{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/polls-group.ini
           {{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/restore.yml
       environment:
         ANSIBLE_FORCE_COLOR: "0"

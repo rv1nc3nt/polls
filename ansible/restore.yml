@@ -15,6 +15,22 @@
   hosts: polls
   become: true
   tasks:
+    - name: Stop the web service before touching state that may have been lost
+      # ProtectSystem=strict + ReadWritePaths (polls.service.j2) bind-mount
+      # polls_state_dir into the unit's private mount namespace once, at
+      # start. If the directory was lost and recreated while the unit kept
+      # running — this playbook's whole premise — the running service keeps
+      # its stale, orphaned view of the old directory: deploy.yml's own
+      # /sante check below 500s with "unable to open database file" before
+      # this playbook ever reaches the restore step (T-16). Stopping
+      # unconditionally guarantees whatever deploy.yml starts back up mounts
+      # the directory fresh. failed_when: false covers the brand-new-host
+      # case, where the unit does not exist yet for this to stop.
+      ansible.builtin.systemd_service:
+        name: polls.service
+        state: stopped
+      failed_when: false
+
     - name: Provision the host (§15 steps 1, 2, 7)
       ansible.builtin.import_role:
         name: polls
