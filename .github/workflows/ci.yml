@@ -42,8 +42,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: systemd-analyze verify contrib/init/polls.service
-      - run: shellcheck contrib/init/polls.openrc contrib/init/polls.rc.freebsd
+      # ExecStart points into /opt/polls, which exists only once the playbook
+      # has run; tests/integration/test_init_scripts.py tolerates exactly this
+      # diagnostic and no other, so this step does the same.
+      - name: systemd-analyze verify contrib/init/polls.service
+        run: |
+          real="$(systemd-analyze verify contrib/init/polls.service 2>&1 1>/dev/null \
+            | grep -v 'is not executable: No such file or directory' || true)"
+          if [ -n "$real" ]; then
+            printf '%s\n' "$real"
+            exit 1
+          fi
+      - run: shellcheck contrib/init/polls.openrc contrib/init/polls.rc.freebsd contrib/init/polls.rc.openbsd
 
   molecule:
     # The slow job: T-38 (deploy is idempotent and --check clean, SECRET_KEY /
@@ -62,7 +72,10 @@ jobs:
       # Docker is already running on the runner; no daemon setup needed.
       - name: T-38 — deploy idempotence and --check
         working-directory: ansible
-        run: molecule test -s default
+        # --debug: molecule's default error handler collapses a driver/docker
+        # exception down to a bare "Error:" with no body, which is useless in
+        # CI where nobody can rerun it interactively to see more (§15).
+        run: molecule --debug test -s default
       - name: T-16 — backup and restore round trip
         working-directory: ansible
-        run: molecule test -s restore
+        run: molecule --debug test -s restore

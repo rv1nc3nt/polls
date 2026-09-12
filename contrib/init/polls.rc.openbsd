@@ -1,6 +1,10 @@
 #!/bin/ksh
 # SPDX-License-Identifier: 0BSD
 # OpenBSD rc.d script. Best effort, installation by hand (§15).
+#
+# shellcheck disable=SC1091  # rc.d/rc.subr lives on the target, not here
+# shellcheck disable=SC2034  # rc.subr sources this and reads these by name
+# shellcheck disable=SC1090  # daemon_config is the operator's env file, not a fixed path
 
 daemon_prefix="${POLLS_PREFIX:-/usr/local/polls}"
 daemon_config="${POLLS_CONFIG:-/etc/polls/polls.env}"

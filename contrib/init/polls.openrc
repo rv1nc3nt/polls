@@ -1,10 +1,14 @@
 #!/sbin/openrc-run
+# shellcheck shell=sh
 # SPDX-License-Identifier: 0BSD
 # OpenRC service. Best effort, installation by hand (§15).
 #
 # supervise-daemon rather than start-stop-daemon: it restarts a crashed
 # process, which is the property the systemd unit provides and which these
 # targets otherwise silently lose.
+#
+# shellcheck disable=SC2034  # openrc-run sources this and reads these by name
+# shellcheck disable=SC1090  # POLLS_CONFIG is the operator's env file, not a fixed path
 
 : "${POLLS_PREFIX:=/opt/polls}"
 : "${POLLS_CONFIG:=/etc/polls/polls.env}"
