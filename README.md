@@ -49,6 +49,7 @@ any new ballot falls under the new text.
 ## Quick start (development)
 
     uv sync
+    mkdir -p var/locks var/media var/static
     uv run python manage.py migrate
     uv run python manage.py runserver
 
