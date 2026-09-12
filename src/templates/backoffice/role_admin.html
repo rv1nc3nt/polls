@@ -86,50 +86,20 @@
   {% if selected_poll %}
     <h2>{{ selected_poll.display_title }}</h2>
 
-    <table>
-      <caption>{% translate "Rôles attribués sur ce scrutin" %}</caption>
-      <thead>
-        <tr>
-          <th scope="col">{% translate "Compte" %}</th>
-          <th scope="col">{% translate "Rôle" %}</th>
-          <th scope="col">{% translate "Attribué par" %}</th>
-          <th scope="col">{% translate "Le" %}</th>
-          <th scope="col">{% translate "Retirer" %}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for grant in holders %}
-          <tr>
-            <td>{{ grant.user.username }}{% if not grant.user.is_active %} <span class="tag">{% translate "désactivé" %}</span>{% endif %}</td>
-            <td>{{ grant.get_role_display }}</td>
-            <td>{{ grant.granted_by.username|default:"—" }}</td>
-            <td>{{ grant.granted_at }}</td>
-            <td>
-              <form method="post" class="inline danger">
-                {% csrf_token %}
-                <input type="hidden" name="poll" value="{{ selected_poll.pk }}">
-                <input type="hidden" name="grant" value="{{ grant.pk }}">
-                <button type="submit" name="action" value="revoke">{% translate "Retirer ce rôle" %}</button>
-              </form>
-            </td>
-          </tr>
-        {% empty %}
-          <tr><td colspan="5">{% translate "Aucun rôle attribué sur ce scrutin." %}</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-
-    <h3>{% translate "Attribuer des rôles" %}</h3>
     {% comment %}
       One row per active account (accounts.role_grid) and one checkbox per
-      role of §3.7, submitted together — replaces the old account-then-role
-      pair of dropdowns, which meant one round trip per grant and did not
-      scale past a handful of comptes any better than the poll picker above
-      did past a handful of scrutins. accounts.sync_roles diffs this against
-      what is already granted, so only the boxes that actually changed write
-      a ROLE_ASSIGNED / ROLE_REVOKED event (§10). A deactivated account is
-      left out — it cannot receive a new grant — and keeps whatever it
-      already holds until withdrawn from the table above.
+      role of §3.7, submitted together — replaces both the old
+      account-then-role pair of dropdowns, which meant one round trip per
+      grant and did not scale past a handful of comptes any better than the
+      poll picker above did past a handful of scrutins, and the read-only
+      table of existing grants that used to sit above this one, redundant
+      with what the ticked boxes already show. accounts.sync_roles diffs the
+      submission against what is already granted, so only the boxes that
+      actually changed write a ROLE_ASSIGNED / ROLE_REVOKED event (§10). A
+      deactivated account is left out of the grid entirely — it cannot
+      receive a new grant, and clearing what it already holds takes
+      reactivating it first, which brings its row (with those grants
+      already ticked) back into the grid to untick.
     {% endcomment %}
     <form method="post">
       {% csrf_token %}

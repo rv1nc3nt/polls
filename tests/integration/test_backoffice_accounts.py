@@ -315,14 +315,16 @@ def test_a_grid_submission_leaves_out_accounts_untouched(
     assert PollRole.objects.filter(pk=held.pk).exists()
 
 
-def test_revoking_a_role_removes_the_row_and_writes_the_event(
+def test_unticking_a_role_in_the_grid_removes_it_and_writes_the_event(
     admin_client: Client, open_window_poll: Poll, plain_operator: User
 ) -> None:
+    """The grid is the only way to withdraw a role now that the read-only
+    table of existing grants is gone: a submission with the account's row
+    present but its box left unticked reaches ``sync_roles`` as a plain
+    revoke (§10), same as ``test_one_bulk_submission_grants_and_revokes_
+    together`` exercises alongside a grant."""
     grant = PollRole.objects.create(poll=open_window_poll, user=plain_operator, role=Role.AUDITOR)
-    admin_client.post(
-        ROLES_URL,
-        {"action": "revoke", "poll": str(open_window_poll.pk), "grant": str(grant.pk)},
-    )
+    admin_client.post(ROLES_URL, _sync_payload(open_window_poll, {plain_operator: []}))
     assert not PollRole.objects.filter(pk=grant.pk).exists()
     event = AuditEvent.objects.get(action=Action.ROLE_REVOKED, poll=open_window_poll)
     assert event.object_ref == f"user:{plain_operator.pk}"
