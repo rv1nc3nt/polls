@@ -25,15 +25,32 @@ from django import forms
 from django.conf import settings
 from django.contrib.auth import password_validation
 from django.contrib.auth.validators import UnicodeUsernameValidator
+from django.core.validators import URLValidator
 from django.utils.translation import gettext_lazy as _
 
 from apps.audit.models import Reason
-from apps.core.models import MailSettings, User
+from apps.core.models import Commune, MailSettings, User
 from apps.elections import config
 from apps.elections.models import ListType, Poll, TallyMethod, TiebreakRule
 
 #: ``datetime-local`` submits without seconds; accept both shapes on the way in.
 _DATETIME_FORMATS = ("%Y-%m-%dT%H:%M", "%Y-%m-%dT%H:%M:%S")
+
+#: Shared by ``FirstRunForm`` and ``CommuneSettingsForm``: a scheme-and-host
+#: address good enough to prefix a path with (``mail._absolute``), or blank —
+#: blank is a legitimate answer meaning "use the deployment's own
+#: DJANGO_PUBLIC_BASE_URL". http:// is accepted alongside https:// for a
+#: sandbox instance running without TLS (§14 dev settings use
+#: http://localhost:8000).
+_public_base_url_validator = URLValidator(schemes=["http", "https"])
+
+
+def _clean_public_base_url(value: str) -> str:
+    value = value.strip().rstrip("/")
+    if value:
+        _public_base_url_validator(value)
+    return value
+
 
 #: R-3.4's reason vocabulary, narrowed to the codes that can mean "the closing
 #: date moved". The full ``Reason`` set includes ballot-review codes that would
@@ -597,6 +614,16 @@ class FirstRunForm(forms.Form):
         max_length=300,
         help_text=_("Adresse électronique ou postale, publiée dans la notice d'information."),
     )
+    public_base_url = forms.CharField(
+        label=_("Adresse du site"),
+        max_length=200,
+        required=False,
+        help_text=_(
+            "Ex. : https://votecommune.fr — sans barre oblique finale. Laissez vide pour "
+            "utiliser l'adresse configurée au déploiement ; modifiable ensuite depuis "
+            "l'écran « Paramètres de la commune »."
+        ),
+    )
 
     username = forms.CharField(
         label=_("Identifiant de connexion de l'administrateur"),
@@ -617,6 +644,9 @@ class FirstRunForm(forms.Form):
         password: str = self.cleaned_data["raw_password"]
         password_validation.validate_password(password)
         return password
+
+    def clean_public_base_url(self) -> str:
+        return _clean_public_base_url(self.cleaned_data["public_base_url"])
 
     def clean(self) -> dict[str, Any]:
         super().clean()
@@ -689,3 +719,24 @@ class TemplateNameForm(forms.Form):
     screen 13's rename — both write nothing but a name."""
 
     name = forms.CharField(label=_("Nom du modèle"), max_length=200)
+
+
+# --- Screen 14: paramètres de la commune (§6.5.14) -------------------------
+
+
+class CommuneSettingsForm(forms.ModelForm):  # type: ignore[type-arg]  # not subscriptable at runtime
+    """The commune record, editable after first-run (§6.5.14) — same fields
+    the wizard collects, plus the site's own address (``public_base_url``)."""
+
+    class Meta:
+        model = Commune
+        fields = ("name", "data_protection_referent", "data_protection_contact", "public_base_url")
+        labels = {
+            "name": _("Nom de la commune"),
+            "data_protection_referent": _("Référent données personnelles"),
+            "data_protection_contact": _("Contact du référent"),
+            "public_base_url": _("Adresse du site"),
+        }
+
+    def clean_public_base_url(self) -> str:
+        return _clean_public_base_url(self.cleaned_data["public_base_url"])

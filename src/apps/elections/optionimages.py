@@ -19,21 +19,11 @@ from django.utils.translation import gettext as _
 
 from apps.audit import services as audit
 from apps.audit.models import Action
+from apps.core import images
 from apps.core.models import User
 
 from .config import ConfigurationLocked
 from .models import OptionImage, PollOption, PollState
-
-#: Recognised by a fixed-position signature, never by the upload's declared
-#: content-type or its filename extension — both are the caller's word for
-#: it, not the file's (§14; the same reasoning §6.1 gives for not trusting a
-#: CSV's claimed encoding).
-_SIGNATURES: tuple[tuple[bytes, str], ...] = (
-    (b"\x89PNG\r\n\x1a\n", "image/png"),
-    (b"\xff\xd8\xff", "image/jpeg"),
-    (b"GIF87a", "image/gif"),
-    (b"GIF89a", "image/gif"),
-)
 
 #: 5 MiB: generous for a photograph or a screenshot, small enough that the
 #: mairie's nightly ``VACUUM INTO`` (§14) does not notice a poll acquiring a
@@ -43,15 +33,6 @@ MAX_IMAGE_SIZE = 5 * 1024 * 1024
 
 class InvalidOptionImage(Exception):
     """The upload is not usable: too large, or not a recognised image type."""
-
-
-def _sniff(data: bytes) -> str | None:
-    for signature, content_type in _SIGNATURES:
-        if data.startswith(signature):
-            return content_type
-    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
-        return "image/webp"
-    return None
 
 
 @transaction.atomic
@@ -75,7 +56,7 @@ def add_option_image(
     data = upload.read()
     if len(data) > MAX_IMAGE_SIZE:
         raise InvalidOptionImage(_("Image trop volumineuse (5 Mo maximum)."))
-    content_type = _sniff(data)
+    content_type = images.sniff_raster(data)
     if content_type is None:
         raise InvalidOptionImage(_("Format d'image non reconnu (PNG, JPEG, GIF ou WebP attendus)."))
     digest = hashlib.sha256(data).hexdigest()

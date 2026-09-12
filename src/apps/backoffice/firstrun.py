@@ -44,6 +44,7 @@ def install(
     commune_name: str,
     data_protection_referent: str,
     data_protection_contact: str,
+    public_base_url: str = "",
     username: str,
     full_name: str,
     raw_password: str,
@@ -52,12 +53,17 @@ def install(
 
     The form has already checked the password against Django's validators and
     that the two entries match; shape is its job, the write is this one's
-    (§6.5: no view writes through the ORM).
+    (§6.5: no view writes through the ORM). ``public_base_url`` blank is a
+    legitimate answer — it means "use the deployment's own
+    ``DJANGO_PUBLIC_BASE_URL``" (``apps.registrations.mail``) — so nothing here
+    defaults it from the environment; a commune that never touches screen 14
+    (§6.5.14) afterwards keeps working exactly as before this field existed.
     """
     Commune.objects.create(
         name=commune_name,
         data_protection_referent=data_protection_referent,
         data_protection_contact=data_protection_contact,
+        public_base_url=public_base_url,
     )
     return accounts.create_account(
         username=username,

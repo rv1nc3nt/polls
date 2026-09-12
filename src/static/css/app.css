@@ -172,6 +172,7 @@ section:last-child { margin-bottom: 0; }
 .site-name { font-weight: 700; margin: 0; font-size: 1.15rem; letter-spacing: -0.01em; }
 .site-name a { color: var(--ink); text-decoration: none; }
 .site-name a:hover { color: var(--accent); }
+.site-logo { display: block; max-height: 2.25rem; width: auto; }
 .account { display: flex; gap: 0.75rem; align-items: center; }
 .account__name { font-weight: 600; }
 
@@ -834,6 +835,11 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 .option-images { list-style: none; padding: 0; margin: 0 0 0.75rem; display: flex; flex-wrap: wrap; gap: 0.75rem; }
 .option-images li { display: flex; flex-direction: column; gap: 0.3rem; }
 .option-images__thumb { width: 8rem; height: 8rem; object-fit: cover; border-radius: 4px; border: 1px solid var(--rule-soft); }
+
+/* ---- screen 14's logo and favicon (§6.5.14) ------------------------ */
+
+.commune-branding__preview { max-width: 12rem; max-height: 6rem; width: auto; height: auto; border-radius: 4px; border: 1px solid var(--rule-soft); }
+.commune-branding__preview--favicon { max-width: 4rem; max-height: 4rem; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; }

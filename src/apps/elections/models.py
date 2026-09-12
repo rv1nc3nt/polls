@@ -14,6 +14,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from apps.core import images
 from apps.core.crypto import new_token_salt
 
 
@@ -291,12 +292,7 @@ class PollOption(models.Model):
 
 
 def _option_image_extension(content_type: str) -> str:
-    return {
-        "image/png": ".png",
-        "image/jpeg": ".jpg",
-        "image/gif": ".gif",
-        "image/webp": ".webp",
-    }[content_type]
+    return images.EXTENSIONS[content_type]
 
 
 def option_image_path(instance: OptionImage, filename: str) -> str:

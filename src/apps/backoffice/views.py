@@ -51,6 +51,13 @@ rather than a screen of its own; and screen 13 (modèles de scrutin, §6.5.13),
 whose read model and write path are both ``elections.polltemplates``. Saving
 a template is an action on screen 2, not its own screen — see ``poll_config``
 below.
+
+Here so far, additionally: screen 14 (paramètres de la commune, §6.5.14),
+whose read model and write path are both ``communesettings.py`` — the screen
+that edits, after first-run, what screen 11 only creates, plus the optional
+logo and favicon, each its own POST-only upload/remove pair outside the main
+form, the same shape as ``option_image_upload``/``option_image_delete``
+(R-3.12). Commune-level like 10, 12 and 13.
 """
 
 from __future__ import annotations
@@ -111,7 +118,17 @@ from apps.registrations import mail as registration_mail
 from apps.registrations import services as registrations
 from apps.registrations.models import Channel, Registration
 
-from . import accounts, auditlog, dashboard, firstrun, mailsettings, paper, review, rollbrowse
+from . import (
+    accounts,
+    auditlog,
+    communesettings,
+    dashboard,
+    firstrun,
+    mailsettings,
+    paper,
+    review,
+    rollbrowse,
+)
 from .access import (
     accessible_polls,
     current_operator,
@@ -123,6 +140,7 @@ from .access import (
 )
 from .forms import (
     ClosureOverrideForm,
+    CommuneSettingsForm,
     ExtensionForm,
     FirstRunForm,
     MailSettingsForm,
@@ -191,6 +209,7 @@ def first_run(request: HttpRequest) -> HttpResponse:
             commune_name=form.cleaned_data["commune_name"],
             data_protection_referent=form.cleaned_data["data_protection_referent"],
             data_protection_contact=form.cleaned_data["data_protection_contact"],
+            public_base_url=form.cleaned_data["public_base_url"],
             username=form.cleaned_data["username"],
             full_name=form.cleaned_data["full_name"],
             raw_password=form.cleaned_data["raw_password"],
@@ -1563,3 +1582,99 @@ def template_admin(request: HttpRequest) -> HttpResponse:
             "rename_form": TemplateNameForm(),
         },
     )
+
+
+# --- Screen 14: paramètres de la commune (§6.5.14) --------------------------
+#
+# Commune-level, like screens 10, 12 and 13: ``require_commune_admin``, no
+# ``poll`` argument. The row always exists by the time this is reachable — the
+# first-run wizard (screen 11) creates it alongside the first account.
+
+
+@require_commune_admin
+def commune_settings(request: HttpRequest) -> HttpResponse:
+    """Screen 14 — the commune record after first-run (§6.5.14).
+
+    Same fields the wizard collects, plus the site's own address
+    (``public_base_url``, §6.2 step 7): blank keeps using the deployment's own
+    ``DJANGO_PUBLIC_BASE_URL`` (§14, §15), exactly as before this screen
+    existed.
+    """
+    config = communesettings.current()
+    form = CommuneSettingsForm(request.POST or None, instance=config)
+    if request.method == "POST" and form.is_valid():
+        draft = communesettings.CommuneSettingsDraft(
+            name=form.cleaned_data["name"],
+            data_protection_referent=form.cleaned_data["data_protection_referent"],
+            data_protection_contact=form.cleaned_data["data_protection_contact"],
+            public_base_url=form.cleaned_data["public_base_url"],
+        )
+        communesettings.save(draft, actor=current_operator(request))
+        messages.success(request, _("Paramètres de la commune enregistrés."))
+        return redirect("backoffice:commune_settings")
+    # `commune` itself is already in every template's context
+    # (apps.core.context.commune) — the form is the only thing this view adds.
+    return render(request, "backoffice/commune_settings.html", {"form": form})
+
+
+# Logo and favicon (§6.5.14, both optional): POST-only targets outside the
+# form above, like ``option_image_upload``/``option_image_delete`` (R-3.12) —
+# a blank file input does not mean "keep the current one" the way a blank
+# password does on screen 12, so upload always replaces and removal is its
+# own action, not a value the settings form could carry.
+
+
+@require_commune_admin
+def commune_logo_upload(request: HttpRequest) -> HttpResponse:
+    """Screen 14's logo upload."""
+    commune = communesettings.current()
+    if request.method == "POST" and commune is not None:
+        upload = request.FILES.get("logo")
+        if upload is None:
+            messages.error(request, _("Choisissez une image."))
+        else:
+            try:
+                communesettings.set_logo(commune, upload, actor=current_operator(request))
+            except communesettings.InvalidBrandingImage as refused:
+                messages.error(request, str(refused))
+            else:
+                messages.success(request, _("Logo mis à jour."))
+    return redirect("backoffice:commune_settings")
+
+
+@require_commune_admin
+def commune_logo_remove(request: HttpRequest) -> HttpResponse:
+    """The mirror of ``commune_logo_upload`` above."""
+    commune = communesettings.current()
+    if request.method == "POST" and commune is not None:
+        communesettings.remove_logo(commune, actor=current_operator(request))
+        messages.success(request, _("Logo supprimé."))
+    return redirect("backoffice:commune_settings")
+
+
+@require_commune_admin
+def commune_favicon_upload(request: HttpRequest) -> HttpResponse:
+    """Screen 14's favicon upload."""
+    commune = communesettings.current()
+    if request.method == "POST" and commune is not None:
+        upload = request.FILES.get("favicon")
+        if upload is None:
+            messages.error(request, _("Choisissez une image."))
+        else:
+            try:
+                communesettings.set_favicon(commune, upload, actor=current_operator(request))
+            except communesettings.InvalidBrandingImage as refused:
+                messages.error(request, str(refused))
+            else:
+                messages.success(request, _("Favicon mis à jour."))
+    return redirect("backoffice:commune_settings")
+
+
+@require_commune_admin
+def commune_favicon_remove(request: HttpRequest) -> HttpResponse:
+    """The mirror of ``commune_favicon_upload`` above."""
+    commune = communesettings.current()
+    if request.method == "POST" and commune is not None:
+        communesettings.remove_favicon(commune, actor=current_operator(request))
+        messages.success(request, _("Favicon supprimé."))
+    return redirect("backoffice:commune_settings")

@@ -21,7 +21,7 @@
       <legend>{% translate "La commune" %}</legend>
       {% comment %} R-13.1 : la commune est responsable de traitement. R-13.2 : la notice
          d'information présentée à l'inscription nomme le référent et son contact. {% endcomment %}
-      {% for field in form %}{% if field.name == "commune_name" or field.name == "data_protection_referent" or field.name == "data_protection_contact" %}
+      {% for field in form %}{% if field.name == "commune_name" or field.name == "data_protection_referent" or field.name == "data_protection_contact" or field.name == "public_base_url" %}
         <p class="field">
           <label for="{{ field.id_for_label }}">
             {{ field.label }}{% if field.field.required %} <span class="required">{% translate "(obligatoire)" %}</span>{% endif %}

@@ -1933,6 +1933,98 @@ msgstr "The poll normally opens by itself at the configured opening date, even l
 msgid "La configuration ci-dessous est arrêtée et ne changera plus (R-3.3) ; seul le vote n'est pas encore ouvert."
 msgstr "The configuration below is settled and will not change further (R-3.3); only the vote is not yet open."
 
+
+
+# §6.5.14 (commune settings screen, and the site's own address for mail links): added by hand for the same reason as the header explains.
+msgid "adresse du site"
+msgstr "site address"
+
+msgid "Ex. : https://votecommune.fr — sans barre oblique finale. Utilisée pour composer les liens des courriels envoyés aux électeurs. Laissez vide pour utiliser l'adresse configurée au déploiement."
+msgstr "E.g. https://votecommune.fr — no trailing slash. Used to build the links in outgoing mail. Leave blank to use the address configured at deployment."
+
+msgid "paramètres de la commune modifiés"
+msgstr "commune settings changed"
+
+msgid "Adresse du site"
+msgstr "Site address"
+
+msgid "Ex. : https://votecommune.fr — sans barre oblique finale. Laissez vide pour utiliser l'adresse configurée au déploiement ; modifiable ensuite depuis l'écran « Paramètres de la commune »."
+msgstr "E.g. https://votecommune.fr — no trailing slash. Leave blank to use the address configured at deployment; changeable afterwards from the “Commune settings” screen."
+
+msgid "Paramètres de la commune enregistrés."
+msgstr "Commune settings saved."
+
+msgid "Paramètres de la commune"
+msgstr "Commune settings"
+
+
+# §6.5.14 (logo and favicon): added by hand for the same reason as the header explains.
+msgid "logo"
+msgstr "logo"
+
+msgid "favicon"
+msgstr "favicon"
+
+msgid "image de la commune ajoutée"
+msgstr "commune image added"
+
+msgid "image de la commune supprimée"
+msgstr "commune image removed"
+
+msgid "Choisissez une image."
+msgstr "Choose an image."
+
+msgid "Logo mis à jour."
+msgstr "Logo updated."
+
+msgid "Logo supprimé."
+msgstr "Logo removed."
+
+msgid "Favicon mis à jour."
+msgstr "Favicon updated."
+
+msgid "Favicon supprimé."
+msgstr "Favicon removed."
+
+msgid "Image trop volumineuse (2 Mo maximum)."
+msgstr "Image too large (2 MB maximum)."
+
+msgid "Format d'image non reconnu (PNG, JPEG, GIF ou WebP attendus)."
+msgstr "Unrecognised image format (PNG, JPEG, GIF or WebP expected)."
+
+msgid "Image trop volumineuse (256 Ko maximum)."
+msgstr "Image too large (256 KB maximum)."
+
+msgid "Format d'image non reconnu (ICO, PNG, JPEG, GIF ou WebP attendus)."
+msgstr "Unrecognised image format (ICO, PNG, JPEG, GIF or WebP expected)."
+
+msgid "Logo"
+msgstr "Logo"
+
+msgid "Favicon"
+msgstr "Favicon"
+
+msgid "Affiché dans l'en-tête à la place du nom de la commune. PNG, JPEG, GIF ou WebP, 2 Mo maximum."
+msgstr "Shown in the header in place of the commune name. PNG, JPEG, GIF or WebP, 2 MB maximum."
+
+msgid "L'icône affichée dans l'onglet du navigateur. ICO, PNG, JPEG, GIF ou WebP, 256 Ko maximum."
+msgstr "The icon shown in the browser tab. ICO, PNG, JPEG, GIF or WebP, 256 KB maximum."
+
+msgid "Supprimer le logo"
+msgstr "Remove the logo"
+
+msgid "Remplacer le logo"
+msgstr "Replace the logo"
+
+msgid "Envoyer"
+msgstr "Send"
+
+msgid "Supprimer le favicon"
+msgstr "Remove the favicon"
+
+msgid "Remplacer le favicon"
+msgstr "Replace the favicon"
+
 # publicsite/poll_list.html (R-11.2, R-11.4): the landing page surfaces a
 # published poll's outcome, not only its own page — added by hand for the
 # same reason as the header explains.
@@ -1947,4 +2039,3 @@ msgstr "Result: no ballot was retained."
 
 msgid "Voir le résultat détaillé →"
 msgstr "See the detailed result →"
-

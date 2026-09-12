@@ -199,13 +199,16 @@ lives.
 
 **What the code does.** `apps/core/models.py` gains a `Commune` model: a
 singleton (`id` pinned to `1`, a check constraint holding it there;
-`Commune.current()` reads it) carrying `name`, `data_protection_referent` and
-`data_protection_contact`. The first-run wizard (screen 11) creates it in the
-same transaction as the initial `commune_admin` account, so the two never
-exist apart. A context processor (`apps.core.context.commune`) puts it on every
-template; `base.html` uses `name` for the site title and the registration
-privacy notice uses the referent fields (R-13.1, R-13.2), each with a generic
-fallback for a not-yet-installed instance.
+`Commune.current()` reads it) carrying `name`, `data_protection_referent`,
+`data_protection_contact`, and, since (§6.5.14), `public_base_url`, `logo` and
+`favicon` (each with a `*_content_type`/`*_content_hash` pair). The first-run
+wizard (screen 11) creates the row in the same transaction as the initial
+`commune_admin` account, so the two never exist apart; screen 14 is the only
+writer afterwards. A context processor (`apps.core.context.commune`) puts it on
+every template; `base.html` uses `name` (or `logo`, once one is set) for the
+site header and the favicon link, and the registration privacy notice uses the
+referent fields (R-13.1, R-13.2) — each with a generic fallback for a
+not-yet-installed instance.
 
 **Why a model and not settings.** R-13.2's referent is operator-editable
 configuration an adopting commune sets once, at install, without touching the
@@ -214,9 +217,10 @@ source or the environment — which is the whole point of the wizard existing
 commune, one instance) is what makes a one-row model the right shape rather
 than a tenant table.
 
-**Not settled by amending the spec.** This is additive — it implements
-§6.5.11 rather than contradicting anything — so §3 should gain a `Commune`
-entry and §13 item 4 should point at it. Recorded here until that edit is made.
+**Settled (2026-09-12).** §3 gained a `Commune` entry (§3.10) listing every
+field above, and §13 item 4 now points at it. This was additive — it
+implements §6.5.11 rather than contradicting anything — so nothing else in
+the specification changed.
 
 ## 8. Option labels cannot be corrected after the poll leaves draft
 
@@ -454,12 +458,12 @@ match (screen 3 added to the commune-level exception, its description
 rewritten); `apps/elections/rollimport.py`'s module docstring, which had made
 the same "reached from one poll's back-office" claim, was corrected too.
 
-## 12. Option images are not yet in the backup/restore playbook
+## 12. Option images and commune branding are not yet in the backup/restore playbook
 
 **Specification, §14 (Backups).** "Since §3.1 bis, the database alone no
 longer reconstructs every public page: `DJANGO_MEDIA_ROOT` (option images,
-R-3.12) needs the same nightly coverage and the same off-host replication as
-the database snapshot."
+R-3.12; the commune logo and favicon, §6.5.14) needs the same nightly
+coverage and the same off-host replication as the database snapshot."
 
 **What the code does.** `ansible/roles/polls/tasks/backup.yml` and
 `polls-backup.sh.j2` still snapshot only `db.sqlite3` — `VACUUM INTO`,
@@ -472,6 +476,10 @@ brings back every poll's configuration, including `PollOption.details_i18n`
 text that references images by id, with the images themselves gone: a broken
 reference, not a wrong one, since rendering drops a reference to a missing
 `OptionImage` row rather than erroring (§3.1 bis) — but broken all the same.
+Screen 14's logo and favicon (`Commune.logo`/`.favicon`) land in the same
+directory and are lost the same way, except there the database row still
+names the missing file directly (`Commune.logo.name`), so a restore serves a
+broken `<img>`/`<link rel="icon">` rather than a dropped reference.
 
 **Why this is recorded rather than fixed here.** Pairing a media snapshot with
 a database snapshot correctly needs a decision this file shouldn't make
@@ -482,6 +490,6 @@ choice. That is a real piece of design, not a one-line addition to
 `polls-backup.sh.j2`.
 
 **Not settled.** Until this is done, an adopting commune's disaster-recovery
-story has a gap: instructions to any operator following R-3.12 in the field
-should say so, and `restore.yml`'s final report should probably say so too,
-until the fix lands.
+story has a gap: instructions to any operator following R-3.12 or §6.5.14 in
+the field should say so, and `restore.yml`'s final report should probably say
+so too, until the fix lands.
