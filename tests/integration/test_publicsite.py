@@ -151,6 +151,25 @@ def test_a_published_poll_page_links_to_the_results(client: Client, published_po
     assert f"/fr/scrutin/{published_poll.pk}/resultats/" in body
 
 
+# --- the landing page surfaces a published outcome too (R-11.2, R-11.4) --
+
+
+def test_the_landing_page_shows_the_outcome_and_links_to_the_results(
+    client: Client, published_poll: Poll
+) -> None:
+    body = client.get("/fr/").content.decode()
+    # The ballots cast in `published_poll` all rank "a" first (unanimous).
+    assert "« A » retenue" in body
+    assert f"/fr/scrutin/{published_poll.pk}/resultats/" in body
+
+
+def test_an_open_polls_own_page_carries_no_outcome_on_the_landing_page(
+    client: Client, open_poll_fixture: Poll
+) -> None:
+    body = client.get("/fr/").content.decode()
+    assert f"/fr/scrutin/{open_poll_fixture.pk}/resultats/" not in body
+
+
 # --- participation: shown only where configured (R-11.5, T-20) ---------
 
 

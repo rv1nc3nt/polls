@@ -7,23 +7,40 @@
 {% block content %}
   <h1>{% translate "Consultations" %}</h1>
 
-  {% if polls %}
+  {% if rows %}
     <ul class="poll-index">
-      {% for poll in polls %}
-        <li>
-          <a href="{% url 'publicsite:poll_detail' poll.id %}">{{ poll.title }}</a>
-          <span class="help">
-            {% if poll.state == "announced" %}
-              {% blocktranslate with when=poll.opens_at|timezone:poll.timezone|date:"DATETIME_FORMAT" %}à venir — ouverture le {{ when }}{% endblocktranslate %}
-            {% elif poll.state == "open" %}
-              {% blocktranslate with when=poll.closes_at|timezone:poll.timezone|date:"DATETIME_FORMAT" %}ouverte — clôture le {{ when }}{% endblocktranslate %}
-            {% elif poll.state == "published" %}
-              {% translate "close — résultats publiés" %}
-            {% else %}
-              {% translate "close — dépouillement en cours" %}
+      {% for row in rows %}
+        {% with poll=row.poll %}
+          <li>
+            <a href="{% url 'publicsite:poll_detail' poll.id %}">{{ row.title }}</a>
+            <span class="help">
+              {% if poll.state == "announced" %}
+                {% blocktranslate with when=poll.opens_at|timezone:poll.timezone|date:"DATETIME_FORMAT" %}à venir — ouverture le {{ when }}{% endblocktranslate %}
+              {% elif poll.state == "open" %}
+                {% blocktranslate with when=poll.closes_at|timezone:poll.timezone|date:"DATETIME_FORMAT" %}ouverte — clôture le {{ when }}{% endblocktranslate %}
+              {% elif poll.state == "published" %}
+                {% translate "close — résultats publiés" %}
+              {% else %}
+                {% translate "close — dépouillement en cours" %}
+              {% endif %}
+            </span>
+            {% if row.outcome %}
+              {% comment %} R-11.2, R-11.4: the outcome belongs on the landing page, not only
+                 on the poll's own page, so a visitor sees it without a click — then one
+                 link into the full derivation, matrix and verification data. {% endcomment %}
+              <p class="outcome outcome--compact">
+                {% if row.outcome.winner %}
+                  {% blocktranslate with label=row.outcome.winner.label %}Résultat : « {{ label }} » retenue.{% endblocktranslate %}
+                {% elif row.outcome.tied %}
+                  {% translate "Résultat : égalité." %}
+                {% else %}
+                  {% translate "Résultat : aucun bulletin retenu." %}
+                {% endif %}
+                <a href="{% url 'publicsite:results' poll.id %}">{% translate "Voir le résultat détaillé →" %}</a>
+              </p>
             {% endif %}
-          </span>
-        </li>
+          </li>
+        {% endwith %}
       {% endfor %}
     </ul>
   {% else %}
