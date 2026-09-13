@@ -5,7 +5,15 @@
 {% block title %}{{ title }}{% endblock %}
 
 {% block content %}
-  <h1>{{ title }}</h1>
+  <div class="page-title-row">
+    <h1>{{ title }}</h1>
+    {% if is_open %}
+      {% comment %} Repeats the "Participer" section's link further down (§6.6): a visitor
+         who arrived mid-scroll, or who never scrolls past the calendar, still sees the
+         one action this page exists for without hunting for it. {% endcomment %}
+      <a class="button" href="{% url 'registrations:register' poll.id %}">{% translate "Participer" %}</a>
+    {% endif %}
+  </div>
 
   {% if is_preview %}
     {% comment %} R-3.10: the poll is `announced` — an early preview the poll admin chose to
@@ -101,7 +109,7 @@
     <section aria-labelledby="participer">
       <h2 id="participer">{% translate "Participer" %}</h2>
       <p>{% translate "Le vote se fait en ligne, après inscription vérifiée contre la liste électorale de la commune." %}</p>
-      <p><a href="{% url 'registrations:register' poll.id %}">{% translate "S'inscrire pour voter" %}</a></p>
+      <p><a class="button" href="{% url 'registrations:register' poll.id %}">{% translate "S'inscrire pour voter" %}</a></p>
       <p class="help">{% translate "Un bulletin peut aussi être remis sur papier à la mairie, qui le saisit." %}</p>
     </section>
   {% endif %}
@@ -129,8 +137,15 @@
        the full statement with the article reference belongs on the poll itself. {% endcomment %}
     <p>{% blocktranslate %}Cette consultation est consultative. Son résultat éclaire la délibération du conseil municipal sans la lier. Elle ne constitue pas une consultation des électeurs au sens des articles L1112-15 et suivants du code général des collectivités territoriales.{% endblocktranslate %}</p>
   </section>
+
+  {% comment %} `href="#"` (an empty fragment) is defined to scroll to the top of the
+     document — no target id to keep in sync, and it works with JavaScript off.
+     static/js/backtotop.js only ever adds `is-hidden`; without it the link stays
+     fixed and visible throughout, which is a harmless default for a page this long. {% endcomment %}
+  <a href="#" class="backtotop button" data-backtotop>{% translate "Haut de page" %}</a>
 {% endblock %}
 
 {% block body_end %}
   <script src="{% static 'js/tabs.js' %}" defer></script>
+  <script src="{% static 'js/backtotop.js' %}" defer></script>
 {% endblock %}

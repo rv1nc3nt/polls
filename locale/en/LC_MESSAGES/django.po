@@ -1295,6 +1295,9 @@ msgstr ""
 "des électeurs within the meaning of articles L1112-15 et seq. of the code "
 "général des collectivités territoriales."
 
+msgid "Haut de page"
+msgstr "Back to top"
+
 msgid "Résultats"
 msgstr "Results"
 

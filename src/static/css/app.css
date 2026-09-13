@@ -143,6 +143,23 @@ h1 {
   padding-bottom: 0.35rem;
   border-bottom: 2px solid var(--accent);
 }
+
+/* A page's own call to action beside its <h1>, right-aligned, rather than
+   scrolled past on the way to the "Participer" section: the poll page repeats
+   the button at the foot of the page too, this is just the one a visitor sees
+   without scrolling at all. The rule (not the h1's own) carries the border so
+   the two line up on the same baseline regardless of which is taller. */
+.page-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding-bottom: 0.35rem;
+  border-bottom: 2px solid var(--accent);
+  margin: 0 0 1.25rem;
+}
+.page-title-row h1 { border-bottom: 0; padding-bottom: 0; margin: 0; }
 h2 { font-size: clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem); margin: 2.1rem 0 0.7rem; letter-spacing: -0.01em; }
 h3 { font-size: 1.05rem; margin: 1.5rem 0 0.5rem; }
 p { margin: 0 0 0.8rem; }
@@ -494,7 +511,8 @@ details form.inline input[type="password"] { width: min(16rem, 100%); }
 input:focus-visible, select:focus-visible, textarea:focus-visible { border-color: var(--focus); }
 input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); width: 1rem; height: 1rem; }
 
-button {
+button, .button {
+  display: inline-block;
   padding: 0.6rem 1.1rem;
   font-weight: 600;
   border: 1px solid transparent;
@@ -502,10 +520,11 @@ button {
   background: var(--accent);
   color: var(--accent-ink);
   cursor: pointer;
+  text-decoration: none;
   transition: opacity 0.12s ease, background 0.12s ease;
 }
-button:hover { opacity: 0.88; }
-button:active { opacity: 0.76; }
+button:hover, .button:hover { opacity: 0.88; text-decoration: none; }
+button:active, .button:active { opacity: 0.76; }
 
 /* Secondary and destructive actions carry the same word-first labelling; the
    quieter fill keeps a routine screen from looking like a wall of blue, and
@@ -841,15 +860,31 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 .commune-branding__preview { max-width: 12rem; max-height: 6rem; width: auto; height: auto; border-radius: 4px; border: 1px solid var(--rule-soft); }
 .commune-branding__preview--favicon { max-width: 4rem; max-height: 4rem; }
 
+/* ---- back-to-top shortcut (poll_detail.html) ------------------------
+   Fixed and visible by default — a harmless permanent fixture — so a visitor
+   with JavaScript disabled still has the shortcut once the page runs long
+   with tabs, calendar, participation and legal sections one after another.
+   static/js/backtotop.js is the only thing that ever adds `.is-hidden`, and
+   only once scroll position says the title is already off-screen, so with
+   JavaScript the button stays out of the way until it is actually useful. */
+.backtotop {
+  position: fixed;
+  right: clamp(1rem, 4vw, 2rem);
+  bottom: 1.5rem;
+  z-index: 5;
+  box-shadow: var(--shadow);
+}
+.backtotop.is-hidden { display: none; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; }
 }
 
 @media print {
   body { border-top: 0; }
-  .banner, .bo-side, .bo-crumb, .messages, .contentinfo, .langswitch, .themeswitch, .noprint { display: none !important; }
+  .banner, .bo-side, .bo-crumb, .messages, .contentinfo, .langswitch, .themeswitch, .noprint, .backtotop { display: none !important; }
   .receipt { border: none; border-radius: 0; box-shadow: none; padding: 0; max-width: none; }
   main, body.bo main { margin: 0; padding: 0; max-width: none; }
   .bo-main { padding: 0; }
-  h1 { border-bottom: 0; }
+  h1, .page-title-row { border-bottom: 0; }
 }
