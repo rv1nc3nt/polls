@@ -20,16 +20,32 @@ et vérifier que votre vote a bien été enregistré.
 
 ## 1. Trouver la consultation
 
-La page publique liste les consultations ouvertes et publiées.
+La page publique liste les consultations à venir, ouvertes et closes.
 
 **Figure 1 — Liste publique des consultations.**
 
 ![Liste publique des consultations](captures/img/01-site-public-liste.png)
 
-La page d'une consultation ouverte montre les propositions, la date et l'heure
-de **clôture**, l'échéance de saisie des bulletins papier si elle diffère, tout
-**report de clôture** déjà décidé (avec son motif), et le rappel du caractère
-consultatif.
+Chaque ligne indique son état — **à venir** (avec la date d'ouverture),
+**ouverte** (avec la date de clôture), ou **close** — et, une fois les
+résultats publiés, le résultat lui-même (proposition retenue, égalité, ou
+aucun bulletin retenu), avec un lien vers son détail complet (§8).
+
+Une consultation **à venir** est une consultation que la mairie a choisi de
+rendre publique avant son ouverture : vous pouvez déjà lire les propositions et
+le calendrier, mais l'inscription et le vote n'ouvrent qu'à la date indiquée.
+La configuration affichée est déjà arrêtée et ne changera plus d'ici
+l'ouverture.
+
+**Figure 2a — Page publique d'une consultation à venir, pas encore ouverte.**
+
+![Page publique d'une consultation à venir, pas encore ouverte](captures/img/02a-site-public-scrutin-annonce.png)
+
+La page d'une consultation ouverte montre les propositions — certaines
+accompagnées, sous leur intitulé, d'une description plus détaillée avec des
+images ou une vidéo —, la date et l'heure de **clôture**, l'échéance de saisie
+des bulletins papier si elle diffère, tout **report de clôture** déjà décidé
+(avec son motif), et le rappel du caractère consultatif.
 
 **Figure 2 — Page publique d'une consultation ouverte.**
 
@@ -38,6 +54,10 @@ consultatif.
 Le nombre de votants **n'est pas affiché** pendant le scrutin, sauf si la
 configuration le prévoit : publier la participation en cours de vote peut
 l'influencer.
+
+> **Si une consultation est retirée**, sa page n'affiche plus qu'un avis de
+> retrait : l'intitulé, les propositions et un éventuel résultat disparaissent,
+> même si vous suivez un lien reçu par courriel avant le retrait.
 
 ## 2. S'inscrire
 
@@ -183,7 +203,11 @@ place : le vote en ligne fait foi.
 
 ![Page publique de résultats](captures/img/20-site-public-resultats.png)
 
-Après la publication, la page de la consultation porte :
+Après la publication, le **résultat** — proposition retenue, égalité, ou aucun
+bulletin retenu — s'affiche en tête de cette page : vous n'avez pas à
+parcourir la matrice ou le raisonnement pour savoir ce qui en est ressorti. Le
+même résultat, en plus bref, figure aussi directement sur la liste publique
+des consultations (figure 1). La page de résultats porte ensuite :
 
 - la **liste anonymisée des bulletins** (code de suivi + classement), en CSV et
   JSON ;
