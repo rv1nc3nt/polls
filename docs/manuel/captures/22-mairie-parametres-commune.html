@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Réaménagement de la place de la Mairie</title>
+  <title>Commune — Espace mairie</title>
   
   
   <style>
@@ -867,86 +867,241 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 
 </style>
 </head>
-<body class="">
+<body class="bo">
   <a class="skip" href="#contenu">Aller au contenu</a>
 
   <header class="banner">
     
-    <p class="site-name"><a href="/">Commune de Saint-Aubin-des-Bois</a></p>
+    <p class="site-name"><a href="/fr/mairie/">Commune de Saint-Aubin-des-Bois</a></p>
     
+  
+    <div class="account">
+      
+      <span class="account__name">Marie Rousseau</span>
+      
+      <a class="account__public" href="/" target="_blank" rel="noopener">Voir le site public</a>
+      <form action="/fr/mairie/deconnexion/" method="post">
+        <input type="hidden" name="csrfmiddlewaretoken" value="049y7rjWW6a9j6VvfpgMNlUQkQbCQIKgOWfQwI9ey7NnsIuGLLgnGpM9JbldvJ2f">
+        <button type="submit">Se déconnecter</button>
+      </form>
+    </div>
+  
+
   </header>
 
   
 
+
+
+
+<svg class="bo-ico-sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="ico-polls" viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="M4.5 12.5 12 16.5l7.5-4"/></symbol>
+  <symbol id="ico-new" viewBox="0 0 24 24"><path d="M12 4.5v15"/><path d="M4.5 12h15"/></symbol>
+  <symbol id="ico-accounts" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.7-3 2.9-4.8 5.5-4.8S13.8 16 14.5 19"/><path d="M15.8 5.3a3 3 0 0 1 0 5.6"/><path d="M17.2 14.4c2.1.5 3.6 2.3 4.3 4.6"/></symbol>
+  <symbol id="ico-roles" viewBox="0 0 24 24"><circle cx="8.5" cy="14.5" r="3.7"/><path d="m11.1 11.9 8.4-8.4"/><path d="m16.5 6.5 2.5 2.5"/><path d="m14 9 2.5 2.5"/></symbol>
+  <symbol id="ico-mail" viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="1.5"/><path d="m4.5 7 7.5 6 7.5-6"/></symbol>
+  <symbol id="ico-templates" viewBox="0 0 24 24"><rect x="3.5" y="6.5" width="13" height="14" rx="1.3"/><path d="M8 3.5h9.5a1.3 1.3 0 0 1 1.3 1.3V17"/><path d="M7 11h7"/><path d="M7 14.5h7"/></symbol>
+  <symbol id="ico-dashboard" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.2"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.2"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.2"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.2"/></symbol>
+  <symbol id="ico-config" viewBox="0 0 24 24"><path d="M4 7h8"/><path d="M17 7h3"/><path d="M4 17h3"/><path d="M11 17h9"/><circle cx="14.5" cy="7" r="2.4"/><circle cx="7.5" cy="17" r="2.4"/></symbol>
+  <symbol id="ico-roll" viewBox="0 0 24 24"><path d="M9 6h11"/><path d="M9 12h11"/><path d="M9 18h11"/><circle cx="4.6" cy="6" r="1.15"/><circle cx="4.6" cy="12" r="1.15"/><circle cx="4.6" cy="18" r="1.15"/></symbol>
+  <symbol id="ico-registrations" viewBox="0 0 24 24"><path d="M4 13 5.8 5.6A2 2 0 0 1 7.7 4h8.6a2 2 0 0 1 1.9 1.6L20 13v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M4 13h4l2 3h4l2-3h4"/></symbol>
+  <symbol id="ico-entry" viewBox="0 0 24 24"><path d="m13.5 6.5 4 4"/><path d="M4 20l1-4.5L15.5 5a2.1 2.1 0 0 1 3 0l.5.5a2.1 2.1 0 0 1 0 3L8.5 19Z"/></symbol>
+  <symbol id="ico-paper" viewBox="0 0 24 24"><path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V8Z"/><path d="M14 3v5h4"/><path d="M9.5 13h5"/><path d="M9.5 16.5h5"/></symbol>
+  <symbol id="ico-countersign" viewBox="0 0 24 24"><path d="M3 12.5 6.5 16 14 7.5"/><path d="m13 15 1.6 1.5L21 9"/></symbol>
+  <symbol id="ico-tally" viewBox="0 0 24 24"><path d="M4 20h16"/><path d="M6.5 20v-6"/><path d="M12 20V5"/><path d="M17.5 20v-9"/></symbol>
+  <symbol id="ico-audit" viewBox="0 0 24 24"><path d="m12 3.5 7 2.4v5.3c0 4.6-3 7.4-7 8.8-4-1.4-7-4.2-7-8.8V5.9Z"/><path d="m9 12 2 2 4-4.5"/></symbol>
+  <symbol id="ico-commune" viewBox="0 0 24 24"><path d="M4 20h16"/><path d="M5.5 20V10.5L12 5l6.5 5.5V20"/><path d="M9.5 20v-5h5v5"/></symbol>
+</svg>
+
+<nav class="bo-side" aria-label="Navigation de l’espace mairie">
+  <a class="bo-side__brand" href="/fr/mairie/">Espace mairie</a>
+
+  
+    <ul class="bo-side__list bo-side__list--global">
+      
+        <li>
+          <a class="bo-side__link"
+             href="/fr/mairie/">
+            <svg class="bo-ico" aria-hidden="true"><use href="#ico-polls"></use></svg>
+            <span class="bo-side__text">Scrutins</span>
+          </a>
+        </li>
+      
+        <li>
+          <a class="bo-side__link"
+             href="/fr/mairie/nouveau/">
+            <svg class="bo-ico" aria-hidden="true"><use href="#ico-new"></use></svg>
+            <span class="bo-side__text">Nouveau scrutin</span>
+          </a>
+        </li>
+      
+        <li>
+          <a class="bo-side__link"
+             href="/fr/mairie/liste-electorale/">
+            <svg class="bo-ico" aria-hidden="true"><use href="#ico-roll"></use></svg>
+            <span class="bo-side__text">Liste électorale</span>
+          </a>
+        </li>
+      
+        <li>
+          <a class="bo-side__link"
+             href="/fr/mairie/comptes/">
+            <svg class="bo-ico" aria-hidden="true"><use href="#ico-accounts"></use></svg>
+            <span class="bo-side__text">Comptes opérateurs</span>
+          </a>
+        </li>
+      
+        <li>
+          <a class="bo-side__link"
+             href="/fr/mairie/comptes/roles/">
+            <svg class="bo-ico" aria-hidden="true"><use href="#ico-roles"></use></svg>
+            <span class="bo-side__text">Rôles par scrutin</span>
+          </a>
+        </li>
+      
+        <li>
+          <a class="bo-side__link"
+             href="/fr/mairie/messagerie/">
+            <svg class="bo-ico" aria-hidden="true"><use href="#ico-mail"></use></svg>
+            <span class="bo-side__text">Messagerie</span>
+          </a>
+        </li>
+      
+        <li>
+          <a class="bo-side__link"
+             href="/fr/mairie/modeles/">
+            <svg class="bo-ico" aria-hidden="true"><use href="#ico-templates"></use></svg>
+            <span class="bo-side__text">Modèles de scrutin</span>
+          </a>
+        </li>
+      
+        <li>
+          <a class="bo-side__link is-current"
+             href="/fr/mairie/commune/" aria-current="page">
+            <svg class="bo-ico" aria-hidden="true"><use href="#ico-commune"></use></svg>
+            <span class="bo-side__text">Paramètres de la commune</span>
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+
+  
+  <div class="bo-side__tools">
+    <form class="langswitch bo-side__lang" action="/i18n/setlang/" method="post">
+      <input type="hidden" name="csrfmiddlewaretoken" value="049y7rjWW6a9j6VvfpgMNlUQkQbCQIKgOWfQwI9ey7NnsIuGLLgnGpM9JbldvJ2f">
+      <input type="hidden" name="next" value="/fr/mairie/commune/">
+      <label for="bo-lang-select">Langue</label>
+      <select id="bo-lang-select" name="language">
+        
+        
+        
+          <option value="fr" lang="fr" selected>Français</option>
+        
+          <option value="en" lang="en">Anglais</option>
+        
+      </select>
+      <button type="submit">Changer</button>
+    </form>
+
+    <div class="themeswitch bo-side__theme" data-theme-control hidden>
+      <span id="bo-theme-label">Thème</span>
+      <div role="group" aria-labelledby="bo-theme-label">
+        <button type="button" value="light">Clair</button>
+        <button type="button" value="dark">Sombre</button>
+        <button type="button" value="auto">Système</button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+
   
 
   <main id="contenu">
-  <h1>Réaménagement de la place de la Mairie</h1>
+  
+    
+    <nav class="bo-crumb" aria-label="Fil d’Ariane">
+      <ol>
+        <li>
+          <a href="/fr/mairie/">Scrutins</a>
+        </li>
+        
+        <li aria-current="page">Paramètres de la commune</li>
+      </ol>
+    </nav>
+  
+
+  <div class="bo-main">
+    <h1>Paramètres de la commune</h1>
+    
+  
+  <form method="post">
+    <input type="hidden" name="csrfmiddlewaretoken" value="049y7rjWW6a9j6VvfpgMNlUQkQbCQIKgOWfQwI9ey7NnsIuGLLgnGpM9JbldvJ2f">
+    
+      <p class="field">
+        <label for="id_name">Nom de la commune</label>
+        <span class="help">Tel qu&#x27;il doit apparaître sur les pages publiques et dans la notice.</span>
+        <input type="text" name="name" value="Commune de Saint-Aubin-des-Bois" maxlength="200" required aria-describedby="id_name_helptext" id="id_name">
+        
+      </p>
+    
+      <p class="field">
+        <label for="id_data_protection_referent">Référent données personnelles</label>
+        <span class="help">Personne ou service à qui les électeurs adressent leurs demandes d&#x27;accès, de rectification et d&#x27;effacement (R-13.2).</span>
+        <input type="text" name="data_protection_referent" value="Secrétariat général de la mairie" maxlength="200" required aria-describedby="id_data_protection_referent_helptext" id="id_data_protection_referent">
+        
+      </p>
+    
+      <p class="field">
+        <label for="id_data_protection_contact">Contact du référent</label>
+        <span class="help">Adresse électronique ou postale, publiée dans la notice d&#x27;information.</span>
+        <input type="text" name="data_protection_contact" value="dpo@saint-aubin-des-bois.fr — 12 place de la Mairie, 28300" maxlength="300" required aria-describedby="id_data_protection_contact_helptext" id="id_data_protection_contact">
+        
+      </p>
+    
+      <p class="field">
+        <label for="id_public_base_url">Adresse du site</label>
+        <span class="help">Ex. : https://votecommune.fr — sans barre oblique finale. Utilisée pour composer les liens des courriels envoyés aux électeurs. Laissez vide pour utiliser l&#x27;adresse configurée au déploiement.</span>
+        <input type="text" name="public_base_url" maxlength="200" aria-describedby="id_public_base_url_helptext" id="id_public_base_url">
+        
+      </p>
+    
+    <button type="submit">Enregistrer</button>
+  </form>
 
   
-    <p class="status">Consultation ouverte.</p>
-  
-
-  <p>Le conseil municipal soumet trois scénarios d&#x27;aménagement de la place de la Mairie et de ses abords. Les électeurs sont invités à les classer par ordre de préférence. Cette consultation est à titre consultatif : elle éclaire la décision du conseil sans la lier.</p>
-
-  <section aria-labelledby="propositions">
-    <h2 id="propositions">Les propositions soumises</h2>
-    <ol class="propositions">
-      
-        <li>
-          Scénario A — place minérale et ombrières
-          
-          
-        </li>
-      
-        <li>
-          Scénario B — jardin planté et noue paysagère
-          
-          
-        </li>
-      
-        <li>
-          Scénario C — solution mixte, kiosque conservé
-          
-          
-        </li>
-      
-    </ol>
+  <section aria-labelledby="commune-logo">
+    <h2 id="commune-logo">Logo</h2>
+    <p class="help">Affiché dans l'en-tête à la place du nom de la commune. PNG, JPEG, GIF ou WebP, 2 Mo maximum.</p>
+    
+    <form method="post" action="/fr/mairie/commune/logo/" enctype="multipart/form-data" class="inline">
+      <input type="hidden" name="csrfmiddlewaretoken" value="049y7rjWW6a9j6VvfpgMNlUQkQbCQIKgOWfQwI9ey7NnsIuGLLgnGpM9JbldvJ2f">
+      <p class="field">
+        <label for="commune-logo-file">Remplacer le logo</label>
+        <input type="file" name="logo" id="commune-logo-file" accept="image/png,image/jpeg,image/gif,image/webp" required>
+      </p>
+      <button type="submit">Envoyer</button>
+    </form>
   </section>
 
-  <section aria-labelledby="calendrier">
-    <h2 id="calendrier">Calendrier</h2>
+  <section aria-labelledby="commune-favicon">
+    <h2 id="commune-favicon">Favicon</h2>
+    <p class="help">L'icône affichée dans l'onglet du navigateur. ICO, PNG, JPEG, GIF ou WebP, 256 Ko maximum.</p>
     
-    <dl class="facts">
-      <dt>Ouverture du vote</dt>
-      <dd>10 septembre 2026 09:39 (Europe/Paris)</dd>
-      <dt>Clôture du vote en ligne</dt>
-      <dd>24 septembre 2026 09:39 (Europe/Paris)</dd>
-      
-        <dt>Fin de la saisie des bulletins papier</dt>
-        <dd>25 septembre 2026 09:39 (Europe/Paris)</dd>
-      
-    </dl>
-
-    
+    <form method="post" action="/fr/mairie/commune/favicon/" enctype="multipart/form-data" class="inline">
+      <input type="hidden" name="csrfmiddlewaretoken" value="049y7rjWW6a9j6VvfpgMNlUQkQbCQIKgOWfQwI9ey7NnsIuGLLgnGpM9JbldvJ2f">
+      <p class="field">
+        <label for="commune-favicon-file">Remplacer le favicon</label>
+        <input type="file" name="favicon" id="commune-favicon-file" accept="image/x-icon,image/png,image/jpeg,image/gif,image/webp" required>
+      </p>
+      <button type="submit">Envoyer</button>
+    </form>
   </section>
 
-  
-    <section aria-labelledby="participer">
-      <h2 id="participer">Participer</h2>
-      <p>Le vote se fait en ligne, après inscription vérifiée contre la liste électorale de la commune.</p>
-      <p><a href="/fr/inscription/fe031673-d307-438b-be6c-41b69d82a515/">S'inscrire pour voter</a></p>
-      <p class="help">Un bulletin peut aussi être remis sur papier à la mairie, qui le saisit.</p>
-    </section>
-  
-
-  
-
-  <section aria-labelledby="portee" class="legal">
-    <h2 id="portee">Portée de la consultation</h2>
-    
-    <p>Cette consultation est consultative. Son résultat éclaire la délibération du conseil municipal sans la lier. Elle ne constitue pas une consultation des électeurs au sens des articles L1112-15 et suivants du code général des collectivités territoriales.</p>
-  </section>
+  </div>
 </main>
 
   <footer class="contentinfo">
@@ -957,31 +1112,6 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
     
 
     
-    
-      <form action="/i18n/setlang/" method="post" class="langswitch">
-        <input type="hidden" name="csrfmiddlewaretoken" value="s9yZ9193w3c0jz9oCxhtNRrWxvebF5d1LmJBMoNGQFhUGkvZvIG4BKTmakoXduBK">
-        <input type="hidden" name="next" value="/fr/scrutin/fe031673-d307-438b-be6c-41b69d82a515/">
-        <label for="langswitch-select">Langue</label>
-        <select id="langswitch-select" name="language">
-          
-          
-            <option value="fr" lang="fr" selected>Français</option>
-          
-            <option value="en" lang="en">Anglais</option>
-          
-        </select>
-        <button type="submit">Changer</button>
-      </form>
-
-      
-      <div class="themeswitch" data-theme-control hidden>
-        <span id="themeswitch-label">Thème</span>
-        <div role="group" aria-labelledby="themeswitch-label">
-          <button type="button" value="light">Clair</button>
-          <button type="button" value="dark">Sombre</button>
-          <button type="button" value="auto">Système</button>
-        </div>
-      </div>
     
   </footer>
 

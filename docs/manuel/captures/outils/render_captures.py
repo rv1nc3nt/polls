@@ -124,7 +124,8 @@ ca = Client()
 ca.force_login(admin)
 get(ca, "/fr/mairie/", "10-mairie-index-scrutins.html")
 get(ca, "/fr/mairie/comptes/", "18-mairie-comptes.html")
-get(ca, "/fr/mairie/comptes/roles/", "19-mairie-roles.html")
+get(ca, f"/fr/mairie/comptes/roles/?scrutin={poll.pk}", "19-mairie-roles.html")
+get(ca, "/fr/mairie/commune/", "22-mairie-parametres-commune.html")
 # Screen 3 (upload + working-roll browse, R-4.4's spirit extended to it) is
 # commune-level, reached from the general menu — not a poll's own URL.
 get(ca, "/fr/mairie/liste-electorale/", "15-mairie-import-liste.html")
