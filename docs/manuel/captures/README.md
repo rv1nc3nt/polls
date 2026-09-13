@@ -68,3 +68,4 @@ facultatif.
 | `19-mairie-roles.html` | Rôles par scrutin | espace mairie |
 | `20-site-public-resultats.html` | Page publique de résultats | électeur |
 | `21-mairie-journal-audit.html` | Journal d'audit | espace mairie |
+| `22-mairie-parametres-commune.html` | Paramètres de la commune (§6.5.14) | espace mairie |

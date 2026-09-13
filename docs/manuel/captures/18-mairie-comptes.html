@@ -6,6 +6,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Comptes — Espace mairie</title>
+  
+  
   <style>
 /* SPDX-License-Identifier: 0BSD */
 
@@ -181,6 +183,7 @@ section:last-child { margin-bottom: 0; }
 .site-name { font-weight: 700; margin: 0; font-size: 1.15rem; letter-spacing: -0.01em; }
 .site-name a { color: var(--ink); text-decoration: none; }
 .site-name a:hover { color: var(--accent); }
+.site-logo { display: block; max-height: 2.25rem; width: auto; }
 .account { display: flex; gap: 0.75rem; align-items: center; }
 .account__name { font-weight: 600; }
 
@@ -594,7 +597,16 @@ details form.inline {
 }
 details form.inline label { margin: 0; }
 
-.pollpicker { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: end; margin-bottom: 1.5rem; }
+/* État filter chips above a paginated list (screen 10's poll list, roll
+   browser and others to come) — a fixed handful of states, unlike the list
+   itself, so plain links read better here than another <select>. */
+.tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0 0 1rem; padding: 0; }
+.tags .tag { text-decoration: none; color: inherit; }
+.tags .tag.active { background: var(--accent-soft); border-color: var(--accent); font-weight: 600; }
+
+/* The row a list is currently drilled into (screen 10's poll list, the
+   scrutin whose roles are shown below it). */
+tbody tr.selected th, tbody tr.selected td { background: var(--accent-soft); }
 
 /* ---- proposition editor (screen 2) --------------------------------- */
 
@@ -775,6 +787,36 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
   border-left: 4px solid var(--accent);
   padding-left: 0.9rem;
 }
+/* The results page's own outcome (R-11.2): a card set apart from the
+   derivation and verification sections below it, so the winner (or tie, or
+   "no ballot retained") is the first thing read on the page, not one line
+   among the tally details. */
+.result-hero {
+  background: var(--accent-soft);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  margin: 0 0 1.5rem;
+  max-width: var(--measure);
+}
+.result-hero__eyebrow {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-quiet);
+}
+.result-hero__outcome {
+  font-size: 1.6rem;
+  line-height: 1.3;
+  border-left: 0;
+  padding-left: 0;
+  margin: 0 0 1rem;
+  max-width: none;
+}
+/* Nested inside the hero (which is itself the card), the .facts treatment
+   would be a card in a card — same fix as .review .facts above. */
+.result-hero .facts { box-shadow: none; border: 0; background: none; padding: 0; margin: 0; }
 .legal { border-top: 1px solid var(--rule); padding-top: 1rem; }
 .legal p { max-width: var(--measure); }
 .poll-index { list-style: none; padding: 0; }
@@ -782,6 +824,33 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 .poll-index li:first-child { border-top: 1px solid var(--rule-soft); }
 .poll-index a { font-weight: 600; font-size: 1.05rem; }
 .poll-index .help { display: block; }
+/* A published poll's outcome, surfaced on the landing page itself (R-11.2,
+   R-11.4) rather than left for a click into the poll's own page — the
+   smaller sibling of .outcome on the results page. */
+.outcome--compact { font-size: 1rem; margin: 0.5rem 0 0; padding-left: 0.7rem; border-left-width: 3px; }
+.outcome--compact a { margin-left: 0.5rem; white-space: nowrap; }
+
+/* ---- an option's extended description (R-3.12, §3.1 bis) ----------- */
+
+.option-details { margin: 0.5rem 0 0.75rem; max-width: var(--measure); }
+.option-details img { border-radius: 4px; }
+
+/* 16:9 responsive wrapper around the one iframe apps.elections.optioncontent
+   ever emits — width comes from the surrounding text column, not from the
+   iframe's own (fixed, sandboxed) attributes. */
+.youtube-embed { position: relative; width: 100%; max-width: var(--measure); aspect-ratio: 16 / 9; margin: 0.5rem 0; }
+.youtube-embed iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+
+/* ---- screen 2's per-proposition image manager (§6.5.2, R-3.12) ----- */
+
+.option-images { list-style: none; padding: 0; margin: 0 0 0.75rem; display: flex; flex-wrap: wrap; gap: 0.75rem; }
+.option-images li { display: flex; flex-direction: column; gap: 0.3rem; }
+.option-images__thumb { width: 8rem; height: 8rem; object-fit: cover; border-radius: 4px; border: 1px solid var(--rule-soft); }
+
+/* ---- screen 14's logo and favicon (§6.5.14) ------------------------ */
+
+.commune-branding__preview { max-width: 12rem; max-height: 6rem; width: auto; height: auto; border-radius: 4px; border: 1px solid var(--rule-soft); }
+.commune-branding__preview--favicon { max-width: 4rem; max-height: 4rem; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; }
@@ -812,7 +881,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
       
       <a class="account__public" href="/" target="_blank" rel="noopener">Voir le site public</a>
       <form action="/fr/mairie/deconnexion/" method="post">
-        <input type="hidden" name="csrfmiddlewaretoken" value="1x2CSGOzNkmJsxGVuK9jLNP1EoBuoDt6GIIKdmPVigU1ZmEQ0fpOpPQjukfNb00n">
+        <input type="hidden" name="csrfmiddlewaretoken" value="Ls7uK9NV3EP32FO8AM9xlsT1xFNSV388zkdM9qDdFFshbhnj6898ewLkW0XtA4q7">
         <button type="submit">Se déconnecter</button>
       </form>
     </div>
@@ -841,6 +910,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
   <symbol id="ico-countersign" viewBox="0 0 24 24"><path d="M3 12.5 6.5 16 14 7.5"/><path d="m13 15 1.6 1.5L21 9"/></symbol>
   <symbol id="ico-tally" viewBox="0 0 24 24"><path d="M4 20h16"/><path d="M6.5 20v-6"/><path d="M12 20V5"/><path d="M17.5 20v-9"/></symbol>
   <symbol id="ico-audit" viewBox="0 0 24 24"><path d="m12 3.5 7 2.4v5.3c0 4.6-3 7.4-7 8.8-4-1.4-7-4.2-7-8.8V5.9Z"/><path d="m9 12 2 2 4-4.5"/></symbol>
+  <symbol id="ico-commune" viewBox="0 0 24 24"><path d="M4 20h16"/><path d="M5.5 20V10.5L12 5l6.5 5.5V20"/><path d="M9.5 20v-5h5v5"/></symbol>
 </svg>
 
 <nav class="bo-side" aria-label="Navigation de l’espace mairie">
@@ -905,6 +975,14 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
           </a>
         </li>
       
+        <li>
+          <a class="bo-side__link"
+             href="/fr/mairie/commune/">
+            <svg class="bo-ico" aria-hidden="true"><use href="#ico-commune"></use></svg>
+            <span class="bo-side__text">Paramètres de la commune</span>
+          </a>
+        </li>
+      
     </ul>
   
 
@@ -913,7 +991,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
   
   <div class="bo-side__tools">
     <form class="langswitch bo-side__lang" action="/i18n/setlang/" method="post">
-      <input type="hidden" name="csrfmiddlewaretoken" value="1x2CSGOzNkmJsxGVuK9jLNP1EoBuoDt6GIIKdmPVigU1ZmEQ0fpOpPQjukfNb00n">
+      <input type="hidden" name="csrfmiddlewaretoken" value="Ls7uK9NV3EP32FO8AM9xlsT1xFNSV388zkdM9qDdFFshbhnj6898ewLkW0XtA4q7">
       <input type="hidden" name="next" value="/fr/mairie/comptes/">
       <label for="bo-lang-select">Langue</label>
       <select id="bo-lang-select" name="language">
@@ -964,7 +1042,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 
   <h2>Créer un compte</h2>
   <form method="post">
-    <input type="hidden" name="csrfmiddlewaretoken" value="1x2CSGOzNkmJsxGVuK9jLNP1EoBuoDt6GIIKdmPVigU1ZmEQ0fpOpPQjukfNb00n">
+    <input type="hidden" name="csrfmiddlewaretoken" value="Ls7uK9NV3EP32FO8AM9xlsT1xFNSV388zkdM9qDdFFshbhnj6898ewLkW0XtA4q7">
     <input type="hidden" name="action" value="create">
     
       <p class="field">
@@ -1033,24 +1111,24 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
               <summary>Gérer ce compte</summary>
 
               <form method="post" class="inline">
-                <input type="hidden" name="csrfmiddlewaretoken" value="1x2CSGOzNkmJsxGVuK9jLNP1EoBuoDt6GIIKdmPVigU1ZmEQ0fpOpPQjukfNb00n">
-                <input type="hidden" name="account" value="5f1566d4-b8fc-4020-ac0f-72848730b245">
+                <input type="hidden" name="csrfmiddlewaretoken" value="Ls7uK9NV3EP32FO8AM9xlsT1xFNSV388zkdM9qDdFFshbhnj6898ewLkW0XtA4q7">
+                <input type="hidden" name="account" value="35eb5628-cfbe-4b4f-9952-34abbeef49fa">
                 
                   <button type="submit" name="action" value="promote">Faire administrateur de la commune</button>
                 
               </form>
 
               <form method="post" class="inline">
-                <input type="hidden" name="csrfmiddlewaretoken" value="1x2CSGOzNkmJsxGVuK9jLNP1EoBuoDt6GIIKdmPVigU1ZmEQ0fpOpPQjukfNb00n">
-                <input type="hidden" name="account" value="5f1566d4-b8fc-4020-ac0f-72848730b245">
-                <label for="pw-5f1566d4-b8fc-4020-ac0f-72848730b245">Nouveau mot de passe</label>
-                <input id="pw-5f1566d4-b8fc-4020-ac0f-72848730b245" type="password" name="raw_password" autocomplete="new-password">
+                <input type="hidden" name="csrfmiddlewaretoken" value="Ls7uK9NV3EP32FO8AM9xlsT1xFNSV388zkdM9qDdFFshbhnj6898ewLkW0XtA4q7">
+                <input type="hidden" name="account" value="35eb5628-cfbe-4b4f-9952-34abbeef49fa">
+                <label for="pw-35eb5628-cfbe-4b4f-9952-34abbeef49fa">Nouveau mot de passe</label>
+                <input id="pw-35eb5628-cfbe-4b4f-9952-34abbeef49fa" type="password" name="raw_password" autocomplete="new-password">
                 <button type="submit" name="action" value="set_password">Réinitialiser le mot de passe</button>
               </form>
 
               <form method="post" class="inline danger">
-                <input type="hidden" name="csrfmiddlewaretoken" value="1x2CSGOzNkmJsxGVuK9jLNP1EoBuoDt6GIIKdmPVigU1ZmEQ0fpOpPQjukfNb00n">
-                <input type="hidden" name="account" value="5f1566d4-b8fc-4020-ac0f-72848730b245">
+                <input type="hidden" name="csrfmiddlewaretoken" value="Ls7uK9NV3EP32FO8AM9xlsT1xFNSV388zkdM9qDdFFshbhnj6898ewLkW0XtA4q7">
+                <input type="hidden" name="account" value="35eb5628-cfbe-4b4f-9952-34abbeef49fa">
                 
                   <button type="submit" name="action" value="deactivate">Désactiver le compte</button>
                 
@@ -1087,24 +1165,24 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
               <summary>Gérer ce compte</summary>
 
               <form method="post" class="inline">
-                <input type="hidden" name="csrfmiddlewaretoken" value="1x2CSGOzNkmJsxGVuK9jLNP1EoBuoDt6GIIKdmPVigU1ZmEQ0fpOpPQjukfNb00n">
-                <input type="hidden" name="account" value="ee97993f-4a50-440c-8b4e-d84e894ba465">
+                <input type="hidden" name="csrfmiddlewaretoken" value="Ls7uK9NV3EP32FO8AM9xlsT1xFNSV388zkdM9qDdFFshbhnj6898ewLkW0XtA4q7">
+                <input type="hidden" name="account" value="c67d8171-5d76-4a45-867e-bc8e484997be">
                 
                   <button type="submit" name="action" value="promote">Faire administrateur de la commune</button>
                 
               </form>
 
               <form method="post" class="inline">
-                <input type="hidden" name="csrfmiddlewaretoken" value="1x2CSGOzNkmJsxGVuK9jLNP1EoBuoDt6GIIKdmPVigU1ZmEQ0fpOpPQjukfNb00n">
-                <input type="hidden" name="account" value="ee97993f-4a50-440c-8b4e-d84e894ba465">
-                <label for="pw-ee97993f-4a50-440c-8b4e-d84e894ba465">Nouveau mot de passe</label>
-                <input id="pw-ee97993f-4a50-440c-8b4e-d84e894ba465" type="password" name="raw_password" autocomplete="new-password">
+                <input type="hidden" name="csrfmiddlewaretoken" value="Ls7uK9NV3EP32FO8AM9xlsT1xFNSV388zkdM9qDdFFshbhnj6898ewLkW0XtA4q7">
+                <input type="hidden" name="account" value="c67d8171-5d76-4a45-867e-bc8e484997be">
+                <label for="pw-c67d8171-5d76-4a45-867e-bc8e484997be">Nouveau mot de passe</label>
+                <input id="pw-c67d8171-5d76-4a45-867e-bc8e484997be" type="password" name="raw_password" autocomplete="new-password">
                 <button type="submit" name="action" value="set_password">Réinitialiser le mot de passe</button>
               </form>
 
               <form method="post" class="inline danger">
-                <input type="hidden" name="csrfmiddlewaretoken" value="1x2CSGOzNkmJsxGVuK9jLNP1EoBuoDt6GIIKdmPVigU1ZmEQ0fpOpPQjukfNb00n">
-                <input type="hidden" name="account" value="ee97993f-4a50-440c-8b4e-d84e894ba465">
+                <input type="hidden" name="csrfmiddlewaretoken" value="Ls7uK9NV3EP32FO8AM9xlsT1xFNSV388zkdM9qDdFFshbhnj6898ewLkW0XtA4q7">
+                <input type="hidden" name="account" value="c67d8171-5d76-4a45-867e-bc8e484997be">
                 
                   <button type="submit" name="action" value="deactivate">Désactiver le compte</button>
                 
@@ -1127,24 +1205,24 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
               <summary>Gérer ce compte</summary>
 
               <form method="post" class="inline">
-                <input type="hidden" name="csrfmiddlewaretoken" value="1x2CSGOzNkmJsxGVuK9jLNP1EoBuoDt6GIIKdmPVigU1ZmEQ0fpOpPQjukfNb00n">
-                <input type="hidden" name="account" value="0d4767bb-9514-4f44-a460-437fea7bf79d">
+                <input type="hidden" name="csrfmiddlewaretoken" value="Ls7uK9NV3EP32FO8AM9xlsT1xFNSV388zkdM9qDdFFshbhnj6898ewLkW0XtA4q7">
+                <input type="hidden" name="account" value="17ae53e2-84c7-40d1-ad73-62343adbe382">
                 
                   <button type="submit" name="action" value="demote">Retirer l'administration de la commune</button>
                 
               </form>
 
               <form method="post" class="inline">
-                <input type="hidden" name="csrfmiddlewaretoken" value="1x2CSGOzNkmJsxGVuK9jLNP1EoBuoDt6GIIKdmPVigU1ZmEQ0fpOpPQjukfNb00n">
-                <input type="hidden" name="account" value="0d4767bb-9514-4f44-a460-437fea7bf79d">
-                <label for="pw-0d4767bb-9514-4f44-a460-437fea7bf79d">Nouveau mot de passe</label>
-                <input id="pw-0d4767bb-9514-4f44-a460-437fea7bf79d" type="password" name="raw_password" autocomplete="new-password">
+                <input type="hidden" name="csrfmiddlewaretoken" value="Ls7uK9NV3EP32FO8AM9xlsT1xFNSV388zkdM9qDdFFshbhnj6898ewLkW0XtA4q7">
+                <input type="hidden" name="account" value="17ae53e2-84c7-40d1-ad73-62343adbe382">
+                <label for="pw-17ae53e2-84c7-40d1-ad73-62343adbe382">Nouveau mot de passe</label>
+                <input id="pw-17ae53e2-84c7-40d1-ad73-62343adbe382" type="password" name="raw_password" autocomplete="new-password">
                 <button type="submit" name="action" value="set_password">Réinitialiser le mot de passe</button>
               </form>
 
               <form method="post" class="inline danger">
-                <input type="hidden" name="csrfmiddlewaretoken" value="1x2CSGOzNkmJsxGVuK9jLNP1EoBuoDt6GIIKdmPVigU1ZmEQ0fpOpPQjukfNb00n">
-                <input type="hidden" name="account" value="0d4767bb-9514-4f44-a460-437fea7bf79d">
+                <input type="hidden" name="csrfmiddlewaretoken" value="Ls7uK9NV3EP32FO8AM9xlsT1xFNSV388zkdM9qDdFFshbhnj6898ewLkW0XtA4q7">
+                <input type="hidden" name="account" value="17ae53e2-84c7-40d1-ad73-62343adbe382">
                 
                   <button type="submit" name="action" value="deactivate">Désactiver le compte</button>
                 
@@ -1173,24 +1251,24 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
               <summary>Gérer ce compte</summary>
 
               <form method="post" class="inline">
-                <input type="hidden" name="csrfmiddlewaretoken" value="1x2CSGOzNkmJsxGVuK9jLNP1EoBuoDt6GIIKdmPVigU1ZmEQ0fpOpPQjukfNb00n">
-                <input type="hidden" name="account" value="3625ad22-06bd-46df-a6d1-33f22435e4de">
+                <input type="hidden" name="csrfmiddlewaretoken" value="Ls7uK9NV3EP32FO8AM9xlsT1xFNSV388zkdM9qDdFFshbhnj6898ewLkW0XtA4q7">
+                <input type="hidden" name="account" value="cf7cd7bf-b789-40b2-9293-1b3738ad3494">
                 
                   <button type="submit" name="action" value="promote">Faire administrateur de la commune</button>
                 
               </form>
 
               <form method="post" class="inline">
-                <input type="hidden" name="csrfmiddlewaretoken" value="1x2CSGOzNkmJsxGVuK9jLNP1EoBuoDt6GIIKdmPVigU1ZmEQ0fpOpPQjukfNb00n">
-                <input type="hidden" name="account" value="3625ad22-06bd-46df-a6d1-33f22435e4de">
-                <label for="pw-3625ad22-06bd-46df-a6d1-33f22435e4de">Nouveau mot de passe</label>
-                <input id="pw-3625ad22-06bd-46df-a6d1-33f22435e4de" type="password" name="raw_password" autocomplete="new-password">
+                <input type="hidden" name="csrfmiddlewaretoken" value="Ls7uK9NV3EP32FO8AM9xlsT1xFNSV388zkdM9qDdFFshbhnj6898ewLkW0XtA4q7">
+                <input type="hidden" name="account" value="cf7cd7bf-b789-40b2-9293-1b3738ad3494">
+                <label for="pw-cf7cd7bf-b789-40b2-9293-1b3738ad3494">Nouveau mot de passe</label>
+                <input id="pw-cf7cd7bf-b789-40b2-9293-1b3738ad3494" type="password" name="raw_password" autocomplete="new-password">
                 <button type="submit" name="action" value="set_password">Réinitialiser le mot de passe</button>
               </form>
 
               <form method="post" class="inline danger">
-                <input type="hidden" name="csrfmiddlewaretoken" value="1x2CSGOzNkmJsxGVuK9jLNP1EoBuoDt6GIIKdmPVigU1ZmEQ0fpOpPQjukfNb00n">
-                <input type="hidden" name="account" value="3625ad22-06bd-46df-a6d1-33f22435e4de">
+                <input type="hidden" name="csrfmiddlewaretoken" value="Ls7uK9NV3EP32FO8AM9xlsT1xFNSV388zkdM9qDdFFshbhnj6898ewLkW0XtA4q7">
+                <input type="hidden" name="account" value="cf7cd7bf-b789-40b2-9293-1b3738ad3494">
                 
                   <button type="submit" name="action" value="deactivate">Désactiver le compte</button>
                 

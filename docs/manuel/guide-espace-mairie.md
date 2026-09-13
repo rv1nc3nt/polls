@@ -60,6 +60,10 @@ va enregistrer les actions.
      données personnelles** et **contact du référent** (à qui les électeurs
      adressent accès, rectification, effacement — R-13.2) ;
    - le **premier compte administrateur de la commune**.
+
+   Ces trois champs de la fiche commune, ainsi que l'adresse du site et un
+   logo/favicon facultatifs, restent modifiables ensuite depuis les
+   **paramètres de la commune** (écran 14, §13).
 2. **Comptes et rôles** (écran 10) — créer les comptes des élus et agents, puis,
    une fois un premier scrutin créé, leur attribuer les rôles sur ce scrutin.
 3. **Import de la liste électorale** (écran 3) — voir §5.
@@ -72,6 +76,18 @@ va enregistrer les actions.
 **Figure 19 — Rôles par scrutin.**
 
 ![Rôles par scrutin](captures/img/19-mairie-roles.png)
+
+L'écran se parcourt en deux temps. Le **scrutin** se cherche et se choisit
+dans une liste paginée, cherchable par intitulé et filtrable par état — pas
+dans un menu déroulant unique, qui grossirait sans limite au fil des scrutins
+de la commune. Le scrutin choisi affiché, une **grille** met chaque **compte
+actif** en ligne et chaque **rôle** de §1 en colonne : une case cochée
+attribue, une case décochée retire, le tout envoyé en un seul
+enregistrement — seules les cases réellement changées écrivent un événement
+au journal, une attribution ou un retrait à la fois (§10). Un compte
+désactivé ne figure plus dans la grille : il ne peut pas recevoir de nouveau
+rôle, et retirer un rôle qu'il détient encore passe par sa réactivation au
+préalable, qui le fait réapparaître, coché, pour qu'on puisse l'en retirer.
 
 Toute attribution de rôle est tracée au journal (§10).
 
@@ -103,9 +119,13 @@ a deux origines possibles :
   le site public — propositions et calendrier, sans inscription ni vote
   possibles — avant même son ouverture. Fige la configuration au même instant
   que l'ouverture l'aurait fait (même déclencheur INV-6), pour qu'elle ne
-  change pas sous les yeux de qui la consulte déjà. Un administrateur qui n'en
-  a pas l'usage passe directement de brouillon à ouvert, comme avant que cette
-  étape existe.
+  change pas sous les yeux de qui la consulte déjà. **Refusée, comme
+  l'ouverture, si une langue activée n'a pas sa traduction complète** (titre,
+  description, libellés) : l'annonce fige la page publique, elle ne peut donc
+  ni figer ni montrer une configuration qui manque encore d'une traduction.
+  Elle ne demande en revanche pas la liste électorale figée, celle-ci n'étant
+  tirée qu'à l'ouverture (§5). Un administrateur qui n'a pas l'usage de cette
+  étape passe directement de brouillon à ouvert, comme avant qu'elle existe.
 - **brouillon ou annoncé → ouvert** : fige une **copie immuable de la liste
   électorale** (R-4.3) et tire la **graine d'ouverture** (pour un éventuel
   départage, R-10.5). *Ouvrir maintenant* est permis à tout moment, y compris
@@ -224,12 +244,42 @@ réversible tant que la configuration n'est pas enregistrée. Sans JavaScript, l
 deux lignes vierges en fin de formulaire servent à ajouter, et la case
 **« Supprimer »** de chaque ligne à retirer.
 
+### Description étendue et images (R-3.12)
+
+Au-delà de son libellé, chaque proposition peut recevoir une **description
+étendue** par langue : texte mis en forme, images hébergées par la plateforme
+elle-même, vidéo YouTube — jamais de contenu tiers chargé par simple adresse.
+Purement informatif : elle **n'entre ni dans la traduction obligatoire**
+ci-dessous (une langue activée sans description étendue retombe sur celle de
+la langue par défaut du scrutin, ou reste vide, sans jamais bloquer l'annonce
+ni l'ouverture), **ni dans le dépouillement ou l'empreinte de clôture**, qui
+ne portent que sur les identifiants (R-10.7).
+
+Le champ n'apparaît qu'une fois la proposition elle-même enregistrée : on
+saisit d'abord son libellé, on enregistre la configuration, puis on revient
+lui ajouter description et images. Une image envoyée reçoit un repère
+(`image:…`) à recopier tel quel dans le texte, entre parenthèses :
+`![texte alternatif](image:…)`. Une vidéo se signale par un bloc dédié
+portant l'identifiant YouTube seul sur sa ligne. Le texte accepte par ailleurs
+une mise en forme simple (gras, italique, liens, listes, titres) ; toute autre
+balise tapée directement est retirée à l'affichage.
+
+Comme le reste de la configuration, description et images ne se modifient que
+**tant que le scrutin est en brouillon** (R-3.3) — remplacer une image
+n'écrase jamais l'ancienne, elle prend une nouvelle adresse, pour la même
+raison qu'un identifiant ne change pas après coup : une référence déjà figée
+ne doit jamais se retrouver, plus tard, à pointer vers un contenu différent.
+5 Mo par image, au format PNG, JPEG, GIF ou WebP reconnu sur le contenu réel
+du fichier, jamais sur l'extension déclarée.
+
 ### Langues
 
 Interface traduite par catalogue ; titre, description et libellés traduits pour
-chaque langue activée. **Un scrutin ne peut pas être ouvert tant qu'une
-traduction manque** ; une traduction absente retombe sur la langue par défaut du
-scrutin, jamais sur rien. Le français fait foi.
+chaque langue activée. **Un scrutin ne peut être ni annoncé ni ouvert tant
+qu'une traduction manque** (R-3.10) ; une traduction absente retombe sur la
+langue par défaut du scrutin, jamais sur rien. Le français fait foi. La
+**description étendue** d'une proposition (ci-dessous) fait exception : elle
+n'est jamais exigée, dans aucune langue.
 
 **Figure 13 — Configuration modifiable (scrutin en brouillon), avec *Annoncer* et *Ouvrir maintenant* en bas de formulaire.**
 
@@ -522,6 +572,15 @@ le nombre de bulletins par ordre distinct est publié en plus (pour trois
 propositions entièrement classées : six lignes, suffisantes pour recalculer le
 résultat).
 
+Le **résultat lui-même est mis en avant**, pas seulement disponible (R-11.2,
+R-11.4) : sur la page de résultats, le gagnant (ou l'égalité, ou l'absence de
+bulletin retenu) ouvre la page dans un encart séparé, avant la méthode, la
+matrice et les données de vérification. La **liste publique des scrutins**
+reprend ce même résultat en une ligne pour chaque scrutin publié, avec un lien
+direct vers la dérivation complète — un visiteur n'a plus besoin d'ouvrir
+d'abord la page du scrutin puis de suivre un second lien pour savoir ce qui en
+est sorti.
+
 ### En ligne de commande
 
 ```sh
@@ -577,7 +636,8 @@ rétention la reprend.
   registre des activités de traitement.
 - Une **notice d'information** est présentée à l'inscription (finalité, base
   légale, durées de conservation, destinataires, droits, identité du référent —
-  R-13.2). Le référent est celui saisi à la première installation.
+  R-13.2). Le référent est celui saisi à la première installation, modifiable
+  ensuite depuis les paramètres de la commune (écran 14, §13).
 - **Durées de conservation** (R-13.3) : les données d'identité (inscriptions,
   copie figée de la liste, association bulletin papier ↔ électeur) sont
   supprimées **deux mois après la clôture**, ou après le **retrait** (R-3.11)
@@ -607,3 +667,40 @@ Un administrateur de commune voit **tous** les scrutins (il faut savoir ce qui
 existe pour attribuer les rôles) ; les autres opérateurs ne voient que les
 scrutins sur lesquels ils ont un rôle. **Voir un scrutin dans cette liste n'est
 pas un accès à ses écrans** : cela demande toujours une attribution.
+
+## 13. Paramètres de la commune (écran 14)
+
+Réservé à l'**administrateur de la commune**, comme les écrans 10, 12 (relais
+de messagerie) et 13 (modèles de scrutin). Reprend, modifiables après coup,
+les trois champs que l'écran 11 fixe à l'installation (§2) : le **nom de la
+commune** (affiché sur les pages publiques et dans la notice d'information),
+le **référent données personnelles** et son **contact** (R-13.1, R-13.2,
+§11).
+
+S'y ajoutent deux éléments propres à cet écran :
+
+- l'**adresse du site** (`public_base_url`), utilisée pour composer les liens
+  absolus des courriels envoyés aux électeurs (confirmation d'inscription,
+  reçu…) — à défaut, l'adresse configurée au niveau du déploiement fait foi,
+  de la même manière que le relais SMTP de l'écran 12 se rabat sur sa propre
+  configuration par défaut ;
+- un **logo** et un **favicon**, tous deux facultatifs : le premier affiché
+  dans l'en-tête à la place du nom de la commune, le second dans l'onglet du
+  navigateur.
+
+Chaque image s'envoie et se supprime **séparément** du formulaire principal,
+comme les images d'une proposition (§4) — un champ de fichier laissé vide n'y
+signifie jamais « conserver l'image actuelle » — et est validée sur son
+**contenu réel**, jamais sur l'extension déclarée (jamais de SVG non plus,
+qu'aucun code de l'application ne sait nettoyer avant de le resservir) : 2 Mo
+maximum pour le logo, 256 Ko pour le favicon. Une commune qui n'a pas encore
+rempli cet écran n'est pas affectée : nom brut dans l'en-tête, favicon du
+navigateur par défaut.
+
+Chaque enregistrement est inscrit au journal, en ne nommant que les **champs
+qui ont changé** — jamais leur valeur, la même retenue que pour la
+configuration d'un scrutin (§4) ou le relais de messagerie de l'écran 12.
+
+**Figure 22 — Paramètres de la commune.**
+
+![Paramètres de la commune](captures/img/22-mairie-parametres-commune.png)

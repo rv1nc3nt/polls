@@ -6,6 +6,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Consultations</title>
+  
+  
   <style>
 /* SPDX-License-Identifier: 0BSD */
 
@@ -181,6 +183,7 @@ section:last-child { margin-bottom: 0; }
 .site-name { font-weight: 700; margin: 0; font-size: 1.15rem; letter-spacing: -0.01em; }
 .site-name a { color: var(--ink); text-decoration: none; }
 .site-name a:hover { color: var(--accent); }
+.site-logo { display: block; max-height: 2.25rem; width: auto; }
 .account { display: flex; gap: 0.75rem; align-items: center; }
 .account__name { font-weight: 600; }
 
@@ -594,7 +597,16 @@ details form.inline {
 }
 details form.inline label { margin: 0; }
 
-.pollpicker { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: end; margin-bottom: 1.5rem; }
+/* État filter chips above a paginated list (screen 10's poll list, roll
+   browser and others to come) — a fixed handful of states, unlike the list
+   itself, so plain links read better here than another <select>. */
+.tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0 0 1rem; padding: 0; }
+.tags .tag { text-decoration: none; color: inherit; }
+.tags .tag.active { background: var(--accent-soft); border-color: var(--accent); font-weight: 600; }
+
+/* The row a list is currently drilled into (screen 10's poll list, the
+   scrutin whose roles are shown below it). */
+tbody tr.selected th, tbody tr.selected td { background: var(--accent-soft); }
 
 /* ---- proposition editor (screen 2) --------------------------------- */
 
@@ -775,6 +787,36 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
   border-left: 4px solid var(--accent);
   padding-left: 0.9rem;
 }
+/* The results page's own outcome (R-11.2): a card set apart from the
+   derivation and verification sections below it, so the winner (or tie, or
+   "no ballot retained") is the first thing read on the page, not one line
+   among the tally details. */
+.result-hero {
+  background: var(--accent-soft);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  margin: 0 0 1.5rem;
+  max-width: var(--measure);
+}
+.result-hero__eyebrow {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-quiet);
+}
+.result-hero__outcome {
+  font-size: 1.6rem;
+  line-height: 1.3;
+  border-left: 0;
+  padding-left: 0;
+  margin: 0 0 1rem;
+  max-width: none;
+}
+/* Nested inside the hero (which is itself the card), the .facts treatment
+   would be a card in a card — same fix as .review .facts above. */
+.result-hero .facts { box-shadow: none; border: 0; background: none; padding: 0; margin: 0; }
 .legal { border-top: 1px solid var(--rule); padding-top: 1rem; }
 .legal p { max-width: var(--measure); }
 .poll-index { list-style: none; padding: 0; }
@@ -782,6 +824,33 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 .poll-index li:first-child { border-top: 1px solid var(--rule-soft); }
 .poll-index a { font-weight: 600; font-size: 1.05rem; }
 .poll-index .help { display: block; }
+/* A published poll's outcome, surfaced on the landing page itself (R-11.2,
+   R-11.4) rather than left for a click into the poll's own page — the
+   smaller sibling of .outcome on the results page. */
+.outcome--compact { font-size: 1rem; margin: 0.5rem 0 0; padding-left: 0.7rem; border-left-width: 3px; }
+.outcome--compact a { margin-left: 0.5rem; white-space: nowrap; }
+
+/* ---- an option's extended description (R-3.12, §3.1 bis) ----------- */
+
+.option-details { margin: 0.5rem 0 0.75rem; max-width: var(--measure); }
+.option-details img { border-radius: 4px; }
+
+/* 16:9 responsive wrapper around the one iframe apps.elections.optioncontent
+   ever emits — width comes from the surrounding text column, not from the
+   iframe's own (fixed, sandboxed) attributes. */
+.youtube-embed { position: relative; width: 100%; max-width: var(--measure); aspect-ratio: 16 / 9; margin: 0.5rem 0; }
+.youtube-embed iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+
+/* ---- screen 2's per-proposition image manager (§6.5.2, R-3.12) ----- */
+
+.option-images { list-style: none; padding: 0; margin: 0 0 0.75rem; display: flex; flex-wrap: wrap; gap: 0.75rem; }
+.option-images li { display: flex; flex-direction: column; gap: 0.3rem; }
+.option-images__thumb { width: 8rem; height: 8rem; object-fit: cover; border-radius: 4px; border: 1px solid var(--rule-soft); }
+
+/* ---- screen 14's logo and favicon (§6.5.14) ------------------------ */
+
+.commune-branding__preview { max-width: 12rem; max-height: 6rem; width: auto; height: auto; border-radius: 4px; border: 1px solid var(--rule-soft); }
+.commune-branding__preview--favicon { max-width: 4rem; max-height: 4rem; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; }
@@ -817,41 +886,61 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
   
     <ul class="poll-index">
       
-        <li>
-          <a href="/fr/scrutin/9adb11fa-92eb-4946-93dd-3551e9463335/">Tracé de la future piste cyclable</a>
-          <span class="help">
+        
+          <li>
+            <a href="/fr/scrutin/d0bf6f33-2b66-45b7-8c52-0a2b981972a4/">Tracé de la future piste cyclable</a>
+            <span class="help">
+              
+                à venir — ouverture le 13 octobre 2026 09:39
+              
+            </span>
             
-              à venir — ouverture le 11 octobre 2026 15:08
-            
-          </span>
-        </li>
+          </li>
+        
       
-        <li>
-          <a href="/fr/scrutin/b4950f6d-43a9-4ca8-937c-b8dde9476364/">Réaménagement de la place de la Mairie</a>
-          <span class="help">
+        
+          <li>
+            <a href="/fr/scrutin/fe031673-d307-438b-be6c-41b69d82a515/">Réaménagement de la place de la Mairie</a>
+            <span class="help">
+              
+                ouverte — clôture le 24 septembre 2026 09:39
+              
+            </span>
             
-              ouverte — clôture le 22 septembre 2026 15:08
-            
-          </span>
-        </li>
+          </li>
+        
       
-        <li>
-          <a href="/fr/scrutin/9c2d33e4-e7e3-4b75-b0ee-790002e8e40b/">Aire de jeux du parc des Tilleuls</a>
-          <span class="help">
+        
+          <li>
+            <a href="/fr/scrutin/4b9e7f33-356f-42e1-ae82-eeff9ec2cd06/">Aire de jeux du parc des Tilleuls</a>
+            <span class="help">
+              
+                ouverte — clôture le 13 septembre 2026 07:39
+              
+            </span>
             
-              ouverte — clôture le 11 septembre 2026 13:08
-            
-          </span>
-        </li>
+          </li>
+        
       
-        <li>
-          <a href="/fr/scrutin/c502b286-3c8b-4c34-bcf6-06014aa3ec66/">Horaires d&#x27;ouverture de la médiathèque municipale</a>
-          <span class="help">
+        
+          <li>
+            <a href="/fr/scrutin/37d4e2e2-6a60-48e7-8ac3-d9de721ae30d/">Horaires d&#x27;ouverture de la médiathèque municipale</a>
+            <span class="help">
+              
+                close — résultats publiés
+              
+            </span>
             
-              close — résultats publiés
+              
+              <p class="outcome outcome--compact">
+                
+                  Résultat : « Grille 1 — nocturne le jeudi jusqu&#x27;à 20 h » retenue.
+                
+                <a href="/fr/scrutin/37d4e2e2-6a60-48e7-8ac3-d9de721ae30d/resultats/">Voir le résultat détaillé →</a>
+              </p>
             
-          </span>
-        </li>
+          </li>
+        
       
     </ul>
   
@@ -867,7 +956,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
     
     
       <form action="/i18n/setlang/" method="post" class="langswitch">
-        <input type="hidden" name="csrfmiddlewaretoken" value="MouE1ceafDt02WnXiBaeEMlVCrxNxOd7rXB4qkH1UM6Ts74Et9V4LuUWM3OqSXR5">
+        <input type="hidden" name="csrfmiddlewaretoken" value="zFZLbjgyetfq3t9MizwvwPJQzguRXTZJSSanOGUby5kkqevnbKV6kIbgc5EDvins">
         <input type="hidden" name="next" value="/fr/">
         <label for="langswitch-select">Langue</label>
         <select id="langswitch-select" name="language">
