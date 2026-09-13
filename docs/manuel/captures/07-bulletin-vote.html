@@ -866,6 +866,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 }
 
 </style>
+<style>.bo-side { bottom: auto !important; }</style>
 </head>
 <body class="">
   <a class="skip" href="#contenu">Aller au contenu</a>
@@ -888,11 +889,11 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
   
 
   <form method="post">
-    <input type="hidden" name="csrfmiddlewaretoken" value="4eCpM06vhKGmJrNPfzIf0K4ukBqDh7Bp0ZPlhIpMzdh1D2IAQctQbqZpQ3EaU20V">
+    <input type="hidden" name="csrfmiddlewaretoken" value="PZKB8EqMseaqQmlrW7LAdHo8IK4O5VJ6cENvYFRrDsuCGVr3rxNmI353ZeofSx66">
     
 
 
-<input type="hidden" name="order" value="mineral,jardin,mixte" id="id_order">
+<input type="hidden" name="order" value="mixte,mineral,jardin" id="id_order">
 
 <p class="help">
   
@@ -901,6 +902,21 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 </p>
 
 <ol class="ranking">
+  
+    <li class="ranking__row">
+      <label for="id_rank_mixte">Scénario C — solution mixte, kiosque conservé</label>
+      <select name="rank_mixte" id="id_rank_mixte">
+  <option value="" selected>Non classé</option>
+
+  <option value="1">1</option>
+
+  <option value="2">2</option>
+
+  <option value="3">3</option>
+
+</select>
+      
+    </li>
   
     <li class="ranking__row">
       <label for="id_rank_mineral">Scénario A — place minérale et ombrières</label>
@@ -932,21 +948,6 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
       
     </li>
   
-    <li class="ranking__row">
-      <label for="id_rank_mixte">Scénario C — solution mixte, kiosque conservé</label>
-      <select name="rank_mixte" id="id_rank_mixte">
-  <option value="" selected>Non classé</option>
-
-  <option value="1">1</option>
-
-  <option value="2">2</option>
-
-  <option value="3">3</option>
-
-</select>
-      
-    </li>
-  
 </ol>
 
 
@@ -965,8 +966,8 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
     
     
       <form action="/i18n/setlang/" method="post" class="langswitch">
-        <input type="hidden" name="csrfmiddlewaretoken" value="4eCpM06vhKGmJrNPfzIf0K4ukBqDh7Bp0ZPlhIpMzdh1D2IAQctQbqZpQ3EaU20V">
-        <input type="hidden" name="next" value="/fr/bulletin/fe031673-d307-438b-be6c-41b69d82a515/acces/7YUI3PQARUTOMJGQO3XAFINCBPYEI42W5FRH45B5NDFTAYCSM6PA/">
+        <input type="hidden" name="csrfmiddlewaretoken" value="PZKB8EqMseaqQmlrW7LAdHo8IK4O5VJ6cENvYFRrDsuCGVr3rxNmI353ZeofSx66">
+        <input type="hidden" name="next" value="/fr/bulletin/02618c37-f586-4f5f-8017-db8054d53521/acces/SHFIJV3IPQPQBWRVEF2AJ4YYMXRUQFA5VKOICEAJZTYDWGNJJGNQ/">
         <label for="langswitch-select">Langue</label>
         <select id="langswitch-select" name="language">
           

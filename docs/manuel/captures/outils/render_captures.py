@@ -46,7 +46,18 @@ review_reg = Registration.objects.filter(poll=poll, state=RegistrationState.PEND
 def save(name: str, html: str) -> None:
     html = re.sub(
         r'<link rel="stylesheet" href="[^"]*app\.css[^"]*">',
-        f"<style>\n{CSS}\n</style>",
+        f"<style>\n{CSS}\n</style>"
+        # `.bo-side` is `position: fixed; bottom: 0` so it stays put while a
+        # real browser window scrolls (§6.5) — it fills the *viewport*, not
+        # the page. A full-page capture has no scrolling viewport, only the
+        # tall `--window-size` asked of headless Chrome, so that background
+        # stretches to the bottom of whatever height was asked for instead of
+        # stopping at the nav's own content, and `convert -trim` then finds
+        # two solid-coloured columns reaching the bottom rather than a
+        # trimmable blank margin. Screenshot-only: let the sidebar's height
+        # follow its content instead, which trim can then crop like any
+        # other page.
+        "\n<style>.bo-side { bottom: auto !important; }</style>",
         html,
     )
     # The theme toggle is progressive enhancement (static/js/theme.js); a
