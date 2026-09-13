@@ -866,6 +866,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 }
 
 </style>
+<style>.bo-side { bottom: auto !important; }</style>
 </head>
 <body class="">
   <a class="skip" href="#contenu">Aller au contenu</a>
@@ -886,11 +887,11 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
   <p>Le classement ci-dessous est celui de votre bulletin actuel. En validant, vous le remplacez ; la version précédente est conservée mais n'est plus comptée (R-7.2).</p>
 
   <form method="post">
-    <input type="hidden" name="csrfmiddlewaretoken" value="zbGAGflMylo3Wc909i2EnmwRYdkjhaj9C3jyaSDFkB9iXiv4IDCwZBjUgxOETBFK">
+    <input type="hidden" name="csrfmiddlewaretoken" value="ciIzG1ZIG2PdrLfajv6tDFwGWmImehKN6jF4jFa6qMdvA4irNnvtOaLqgf2rb1sI">
     
 
 
-<input type="hidden" name="order" value="jardin,mineral,mixte" id="id_order">
+<input type="hidden" name="order" value="mineral,jardin,mixte" id="id_order">
 
 <p class="help">
   
@@ -899,21 +900,6 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 </p>
 
 <ol class="ranking">
-  
-    <li class="ranking__row">
-      <label for="id_rank_jardin">Scénario B — jardin planté et noue paysagère</label>
-      <select name="rank_jardin" id="id_rank_jardin">
-  <option value="">Non classé</option>
-
-  <option value="1" selected>1</option>
-
-  <option value="2">2</option>
-
-  <option value="3">3</option>
-
-</select>
-      
-    </li>
   
     <li class="ranking__row">
       <label for="id_rank_mineral">Scénario A — place minérale et ombrières</label>
@@ -925,6 +911,21 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
   <option value="2">2</option>
 
   <option value="3" selected>3</option>
+
+</select>
+      
+    </li>
+  
+    <li class="ranking__row">
+      <label for="id_rank_jardin">Scénario B — jardin planté et noue paysagère</label>
+      <select name="rank_jardin" id="id_rank_jardin">
+  <option value="">Non classé</option>
+
+  <option value="1" selected>1</option>
+
+  <option value="2">2</option>
+
+  <option value="3">3</option>
 
 </select>
       
@@ -963,8 +964,8 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
     
     
       <form action="/i18n/setlang/" method="post" class="langswitch">
-        <input type="hidden" name="csrfmiddlewaretoken" value="zbGAGflMylo3Wc909i2EnmwRYdkjhaj9C3jyaSDFkB9iXiv4IDCwZBjUgxOETBFK">
-        <input type="hidden" name="next" value="/fr/bulletin/fe031673-d307-438b-be6c-41b69d82a515/modifier/">
+        <input type="hidden" name="csrfmiddlewaretoken" value="ciIzG1ZIG2PdrLfajv6tDFwGWmImehKN6jF4jFa6qMdvA4irNnvtOaLqgf2rb1sI">
+        <input type="hidden" name="next" value="/fr/bulletin/02618c37-f586-4f5f-8017-db8054d53521/modifier/">
         <label for="langswitch-select">Langue</label>
         <select id="langswitch-select" name="language">
           
