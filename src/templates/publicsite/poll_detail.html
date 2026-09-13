@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n tz %}
+{% load i18n tz static %}
 {# SPDX-License-Identifier: 0BSD — sandbox and draft polls 404 here; `announced` is the early preview (INV-8, R-3.10). #}
 
 {% block title %}{{ title }}{% endblock %}
@@ -29,19 +29,39 @@
 
   <section aria-labelledby="propositions">
     <h2 id="propositions">{% translate "Les propositions soumises" %}</h2>
-    <ol class="propositions">
+    {% comment %}
+      The summary above (title, status, description) covers the poll as a
+      whole; each proposition's own detail is heavy enough — R-3.12/§3.1 bis
+      allows images and a YouTube embed — that showing all of them at once
+      pushed the calendar and the "s'inscrire" link several screens down.
+      One tab per option (static/js/tabs.js, same component as screen 2's
+      config editor) keeps the label list scannable and opens on demand;
+      without JS every panel renders open and stacked, in this same order, so
+      a screen reader or a search-engine crawl sees the identical content
+      (R-14.1).
+    {% endcomment %}
+    <div class="tabs" data-tabs>
+      <div class="tabs__list" data-tabs-list hidden>
+        {% for option in options %}
+          <button type="button" class="tabs__tab" data-tabs-tab>{{ option.label }}</button>
+        {% endfor %}
+      </div>
       {% for option in options %}
-        <li>
-          {{ option.label }}
+        <div id="proposition-{{ option.option_id }}" data-tabs-panel>
+          <h3>{{ option.label }}</h3>
           {% comment %}
             R-3.12, §3.1 bis: optional, so often empty — rendered HTML,
             already sanitised by apps.elections.optioncontent at view time,
             never at save time.
           {% endcomment %}
-          {% if option.details_html %}<div class="option-details">{{ option.details_html }}</div>{% endif %}
-        </li>
+          {% if option.details_html %}
+            <div class="option-details">{{ option.details_html }}</div>
+          {% else %}
+            <p class="help">{% translate "Aucune description complémentaire pour cette proposition." %}</p>
+          {% endif %}
+        </div>
       {% endfor %}
-    </ol>
+    </div>
   </section>
 
   <section aria-labelledby="calendrier">
@@ -109,4 +129,8 @@
        the full statement with the article reference belongs on the poll itself. {% endcomment %}
     <p>{% blocktranslate %}Cette consultation est consultative. Son résultat éclaire la délibération du conseil municipal sans la lier. Elle ne constitue pas une consultation des électeurs au sens des articles L1112-15 et suivants du code général des collectivités territoriales.{% endblocktranslate %}</p>
   </section>
+{% endblock %}
+
+{% block body_end %}
+  <script src="{% static 'js/tabs.js' %}" defer></script>
 {% endblock %}
