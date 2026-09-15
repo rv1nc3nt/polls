@@ -16,6 +16,12 @@
 - name: Deploy the application (§15 steps 3 to 6)
   ansible.builtin.import_tasks: deploy.yml
   tags: [deploy]
+- name: Restart polls.service now, not at end of play
+  # deploy.yml and smoke.yml (below) are import_tasks into this one play, so
+  # without this the "Restart polls" handler they notify would not fire until
+  # every task here has run — smoke.yml's version check included — and it
+  # would see the release just staged still serving the previous one.
+  ansible.builtin.meta: flush_handlers
 - name: Configure backups (§15 step 8)
   ansible.builtin.import_tasks: backup.yml
   tags: [backup]
