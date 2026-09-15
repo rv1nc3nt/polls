@@ -26,6 +26,14 @@
     <p class="help">{% translate "La configuration ci-dessous est arrêtée et ne changera plus (R-3.3) ; seul le vote n'est pas encore ouvert." %}</p>
   {% elif is_open %}
     <p class="status">{% translate "Consultation ouverte." %}</p>
+  {% elif online_voting_closed %}
+    {% comment %} state is still `open` — paper keying/countersignature legitimately
+       continue to `paper_entry_deadline` (§6.4) — but online voting itself already
+       stopped at `closes_at`, and the write path already refuses it (T-67, T-68).
+       Saying so here, instead of repeating "ouverte", is the whole point of §5.1's
+       clock-gated display (see `_status_key`). {% endcomment %}
+    <p class="status">{% translate "Le vote en ligne est clos." %}
+      {% if has_paper_window %}{% blocktranslate with when=poll.paper_entry_deadline|timezone:poll.timezone|date:"DATETIME_FORMAT" %}La saisie des bulletins papier se poursuit jusqu'au {{ when }}.{% endblocktranslate %}{% endif %}</p>
   {% elif is_published %}
     <p class="status">{% translate "Consultation close. Les résultats sont publiés." %}
       <a href="{% url 'publicsite:results' poll.id %}">{% translate "Voir les résultats" %}</a>.</p>

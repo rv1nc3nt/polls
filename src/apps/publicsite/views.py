@@ -16,12 +16,15 @@ Nothing here is behind a login. Two rules shape it:
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from django.conf import settings
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 from django.db.models import QuerySet
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render
+from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
 from apps.audit.models import Action, AuditEvent, Reason
@@ -39,6 +42,31 @@ _PUBLIC_STATES = (PollState.ANNOUNCED, PollState.OPEN, PollState.CLOSED, PollSta
 def _public_polls() -> QuerySet[Poll]:
     """Every poll a member of the public may see at all (INV-8, §6.6)."""
     return Poll.objects.filter(is_sandbox=False, state__in=_PUBLIC_STATES)
+
+
+def _status_key(poll: Poll, now: datetime) -> str:
+    """ "preview" | "open" | "published" | "closed": what the public site says,
+    kept independent of ``Poll.state`` past the two boundary instants (§4,
+    §5.1).
+
+    ``close_poll`` waits for ``paper_entry_deadline`` (§6.4), which sits after
+    ``closes_at`` whenever a paper window is configured, and the scheduled job
+    behind it may simply run late in any case — so ``state`` can read ``open``
+    for a stretch after online voting has already stopped, and the window
+    checks are already refusing every write (T-67, T-68). The mirror case
+    exists at the open end too: the poll admin may call ``open_poll`` ahead of
+    ``opens_at`` by hand, and the window checks refuse there just the same
+    (§4). Consulting the clock here, exactly as ``apps.elections.windows``
+    does for writes, keeps the page from telling a visitor a poll is open
+    when nothing behind it would accept their vote.
+    """
+    if poll.state == PollState.ANNOUNCED or now < poll.opens_at:
+        return "preview"
+    if poll.state == PollState.OPEN and now < poll.closes_at:
+        return "open"
+    if poll.state == PollState.PUBLISHED:
+        return "published"
+    return "closed"
 
 
 def health(request: HttpRequest) -> JsonResponse:
@@ -65,13 +93,21 @@ def poll_list(request: HttpRequest) -> HttpResponse:
     (see ``results_view``'s own docstring).
     """
     language = request.LANGUAGE_CODE
+    now = timezone.now()
     rows = []
     for poll in _public_polls().order_by("-opens_at"):
         outcome = None
         if poll.state == PollState.PUBLISHED:
             view = results_view.result_view(poll)
             outcome = {"winner": view.winner, "tied": view.tied}
-        rows.append({"poll": poll, "title": poll.title(language), "outcome": outcome})
+        rows.append(
+            {
+                "poll": poll,
+                "title": poll.title(language),
+                "outcome": outcome,
+                "status": _status_key(poll, now),
+            }
+        )
     return render(request, "publicsite/poll_list.html", {"rows": rows})
 
 
@@ -132,7 +168,11 @@ def poll_detail(request: HttpRequest, poll_id: str) -> HttpResponse:
     ``announced`` poll (R-3.10) reaches here too; ``is_preview`` marks that
     page instead of ``is_open``, so it gets the "not yet open" notice rather
     than the registration link — nothing here is votable before the poll
-    actually opens.
+    actually opens. ``is_preview``/``is_open``/``online_voting_closed``/
+    ``is_published`` are clock-gated via ``_status_key``, not read off
+    ``poll.state`` directly, for the same reason the ballot and registration
+    windows are (§5.1): ``state`` can lag the clock in both directions, and
+    the page must not offer a vote the write path would refuse.
 
     A ``withdrawn`` poll (R-3.11) is deliberately not in ``_public_polls()`` —
     the listing must not name it — but its URL is not left to a plain 404
@@ -147,6 +187,14 @@ def poll_detail(request: HttpRequest, poll_id: str) -> HttpResponse:
         return render(request, "publicsite/poll_withdrawn.html", {})
     poll = get_object_or_404(_public_polls(), pk=poll_id)
     language = request.LANGUAGE_CODE
+    # ``status`` is clock-gated the same way ``apps.elections.windows`` gates
+    # the write path (§5.1) — see ``_status_key``. Using ``poll.state`` alone
+    # here left the page advertising "Consultation ouverte." and the
+    # registration link for the whole stretch between ``closes_at`` and
+    # whenever the scheduled ``close_poll`` job actually runs, which is
+    # ``paper_entry_deadline`` (§6.4) at the earliest — confusing, since the
+    # window checks are already refusing every online vote (T-67, T-68).
+    status = _status_key(poll, timezone.now())
     return render(
         request,
         "publicsite/poll_detail.html",
@@ -167,9 +215,14 @@ def poll_detail(request: HttpRequest, poll_id: str) -> HttpResponse:
             "has_paper_window": poll.paper_entry_deadline > poll.closes_at,
             "extensions": _extensions(poll),
             "participation": _live_participation(poll),
-            "is_preview": poll.state == PollState.ANNOUNCED,
-            "is_open": poll.state == PollState.OPEN,
-            "is_published": poll.state == PollState.PUBLISHED,
+            "is_preview": status == "preview",
+            "is_open": status == "open",
+            # ``state`` is still ``open`` here — paper keying and
+            # countersignature legitimately continue past ``closes_at`` — but
+            # online voting itself is already refused, so the page says so
+            # instead of repeating the "ouverte" banner (§6.4).
+            "online_voting_closed": poll.state == PollState.OPEN and status == "closed",
+            "is_published": status == "published",
         },
     )
 
