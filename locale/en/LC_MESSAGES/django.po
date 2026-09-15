@@ -365,6 +365,10 @@ msgid "Report possible uniquement sur un scrutin ouvert."
 msgstr "Only an open poll can be extended."
 
 #: apps/elections/transitions.py
+msgid "Le vote en ligne est déjà clos ; la date de clôture ne peut plus être reportée."
+msgstr "Online voting has already closed; the closing date can no longer be extended."
+
+#: apps/elections/transitions.py
 msgid "La nouvelle date doit être postérieure."
 msgstr "The new date must be later."
 
@@ -656,6 +660,9 @@ msgstr "The poll is not open."
 
 msgid "Le scrutin n'est plus en brouillon."
 msgstr "The poll is no longer a draft."
+
+msgid "La date de clôture ne peut plus être reportée."
+msgstr "The closing date can no longer be extended."
 
 msgid "Motif"
 msgstr "Reason"

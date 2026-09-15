@@ -25,6 +25,7 @@ from apps.elections.models import Poll, PollOption, PollState, TallyMethod, Work
 from apps.elections.transitions import (
     TransitionRefused,
     close_poll,
+    extend_closes_at,
     open_poll,
     opening_blockers,
     publish_poll,
@@ -446,6 +447,65 @@ def test_an_extension_to_an_earlier_instant_is_refused(
     assert response.status_code == 200
     assert "postérieure" in response.content.decode()
     assert Poll.objects.get(pk=open_window_poll.pk).closes_at == original
+
+
+def test_the_extension_form_disappears_once_online_voting_has_actually_closed(
+    client: Client, open_window_poll: Poll, admin_user: User
+) -> None:
+    """§5.1/§6.4: ``state`` reads ``open`` through the whole paper-keying
+    stretch after ``closes_at`` — extending from there would push
+    ``closes_at`` into the future and reopen a vote that has actually
+    already stopped, not postpone one still running. The screen must say so
+    (the same "Le vote en ligne est clos." notice as the dashboard and the
+    public page) instead of still offering the report form."""
+    open_poll(open_window_poll)
+    poll = Poll.objects.get(pk=open_window_poll.pk)
+    poll.closes_at = timezone.now() - timedelta(hours=1)
+    poll.paper_entry_deadline = timezone.now() + timedelta(days=1)
+    poll.save(update_fields=["closes_at", "paper_entry_deadline"])
+    assert poll.state == "open"  # the scheduled job hasn't caught up yet
+    _grant(poll, admin_user, Role.POLL_ADMIN)
+    client.force_login(admin_user)
+
+    body = client.get(_url(poll)).content.decode()
+    assert "Le vote en ligne est clos." in body
+    assert "Reporter la date de clôture" not in body
+
+    # A forged POST (the form is gone from the page, but nothing stops a
+    # request naming its fields directly) changes nothing: with the form
+    # absent, the view never even reaches ``extend_closes_at`` to ask it.
+    response = client.post(
+        _url(poll),
+        {
+            "new_closes_at": _dt(timezone.now() + timedelta(days=1)),
+            "reason": Reason.ADMINISTRATIVE_DECISION,
+        },
+    )
+    assert response.status_code == 200
+    assert Poll.objects.get(pk=poll.pk).closes_at == poll.closes_at
+
+
+def test_extend_closes_at_refuses_once_online_voting_has_actually_closed(
+    open_window_poll: Poll,
+) -> None:
+    """The backstop behind the screen 2 fix above: even called directly,
+    bypassing the view entirely, the service itself refuses (§5.1)."""
+    open_poll(open_window_poll)
+    poll = Poll.objects.get(pk=open_window_poll.pk)
+    original_closes_at = timezone.now() - timedelta(hours=1)
+    poll.closes_at = original_closes_at
+    poll.paper_entry_deadline = timezone.now() + timedelta(days=1)
+    poll.save(update_fields=["closes_at", "paper_entry_deadline"])
+
+    admin = User.objects.create_user(username="p.martin", password="x", full_name="P. Martin")
+    with pytest.raises(TransitionRefused):
+        extend_closes_at(
+            poll,
+            timezone.now() + timedelta(days=1),
+            admin,
+            Reason.ADMINISTRATIVE_DECISION,
+        )
+    assert Poll.objects.get(pk=poll.pk).closes_at == original_closes_at
 
 
 # --- the gate (§3.7) ------------------------------------------------------

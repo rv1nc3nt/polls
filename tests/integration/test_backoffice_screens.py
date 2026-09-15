@@ -167,7 +167,24 @@ def test_the_dashboard_offers_only_actions_the_operator_holds_the_role_for(
     for_admin = permitted_actions(poll, frozenset({Role.POLL_ADMIN}))
     admin_labels = {str(action.label) for action in for_admin}
     assert "Reporter la date de clôture" in admin_labels
-    assert "Saisir un bulletin papier" not in admin_labels
+
+
+def test_the_report_action_disappears_once_online_voting_has_actually_closed(
+    open_window_poll: Poll,
+) -> None:
+    """§5.1/§6.4: not offered once ``closes_at`` has passed, even though
+    ``state`` still reads ``open`` through the paper-keying stretch — screen 2
+    no longer has the report form to land on (see ``test_backoffice_config``),
+    and offering a link the operator would be refused at is exactly what
+    ``permitted_actions`` exists to avoid."""
+    open_poll(open_window_poll)
+    poll = Poll.objects.get(pk=open_window_poll.pk)
+    poll.closes_at = timezone.now() - timedelta(hours=1)
+    poll.paper_entry_deadline = timezone.now() + timedelta(days=1)
+    poll.save(update_fields=["closes_at", "paper_entry_deadline"])
+
+    labels = {str(action.label) for action in permitted_actions(poll, frozenset({Role.POLL_ADMIN}))}
+    assert "Reporter la date de clôture" not in labels
 
 
 def _countersign_offered(poll: Poll) -> bool:
