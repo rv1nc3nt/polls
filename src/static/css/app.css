@@ -530,6 +530,7 @@ button:active, .button:active { opacity: 0.76; }
    quieter fill keeps a routine screen from looking like a wall of blue, and
    sets the primary action apart (R-2.4, §6.5). */
 button.secondary,
+.button.secondary,
 form.inline button {
   background: var(--surface);
   color: var(--ink);
