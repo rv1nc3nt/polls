@@ -145,6 +145,16 @@
 
 # --- Step 7: nginx vhost and TLS -------------------------------------
 
+- name: Normalise the configured domain
+  # A trailing dot (a common copy-paste artefact from dig/zone-file output)
+  # is valid DNS but breaks certbot: it strips the dot from -d before
+  # matching, then parses the on-disk vhost's server_name verbatim, so the
+  # two no longer compare equal and "Obtain the TLS certificate" fails with
+  # "Could not automatically find a matching server block".
+  ansible.builtin.set_fact:
+    polls_domain: "{{ polls_domain | trim('.') }}"
+  when: polls_domain | length > 0
+
 - name: Stat the TLS certificate
   ansible.builtin.stat:
     path: "/etc/letsencrypt/live/{{ polls_domain }}/fullchain.pem"
@@ -173,6 +183,13 @@
     path: /etc/nginx/sites-enabled/default
     state: absent
   notify: Reload nginx
+
+- name: Apply the freshly rendered vhost before certbot runs
+  # Handlers only fire at end of play by default. On a re-run against an
+  # already-provisioned host, a live nginx would otherwise keep serving the
+  # previous vhost — stale server_name included — until after certbot has
+  # already run against it.
+  ansible.builtin.meta: flush_handlers
 
 - name: Check the nginx configuration
   ansible.builtin.command: nginx -t
