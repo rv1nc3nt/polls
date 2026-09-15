@@ -13,13 +13,17 @@ off before the next could reopen it:
    text ever reaches the Markdown parser, and only to an image that belongs
    to *this* option — a reference to another option's or another poll's
    image id is silently dropped rather than followed.
-2. A YouTube embed is never markup the operator wrote. It is a fenced block
-   recognised by a fixed regular expression, pulled out of the raw text and
-   replaced with an opaque placeholder before Markdown or the sanitiser ever
-   see it, then swapped back in afterwards for an ``<iframe>`` *this module*
-   builds from a validated eleven-character video id — never for anything
-   the operator supplied. This is the one place in the pipeline allowed to
-   emit an iframe.
+2. A YouTube embed is never markup the operator wrote. It is recognised in
+   one of two forms — a fenced ``youtube`` block carrying a bare video id, or
+   a ``youtube.com``/``youtu.be`` URL standing alone on its own line — by a
+   fixed pair of regular expressions, pulled out of the raw text and replaced
+   with an opaque placeholder before Markdown or the sanitiser ever see it,
+   then swapped back in afterwards for an ``<iframe>`` *this module* builds
+   from a validated eleven-character video id — never for anything the
+   operator supplied. A link that is part of a sentence, or written as
+   ``[text](url)``, stays a link: only a line that is nothing but the URL is
+   taken as a request to embed. This is the one place in the pipeline
+   allowed to emit an iframe.
 3. Everything else goes through ``markdown`` and then ``nh3.clean`` with a
    fixed allow-list: no ``<iframe>``, no ``<script>``, no ``on*`` attribute,
    no scheme but ``http``/``https`` on a link or an image.
@@ -37,10 +41,21 @@ from django.utils.safestring import SafeString, mark_safe
 from .models import OptionImage, PollOption
 
 #: YouTube video ids are exactly eleven characters of this alphabet. Anything
-#: else in the fenced block is not a video id and the block is dropped rather
-#: than guessed at.
+#: else — in the fenced block or captured from a URL — is not a video id, and
+#: dropped rather than guessed at.
 _YOUTUBE_ID = re.compile(r"^[A-Za-z0-9_-]{11}$")
 _YOUTUBE_BLOCK = re.compile(r"```youtube[ \t]*\n[ \t]*([^\n`]+?)[ \t]*\n```")
+#: A youtube.com/youtu.be URL alone on its line — not `[text](url)`, and not
+#: a link mentioned mid-sentence, both of which stay ordinary links (point 2
+#: of the module docstring). `v=` is matched wherever it falls in the query
+#: string, since a pasted watch link often carries `list=`/`t=` ahead of it.
+_YOUTUBE_URL_LINE = re.compile(
+    r"^[ \t]*https?://(?:www\.|m\.)?"
+    r"(?:youtube(?:-nocookie)?\.com/(?:watch\?(?:[^\s]*&)?v=|embed/)(?P<id1>[A-Za-z0-9_-]{11})(?:[&?]\S*)?"
+    r"|youtu\.be/(?P<id2>[A-Za-z0-9_-]{11})(?:\?\S*)?)"
+    r"[ \t]*$",
+    re.MULTILINE,
+)
 _IMAGE_REF = re.compile(r"\(image:([0-9a-fA-F-]{36})\)")
 
 _ALLOWED_TAGS = {
@@ -74,15 +89,25 @@ def render_option_details(option: PollOption, language: str | None = None) -> Sa
 
     embeds: dict[str, str] = {}
 
-    def _extract_embed(match: re.Match[str]) -> str:
-        video_id = match.group(1).strip()
-        if not _YOUTUBE_ID.match(video_id):
-            return ""
+    def _embed_token(video_id: str) -> str:
         token = f"YOUTUBEEMBED{uuid.uuid4().hex}ENDEMBED"
         embeds[token] = video_id
         return token
 
+    def _extract_embed(match: re.Match[str]) -> str:
+        video_id = match.group(1).strip()
+        if not _YOUTUBE_ID.match(video_id):
+            return ""
+        return _embed_token(video_id)
+
+    def _extract_url_embed(match: re.Match[str]) -> str:
+        video_id = match.group("id1") or match.group("id2")
+        if video_id is None or not _YOUTUBE_ID.match(video_id):
+            return match.group(0)
+        return _embed_token(video_id)
+
     text = _YOUTUBE_BLOCK.sub(_extract_embed, raw)
+    text = _YOUTUBE_URL_LINE.sub(_extract_url_embed, text)
     text = _IMAGE_REF.sub(lambda m: _resolve_image(option, m), text)
 
     html = _markdown.markdown(text)

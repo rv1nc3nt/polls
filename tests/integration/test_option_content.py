@@ -88,6 +88,50 @@ def test_youtube_fence_with_an_invalid_id_is_dropped_not_guessed_at(
     assert "DROP TABLE" not in html
 
 
+def test_youtube_url_alone_on_its_line_becomes_an_iframe_too(open_window_poll: Poll) -> None:
+    option = open_window_poll.options.first()
+    assert option is not None
+    option.details_i18n = {"fr": "Texte avant.\n\nhttps://youtu.be/dQw4w9WgXcQ\n\nTexte après."}
+    option.save(update_fields=["details_i18n"])
+
+    html = optioncontent.render_option_details(option)
+    assert "youtube-nocookie.com/embed/dQw4w9WgXcQ" in html
+    assert html.count("<iframe") == 1
+    assert "Texte avant." in html
+    assert "Texte après." in html
+
+
+def test_youtube_watch_url_with_extra_query_params_embeds(open_window_poll: Poll) -> None:
+    option = open_window_poll.options.first()
+    assert option is not None
+    option.details_i18n = {"fr": "https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=PL123&t=42s"}
+    option.save(update_fields=["details_i18n"])
+
+    html = optioncontent.render_option_details(option)
+    assert "youtube-nocookie.com/embed/dQw4w9WgXcQ" in html
+    assert html.count("<iframe") == 1
+
+
+def test_youtube_link_as_markdown_link_or_mid_sentence_stays_a_link(
+    open_window_poll: Poll,
+) -> None:
+    """Only a line that is *nothing but* the URL is an embed request — the
+    operator who deliberately wrote a link keeps a link (§3.1 bis)."""
+    option = open_window_poll.options.first()
+    assert option is not None
+    option.details_i18n = {
+        "fr": (
+            "[Regardez la vidéo](https://youtu.be/dQw4w9WgXcQ)\n\n"
+            "Voir aussi https://youtu.be/dQw4w9WgXcQ pour plus de détails."
+        )
+    }
+    option.save(update_fields=["details_i18n"])
+
+    html = optioncontent.render_option_details(option)
+    assert "<iframe" not in html
+    assert html.count('href="https://youtu.be/dQw4w9WgXcQ"') == 1
+
+
 def test_image_reference_resolves_only_to_its_own_option(open_window_poll: Poll) -> None:
     option_a, option_b = list(open_window_poll.options.all())[:2]
     image = OptionImage.objects.create(
