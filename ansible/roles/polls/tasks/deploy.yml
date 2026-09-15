@@ -52,7 +52,7 @@
       become_user: "{{ polls_user }}"
       when: polls_repo_url | length > 0
 
-    - name: Check the local tree is at a tag
+    - name: Check what tag, if any, the local tree is at
       ansible.builtin.command:  # noqa: command-instead-of-module
         cmd: git -C {{ polls_source_tree }} describe --exact-match --tags HEAD
       delegate_to: localhost
@@ -63,26 +63,38 @@
       failed_when: false
       when: polls_repo_url | length == 0
 
-    - name: Refuse an untagged working tree
+    - name: Refuse a source tree that isn't checked out at the named release
+      # polls_release only names the release directory and APP_VERSION —
+      # nothing else ties it to what actually gets tarred up below. Checking
+      # "HEAD is *a* tag" is not enough: a tree left at an older tag passes
+      # that check while shipping the wrong commit under the new release's
+      # name — found the hard way, when a tree still on v0.1.3 got tarred and
+      # deployed as v0.1.4, and a poll ran a whole release behind on the
+      # clock-gated status fix (§15 step 3) with no error anywhere. Comparing
+      # the tag name itself is the only check that catches that.
       ansible.builtin.fail:
         msg: >-
-          {{ polls_source_tree }} is not checked out at a tag. §15 wants a
-          tagged artefact, not a working branch. Check one out, or leave
-          polls_require_tagged_release false to override.
+          {{ polls_source_tree }} is at
+          {{ polls_tag_check.stdout | default('no tag', true) }}, not
+          {{ polls_release }}. Run `git checkout {{ polls_release }}` there
+          before deploying, or leave polls_require_tagged_release false to
+          override.
       when:
         - polls_repo_url | length == 0
         - polls_require_tagged_release | bool
-        - polls_tag_check.rc != 0
+        - polls_tag_check.stdout | default('', true) != polls_release
 
-    - name: Warn about an untagged working tree
+    - name: Warn about a source tree that isn't checked out at the named release
       ansible.builtin.debug:
         msg: >-
-          Staging {{ polls_source_tree }} whose HEAD is not a tag (§15 step 3).
-          Continuing because polls_require_tagged_release is false.
+          Staging {{ polls_source_tree }}
+          ({{ polls_tag_check.stdout | default('no tag', true) }}) under the
+          name {{ polls_release }} (§15 step 3). Continuing because
+          polls_require_tagged_release is false.
       when:
         - polls_repo_url | length == 0
         - not (polls_require_tagged_release | bool)
-        - polls_tag_check.rc | default(0) != 0
+        - polls_tag_check.stdout | default('', true) != polls_release
 
     - name: Build a source archive on the control node
       ansible.builtin.command:  # noqa: command-instead-of-module
