@@ -6,4 +6,4 @@ SHELL=/bin/sh
 MAILTO={{ polls_admin_email }}
 {% for job in ['open_poll', 'close_poll', 'send_reminders', 'retention_purge'] %}
 */{{ polls_job_interval_minutes }} * * * * {{ polls_user }} {{ polls_prefix }}/bin/polls-manage {{ job }}
-{%- endfor %}
+{% endfor %}
