@@ -137,6 +137,52 @@ def test_the_open_poll_page_shows_the_propositions_and_calendar(
     assert f"/fr/inscription/{open_poll_fixture.pk}/" in body
 
 
+def test_the_page_stops_advertising_the_vote_once_closes_at_has_passed(
+    client: Client, db: None
+) -> None:
+    """§5.1/§6.4, T-67/T-68: ``close_poll`` waits for ``paper_entry_deadline``,
+    which sits after ``closes_at`` whenever a paper window is configured, and
+    the scheduled job behind it can simply run late in any case. Either way
+    ``state`` stays ``open`` for a stretch during which the write path already
+    refuses every online vote — the page must say so instead of still reading
+    "ouverte" and pointing at a registration link that leads nowhere."""
+    poll = _make_poll()
+    open_poll(poll)
+    poll = Poll.objects.get(pk=poll.pk)
+    poll.closes_at = timezone.now() - timedelta(hours=1)
+    poll.paper_entry_deadline = timezone.now() + timedelta(days=1)
+    poll.save(update_fields=["closes_at", "paper_entry_deadline"])
+    assert poll.state == "open"  # the job hasn't caught up yet
+
+    body = client.get(f"/fr/scrutin/{poll.pk}/").content.decode()
+    assert "Consultation ouverte." not in body
+    assert f"/fr/inscription/{poll.pk}/" not in body
+    assert "Le vote en ligne est clos." in body
+
+    listing = client.get("/fr/").content.decode()
+    assert "ouverte —" not in listing
+    assert "dépouillement en cours" in listing
+
+
+def test_a_poll_opened_early_is_not_advertised_before_its_configured_opening(
+    client: Client, db: None
+) -> None:
+    """The mirror case (§4, T-67): a poll admin may call ``open_poll`` ahead of
+    ``opens_at`` by hand, and the window checks refuse a vote just the same
+    until the clock reaches it — so the page keeps the "not yet open" notice
+    rather than switching to ``state``'s ``open`` immediately."""
+    poll = _make_poll()
+    poll.opens_at = timezone.now() + timedelta(hours=1)
+    poll.save(update_fields=["opens_at"])
+    open_poll(poll)
+    poll = Poll.objects.get(pk=poll.pk)
+    assert poll.state == "open"
+
+    body = client.get(f"/fr/scrutin/{poll.pk}/").content.decode()
+    assert "n'est pas encore ouvert" in body
+    assert f"/fr/inscription/{poll.pk}/" not in body
+
+
 def test_a_closed_unpublished_poll_says_the_tally_is_under_way(client: Client, db: None) -> None:
     poll = _make_poll()
     open_poll(poll)

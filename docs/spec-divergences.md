@@ -493,3 +493,43 @@ choice. That is a real piece of design, not a one-line addition to
 story has a gap: instructions to any operator following R-3.12 or §6.5.14 in
 the field should say so, and `restore.yml`'s final report should probably say
 so too, until the fix lands.
+
+## 14. The public page read "open" off `state`, not the clock
+
+**Specification, §6.6 (before this entry).** "While the poll is open the page
+shows the propositions, the closing instant, [...]" — read literally, this
+keys the "Consultation ouverte." banner and the registration link off
+`Poll.state`, the same way `apps/publicsite/views.py` did.
+
+**Why that is wrong.** §5.1 and §6.4 are explicit that the write path never
+consults `state` for exactly this reason: the scheduled `open_poll`/`close_poll`
+commands can run late, and `close_poll` in particular waits for
+`paper_entry_deadline`, which sits after `closes_at` whenever a paper window is
+configured (§6.4) — a gap measured in days on a poll that wants one, not
+minutes. A poll admin may also call `open_poll` by hand ahead of `opens_at`
+(§4). In every one of these windows `state` disagreed with the clock, and the
+public page — unlike the write path — was still keying its display off
+`state` alone: it kept showing "Consultation ouverte." and the "S'inscrire
+pour voter" link deep into the paper-entry window, when every online vote
+those visitors could have attempted was already being refused with "Le vote
+en ligne est clos." (§5.1); a poll opened early by hand would conversely have
+shown the "not yet open" notice's opposite — an "ouverte" banner — before the
+window checks would accept anything. A user reported the first case directly:
+the poll page kept reading open well after the actual deadline had passed and
+no vote could get through.
+
+**What the code does.** `apps/publicsite/views._status_key(poll, now)`
+computes `"preview" | "open" | "published" | "closed"` from `state` **and**
+`opens_at`/`closes_at`, mirroring exactly what `apps.elections.windows` checks
+on the write path, and both `poll_list` and `poll_detail` render off that
+instead of off `state` directly. The one substantive new case is the gap
+between `closes_at` and whichever of `paper_entry_deadline` or the scheduled
+job's next run comes later: `state` still reads `open` there (correctly —
+paper keying and countersignature legitimately continue), but the page now
+says "Le vote en ligne est clos." instead of repeating "Consultation
+ouverte.", and withholds the registration link, since nothing behind it would
+accept a submission.
+
+**Settled (2026-09-16).** §6.6 now states the clock-gating explicitly, next to
+§5.1's and §6.4's existing statements of the same principle for the write
+path.

@@ -14,11 +14,15 @@
           <li>
             <a href="{% url 'publicsite:poll_detail' poll.id %}">{{ row.title }}</a>
             <span class="help">
-              {% if poll.state == "announced" %}
+              {% comment %} row.status is clock-gated (apps.publicsite.views._status_key), not
+                 read off poll.state alone — otherwise a poll past closes_at still reads
+                 "ouverte" for as long as the scheduled close_poll job takes to catch up,
+                 which can be the whole paper-entry window (§5.1, §6.4, T-67/T-68). {% endcomment %}
+              {% if row.status == "preview" %}
                 {% blocktranslate with when=poll.opens_at|timezone:poll.timezone|date:"DATETIME_FORMAT" %}à venir — ouverture le {{ when }}{% endblocktranslate %}
-              {% elif poll.state == "open" %}
+              {% elif row.status == "open" %}
                 {% blocktranslate with when=poll.closes_at|timezone:poll.timezone|date:"DATETIME_FORMAT" %}ouverte — clôture le {{ when }}{% endblocktranslate %}
-              {% elif poll.state == "published" %}
+              {% elif row.status == "published" %}
                 {% translate "close — résultats publiés" %}
               {% else %}
                 {% translate "close — dépouillement en cours" %}
