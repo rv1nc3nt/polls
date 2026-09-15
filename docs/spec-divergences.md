@@ -533,3 +533,50 @@ accept a submission.
 **Settled (2026-09-16).** §6.6 now states the clock-gating explicitly, next to
 §5.1's and §6.4's existing statements of the same principle for the write
 path.
+
+## 15. The back-office read the same "open" off `state`, and R-3.4's extension did not check the clock either
+
+**Specification, §4 and §6.5.2 (before this entry).** "Extension of `closes_at`
+is permitted only while `state = open` and only to a later timestamp" (§4);
+screen 2 offered the extension "as a separate, reasoned action while `open`"
+(§6.5.2) — both keyed purely off `state`, the same gap entry 14 found and fixed
+on the public page.
+
+**Why that is wrong.** Two separate problems, one on each side of the same
+gap:
+
+- **Display.** The dashboard (§6.5.1) and screen 2 (§6.5.2) both still showed
+  the raw `état: Ouvert` deep into the paper-keying stretch after `closes_at`,
+  with no notice that online voting had actually stopped — exactly the
+  confusion entry 14 fixed on the public page, just not carried over to the
+  screens the poll admin themselves uses. A user reported this directly: the
+  public page said the right thing, the back-office didn't.
+- **A real gap, not just a display one.** `extend_closes_at` checked only
+  `poll.state == PollState.OPEN`, never the clock. Since `state` reads `open`
+  through the whole paper-keying stretch, nothing stopped a poll admin —
+  intentionally or by a stale page reload — from "extending" `closes_at` to a
+  future instant *after* online voting had already, actually, closed. Because
+  `apps.elections.windows.check_ballot_window` and
+  `check_registration_window` consult only the clock against `closes_at`, not
+  `state`, doing so would have genuinely reopened online voting and
+  registration for real ballots and registrations, not merely displayed a
+  stale banner. R-3.4 calls this "extending the closing date," which
+  presupposes a vote still running to extend; past the actual `closes_at`
+  there is nothing left to postpone, only a closed vote to reopen.
+
+**What the code does.** `apps.elections.windows.online_voting_closed(poll,
+now)` is the one clock gate, shared by three callers: the public page
+(`apps.publicsite.views.poll_detail`, refactored from entry 14's bespoke
+check onto this shared function), the dashboard
+(`apps.backoffice.dashboard._actions_for_state`, which now omits "Reporter la
+date de clôture" from the permitted actions once it is true, rather than
+linking to a form that is no longer there) and screen 2
+(`apps.backoffice.views.poll_config`, which shows the same "Le vote en ligne
+est clos." notice as the other two and does not construct `ExtensionForm` at
+all once it is true). `elections.transitions.extend_closes_at` calls the same
+function directly and refuses with `TransitionRefused` if it is true — the
+backstop behind all three display fixes, so a forged POST past the missing
+form still cannot reopen a closed vote.
+
+**Settled (2026-09-16).** §4 and §6.5.2 now state the clock gate explicitly,
+next to §6.6's existing statement of the same principle for the public page.

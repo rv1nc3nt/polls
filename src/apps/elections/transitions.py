@@ -29,6 +29,7 @@ from apps.core.crypto import new_opening_seed
 from apps.core.models import User
 
 from .models import Poll, PollState, RollEntry, WorkingRollEntry
+from .windows import online_voting_closed
 
 TRANSITIONS: dict[str, tuple[str, ...]] = {
     PollState.DRAFT: (PollState.ANNOUNCED, PollState.OPEN),
@@ -374,12 +375,26 @@ def extend_closes_at(
     """R-3.4: permitted only while ``open``, only to a later instant, logged
     with a reason and displayed publicly (T-5).
 
+    ``state == open`` alone is not the guard: it also covers the whole
+    paper-keying stretch after ``closes_at`` (§6.4), and extending from there
+    would push ``closes_at`` back into the future and reopen online voting
+    that had already, actually, stopped — not a "postponement" of anything,
+    since there is nothing left running to postpone. So the clock is checked
+    too, the same gate ``apps.elections.windows.online_voting_closed`` uses
+    for the dashboard and the public page's display (§5.1): once it is true
+    here, this function refuses exactly as it would in any other closed
+    state, not just once the scheduled ``close_poll`` catches up.
+
     ``paper_entry_deadline`` moves with it, preserving the configured window
     length (§4).
     """
     poll = Poll.objects.select_for_update().get(pk=poll.pk)
     if poll.state != PollState.OPEN:
         raise TransitionRefused(_("Report possible uniquement sur un scrutin ouvert."))
+    if online_voting_closed(poll):
+        raise TransitionRefused(
+            _("Le vote en ligne est déjà clos ; la date de clôture ne peut plus être reportée.")
+        )
     if new_closes_at <= poll.closes_at:
         raise TransitionRefused(_("La nouvelle date doit être postérieure."))
 

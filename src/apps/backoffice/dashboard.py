@@ -24,6 +24,7 @@ from apps.core.models import Role
 from apps.elections.closure import frozen_counts
 from apps.elections.models import Poll, PollState
 from apps.elections.transitions import closing_blockers, opening_blockers
+from apps.elections.windows import online_voting_closed
 from apps.registrations.models import Channel, Registration, RegistrationState
 
 
@@ -205,12 +206,21 @@ def _actions_for_state(poll: Poll) -> list[PermittedAction]:
                     (Role.ENTRY_OPERATOR,),
                     url_name="backoffice:paper_ballot_list",
                 ),
-                PermittedAction(
-                    _("Reporter la date de clôture"),
-                    (Role.POLL_ADMIN,),
-                    url_name="backoffice:poll_config",
-                ),
             ]
+            # R-3.4, §5.1: not offered once online voting has actually closed
+            # by the clock, even though `state` still reads `open` through the
+            # paper-keying stretch — screen 2 no longer has the report form to
+            # land on (`extend_closes_at` would refuse it too), and offering
+            # a link the operator would be refused at is exactly what this
+            # function exists to avoid (see `permitted_actions`' docstring).
+            if not online_voting_closed(poll):
+                actions.append(
+                    PermittedAction(
+                        _("Reporter la date de clôture"),
+                        (Role.POLL_ADMIN,),
+                        url_name="backoffice:poll_config",
+                    )
+                )
             if poll.paper_requires_countersign:
                 actions.append(
                     PermittedAction(

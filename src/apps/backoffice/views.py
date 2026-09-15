@@ -347,8 +347,13 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
 
     Editable only while ``draft`` (R-3.3); read-only thereafter, with the
     reasoned ``closes_at`` extension of R-3.4 the one change still permitted
-    once the poll is ``open``. Poll admin only — configuration and closure are
-    the admin's, not the entry operator's (§3.7).
+    once the poll is ``open`` — and, like the dashboard and the public page,
+    not once online voting has actually closed by the clock either, even
+    though ``state`` still reads ``open`` through the whole paper-keying
+    stretch (§5.1, §6.4): the form disappears the same instant the "Le vote
+    en ligne est clos." notice appears, and ``extend_closes_at`` refuses the
+    same way if reached anyway. Poll admin only — configuration and closure
+    are the admin's, not the entry operator's (§3.7).
 
     Also where R-2.1's "annonce, ouvre, clôt" is exercised by hand (§4,
     docs/spec-divergences.md):
@@ -526,9 +531,15 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
             },
         )
 
+    # R-3.4, §5.1: ``state`` alone is not the gate here either — it still
+    # reads ``open`` through the paper-keying stretch after ``closes_at``,
+    # during which extending would resurrect online voting that had already
+    # stopped rather than postpone anything (see ``extend_closes_at``'s own
+    # refusal, the backstop this only spares an operator from reaching for).
+    voting_closed = online_voting_closed(poll)
     extension = (
         ExtensionForm(request.POST if configuring else None)
-        if poll.state == PollState.OPEN
+        if poll.state == PollState.OPEN and not voting_closed
         else None
     )
     if configuring and extension is not None and extension.is_valid():
@@ -570,6 +581,7 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
             "editable": False,
             "options": poll.options.all(),
             "can_open_now": poll.state == PollState.ANNOUNCED,
+            "online_voting_closed": voting_closed,
             "extension": extension,
             "closing_form": closing_form if poll.state == PollState.OPEN else None,
             "can_close_now": (

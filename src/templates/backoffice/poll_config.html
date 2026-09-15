@@ -1,5 +1,5 @@
 {% extends "backoffice/base.html" %}
-{% load i18n static %}
+{% load i18n static tz %}
 {# SPDX-License-Identifier: 0BSD #}
 
 {% block screen_title %}{% translate "Configuration du scrutin" %}{% endblock %}
@@ -104,6 +104,18 @@
       {% endif %}
       {% translate "Il n'apparaît plus sur aucune page publique (R-3.11)." %}
     </p>
+  {% elif online_voting_closed %}
+    {% comment %} §5.1: `state` still reads `open` here — paper keying and
+       countersignature legitimately continue to `paper_entry_deadline` — but
+       online voting itself already stopped at `closes_at`, and with it the
+       R-3.4 extension: pushing `closes_at` back into the future from here
+       would reopen a vote that has actually already closed, not postpone one
+       still running. Same clock-gated notice as the dashboard and the public
+       page, so an operator does not read "Ouvert" and go looking for a
+       report form that is deliberately not here any more. {% endcomment %}
+    <p class="notice">{% translate "Le vote en ligne est clos." %}
+      {% if poll.paper_entry_deadline > poll.closes_at %}{% blocktranslate with when=poll.paper_entry_deadline|timezone:poll.timezone|date:"DATETIME_FORMAT" %}La saisie des bulletins papier se poursuit jusqu'au {{ when }}.{% endblocktranslate %}{% endif %}
+      {% translate "La date de clôture ne peut plus être reportée." %}</p>
   {% else %}
     <p class="notice">{% translate "Le scrutin n'est plus en brouillon : la configuration est figée (R-3.3). Seule la date de clôture peut encore être repoussée, avec un motif." %}</p>
   {% endif %}
