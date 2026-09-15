@@ -1,6 +1,6 @@
 [project]
 name = "commune-polls"
-version = "0.1.1"
+version = "0.1.3"
 description = "Self-hosted consultative polling platform for a French commune"
 readme = "README.md"
 requires-python = ">=3.13,<3.14"
