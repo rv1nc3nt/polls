@@ -53,6 +53,22 @@ def check_ballot_window(poll: Poll, source: str, now: datetime | None = None) ->
         )
 
 
+def online_voting_closed(poll: Poll, now: datetime | None = None) -> bool:
+    """True once online voting has actually stopped, by the clock (§5.1) —
+    not ``poll.state``, which still reads ``open`` for the whole paper-keying
+    stretch that follows ``closes_at`` (§6.4) until ``close_poll`` runs, late
+    or not at all (§4). ``closes_at > opens_at`` is a database constraint
+    (``models.py``), so state ``open`` past ``closes_at`` already implies
+    ``opens_at`` has passed too.
+
+    Shared by the public page (``apps.publicsite``) and the back-office
+    dashboard (§6.5.1), so an operator sees the same "vote en ligne clos"
+    notice a visitor already does, rather than the raw ``open`` state alone.
+    """
+    now = now or timezone.now()
+    return poll.state == PollState.OPEN and now >= poll.closes_at
+
+
 def check_registration_window(
     poll: Poll, now: datetime | None = None, *, channel: str | None = None
 ) -> None:

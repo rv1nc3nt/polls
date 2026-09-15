@@ -1936,6 +1936,9 @@ msgstr "The poll normally opens by itself at the configured opening date, even l
 msgid "La configuration ci-dessous est arrêtée et ne changera plus (R-3.3) ; seul le vote n'est pas encore ouvert."
 msgstr "The configuration below is settled and will not change further (R-3.3); only the vote is not yet open."
 
+msgid "La saisie des bulletins papier se poursuit jusqu'au %(when)s."
+msgstr "Paper ballot keying continues until %(when)s."
+
 
 
 # §6.5.14 (commune settings screen, and the site's own address for mail links): added by hand for the same reason as the header explains.
