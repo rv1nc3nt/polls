@@ -113,7 +113,7 @@ from apps.elections.transitions import (
     publish_poll,
     withdraw_poll,
 )
-from apps.elections.windows import WindowClosed
+from apps.elections.windows import WindowClosed, online_voting_closed
 from apps.registrations import mail as registration_mail
 from apps.registrations import services as registrations
 from apps.registrations.models import Channel, Registration
@@ -332,6 +332,11 @@ def poll_dashboard(request: HttpRequest, poll: Poll) -> HttpResponse:
             "participation": dashboard.participation(poll),
             "blockers": dashboard.blockers(poll),
             "actions": dashboard.permitted_actions(poll, poll_roles(request.user, poll)),
+            # ``state`` reads ``open`` for the whole paper-keying stretch past
+            # ``closes_at`` (§6.4) — same clock gate as the public page
+            # (`apps.publicsite.views.poll_detail`), so an operator sees the
+            # same "vote en ligne clos" notice a visitor already does.
+            "online_voting_closed": online_voting_closed(poll),
         },
     )
 

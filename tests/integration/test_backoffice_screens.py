@@ -87,6 +87,28 @@ def test_the_dashboard_names_the_countersignature_backlog_blocking_closure(
     assert "1 bulletin(s) en attente de contreseing" in body
 
 
+def test_the_dashboard_says_online_voting_is_closed_during_the_paper_window(
+    client: Client, open_window_poll: Poll, admin_user: User
+) -> None:
+    """§5.1/§6.4, mirrors ``test_the_page_stops_advertising_the_vote_once_closes_at_has_passed``
+    (``test_publicsite.py``): ``close_poll`` waits for ``paper_entry_deadline``,
+    so ``state`` reads ``open`` for the whole paper-keying stretch after
+    ``closes_at``. An operator reading "Ouvert" here must not conclude online
+    voting is still live — the same clock-gated notice the public page already
+    gives a visitor."""
+    open_poll(open_window_poll)
+    poll = Poll.objects.get(pk=open_window_poll.pk)
+    poll.closes_at = timezone.now() - timedelta(hours=1)
+    poll.paper_entry_deadline = timezone.now() + timedelta(days=1)
+    poll.save(update_fields=["closes_at", "paper_entry_deadline"])
+    assert poll.state == "open"  # the scheduled job hasn't caught up yet
+    _grant(poll, admin_user, Role.POLL_ADMIN)
+    client.force_login(admin_user)
+
+    body = client.get(f"/fr/mairie/scrutin/{poll.pk}/").content.decode()
+    assert "Le vote en ligne est clos." in body
+
+
 def test_turnout_is_counted_on_registrations_not_on_ballots(open_window_poll: Poll) -> None:
     """INV-5. The ballots below outnumber the registrations that voted; the
     dashboard must report the registrations, because for an online ballot no

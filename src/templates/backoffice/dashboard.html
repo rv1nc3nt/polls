@@ -1,5 +1,5 @@
 {% extends "backoffice/base.html" %}
-{% load i18n %}
+{% load i18n tz %}
 {# SPDX-License-Identifier: 0BSD #}
 
 {% block screen_title %}{% translate "Tableau de bord" %}{% endblock %}
@@ -24,6 +24,16 @@
 
   <section aria-labelledby="etat">
     <h2 id="etat">{% translate "État" %}</h2>
+    {% if online_voting_closed %}
+      {% comment %} §5.1: `state` still reads `open` here — paper keying and
+         countersignature legitimately continue to `paper_entry_deadline` — but
+         online voting itself already stopped at `closes_at`. Same clock-gated
+         notice as the public page (`publicsite/poll_detail.html`), so an
+         operator does not read "Ouvert" and assume online voting is still
+         live. {% endcomment %}
+      <p class="notice">{% translate "Le vote en ligne est clos." %}
+        {% if poll.paper_entry_deadline > poll.closes_at %}{% blocktranslate with when=poll.paper_entry_deadline|timezone:poll.timezone|date:"DATETIME_FORMAT" %}La saisie des bulletins papier se poursuit jusqu'au {{ when }}.{% endblocktranslate %}{% endif %}</p>
+    {% endif %}
     <dl class="facts">
       <dt>{% translate "État" %}</dt><dd>{{ poll.get_state_display }}</dd>
       <dt>{% translate "Ouverture" %}</dt><dd>{{ poll.opens_at }}</dd>

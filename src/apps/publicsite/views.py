@@ -28,7 +28,7 @@ from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
 from apps.audit.models import Action, AuditEvent, Reason
-from apps.elections import closure, optioncontent, results_view
+from apps.elections import closure, optioncontent, results_view, windows
 from apps.elections.models import Poll, PollState
 from apps.registrations.models import Channel, Registration, RegistrationState
 
@@ -221,7 +221,7 @@ def poll_detail(request: HttpRequest, poll_id: str) -> HttpResponse:
             # countersignature legitimately continue past ``closes_at`` — but
             # online voting itself is already refused, so the page says so
             # instead of repeating the "ouverte" banner (§6.4).
-            "online_voting_closed": poll.state == PollState.OPEN and status == "closed",
+            "online_voting_closed": windows.online_voting_closed(poll),
             "is_published": status == "published",
         },
     )
