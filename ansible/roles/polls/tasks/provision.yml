@@ -17,6 +17,8 @@
     name:
       - ca-certificates
       - curl
+      - cron                # polls_scheduler=cron (default, §15 step 6); not
+                             # guaranteed present on every base image
       - git                 # the git source path of deploy.yml
       - gettext             # compilemessages (§3.8)
       - acl                 # unprivileged become_user file handovers

@@ -323,6 +323,17 @@
     enabled: true
     state: started
 
+- name: Enable and start cron
+  # The package being installed (provision.yml) doesn't mean the service is
+  # running — nothing else here checked, so a host where it was masked or
+  # never enabled dropped every scheduled job silently: the rendered
+  # /etc/cron.d/polls was correct and nothing ever read it (§15 step 6).
+  ansible.builtin.systemd_service:
+    name: cron
+    enabled: true
+    state: started
+  when: polls_scheduler == "cron"
+
 - name: Install the cron jobs
   ansible.builtin.template:
     src: polls-cron.j2
