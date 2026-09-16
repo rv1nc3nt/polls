@@ -56,7 +56,7 @@
       moment it runs, same trigger as opening (INV-6: `state != draft`), so
       the public preview cannot change under a viewer's eyes.
     {% endcomment %}
-    <p class="help">{% translate "Rend ce scrutin visible sur le site public avant son ouverture : propositions et calendrier affichés, sans inscription ni vote possibles. La configuration se fige au moment de l'annonce, comme à l'ouverture (R-3.3) — utile en particulier si le bulletin ne pourra plus être modifié une fois voté." %}</p>
+    <p class="help">{% translate "Rend ce scrutin visible sur le site public avant son ouverture : propositions et calendrier affichés, sans inscription ni vote possibles. La configuration se fige au moment de l'annonce, comme à l'ouverture — utile en particulier si le bulletin ne pourra plus être modifié une fois voté." %}</p>
     <form method="post" class="inline">
       {% csrf_token %}
       <input type="hidden" name="action" value="announce_poll">

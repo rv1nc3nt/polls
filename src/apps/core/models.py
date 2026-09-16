@@ -75,7 +75,7 @@ class Commune(models.Model):
         max_length=200,
         help_text=_(
             "Personne ou service à qui les électeurs adressent leurs demandes "
-            "d'accès, de rectification et d'effacement (R-13.2)."
+            "d'accès, de rectification et d'effacement."
         ),
     )
     data_protection_contact = models.CharField(

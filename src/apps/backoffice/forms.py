@@ -85,7 +85,7 @@ class PollConfigForm(forms.Form):
         label=_("Ouverture du scrutin"),
         help_text=_(
             "Heure locale du serveur. Le scrutin s'ouvre à cette heure, ou plus tard si "
-            "la tâche planifiée a pris du retard (§4)."
+            "la tâche planifiée a pris du retard."
         ),
     )
     closes_at = _DateTimeField(label=_("Clôture du vote en ligne"))
@@ -94,7 +94,7 @@ class PollConfigForm(forms.Form):
         help_text=_(
             "Au moins égale à la clôture. Laissez-la égale à la clôture s'il n'y a pas "
             "de saisie papier différée : toute période pendant laquelle un bulletin peut "
-            "encore entrer en base est affichée publiquement (§6.4)."
+            "encore entrer en base est affichée publiquement."
         ),
     )
     timezone = forms.CharField(
@@ -107,11 +107,11 @@ class PollConfigForm(forms.Form):
         help_text=_(
             "Schulze : chaque bulletin classe les propositions par préférence ; la "
             "gagnante bat chacune des autres en confrontation directe ou par un chemin "
-            "de préférences plus fort — adapté à une question à plusieurs options (§8.1). "
+            "de préférences plus fort — adapté à une question à plusieurs options. "
             "Majoritaire : compte la première préférence de chaque bulletin, comme un "
             "scrutin classique à un tour. Par assentiment : compte chaque proposition "
             "approuvée sur le bulletin, sans classement — utile pour « cochez toutes "
-            "celles qui conviennent » (§8.2)."
+            "celles qui conviennent »."
         ),
     )
     tally_method_version = forms.CharField(
@@ -120,7 +120,7 @@ class PollConfigForm(forms.Form):
         initial="1",
         help_text=_(
             "Figée avec le scrutin : un résultat déjà publié reste reproductible même si "
-            "le calcul évolue ensuite pour les scrutins suivants (R-10.2)."
+            "le calcul évolue ensuite pour les scrutins suivants."
         ),
     )
     require_complete_ranking = forms.BooleanField(
@@ -128,7 +128,7 @@ class PollConfigForm(forms.Form):
         required=False,
         help_text=_(
             "Un bulletin doit-il classer toutes les propositions ? Sinon, celles qu'un "
-            "électeur laisse de côté comptent ex æquo en dernière position (R-10.4). "
+            "électeur laisse de côté comptent ex æquo en dernière position. "
             "S'applique quelle que soit la méthode de dépouillement choisie ci-dessus."
         ),
     )
@@ -139,7 +139,7 @@ class PollConfigForm(forms.Form):
             "Permet à un électeur de placer plusieurs propositions au même rang, y "
             "compris en tête. Avec la méthode majoritaire, une égalité en tête donne "
             "une voix à chacune des propositions concernées — presque toujours une "
-            "erreur de configuration pour une question à choix unique (§8.2)."
+            "erreur de configuration pour une question à choix unique."
         ),
     )
     tiebreak_rule = forms.ChoiceField(
@@ -148,10 +148,9 @@ class PollConfigForm(forms.Form):
         help_text=_(
             "Si le dépouillement ne peut départager deux propositions : « tirage au "
             "sort calculé » recalcule un ordre reproductible à partir de l'empreinte de "
-            "clôture, imprévisible et non truquable avant celle-ci (§8.3) ; « tirage au "
+            "clôture, imprévisible et non truquable avant celle-ci ; « tirage au "
             "sort physique » suspend le dépouillement, le résultat étant saisi ensuite "
-            "par un administrateur du scrutin après un tirage au sort en mairie "
-            "(R-10.5, R-10.5 bis)."
+            "par un administrateur du scrutin après un tirage au sort en mairie."
         ),
     )
 
@@ -160,9 +159,8 @@ class PollConfigForm(forms.Form):
         required=False,
         help_text=_(
             "Exige la collecte d'un formulaire papier portant le classement, la "
-            "déclaration sur l'honneur et l'identité de l'électeur avant la saisie "
-            "(R-8.2 bis). En son absence, ces informations figurent sur le reçu remis "
-            "à l'électeur (R-8.4)."
+            "déclaration sur l'honneur et l'identité de l'électeur avant la saisie. "
+            "En son absence, ces informations figurent sur le reçu remis à l'électeur."
         ),
     )
     paper_requires_countersign = forms.BooleanField(
@@ -171,7 +169,7 @@ class PollConfigForm(forms.Form):
         help_text=_(
             "Le bulletin saisi n'est compté qu'après validation par un second opérateur "
             "nommé ; la clôture du scrutin est refusée tant qu'une saisie attend ce "
-            "contreseing, sauf motif dérogatoire du poll admin (R-8.7, R-8.7 bis)."
+            "contreseing, sauf motif dérogatoire du poll admin."
         ),
     )
     paper_requires_reconciliation = forms.BooleanField(
@@ -180,7 +178,7 @@ class PollConfigForm(forms.Form):
         help_text=_(
             "Les formulaires papier sont conservés par la commune et rapprochés des "
             "bulletins enregistrés à la clôture, dans un procès-verbal signé et "
-            "archivé ; à défaut, le journal d'audit en tient lieu (R-8.6)."
+            "archivé ; à défaut, le journal d'audit en tient lieu."
         ),
     )
 
@@ -191,7 +189,7 @@ class PollConfigForm(forms.Form):
             "Ce n'est pas qu'un réglage de confidentialité. Désactiver la modification "
             "renforce l'anonymat — aucun lien n'est alors calculé entre un bulletin et le "
             "jeton qui l'a émis — mais retire à un électeur sous contrainte son seul "
-            "recours : revoter seul une fois la pression levée (§7). La commune choisit "
+            "recours : revoter seul une fois la pression levée. La commune choisit "
             "lequel des deux risques elle préfère porter."
         ),
     )
@@ -201,15 +199,13 @@ class PollConfigForm(forms.Form):
         widget=forms.CheckboxSelectMultiple,
         help_text=_(
             "Une question municipale prend la liste principale et la complémentaire "
-            "municipale ; la complémentaire européenne seule ne confère aucun droit ici (R-4.7)."
+            "municipale ; la complémentaire européenne seule ne confère aucun droit ici."
         ),
     )
     show_live_participation = forms.BooleanField(
         label=_("Afficher la participation pendant le scrutin"),
         required=False,
-        help_text=_(
-            "Par défaut non : publier la participation pendant le vote peut l'influencer (§6.6)."
-        ),
+        help_text=_("Par défaut non : publier la participation pendant le vote peut l'influencer."),
     )
 
     default_language = forms.ChoiceField(label=_("Langue par défaut"), choices=[])
@@ -220,7 +216,7 @@ class PollConfigForm(forms.Form):
         required=False,
         help_text=_(
             "Le titre, la description et chaque proposition devront être traduits dans "
-            "chaque langue avant l'ouverture (§3.8)."
+            "chaque langue avant l'ouverture."
         ),
     )
 
@@ -310,7 +306,7 @@ class PollCreateForm(PollConfigForm):
         required=False,
         help_text=_(
             "Fixé pour toujours : un scrutin bac à sable n'apparaît sur aucune page "
-            "publique, aucun résultat publié et aucune statistique (R-3.7)."
+            "publique, aucun résultat publié et aucune statistique."
         ),
     )
 
@@ -325,7 +321,7 @@ class OptionForm(forms.Form):
         required=False,
         help_text=_(
             "Court, sans espace ni accent. Porté par les bulletins et le résultat publié : "
-            "ne le modifiez pas après l'ouverture (§3.8)."
+            "ne le modifiez pas après l'ouverture."
         ),
     )
 
@@ -400,9 +396,7 @@ class BaseOptionFormSet(forms.BaseFormSet):  # type: ignore[type-arg]  # not sub
         if len(ids) != len(set(ids)):
             raise forms.ValidationError(_("Deux propositions portent le même identifiant."))
         if len(drafts) < 2:
-            raise forms.ValidationError(
-                _("Un scrutin comporte au moins deux propositions (R-3.1).")
-            )
+            raise forms.ValidationError(_("Un scrutin comporte au moins deux propositions."))
 
 
 OptionFormSet = forms.formset_factory(
@@ -517,7 +511,7 @@ def option_initial(poll: Poll) -> list[dict[str, Any]]:
 _CONFIG_WARNINGS: dict[str, Any] = {
     "plurality_allows_ties": _(
         "Méthode majoritaire avec ex æquo autorisés sur le bulletin : un bulletin "
-        "qui place plusieurs propositions en tête donne une voix à chacune (§8.2). "
+        "qui place plusieurs propositions en tête donne une voix à chacune. "
         "C'est rarement voulu pour une question à choix unique — vérifiez l'un ou "
         "l'autre réglage."
     ),
@@ -566,7 +560,7 @@ class NewAccountForm(forms.ModelForm):  # type: ignore[type-arg]  # not subscrip
         help_texts = {
             "is_commune_admin": _(
                 "Gère les comptes et crée les scrutins. Ne donne accès à aucun "
-                "écran d'un scrutin : cela demande un rôle sur ce scrutin (§3.7)."
+                "écran d'un scrutin : cela demande un rôle sur ce scrutin."
             ),
         }
 
@@ -606,7 +600,7 @@ class FirstRunForm(forms.Form):
         max_length=200,
         help_text=_(
             "Personne ou service qui répond aux demandes d'accès, de rectification "
-            "et d'effacement des électeurs (R-13.2)."
+            "et d'effacement des électeurs."
         ),
     )
     data_protection_contact = forms.CharField(
@@ -633,7 +627,7 @@ class FirstRunForm(forms.Form):
     full_name = forms.CharField(
         label=_("Nom complet de l'administrateur"),
         max_length=200,
-        help_text=_("Le journal d'audit nomme une personne, pas une fonction (R-2.2)."),
+        help_text=_("Le journal d'audit nomme une personne, pas une fonction."),
     )
     raw_password = forms.CharField(label=_("Mot de passe"), widget=forms.PasswordInput)
     raw_password_confirm = forms.CharField(

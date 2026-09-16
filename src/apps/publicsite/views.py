@@ -81,6 +81,16 @@ def health(request: HttpRequest) -> JsonResponse:
     return JsonResponse({"version": settings.APP_VERSION, "migrations_pending": pending})
 
 
+def help_page(request: HttpRequest) -> HttpResponse:
+    """The public FAQ (linked from every voter-facing page's footer, §6.6).
+
+    Plain-language answers to how registration, paper voting, ballot
+    modification and result verification work — none of it poll-specific, so
+    no queryset here, unlike every other view in this module.
+    """
+    return render(request, "publicsite/help.html", {})
+
+
 def poll_list(request: HttpRequest) -> HttpResponse:
     """INV-8: sandbox polls never appear in public listings (T-15).
 

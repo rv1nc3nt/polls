@@ -6,6 +6,8 @@
 
 {% block content %}
   <h1>{% translate "Consultations" %}</h1>
+  {% url 'publicsite:help' as help_url %}
+  <p class="help">{% blocktranslate %}Première visite ? Consultez la page <a href="{{ help_url }}">Aide</a> pour savoir comment participer.{% endblocktranslate %}</p>
 
   {% if rows %}
     <ul class="poll-index">
