@@ -5,14 +5,8 @@
 {% block title %}{{ title }}{% endblock %}
 
 {% block content %}
-  <div class="page-title-row">
+  <div class="title-row">
     <h1>{{ title }}</h1>
-    {% if is_open %}
-      {% comment %} Repeats the "Participer" section's link further down (§6.6): a visitor
-         who arrived mid-scroll, or who never scrolls past the calendar, still sees the
-         one action this page exists for without hunting for it. {% endcomment %}
-      <a class="button" href="{% url 'registrations:register' poll.id %}">{% translate "Participer" %}</a>
-    {% endif %}
   </div>
 
   {% if is_preview %}
@@ -22,27 +16,29 @@
        checks gate on the clock, not on `state`). The configuration shown is
        already frozen (INV-6, same as `open`), so unlike a `draft` this is not
        provisional. {% endcomment %}
-    <p class="status">{% blocktranslate with when=poll.opens_at|timezone:poll.timezone|date:"DATETIME_FORMAT" %}Ce scrutin n'est pas encore ouvert. Ouverture prévue le {{ when }}.{% endblocktranslate %}</p>
+    <p class="status status--preview"><svg class="ic" aria-hidden="true"><use href="#pub-ico-flag"/></svg><span>{% blocktranslate with when=poll.opens_at|timezone:poll.timezone|date:"DATETIME_FORMAT" %}Ce scrutin n'est pas encore ouvert. Ouverture prévue le {{ when }}.{% endblocktranslate %}</span></p>
     <p class="help">{% translate "La configuration ci-dessous est arrêtée et ne changera plus ; seul le vote n'est pas encore ouvert." %}</p>
   {% elif is_open %}
-    <p class="status">{% translate "Consultation ouverte." %}</p>
+    <p class="status status--open"><svg class="ic" aria-hidden="true"><use href="#pub-ico-clock"/></svg><span>{% translate "Consultation ouverte." %}</span></p>
   {% elif online_voting_closed %}
     {% comment %} state is still `open` — paper keying/countersignature legitimately
        continue to `paper_entry_deadline` (§6.4) — but online voting itself already
        stopped at `closes_at`, and the write path already refuses it (T-67, T-68).
        Saying so here, instead of repeating "ouverte", is the whole point of §5.1's
        clock-gated display (see `_status_key`). {% endcomment %}
-    <p class="status">{% translate "Le vote en ligne est clos." %}
-      {% if has_paper_window %}{% blocktranslate with when=poll.paper_entry_deadline|timezone:poll.timezone|date:"DATETIME_FORMAT" %}La saisie des bulletins papier se poursuit jusqu'au {{ when }}.{% endblocktranslate %}{% endif %}</p>
+    <p class="status status--warn"><svg class="ic" aria-hidden="true"><use href="#pub-ico-lock"/></svg><span>{% translate "Le vote en ligne est clos." %}
+      {% if has_paper_window %}{% blocktranslate with when=poll.paper_entry_deadline|timezone:poll.timezone|date:"DATETIME_FORMAT" %}La saisie des bulletins papier se poursuit jusqu'au {{ when }}.{% endblocktranslate %}{% endif %}</span></p>
   {% elif is_published %}
-    <p class="status">{% translate "Consultation close. Les résultats sont publiés." %}
-      <a href="{% url 'publicsite:results' poll.id %}">{% translate "Voir les résultats" %}</a>.</p>
+    <p class="status status--closed"><svg class="ic" aria-hidden="true"><use href="#pub-ico-check"/></svg><span>{% translate "Consultation close. Les résultats sont publiés." %}
+      <a href="{% url 'publicsite:results' poll.id %}">{% translate "Voir les résultats" %}</a>.</span></p>
   {% else %}
-    <p class="status">{% translate "Consultation close. Le dépouillement est en cours ; les résultats seront publiés ici." %}</p>
+    <p class="status status--closed"><svg class="ic" aria-hidden="true"><use href="#pub-ico-lock"/></svg><span>{% translate "Consultation close. Le dépouillement est en cours ; les résultats seront publiés ici." %}</span></p>
   {% endif %}
 
   {% if description %}{{ description|linebreaks }}{% endif %}
 
+  <div class="poll-layout">
+  <div class="poll-layout__main">
   <section aria-labelledby="propositions">
     <h2 id="propositions">{% translate "Les propositions soumises" %}</h2>
     {% comment %}
@@ -85,13 +81,13 @@
     {% comment %} §6.4: both instants are shown publicly wherever a paper keying window
        is configured — a period in which ballots can still enter the database is
        exactly what looks bad discovered rather than announced. {% endcomment %}
-    <dl class="facts">
-      <dt>{% translate "Ouverture du vote" %}</dt>
+    <dl class="facts facts--icons">
+      <dt><svg class="ic" aria-hidden="true"><use href="#pub-ico-cal"/></svg>{% translate "Ouverture du vote" %}</dt>
       <dd>{{ poll.opens_at|timezone:poll.timezone|date:"DATETIME_FORMAT" }} ({{ poll.timezone }})</dd>
-      <dt>{% translate "Clôture du vote en ligne" %}</dt>
+      <dt><svg class="ic" aria-hidden="true"><use href="#pub-ico-lock"/></svg>{% translate "Clôture du vote en ligne" %}</dt>
       <dd>{{ poll.closes_at|timezone:poll.timezone|date:"DATETIME_FORMAT" }} ({{ poll.timezone }})</dd>
       {% if has_paper_window %}
-        <dt>{% translate "Fin de la saisie des bulletins papier" %}</dt>
+        <dt><svg class="ic" aria-hidden="true"><use href="#pub-ico-paper"/></svg>{% translate "Fin de la saisie des bulletins papier" %}</dt>
         <dd>{{ poll.paper_entry_deadline|timezone:poll.timezone|date:"DATETIME_FORMAT" }} ({{ poll.timezone }})</dd>
       {% endif %}
     </dl>
@@ -113,26 +109,17 @@
     {% endif %}
   </section>
 
-  {% if is_open %}
-    <section aria-labelledby="participer">
-      <h2 id="participer">{% translate "Participer" %}</h2>
-      <p>{% translate "Le vote se fait en ligne, après inscription vérifiée contre la liste électorale de la commune." %}</p>
-      <p><a class="button" href="{% url 'registrations:register' poll.id %}">{% translate "S'inscrire pour voter" %}</a></p>
-      <p class="help">{% translate "Un bulletin peut aussi être remis sur papier à la mairie, qui le saisit." %}</p>
-    </section>
-  {% endif %}
-
   {% if participation %}
     {% comment %} R-11.5: shown only because ``show_live_participation`` is set on this
        poll. Counted from the registrations' voting channel, never from ballots
        (INV-5), and never broken down further than the two channels. {% endcomment %}
     <section aria-labelledby="participation">
       <h2 id="participation">{% translate "Participation" %}</h2>
-      <dl class="facts">
-        <dt>{% translate "Bulletins déposés" %}</dt><dd>{{ participation.voted_total }}</dd>
-        <dt>{% translate "dont en ligne" %}</dt><dd>{{ participation.voted_online }}</dd>
-        <dt>{% translate "dont sur papier" %}</dt><dd>{{ participation.voted_paper }}</dd>
-        <dt>{% translate "Inscrits n'ayant pas encore voté" %}</dt><dd>{{ participation.not_voted }}</dd>
+      <dl class="facts facts--stats">
+        <div><dt>{% translate "Bulletins déposés" %}</dt><dd>{{ participation.voted_total }}</dd></div>
+        <div><dt>{% translate "dont en ligne" %}</dt><dd>{{ participation.voted_online }}</dd></div>
+        <div><dt>{% translate "dont sur papier" %}</dt><dd>{{ participation.voted_paper }}</dd></div>
+        <div><dt>{% translate "Inscrits n'ayant pas encore voté" %}</dt><dd>{{ participation.not_voted }}</dd></div>
       </dl>
     </section>
   {% endif %}
@@ -145,6 +132,23 @@
        the full statement with the article reference belongs on the poll itself. {% endcomment %}
     <p>{% blocktranslate %}Cette consultation est consultative. Son résultat éclaire la délibération du conseil municipal sans la lier. Elle ne constitue pas une consultation des électeurs au sens des articles L1112-15 et suivants du code général des collectivités territoriales.{% endblocktranslate %}</p>
   </section>
+  </div>
+
+  {% if is_open %}
+    {% comment %} §6.6: the one action this page exists for. A sticky aside rather than a
+       button repeated top and bottom of the page (§6.6's earlier approach) — it
+       stays in view as the reader scrolls the propositions and calendar, so one
+       "Participer" link does the job two used to. {% endcomment %}
+    <aside class="poll-layout__aside" aria-labelledby="participer">
+      <div class="cta-card">
+        <h2 id="participer">{% translate "Participer" %}</h2>
+        <p>{% translate "Le vote se fait en ligne, après inscription vérifiée contre la liste électorale de la commune." %}</p>
+        <p><a class="button" href="{% url 'registrations:register' poll.id %}">{% translate "Participer" %}</a></p>
+        <p class="help">{% translate "Un bulletin peut aussi être remis sur papier à la mairie, qui le saisit." %}</p>
+      </div>
+    </aside>
+  {% endif %}
+  </div>
 
   {% comment %} `href="#"` (an empty fragment) is defined to scroll to the top of the
      document — no target id to keep in sync, and it works with JavaScript off.

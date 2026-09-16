@@ -61,17 +61,19 @@
          re-derived (T-58). {% endcomment %}
       <p class="notice">{% translate "Chiffres figés à la clôture." %}</p>
     {% endif %}
-    <dl class="facts">
-      <dt>{% translate "Inscriptions" %}</dt><dd>{{ participation.registered }}</dd>
+    <dl class="facts facts--stats">
+      <div><dt>{% translate "Inscriptions" %}</dt><dd>{{ participation.registered }}</dd></div>
       {% if participation.confirmed is not None %}
-        <dt>{% translate "Confirmées" %}</dt><dd>{{ participation.confirmed }}</dd>
+        <div><dt>{% translate "Confirmées" %}</dt><dd>{{ participation.confirmed }}</dd></div>
       {% endif %}
-      <dt>{% translate "Votes en ligne" %}</dt><dd>{{ participation.voted_online }}</dd>
-      <dt>{% translate "Votes papier" %}</dt><dd>{{ participation.voted_paper }}</dd>
-      <dt>{% translate "N'ont pas voté" %}</dt><dd>{{ participation.not_voted }}</dd>
+      <div><dt>{% translate "Votes en ligne" %}</dt><dd>{{ participation.voted_online }}</dd></div>
+      <div><dt>{% translate "Votes papier" %}</dt><dd>{{ participation.voted_paper }}</dd></div>
+      <div><dt>{% translate "N'ont pas voté" %}</dt><dd>{{ participation.not_voted }}</dd></div>
       {% if participation.pending_review is not None %}
-        <dt>{% translate "Inscriptions en attente d'examen" %}</dt>
-        <dd>{{ participation.pending_review }}</dd>
+        <div>
+          <dt>{% translate "Inscriptions en attente d'examen" %}</dt>
+          <dd>{{ participation.pending_review }}</dd>
+        </div>
       {% endif %}
     </dl>
     {% comment %} INV-5, stated where somebody might otherwise be tempted: these come from
@@ -90,7 +92,7 @@
             {% else %}
               {% comment %} The screen is not built yet. Said in words, not by greying out:
                  nothing may carry meaning by colour alone (R-14.1). {% endcomment %}
-              {{ action.label }} — <span class="pending">{% translate "écran à venir" %}</span>
+              <span class="pending">{{ action.label }} — {% translate "écran à venir" %}</span>
             {% endif %}
           </li>
         {% endfor %}

@@ -26,6 +26,20 @@
 <body class="{% block body_class %}{% endblock %}">
   <a class="skip" href="#contenu">{% translate "Aller au contenu" %}</a>
 
+  {% comment %} A small, site-wide icon sprite: decoration next to a status line or a
+     calendar entry that already says the same thing in words (R-14.1), so it is
+     aria-hidden and every use keeps its text label. Kept separate from the espace
+     mairie's own sprite (`backoffice/_nav.html`) — different id prefix, no
+     collision — since the two are never built from the same list. {% endcomment %}
+  <svg class="bo-ico-sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="pub-ico-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3.2 2"/></symbol>
+    <symbol id="pub-ico-flag" viewBox="0 0 24 24"><path d="M6 3.5v17"/><path d="M6 4.5h11l-2.3 3.5L17 11.5H6"/></symbol>
+    <symbol id="pub-ico-lock" viewBox="0 0 24 24"><rect x="5.5" y="10.5" width="13" height="9.5" rx="1.6"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></symbol>
+    <symbol id="pub-ico-check" viewBox="0 0 24 24"><path d="M4 12.5 9.5 18 20 6.5"/></symbol>
+    <symbol id="pub-ico-cal" viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14.5" rx="1.6"/><path d="M4 9.5h16"/><path d="M8 3.5v4"/><path d="M16 3.5v4"/></symbol>
+    <symbol id="pub-ico-paper" viewBox="0 0 24 24"><path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V8Z"/><path d="M14 3v5h4"/><path d="M9.5 13h5"/><path d="M9.5 16.5h5"/></symbol>
+  </svg>
+
   <header class="banner">
     {% comment %} `home_url` is `/` on the public site; the espace mairie points it at
        « Scrutins » instead, so a signed-in operator clicking the name stays on the

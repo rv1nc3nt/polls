@@ -557,7 +557,7 @@ def test_an_announced_poll_previews_publicly(client: Client, db: None) -> None:
 
     listing = client.get("/fr/").content.decode()
     assert "Aménagement de la place" in listing
-    assert "à venir" in listing
+    assert "À venir" in listing
 
     body = client.get(f"/fr/scrutin/{poll.pk}/").content.decode()
     assert "Aménagement de la place" in body

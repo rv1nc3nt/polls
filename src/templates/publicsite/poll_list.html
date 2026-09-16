@@ -5,7 +5,7 @@
 {% block title %}{% translate "Consultations" %}{% endblock %}
 
 {% block content %}
-  <h1>{% translate "Consultations" %}</h1>
+  <div class="title-row"><h1>{% translate "Consultations" %}</h1></div>
   {% url 'publicsite:help' as help_url %}
   <p class="help">{% blocktranslate %}Première visite ? Consultez la page <a href="{{ help_url }}">Aide</a> pour savoir comment participer.{% endblocktranslate %}</p>
 
@@ -14,26 +14,40 @@
       {% for row in rows %}
         {% with poll=row.poll %}
           <li>
-            <a href="{% url 'publicsite:poll_detail' poll.id %}">{{ row.title }}</a>
-            <span class="help">
-              {% comment %} row.status is clock-gated (apps.publicsite.views._status_key), not
-                 read off poll.state alone — otherwise a poll past closes_at still reads
-                 "ouverte" for as long as the scheduled close_poll job takes to catch up,
-                 which can be the whole paper-entry window (§5.1, §6.4, T-67/T-68). {% endcomment %}
+            {% comment %} row.status is clock-gated (apps.publicsite.views._status_key), not
+               read off poll.state alone — otherwise a poll past closes_at still reads
+               "ouverte" for as long as the scheduled close_poll job takes to catch up,
+               which can be the whole paper-entry window (§5.1, §6.4, T-67/T-68). The
+               state is a badge on the right (word first, R-14.1 — the tint only sorts
+               it), the actionable date sits under the title on the left. {% endcomment %}
+            <a class="poll-index__link" href="{% url 'publicsite:poll_detail' poll.id %}">
+              <span class="poll-index__main">
+                <span class="poll-index__title">{{ row.title }}</span>
+                <span class="poll-index__meta">
+                  {% if row.status == "preview" %}
+                    {% blocktranslate with when=poll.opens_at|timezone:poll.timezone|date:"DATETIME_FORMAT" %}Ouverture le {{ when }}{% endblocktranslate %}
+                  {% elif row.status == "open" %}
+                    {% blocktranslate with when=poll.closes_at|timezone:poll.timezone|date:"DATETIME_FORMAT" %}Clôture le {{ when }}{% endblocktranslate %}
+                  {% else %}
+                    {% blocktranslate with when=poll.closes_at|timezone:poll.timezone|date:"DATETIME_FORMAT" %}Consultation close le {{ when }}{% endblocktranslate %}
+                  {% endif %}
+                </span>
+              </span>
               {% if row.status == "preview" %}
-                {% blocktranslate with when=poll.opens_at|timezone:poll.timezone|date:"DATETIME_FORMAT" %}à venir — ouverture le {{ when }}{% endblocktranslate %}
+                <span class="poll-index__state poll-index__state--preview"><svg class="ic" aria-hidden="true"><use href="#pub-ico-flag"/></svg>{% translate "À venir" %}</span>
               {% elif row.status == "open" %}
-                {% blocktranslate with when=poll.closes_at|timezone:poll.timezone|date:"DATETIME_FORMAT" %}ouverte — clôture le {{ when }}{% endblocktranslate %}
+                <span class="poll-index__state poll-index__state--open"><svg class="ic" aria-hidden="true"><use href="#pub-ico-clock"/></svg>{% translate "Ouverte" %}</span>
               {% elif row.status == "published" %}
-                {% translate "close — résultats publiés" %}
+                <span class="poll-index__state poll-index__state--closed"><svg class="ic" aria-hidden="true"><use href="#pub-ico-check"/></svg>{% translate "Close — résultats publiés" %}</span>
               {% else %}
-                {% translate "close — dépouillement en cours" %}
+                <span class="poll-index__state poll-index__state--closed"><svg class="ic" aria-hidden="true"><use href="#pub-ico-lock"/></svg>{% translate "Close — dépouillement en cours" %}</span>
               {% endif %}
-            </span>
+            </a>
             {% if row.outcome %}
               {% comment %} R-11.2, R-11.4: the outcome belongs on the landing page, not only
                  on the poll's own page, so a visitor sees it without a click — then one
-                 link into the full derivation, matrix and verification data. {% endcomment %}
+                 link into the full derivation, matrix and verification data. Its own <a>
+                 stays outside .poll-index__link: nesting a link inside a link is invalid. {% endcomment %}
               <p class="outcome outcome--compact">
                 {% if row.outcome.winner %}
                   {% blocktranslate with label=row.outcome.winner.label %}Résultat : « {{ label }} » retenue.{% endblocktranslate %}
