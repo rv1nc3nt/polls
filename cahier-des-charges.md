@@ -234,7 +234,7 @@ Aucun générateur pseudo-aléatoire de bibliothèque n'est employé, la reprodu
 
 ## 12. Journal d'audit
 
-**R-12.1** Le journal est en ajout seul et consigne au minimum : les modifications de la configuration des scrutins ; les changements d'état et les prorogations de la date de clôture ; les imports et les copies figées de la liste électorale ; les décisions rendues sur les inscriptions soumises à examen ; les tentatives d'inscription refusées ; la création, la rectification et la suppression des bulletins papier ; les contreseings et les passer-outre à la clôture ; les passages outre l'avertissement de concours des voies de vote ; les attributions de rôles ; et les accès au journal lui-même.
+**R-12.1** Le journal est en ajout seul et consigne au minimum : les modifications de la configuration des scrutins ; les changements d'état et les prorogations de la date de clôture ; les imports et les copies figées de la liste électorale ; les décisions rendues sur les inscriptions soumises à examen ; les tentatives d'inscription refusées ; la création, la rectification et la suppression des bulletins papier ; les contreseings et les passer-outre à la clôture ; les attributions de rôles ; et les accès au journal lui-même.
 
 **R-12.2** Chaque inscription mentionne l'opérateur, l'horodatage, l'objet concerné, l'état antérieur et postérieur, ainsi que le motif lorsqu'il est exigé.
 
