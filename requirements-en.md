@@ -236,7 +236,7 @@ No library pseudo-random generator is used, reproducibility having to depend nei
 
 ## 12. Audit log
 
-**R-12.1** The log is append-only and records at minimum: modifications to poll configurations; state changes and extensions of the closing date; imports and frozen copies of the electoral roll; decisions rendered on registrations submitted for review; refused registration attempts; the creation, correction and deletion of paper ballots; countersignatures and closure overrides; overrides of the channel-concurrence warning; role assignments; and access to the log itself.
+**R-12.1** The log is append-only and records at minimum: modifications to poll configurations; state changes and extensions of the closing date; imports and frozen copies of the electoral roll; decisions rendered on registrations submitted for review; refused registration attempts; the creation, correction and deletion of paper ballots; countersignatures and closure overrides; role assignments; and access to the log itself.
 
 **R-12.2** Each entry states the operator, the timestamp, the object concerned, the state before and after, and the reason where one is required.
 

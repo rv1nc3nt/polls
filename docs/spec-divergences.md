@@ -580,3 +580,53 @@ form still cannot reopen a closed vote.
 
 **Settled (2026-09-16).** §4 and §6.5.2 now state the clock gate explicitly,
 next to §6.6's existing statement of the same principle for the public page.
+
+## 16. R-8.6's formal reconciliation has no described flow
+
+**Requirements, R-8.6.** "Where formal reconciliation is required by the
+configuration, the paper forms are retained by the commune and reconciled
+against the recorded ballots at closure, the reconciliation record being
+signed and archived. Failing that, the audit log serves as the record."
+
+**Specification.** `paper_requires_reconciliation` exists as a `Poll` field
+(§3.1, default `false`) and is named in §13's deferred-configuration list, but
+nothing else in the document says what happens when it is set: no screen, no
+flow, no closure-time step, no audit action, no acceptance test. Contrast with
+the other two paper-channel options R-8.2 offers alongside it: countersignature
+(R-8.7/R-8.7 bis) gets a full description — `pending_countersign` status,
+screen 7, the closure guard and override in §9 and §4, T-19/T-32/T-57/T-68 —
+and the signed form is at least named everywhere paper entry is described
+(§6.4, R-8.2). Reconciliation alone is a bare boolean with nothing behind it.
+
+**Not settled.** Needs a decision before it can be written up: what
+"reconciled against the recorded ballots" produces as an artefact (a count
+comparison? a per-form checklist against `PaperBallotLink` rows?), who
+performs it and from which back-office screen, whether it gates closure or
+publication the way an outstanding countersignature does, and what the
+"reconciliation record" is stored as (a new model, a structured audit event, an
+uploaded document). Until that lands in §6.5/§9, a commune that enables
+`paper_requires_reconciliation` gets a flag with no behaviour behind it.
+
+## 17. R-8.2 bis's required content is not carried by the receipt as specified
+
+**Requirements, R-8.2 bis.** Where the signed paper form is required, it must
+comprise the ranking, the honour declaration, the elector's identity, and a
+statement that a paper ballot stays associated with the elector's identity in
+the system for traceability and any subsequent deletion at their request. "In
+the absence of a form, this information is carried on the receipt provided for
+at R-8.4."
+
+**Specification.** `paper_requires_signed_form` defaults to `false` (§3.1,
+§13 item 5), so by default the receipt is the *only* document that can carry
+R-8.2 bis's statement. But every place the receipt is described —
+`PaperBallotLink` (§3.5), the keying flow (§6.4), and screen 5 (§6.5, "a
+printable receipt (R-8.4) rendered as an HTML page with a print stylesheet") —
+says only that it bears the tracking code. Nothing says it must also carry the
+ranking, the honour declaration, the elector's identity, or R-8.2 bis's
+traceability/deletion statement when no signed form exists.
+
+**Not settled.** Likely a straightforward addition — extend screen 5's receipt
+template, and acceptance coverage, to include the four elements R-8.2 bis
+lists whenever `paper_requires_signed_form` is off — but recorded here rather
+than assumed, since the signed-form path itself also needs the same content
+and nothing currently specifies its layout either.
