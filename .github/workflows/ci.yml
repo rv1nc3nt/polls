@@ -20,6 +20,11 @@ jobs:
       # it; the runner has gettext, the developer's machine may not (§3.8).
       - run: sudo apt-get install -y gettext
       - run: uv run python manage.py compilemessages
+      # A model field edited without regenerating its migration passes every
+      # other gate here (SQLite is rebuilt from models for tests) and is only
+      # caught by ansible/roles/polls/tasks/deploy.yml's own --check, i.e. at
+      # deploy time. Catch it here instead.
+      - run: uv run python manage.py makemigrations --check --dry-run
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run mypy src tests

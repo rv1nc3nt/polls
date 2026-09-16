@@ -16,6 +16,7 @@ tests (§12).
 ```sh
 uv sync                                   # Python 3.13, Django 5.2 LTS
 uv run python manage.py migrate           # settings default to config.settings.dev
+uv run python manage.py makemigrations --check --dry-run  # models match migrations
 uv run pytest -q                          # fast; no network
 uv run ruff check . && uv run ruff format --check .
 uv run mypy src tests                     # --strict, must stay clean
@@ -23,7 +24,7 @@ cargo test --manifest-path verifier/Cargo.toml
 uv run python manage.py compilemessages   # needs GNU gettext installed
 ```
 
-All four gates run in CI and must be green before a commit lands.
+All five gates run in CI and must be green before a commit lands.
 
 ## Layout
 
