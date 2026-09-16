@@ -145,6 +145,10 @@ class PermittedAction:
     label: str
     roles: tuple[Role, ...]
     url_name: str | None = None
+    #: Name of a <symbol> in the sprite `backoffice/_nav.html` renders on every
+    #: back-office screen — the same vocabulary the menu itself uses for this
+    #: same url_name, so an action and its own menu entry never disagree.
+    icon: str = ""
 
 
 def _actions_for_state(poll: Poll) -> list[PermittedAction]:
@@ -167,11 +171,13 @@ def _actions_for_state(poll: Poll) -> list[PermittedAction]:
                     _("Configurer le scrutin"),
                     (Role.POLL_ADMIN,),
                     url_name="backoffice:poll_config",
+                    icon="config",
                 ),
                 PermittedAction(
                     _("Consulter la liste électorale"),
                     (Role.POLL_ADMIN,),
                     url_name="backoffice:roll_status",
+                    icon="roll",
                 ),
             ]
         case PollState.ANNOUNCED:
@@ -182,11 +188,13 @@ def _actions_for_state(poll: Poll) -> list[PermittedAction]:
                     _("Consulter la configuration"),
                     (Role.POLL_ADMIN,),
                     url_name="backoffice:poll_config",
+                    icon="config",
                 ),
                 PermittedAction(
                     _("Consulter la liste électorale"),
                     (Role.POLL_ADMIN,),
                     url_name="backoffice:roll_status",
+                    icon="roll",
                 ),
             ]
         case PollState.OPEN:
@@ -195,16 +203,19 @@ def _actions_for_state(poll: Poll) -> list[PermittedAction]:
                     _("Examiner les inscriptions en attente"),
                     (Role.POLL_ADMIN,),
                     url_name="backoffice:registration_queue",
+                    icon="registrations",
                 ),
                 PermittedAction(
                     _("Saisir un bulletin papier"),
                     (Role.ENTRY_OPERATOR,),
                     url_name="backoffice:paper_entry",
+                    icon="entry",
                 ),
                 PermittedAction(
                     _("Rectifier ou supprimer un bulletin papier"),
                     (Role.ENTRY_OPERATOR,),
                     url_name="backoffice:paper_ballot_list",
+                    icon="paper",
                 ),
             ]
             # R-3.4, §5.1: not offered once online voting has actually closed
@@ -219,6 +230,7 @@ def _actions_for_state(poll: Poll) -> list[PermittedAction]:
                         _("Reporter la date de clôture"),
                         (Role.POLL_ADMIN,),
                         url_name="backoffice:poll_config",
+                        icon="config",
                     )
                 )
             if poll.paper_requires_countersign:
@@ -227,6 +239,7 @@ def _actions_for_state(poll: Poll) -> list[PermittedAction]:
                         _("Contresigner des bulletins"),
                         (Role.ENTRY_OPERATOR,),
                         url_name="backoffice:countersign_queue",
+                        icon="countersign",
                     )
                 )
             return actions
@@ -236,6 +249,7 @@ def _actions_for_state(poll: Poll) -> list[PermittedAction]:
                     _("Dépouiller et publier"),
                     (Role.POLL_ADMIN,),
                     url_name="backoffice:results_publish",
+                    icon="tally",
                 )
             ]
         case PollState.PUBLISHED:
@@ -244,6 +258,7 @@ def _actions_for_state(poll: Poll) -> list[PermittedAction]:
                     _("Consulter le dépouillement et la publication"),
                     (Role.POLL_ADMIN,),
                     url_name="backoffice:results_publish",
+                    icon="tally",
                 )
             ]
         case PollState.WITHDRAWN:
@@ -254,6 +269,7 @@ def _actions_for_state(poll: Poll) -> list[PermittedAction]:
                     _("Consulter le scrutin retiré"),
                     (Role.POLL_ADMIN,),
                     url_name="backoffice:poll_config",
+                    icon="config",
                 )
             ]
         case _:
@@ -273,6 +289,7 @@ def permitted_actions(poll: Poll, roles: frozenset[str]) -> list[PermittedAction
             _("Consulter le journal d'audit"),
             (Role.AUDITOR, Role.POLL_ADMIN),
             url_name="backoffice:audit_log",
+            icon="audit",
         )
     )
     return [a for a in actions if roles & {str(role) for role in a.roles}]

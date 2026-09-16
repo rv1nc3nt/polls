@@ -335,21 +335,24 @@ body.bo main { padding: 0; }
 }
 
 /* The poll state, written out — the wash only sorts it, it does not carry it
-   (R-14.1). A finished poll drops to a plain outline. */
+   (R-14.1) — same pattern as .poll-index__state on the public list: an icon
+   and the word, coloured by what the word already says. */
 .bo-state {
-  display: inline-block;
-  padding: 0.15rem 0.55rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.65rem;
   border: 1px solid transparent;
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent);
-  font-size: 0.75rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
+.bo-state--draft { background: var(--paper-quiet); color: var(--ink-quiet); }
+.bo-state--announced { background: var(--accent-soft); color: var(--accent); }
+.bo-state--open { background: var(--ok-soft); color: var(--ok); }
 .bo-state--closed,
-.bo-state--published {
+.bo-state--published,
+.bo-state--withdrawn {
   background: var(--paper);
   border-color: var(--rule);
   color: var(--ink-quiet);
@@ -760,7 +763,12 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
    inside <dl>, HTML §4.4.9) becomes one tile; the count itself is set in the
    tabular-figure mono face so the digits line up. */
 .facts--stats { grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); gap: 1rem; }
-.facts--stats dt { font-size: 0.85rem; }
+/* A label that wraps to two lines ("Inscrits n'ayant pas encore voté") must
+   not push its own number lower than the single-line labels beside it — the
+   whole point of a stat row is that the figures line up. Reserving two
+   lines' height for every label, wrapped or not, keeps every dd starting at
+   the same baseline regardless of how long its own dt happens to be. */
+.facts--stats dt { font-size: 0.85rem; min-height: 2.6rem; }
 .facts--stats dd {
   font-family: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
   font-variant-numeric: tabular-nums;
@@ -776,6 +784,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 .actions li a {
   display: flex;
   align-items: center;
+  gap: 0.7rem;
   padding: 0.75rem 1rem;
   background: var(--surface);
   border: 1px solid var(--rule-soft);
@@ -786,6 +795,8 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
   transition: border-color 0.12s ease;
 }
 .actions li a:hover { border-color: var(--accent); text-decoration: none; }
+.actions li a .ic { color: var(--ink-quiet); }
+.actions li a .ic.chev { margin-left: auto; }
 .actions li .pending {
   display: block;
   padding: 0.75rem 1rem;
@@ -922,6 +933,11 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 }
 .status .ic { margin-top: 0.2rem; color: var(--ink-quiet); }
 .status span { flex: 1; }
+/* The richer form — a title plus an explanatory sentence, not just one line
+   (the dashboard's pending-review callout) — takes a <div> instead of the
+   bare <span> above; its own paragraph drops back to normal weight. */
+.status div { flex: 1; }
+.status div p { margin: 0.2rem 0 0; font-weight: 400; }
 .status--open { border-left-color: var(--ok); }
 .status--open .ic { color: var(--ok); }
 .status--preview { border-left-color: var(--accent); }

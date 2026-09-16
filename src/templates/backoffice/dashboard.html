@@ -22,6 +22,19 @@
     </section>
   {% endif %}
 
+  {% if participation.pending_review %}
+    {% comment %} Surfaced here, not left to be noticed as one more number in the
+       Participation count below (§6.5.1, §6.5.4): a queue that only grows if
+       nobody looks is exactly what a dashboard exists to call out. {% endcomment %}
+    <div class="status status--warn">
+      <svg class="ic" aria-hidden="true"><use href="#pub-ico-warn"/></svg>
+      <div>
+        <strong>{% blocktranslate count counter=participation.pending_review %}{{ counter }} inscription en attente d'examen{% plural %}{{ counter }} inscriptions en attente d'examen{% endblocktranslate %}</strong>
+        <p>{% translate "Aucune correspondance automatique unique n'a été trouvée avec la liste électorale — une décision manuelle est nécessaire avant la clôture." %}</p>
+      </div>
+    </div>
+  {% endif %}
+
   <section aria-labelledby="etat">
     <h2 id="etat">{% translate "État" %}</h2>
     {% if online_voting_closed %}
@@ -88,7 +101,11 @@
         {% for action in actions %}
           <li>
             {% if action.url_name %}
-              <a href="{% url action.url_name poll.pk %}">{{ action.label }}</a>
+              <a href="{% url action.url_name poll.pk %}">
+                {% if action.icon %}<svg class="ic" aria-hidden="true"><use href="#ico-{{ action.icon }}"/></svg>{% endif %}
+                {{ action.label }}
+                <svg class="ic chev" aria-hidden="true"><use href="#ico-chev"/></svg>
+              </a>
             {% else %}
               {% comment %} The screen is not built yet. Said in words, not by greying out:
                  nothing may carry meaning by colour alone (R-14.1). {% endcomment %}
