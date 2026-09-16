@@ -241,6 +241,19 @@ lui-même `polls-manage <tâche>` à un intervalle court.
 - Un **premier snapshot** est pris à la fin de l'installation, pour que
   `restore.yml` ait toujours de quoi travailler.
 
+> **Limite connue : les images ne sont pas sauvegardées.** Depuis R-3.12
+> (images de proposition, logo et favicon de la commune, écran 14), la base
+> seule ne reconstruit plus toutes les pages publiques — mais `backup.yml` et
+> `restore.yml` ne couvrent encore que `db.sqlite3` ; `{{ polls_state_dir
+> }}/media` n'a ni snapshot ni réplication hors site. Une restauration
+> aujourd'hui ramène la configuration (y compris les références `image:<uuid>`
+> dans les descriptions) sans les fichiers eux-mêmes : rendu dégradé mais pas
+> d'erreur — le logo et le favicon de la commune, référencés directement,
+> affichent un lien brisé plutôt qu'un simple manque. Voir
+> `docs/spec-divergences.md` #18 pour le détail ; en attendant que cela soit
+> traité, sauvegardez ce répertoire séparément si des scrutins de votre
+> instance utilisent des images.
+
 Vérifier :
 
 ```sh

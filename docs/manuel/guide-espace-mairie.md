@@ -67,7 +67,7 @@ va enregistrer les actions.
 2. **Comptes et rôles** (écran 10) — créer les comptes des élus et agents, puis,
    une fois un premier scrutin créé, leur attribuer les rôles sur ce scrutin.
 3. **Import de la liste électorale** (écran 3) — voir §5.
-4. **Créer le premier scrutin** (§3) puis **le configurer** (§4).
+4. **Créer le premier scrutin** (ci-dessous) puis **le configurer** (§4).
 
 **Figure 18 — Comptes opérateurs.**
 
@@ -90,6 +90,60 @@ rôle, et retirer un rôle qu'il détient encore passe par sa réactivation au
 préalable, qui le fait réapparaître, coché, pour qu'on puisse l'en retirer.
 
 Toute attribution de rôle est tracée au journal (§10).
+
+### Créer un scrutin (`/mairie/nouveau/`)
+
+Réservé à l'**administrateur de la commune** (comme les écrans 10 et 12) : un
+scrutin qui n'existe pas encore n'a pas d'administrateur de scrutin à qui
+réserver l'écran. Reprend le formulaire et l'éditeur de propositions de
+l'écran 2 (§4) — la configuration initiale a la même forme qu'une
+modification — en y ajoutant un seul champ que l'écran 2 exclut : le
+**bac à sable** (R-3.7), fixé une fois pour toutes à la création.
+
+Deux façons de partir :
+
+- à **vide** : une seule langue de saisie au départ (la langue par défaut du
+  déploiement) ; en ajouter d'autres se fait comme sur l'écran 2, en changeant
+  l'ensemble des langues puis en enregistrant ;
+- à partir d'un **modèle** (écran 13, ci-dessous) : la méthode de dépouillement
+  et les contraintes du bulletin sont reprises du modèle choisi, mais titre,
+  description et propositions se saisissent toujours à neuf — un modèle ne
+  porte jamais de contenu (R-3.9, §3.9).
+
+Créer un scrutin **n'attribue aucun rôle** dessus, y compris à qui vient de le
+créer (§1) : la validation renvoie directement vers « Rôles par scrutin »
+(écran 10) pour que l'attribution reste l'étape séparée et tracée qu'elle est
+partout ailleurs.
+
+### Modèles de scrutin (écran 13)
+
+Réservé à l'administrateur de la commune, comme les écrans 10 et 12. Un
+catalogue de modèles nommés, commun à tous les scrutins de la commune — nom,
+méthode de dépouillement, date de création — chacun renommable ou
+supprimable depuis cet écran. Rien d'autre ne crée ou ne modifie un modèle :
+le seul point d'écriture est
+*enregistrer comme modèle*, disponible sur l'écran 2 (§4) **quel que soit
+l'état du scrutin**, puisque les champs qu'il copie (méthode, contraintes du
+bulletin) sont déjà figés dès la sortie du brouillon (INV-6). Supprimer un
+modèle ici n'a aucun effet sur un scrutin déjà créé à partir de lui : les
+champs ont été copiés à la création, pas référencés.
+
+### Paramètres de messagerie (écran 12)
+
+Réservé à l'administrateur de la commune. Le relais SMTP (hôte, port,
+chiffrement, identifiants, adresse d'expédition) utilisé par **tous** les
+scrutins de la commune, puisqu'un seul relais les sert tous. Laissé vide, un
+scrutin continue d'utiliser la configuration du déploiement (§14 côté
+administrateur d'instance) : remplir cet écran est donc sans risque, une
+commune qui n'y touche pas n'est pas affectée. Le mot de passe ne se
+réaffiche jamais une fois enregistré — un champ laissé vide au prochain
+passage signifie « conserver le mot de passe actuel », jamais « l'effacer ».
+
+Une action **« envoyer un message de test »** exerce les réglages déjà
+enregistrés contre une adresse choisie, avant qu'un scrutin réel n'en dépende ;
+l'erreur SMTP ou réseau, le cas échéant, s'affiche telle quelle. Chaque
+enregistrement inscrit au journal quels champs ont changé — jamais leur
+valeur, ni le mot de passe (§10).
 
 ## 3. Cycle de vie d'un scrutin
 

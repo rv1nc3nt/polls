@@ -458,7 +458,7 @@ match (screen 3 added to the commune-level exception, its description
 rewritten); `apps/elections/rollimport.py`'s module docstring, which had made
 the same "reached from one poll's back-office" claim, was corrected too.
 
-## 12. Option images and commune branding are not yet in the backup/restore playbook
+## 18. Option images and commune branding are not yet in the backup/restore playbook
 
 **Specification, §14 (Backups).** "Since §3.1 bis, the database alone no
 longer reconstructs every public page: `DJANGO_MEDIA_ROOT` (option images,
