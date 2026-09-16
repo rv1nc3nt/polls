@@ -114,6 +114,23 @@ class Commune(models.Model):
     favicon = models.FileField(_("favicon"), upload_to=commune_favicon_path, blank=True, default="")
     favicon_content_type = models.CharField(max_length=40, blank=True, default="")
     favicon_content_hash = models.CharField(max_length=64, blank=True, default="")
+    # Free text, shown verbatim (line breaks kept, no Markdown) in the footer
+    # of every page, public site and espace mairie alike (base.html) — the
+    # publisher notice French law expects of any public site, distinct from
+    # the data-protection identity above (R-13.1/13.2) that the requirements
+    # do name. No `R-x.y` governs its wording, so it is free text rather than
+    # the structured fields the referent gets: what a commune must say here
+    # depends on who operates the server, not on this platform. Blank means
+    # nothing is rendered, exactly like a blank ``logo``.
+    legal_notice = models.TextField(
+        _("mentions légales"),
+        blank=True,
+        default="",
+        help_text=_(
+            "Affichées en pied de page de chaque page : éditeur du site, "
+            "hébergeur, etc. Laissez vide pour n'afficher aucune mention."
+        ),
+    )
 
     class Meta:
         verbose_name = _("commune")

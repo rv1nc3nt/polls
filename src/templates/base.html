@@ -61,6 +61,17 @@
       <p lang="fr">La version française fait foi ; cette traduction est fournie à titre informatif.</p>
     {% endif %}
 
+    {% comment %} §6.5.14: free text set from screen 14, not a constant here — what a
+       commune must publish (editor, host) depends on who runs the deployment, so
+       there is nothing this template could get right on its own. Absent
+       commune.legal_notice, nothing renders, same as the logo and favicon above. {% endcomment %}
+    {% if commune.legal_notice %}
+      <section aria-labelledby="mentions-legales" class="legal-notice">
+        <h2 id="mentions-legales">{% translate "Mentions légales" %}</h2>
+        {{ commune.legal_notice|linebreaks }}
+      </section>
+    {% endif %}
+
     {% comment %} The language chooser and the theme control. The espace mairie overrides
        this block empty and puts both in its left panel instead (§6.5); the public
        pages keep them here in the footer. {% endcomment %}
