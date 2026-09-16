@@ -33,6 +33,7 @@ SAVE_PAYLOAD = {
     "data_protection_referent": "Secrétariat de mairie",
     "data_protection_contact": "rgpd@sainte-marie-du-mont.example.fr",
     "public_base_url": "https://vote.sainte-marie-du-mont.example.fr",
+    "legal_notice": "Directeur de la publication : le maire.",
 }
 
 
@@ -104,6 +105,25 @@ def test_saving_persists_the_fields(admin_client: Client, commune: Commune) -> N
     assert commune.public_base_url == "https://vote.sainte-marie-du-mont.example.fr"
 
 
+def test_the_legal_notice_is_optional_and_persists(admin_client: Client, commune: Commune) -> None:
+    admin_client.post(SETTINGS_URL, SAVE_PAYLOAD)
+    commune.refresh_from_db()
+    assert commune.legal_notice == "Directeur de la publication : le maire."
+
+    payload = {**SAVE_PAYLOAD, "legal_notice": ""}
+    admin_client.post(SETTINGS_URL, payload)
+    commune.refresh_from_db()
+    assert commune.legal_notice == ""
+
+
+def test_the_legal_notice_appears_in_the_public_footer_only_once_set(
+    client: Client, admin_client: Client, commune: Commune
+) -> None:
+    assert "Directeur de la publication" not in client.get("/fr/").content.decode()
+    admin_client.post(SETTINGS_URL, SAVE_PAYLOAD)
+    assert "Directeur de la publication" in client.get("/fr/").content.decode()
+
+
 def test_a_trailing_slash_is_stripped(admin_client: Client, commune: Commune) -> None:
     payload = {**SAVE_PAYLOAD, "public_base_url": "https://vote.example.fr/"}
     admin_client.post(SETTINGS_URL, payload)
@@ -135,7 +155,7 @@ def test_saving_writes_the_audit_event_naming_fields_not_values(
     event = AuditEvent.objects.get(action=Action.COMMUNE_SETTINGS_CHANGED)
     assert event.poll_id is None
     assert event.object_ref == "commune:1"
-    assert set(event.after["changed"]) == {"public_base_url"}
+    assert set(event.after["changed"]) == {"public_base_url", "legal_notice"}
     dumped = str(event.before) + str(event.after)
     assert "vote.sainte-marie-du-mont.example.fr" not in dumped
 

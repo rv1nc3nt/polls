@@ -40,7 +40,13 @@ from apps.core.models import Commune, User
 
 #: The fields a save can change, and the only names ``save``'s audit event
 #: ever names (§10).
-_FIELDS = ("name", "data_protection_referent", "data_protection_contact", "public_base_url")
+_FIELDS = (
+    "name",
+    "data_protection_referent",
+    "data_protection_contact",
+    "public_base_url",
+    "legal_notice",
+)
 
 
 @dataclass(frozen=True)
@@ -51,6 +57,7 @@ class CommuneSettingsDraft:
     data_protection_referent: str
     data_protection_contact: str
     public_base_url: str = ""
+    legal_notice: str = ""
 
 
 def current() -> Commune | None:

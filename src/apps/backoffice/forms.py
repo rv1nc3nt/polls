@@ -724,12 +724,19 @@ class CommuneSettingsForm(forms.ModelForm):  # type: ignore[type-arg]  # not sub
 
     class Meta:
         model = Commune
-        fields = ("name", "data_protection_referent", "data_protection_contact", "public_base_url")
+        fields = (
+            "name",
+            "data_protection_referent",
+            "data_protection_contact",
+            "public_base_url",
+            "legal_notice",
+        )
         labels = {
             "name": _("Nom de la commune"),
             "data_protection_referent": _("Référent données personnelles"),
             "data_protection_contact": _("Contact du référent"),
             "public_base_url": _("Adresse du site"),
+            "legal_notice": _("Mentions légales"),
         }
 
     def clean_public_base_url(self) -> str:
