@@ -51,11 +51,19 @@
           <td>{% if row.account.is_active %}{% translate "actif" %}{% else %}{% translate "désactivé" %}{% endif %}</td>
           <td>
             {% if row.roles %}
-              <ul class="rolelist">
-                {% for grant in row.roles %}
-                  <li>{{ grant.poll.display_title }} — {{ grant.get_role_display }}</li>
-                {% endfor %}
-              </ul>
+              {% comment %}
+                An account gathering roles across many scrutins over the
+                years must not turn its row into the longest thing on the
+                page — collapsed by default, like "Gérer ce compte" below.
+              {% endcomment %}
+              <details>
+                <summary>{% blocktranslate count total=row.roles|length trimmed %}{{ total }} rôle{% plural %}{{ total }} rôles{% endblocktranslate %}</summary>
+                <ul class="rolelist">
+                  {% for grant in row.roles %}
+                    <li>{{ grant.poll.display_title }} — {{ grant.get_role_display }}</li>
+                  {% endfor %}
+                </ul>
+              </details>
             {% else %}—{% endif %}
           </td>
           <td>
