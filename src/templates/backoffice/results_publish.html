@@ -101,7 +101,7 @@
 
     {% if screen9.orderings %}
       <table>
-        <caption>{% translate "Récapitulatif par ordre de classement (R-11.3)" %}</caption>
+        <caption>{% translate "Récapitulatif par ordre de classement" %}</caption>
         <thead>
           <tr>
             <th scope="col">{% translate "Classement" %}</th>
@@ -188,7 +188,7 @@
         <form method="post">
           {% csrf_token %}
           <input type="hidden" name="action" value="publish">
-          <p class="help">{% translate "La publication est définitive et rend les artefacts de la §9 accessibles publiquement. Elle est inscrite au journal d'audit." %}</p>
+          <p class="help">{% translate "La publication est définitive et rend les résultats accessibles publiquement. Elle est inscrite au journal d'audit." %}</p>
           <button type="submit">{% translate "Publier les résultats" %}</button>
         </form>
       {% endif %}

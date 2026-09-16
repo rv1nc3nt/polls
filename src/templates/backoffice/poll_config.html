@@ -54,7 +54,7 @@
     propositions — is reported on the dashboard, not enforced field by field
     (§3.8, §4).
   {% endcomment %}
-  <p class="notice">{% translate "Le scrutin est en brouillon : toute la configuration est modifiable. Elle se fige à l'ouverture (R-3.3). Les points encore incomplets sont signalés sur le tableau de bord." %}</p>
+  <p class="notice">{% translate "Le scrutin est en brouillon : toute la configuration est modifiable. Elle se fige à l'ouverture. Les points encore incomplets sont signalés sur le tableau de bord." %}</p>
 
   {% comment %}
     §6.5.2: one tabs container holds both the field-editing panels — inside
@@ -102,7 +102,7 @@
       {% else %}
         {% translate "Ce scrutin a été retiré." %}
       {% endif %}
-      {% translate "Il n'apparaît plus sur aucune page publique (R-3.11)." %}
+      {% translate "Il n'apparaît plus sur aucune page publique." %}
     </p>
   {% elif online_voting_closed %}
     {% comment %} §5.1: `state` still reads `open` here — paper keying and
@@ -117,7 +117,7 @@
       {% if poll.paper_entry_deadline > poll.closes_at %}{% blocktranslate with when=poll.paper_entry_deadline|timezone:poll.timezone|date:"DATETIME_FORMAT" %}La saisie des bulletins papier se poursuit jusqu'au {{ when }}.{% endblocktranslate %}{% endif %}
       {% translate "La date de clôture ne peut plus être reportée." %}</p>
   {% else %}
-    <p class="notice">{% translate "Le scrutin n'est plus en brouillon : la configuration est figée (R-3.3). Seule la date de clôture peut encore être repoussée, avec un motif." %}</p>
+    <p class="notice">{% translate "Le scrutin n'est plus en brouillon : la configuration est figée. Seule la date de clôture peut encore être repoussée, avec un motif." %}</p>
   {% endif %}
 
   <dl class="facts">
@@ -213,7 +213,7 @@
               {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
             </p>
           {% endfor %}
-          <p class="help">{% translate "Le motif n'est exigé que si des bulletins papier attendent encore un contreseing (R-8.7 bis)." %}</p>
+          <p class="help">{% translate "Le motif n'est exigé que si des bulletins papier attendent encore un contreseing." %}</p>
           <button type="submit">{% translate "Clôturer le scrutin maintenant" %}</button>
         </form>
       {% else %}

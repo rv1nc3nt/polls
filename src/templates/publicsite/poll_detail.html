@@ -23,7 +23,7 @@
        already frozen (INV-6, same as `open`), so unlike a `draft` this is not
        provisional. {% endcomment %}
     <p class="status">{% blocktranslate with when=poll.opens_at|timezone:poll.timezone|date:"DATETIME_FORMAT" %}Ce scrutin n'est pas encore ouvert. Ouverture prévue le {{ when }}.{% endblocktranslate %}</p>
-    <p class="help">{% translate "La configuration ci-dessous est arrêtée et ne changera plus (R-3.3) ; seul le vote n'est pas encore ouvert." %}</p>
+    <p class="help">{% translate "La configuration ci-dessous est arrêtée et ne changera plus ; seul le vote n'est pas encore ouvert." %}</p>
   {% elif is_open %}
     <p class="status">{% translate "Consultation ouverte." %}</p>
   {% elif online_voting_closed %}
