@@ -63,9 +63,13 @@ Tests, lint and types:
 ## Installation
 
 `ansible/` is the supported path: a bare Debian VM to a running instance by
-editing one inventory file and running one command. A container image is the
-alternative. `contrib/init/` carries service files for systemd, OpenRC, FreeBSD
-and OpenBSD — **Debian is playbook-installed and tested in CI; the other
+editing one inventory file and running one command — see
+[`ansible/README.md`](ansible/README.md) and the full
+[guide de l'administrateur d'instance](docs/manuel/guide-administrateur.md)
+(French) for installation, deployment, backup, restore and supervision. A
+container image is the alternative, not yet built (see Build status below).
+`contrib/init/` carries service files for systemd, OpenRC, FreeBSD and
+OpenBSD — **Debian is playbook-installed and tested in CI; the other
 platforms are best effort, installation by hand.**
 
 ## Layout
@@ -84,7 +88,8 @@ platforms are best effort, installation by hand.**
     src/apps/publicsite/   Public pages (§6.6) and GET /sante
     verifier/              Independent Rust verifier; shares no code (§14)
     ansible/               Deployment (§15)
-    docs/                  Canonical serialisation, spec divergences
+    docs/                  Canonical serialisation, spec divergences,
+                           manuel/ (French user manual, all four roles)
 
 ## Properties that must not be broken
 
@@ -108,15 +113,15 @@ Implemented and tested — the four CI gates (`ruff`, `ruff format`,
 - the roll import (§6.1), the registration and review flow (§6.2), online
   casting and modification (§6.3), paper entry, correction, deletion and
   countersignature (§6.4);
-- all eleven back-office screens (§6.5), the public poll and results pages and
-  `GET /sante` (§6.6);
+- all fourteen back-office screens (§6.5), the public poll and results pages
+  and `GET /sante` (§6.6);
 - the management commands, with the locking and state-based selection §14
   requires, and the mail templates they send;
 - the `en` message catalogue (French is the msgid language);
 - the independent Rust verifier and its cross-check against the Python tally;
 - the Ansible role — `provision`, `deploy`, `backup`, `restore`, `smoke` (§15).
 
-Every acceptance test T-1…T-64 (§12) has a test or a Molecule scenario.
+Every acceptance test T-1…T-78 (§12) has a test or a Molecule scenario.
 
 Outstanding:
 
@@ -124,6 +129,13 @@ Outstanding:
   throwaway systemd host, not the pytest database — and **T-13**'s
   screen-reader pass stays a manual step before each poll opens (the
   keyboard-only half is automated).
+- **T-79 and T-80** (§3.1 bis, R-3.12 — Markdown/YouTube sanitisation of an
+  option's `details`, and the `OptionImage` freeze triggers) have no test yet,
+  though the features themselves are built.
+- The Ansible role's **backup and restore playbook covers only `db.sqlite3`**,
+  not `DJANGO_MEDIA_ROOT` (option images, the commune logo and favicon) — a
+  restore today leaves those references broken (`docs/spec-divergences.md`
+  #18).
 - No prebuilt **container image** or no-toolchain deployment guide yet, and no
   generated **third-party licence notice** (§14).
 - **RGAA conformance audit** of the markup (R-14.1) and an **email
