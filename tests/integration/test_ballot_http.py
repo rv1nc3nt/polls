@@ -266,6 +266,17 @@ def test_modifying_sends_no_mail(
 # --- No-modification poll (R-7.1, R-7.4 bis, T-48) --------------------------
 
 
+def test_r65_the_cast_page_warns_before_the_first_submission(
+    client: Client, no_modify_poll: Poll
+) -> None:
+    """R-6.5: said before submission, not only in the confirmation — it
+    changes what the voter is agreeing to, so it must be on the GET the voter
+    reads before ever posting a ranking."""
+    _registration, token = _register(no_modify_poll)
+    response = client.get(_access_url(no_modify_poll, token))
+    assert "définitif" in response.content.decode()
+
+
 def test_t48_no_modification_means_no_ballot_hash_and_a_spent_link(
     client: Client, no_modify_poll: Poll
 ) -> None:

@@ -72,6 +72,29 @@ def test_neither_models_module_imports_the_other() -> None:
         assert not any(name.startswith(forbidden) for name in imported), module
 
 
+def test_tally_package_imports_no_model_at_all() -> None:
+    """INV-9: the tally reads only ballots, never the register of electors —
+    and ``apps/tally/`` is documented (its own module docstring, CLAUDE.md) as
+    a pure package importing no model at all, not even ``Ballot``: callers
+    pass it plain rankings (§8's ``tally(ballots, method, params)``, "No I/O,
+    no clock, no randomness beyond the seeded tie-break"). Checked the same
+    way as INV-1's import graph: nothing short of reading every import stops a
+    future model creeping in here, since the functions would still type-check
+    against an ORM queryset. ``apps.py`` is Django's own app-registration
+    boilerplate, not part of that contract, and is excluded."""
+    for path in (SRC / "apps" / "tally").glob("*.py"):
+        if path.name in {"apps.py", "__init__.py"}:
+            continue
+        tree = ast.parse(path.read_text())
+        roots = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom) and node.module:
+                roots.add(node.module.split(".")[0])
+            elif isinstance(node, ast.Import):
+                roots.update(alias.name.split(".")[0] for alias in node.names)
+        assert "django" not in roots, f"{path} imports Django — no longer pure (§8, INV-9)"
+
+
 def test_no_value_is_common_to_a_registration_and_a_ballot_row() -> None:
     """T-25: in particular no tracking code, which is why the confirmation
     email carries none (§6.2)."""

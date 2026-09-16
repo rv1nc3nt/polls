@@ -519,3 +519,47 @@ def test_modify_is_refused_where_the_poll_forbids_it(open_window_poll: Poll) -> 
     assert cast.ballot.ballot_hash is None
     with pytest.raises(BallotRefused):
         services.modify(poll, services.online_ballot_hash(poll, token), [["b"], ["a"], ["c"]])
+
+
+# --- INV-11: tracking-code collisions on insert -----------------------------
+#
+# ``_insert`` re-rolls a fresh ``tracking_code`` on the ``(poll, tracking_code)``
+# collision (§3.4) rather than surfacing the database's own ``IntegrityError``;
+# with a 10-character, 32-symbol alphabet a real collision inside one poll is
+# never going to happen on its own; monkeypatching ``new_tracking_code`` is the
+# only way to exercise either the retry or its exhaustion.
+
+
+def test_a_tracking_code_collision_is_retried_and_the_ballot_still_lands(
+    open_paper_poll: Poll, operator: User, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    Ballot.objects.create(
+        poll=open_paper_poll, tracking_code="CLASHCLASH", version=1, ranking=STRICT, source="paper"
+    )
+    codes = iter(["CLASHCLASH", "FRESHFRESH"])
+    monkeypatch.setattr(services, "new_tracking_code", lambda: next(codes))
+
+    entry = _entry(open_paper_poll)
+    ballot = services.enter_paper(open_paper_poll, str(entry.pk), STRICT, str(operator.pk), "fr")
+
+    assert ballot.tracking_code == "FRESHFRESH"
+    with pytest.raises(StopIteration):
+        next(codes)  # exactly one collision, then the retry that succeeded
+
+
+def test_a_tracking_code_collision_exhausting_every_attempt_refuses_the_ballot(
+    open_paper_poll: Poll, operator: User, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    Ballot.objects.create(
+        poll=open_paper_poll, tracking_code="CLASHCLASH", version=1, ranking=STRICT, source="paper"
+    )
+    monkeypatch.setattr(services, "new_tracking_code", lambda: "CLASHCLASH")
+
+    entry = _entry(open_paper_poll)
+    with pytest.raises(BallotRefused):
+        services.enter_paper(open_paper_poll, str(entry.pk), STRICT, str(operator.pk), "fr")
+
+    # Nothing was left half-written: the elector's channel is still unset and
+    # no ``PaperBallotLink`` exists for an entry that never got a ballot.
+    assert Registration.objects.filter(poll=open_paper_poll, roll_entry=entry).count() == 0
+    assert not PaperBallotLink.objects.filter(poll=open_paper_poll, roll_entry=entry).exists()
