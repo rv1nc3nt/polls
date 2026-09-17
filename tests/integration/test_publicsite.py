@@ -29,7 +29,7 @@ from apps.core.models import User
 from apps.core.types import TrackingCode
 from apps.elections import closure
 from apps.elections.closure import live_ballots
-from apps.elections.models import Poll, PollOption, WorkingRollEntry
+from apps.elections.models import Poll, PollOption, PollState, WorkingRollEntry
 from apps.elections.transitions import (
     TransitionRefused,
     announce_poll,
@@ -251,6 +251,44 @@ def test_no_running_count_leaks_once_the_poll_is_closed(client: Client, db: None
     assert "Bulletins déposés" not in body
 
 
+def test_no_running_count_during_the_paper_keying_stretch_either(client: Client, db: None) -> None:
+    """R-11.5, the same gap divergences #14/#15 fixed for the rest of this
+    page: ``state`` still reads ``open`` between ``closes_at`` and
+    ``paper_entry_deadline`` — paper keying and countersignature legitimately
+    continue there — but online voting has already stopped, and a
+    still-updating count in that window is exactly the running-turnout
+    disclosure R-11.5 exists to prevent."""
+    now = timezone.now()
+    poll = Poll.objects.create(
+        title_i18n={"fr": "Aménagement de la place"},
+        description_i18n={"fr": "Trois propositions au choix."},
+        languages=["fr"],
+        opens_at=now - timedelta(days=2),
+        closes_at=now - timedelta(hours=1),
+        paper_entry_deadline=now + timedelta(days=1),
+        show_live_participation=True,
+    )
+    for position, option_id in enumerate(["a", "b", "c"]):
+        PollOption.objects.create(
+            poll=poll, option_id=option_id, label_i18n={"fr": option_id.upper()}, position=position
+        )
+    WorkingRollEntry.objects.create(
+        birth_name="Dupont",
+        first_names="Émile",
+        date_of_birth="12/05/1970",
+        date_of_birth_parsed="1970-05-12",
+        list_types=["principale"],
+    )
+    open_poll(poll)
+    poll = Poll.objects.get(pk=poll.pk)
+    assert poll.state == PollState.OPEN
+    _register(poll, "v1", channel=Channel.PAPER)
+
+    body = client.get(f"/fr/scrutin/{poll.pk}/").content.decode()
+    assert "Bulletins déposés" not in body
+    assert "Le vote en ligne est clos" in body
+
+
 # --- extension of the closing date (R-3.4, T-5) -----------------------
 
 
@@ -429,6 +467,13 @@ def test_t36_published_artefacts_cross_check(client: Client, db: None) -> None:
     by_code = {code: json.loads(ranking) for code, ranking in data}
     assert by_code[modified] == [["a"], ["c"], ["b"]]
     assert by_code[corrected] == [["b"], ["c"], ["a"]]
+
+    # R-11.2/11.4: the JSON document carries the same anonymised ballot list
+    # as the CSV, not just the derivation built from it — a third party
+    # fetching only the JSON artefact can still find a tracking code.
+    json_by_code = {row["tracking_code"]: row["ranking"] for row in document["ballots"]}
+    assert json_by_code == by_code
+    assert set(json_by_code) == live_codes
 
     # registered = online + paper + non-voters, over the active registrations.
     counts = document["counts"]

@@ -9,13 +9,17 @@ appears only where the poll is configured for it.
 
 from __future__ import annotations
 
+from datetime import timedelta
+
 import pytest
 from django.test import Client
+from django.utils import timezone
 
 from apps.ballots import services as ballots
-from apps.ballots.models import Ballot, BallotStatus
+from apps.ballots.models import Ballot, BallotStatus, PaperBallotLink
 from apps.core.models import PollRole, Role, User
-from apps.elections.models import Poll, RollEntry
+from apps.elections.models import Poll, PollOption, RollEntry, WorkingRollEntry
+from apps.elections.transitions import open_poll
 from apps.registrations.models import Channel, Registration, RegistrationState
 
 STRICT = {"order": "a,b,c", "rank_a": "1", "rank_b": "2", "rank_c": "3"}
@@ -41,6 +45,38 @@ def _base(poll: Poll) -> str:
 
 def _entry(poll: Poll) -> RollEntry:
     return RollEntry.objects.get(poll=poll)
+
+
+@pytest.fixture
+def bilingual_paper_poll(db: None) -> Poll:
+    """A poll enabling French and English, open for paper entry — the
+    ``receipt_language`` selector only renders where there is a real choice
+    (§3.8)."""
+    now = timezone.now()
+    poll = Poll.objects.create(
+        title_i18n={"fr": "Aménagement", "en": "Development"},
+        description_i18n={"fr": "Propositions.", "en": "Options."},
+        languages=["fr", "en"],
+        opens_at=now - timedelta(days=1),
+        closes_at=now + timedelta(days=1),
+        paper_entry_deadline=now + timedelta(days=1),
+    )
+    for position, option_id in enumerate(["a", "b", "c"]):
+        PollOption.objects.create(
+            poll=poll,
+            option_id=option_id,
+            label_i18n={"fr": option_id.upper(), "en": option_id.upper()},
+            position=position,
+        )
+    WorkingRollEntry.objects.create(
+        birth_name="Dupont",
+        first_names="Émile",
+        date_of_birth="12/05/1970",
+        date_of_birth_parsed="1970-05-12",
+        list_types=["principale"],
+    )
+    open_poll(poll)
+    return Poll.objects.get(pk=poll.pk)
 
 
 # --- Screen 5: saisie ----------------------------------------------------
@@ -69,6 +105,71 @@ def test_entry_operator_keys_a_paper_ballot_and_lands_on_the_receipt(
     assert "Code de suivi" in body
     assert "reste associé à votre identité" in body  # R-8.2 bis, no signed form
     assert Registration.objects.get(poll=open_paper_poll).channel == Channel.PAPER
+
+
+def test_the_receipt_language_is_the_operators_choice_not_their_browsing_locale(
+    client: Client, bilingual_paper_poll: Poll, op: User
+) -> None:
+    """§3.8: "the receipt for a paper ballot uses the language selected by
+    the operator at entry" — not ``request.LANGUAGE_CODE``, which answers a
+    different question (which translation of *this screen* the operator
+    sees). Requesting the French screen while choosing an English receipt
+    must store English, proving the two are no longer tied together."""
+    _grant(bilingual_paper_poll, op)
+    client.force_login(op)
+    entry = _entry(bilingual_paper_poll)
+
+    body = client.post(
+        f"{_base(bilingual_paper_poll)}/bulletin-papier/",
+        {"roll_entry": str(entry.pk), "q": "Dupont"},
+    ).content.decode()
+    assert 'name="receipt_language"' in body
+    assert '<option value="fr" selected>' in body
+
+    client.post(
+        f"{_base(bilingual_paper_poll)}/bulletin-papier/",
+        {
+            "roll_entry": str(entry.pk),
+            "action": "record",
+            "receipt_language": "en",
+            **STRICT,
+        },
+        follow=True,
+    )
+    link = PaperBallotLink.objects.get(poll=bilingual_paper_poll)
+    assert link.language == "en"
+
+
+def test_the_receipt_language_defaults_to_the_polls_default_language(
+    client: Client, bilingual_paper_poll: Poll, op: User
+) -> None:
+    """Omitting the field (or an unexpected value, e.g. a language this poll
+    never enabled) falls back to the poll's own default — never to whatever
+    the operator's browser happens to be showing."""
+    _grant(bilingual_paper_poll, op)
+    client.force_login(op)
+    entry = _entry(bilingual_paper_poll)
+
+    client.post(
+        f"{_base(bilingual_paper_poll)}/bulletin-papier/",
+        {"roll_entry": str(entry.pk), "action": "record", **STRICT},
+        follow=True,
+    )
+    link = PaperBallotLink.objects.get(poll=bilingual_paper_poll)
+    assert link.language == bilingual_paper_poll.default_language == "fr"
+
+
+def test_no_language_selector_where_the_poll_has_only_one(
+    client: Client, open_paper_poll: Poll, op: User
+) -> None:
+    _grant(open_paper_poll, op)
+    client.force_login(op)
+    entry = _entry(open_paper_poll)
+    body = client.post(
+        f"{_base(open_paper_poll)}/bulletin-papier/",
+        {"roll_entry": str(entry.pk), "q": "Dupont"},
+    ).content.decode()
+    assert 'name="receipt_language"' not in body
 
 
 def test_the_auditor_role_cannot_reach_the_entry_screen(

@@ -43,11 +43,20 @@
             </form>
           </td>
           <td>
-            <form method="post" class="inline danger">
-              {% csrf_token %}
-              <input type="hidden" name="template" value="{{ tpl.pk }}">
-              <button type="submit" name="action" value="delete">{% translate "Supprimer ce modèle" %}</button>
-            </form>
+            {% comment %}
+              R-2.4: the destructive action must not sit flush beside the
+              routine "Renommer" in the column next to it — a disclosure the
+              operator opens on purpose, same pattern as screen 10's
+              "Gérer ce compte" (account_admin.html).
+            {% endcomment %}
+            <details>
+              <summary>{% translate "Supprimer" %}</summary>
+              <form method="post" class="inline danger">
+                {% csrf_token %}
+                <input type="hidden" name="template" value="{{ tpl.pk }}">
+                <button type="submit" name="action" value="delete">{% translate "Supprimer ce modèle" %}</button>
+              </form>
+            </details>
           </td>
         </tr>
       {% empty %}

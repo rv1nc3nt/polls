@@ -23,7 +23,7 @@ from apps.audit.models import Action, AuditEvent
 from apps.core.models import Commune, PollRole, Role, User
 from apps.elections.models import Poll
 from apps.elections.transitions import open_poll
-from apps.registrations import services
+from apps.registrations import mail, services
 from apps.registrations.models import Channel, Registration, RegistrationState
 
 FORM = {
@@ -59,11 +59,17 @@ def test_the_form_states_the_privacy_notice_and_the_name_help(
     client: Client, live_poll: Poll
 ) -> None:
     """R-13.2 at the point of collection, and §6.2 step 1's help text: either
-    the birth surname or the name in use is accepted (R-5.3)."""
+    the birth surname or the name in use is accepted (R-5.3). All five
+    required elements: purpose, legal basis, retention, recipients, rights —
+    the referent's identity is pinned separately below, since it needs the
+    commune record installed."""
     body = client.get(f"/fr/inscription/{live_poll.pk}/").content.decode()
     assert "carte électorale" in body
     assert "nom d&#x27;usage" in body
-    assert "deux mois après la clôture" in body
+    assert "deux mois après la clôture" in body  # retention
+    assert "Base légale" in body  # legal basis
+    assert "Destinataires" in body  # recipients
+    assert "droits d'accès, de rectification et d'effacement" in body  # rights
 
 
 def test_the_privacy_notice_names_the_commune_referent_once_installed(
@@ -251,6 +257,29 @@ def test_r58_the_registration_endpoint_is_rate_limited(
     assert Registration.objects.count() == 2
 
 
+def test_r58_the_email_limit_binds_separately_from_the_registration_limit(
+    client: Client, live_poll: Poll
+) -> None:
+    """§6.2 step 9 names two limits, not one — `RATE_LIMIT_EMAIL` is
+    deliberately the tighter of the two (settings/base.py) so a client who
+    clears the registration limit with genuinely distinct roll matches still
+    cannot use this form to send more mail than the mail limit allows."""
+    from django.test import override_settings
+
+    with override_settings(RATE_LIMIT_REGISTRATION="10/1h", RATE_LIMIT_EMAIL="1/1h"):
+        client.post(
+            f"/fr/inscription/{live_poll.pk}/",
+            {**FORM, "last_name": "Un", "email": "un@example.fr"},
+        )
+        blocked = client.post(
+            f"/fr/inscription/{live_poll.pk}/",
+            {**FORM, "last_name": "Deux", "email": "deux@example.fr"},
+        )
+
+    assert "adresser à la mairie" in blocked.content.decode()
+    assert Registration.objects.count() == 1
+
+
 def test_the_limiter_stores_no_address(client: Client, live_poll: Poll) -> None:
     """R-13.5: addresses are kept only as long as rate-limiting requires, so
     the counter is keyed on a salted digest and nothing can reverse it."""
@@ -411,6 +440,40 @@ def test_t37_reminders_go_once_to_active_non_voters_only(live_poll: Poll) -> Non
     # T-49: a second run sends nothing, because the first stamped the row.
     call_command("send_reminders")
     assert len(django_mail.outbox) == 1
+    due.refresh_from_db()
+    assert due.reminder_sent_at is not None
+
+
+def test_a_reminder_that_fails_to_send_is_not_stamped_and_is_retried(
+    live_poll: Poll, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The stamp is written *before* the send precisely so that a failure —
+    here forced — rolls the stamp back along with it: a registration must
+    never end up ``reminder_sent_at`` set without a reminder having actually
+    gone out, or it is silently never reminded again."""
+    due = Registration.objects.create(
+        poll=live_poll,
+        declared_last_name="D",
+        declared_first_names="E",
+        declared_dob="01/01/1970",
+        email="flaky@example.fr",
+        email_canonical="flaky@example.fr",
+        state=RegistrationState.ACTIVE,
+        channel=Channel.NONE,
+    )
+
+    def _boom(registration: Registration) -> None:
+        raise RuntimeError("smtp exploded")
+
+    monkeypatch.setattr(mail, "send_reminder", _boom)
+    call_command("send_reminders")
+    assert len(django_mail.outbox) == 0
+    due.refresh_from_db()
+    assert due.reminder_sent_at is None
+
+    monkeypatch.undo()
+    call_command("send_reminders")
+    assert [message.to for message in django_mail.outbox] == [[due.email]]
     due.refresh_from_db()
     assert due.reminder_sent_at is not None
 

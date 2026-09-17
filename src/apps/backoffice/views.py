@@ -341,7 +341,7 @@ def poll_dashboard(request: HttpRequest, poll: Poll) -> HttpResponse:
     )
 
 
-@require_poll_role(Role.POLL_ADMIN)
+@require_poll_role(Role.POLL_ADMIN, Role.AUDITOR)
 def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
     """Screen 2 — configuration du scrutin (§6.5.2).
 
@@ -383,19 +383,24 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
     here either — except the countersignature override, which cron cannot
     supply and only a human can.
 
-    Four forms, never more than one live: the ``draft`` poll gets the
-    configuration editor (plus *annoncer* and *ouvrir maintenant*); every
-    other state gets the read-only view (plus *ouvrir maintenant* while
-    ``announced``, or the extension form and *clôturer maintenant* while
-    ``open``). The POST branch follows from ``poll.state`` and the ``action``
-    field, which also carries *enregistrer comme modèle* (§3.9) — available to
-    a commune admin in every state, not only ``draft``.
+    R-2.1 grants the auditor read-only access to this screen too — the poll
+    configuration is explicitly named alongside the anonymised ballot list
+    and the audit log. An auditor gets the same read-only rendering a
+    non-``draft`` poll already gives a poll admin (never the editable form,
+    even while the poll is still ``draft``, and never one of the action
+    forms below), and any POST is refused outright: this is the one screen
+    where "read-only" has to be enforced in the view itself rather than by
+    the absence of a button, since the decorator alone only proves the
+    operator holds *some* role on this poll.
     """
     languages = list(poll.languages) or [poll.default_language]
     on_post = request.method == "POST"
     action = request.POST.get("action", "") if on_post else ""
     operator = current_operator(request)
     commune_admin = is_commune_admin(request.user)
+    has_admin_role = Role.POLL_ADMIN in poll_roles(operator, poll)
+    if on_post and not has_admin_role:
+        raise PermissionDenied(_("Configuration en lecture seule pour ce rôle."))
 
     saving_template = action == "save_template"
     template_form = TemplateNameForm(request.POST if saving_template else None)
@@ -496,7 +501,7 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
         and not withdrawing
     )
 
-    if poll.state == PollState.DRAFT:
+    if poll.state == PollState.DRAFT and has_admin_role:
         form = PollConfigForm(
             request.POST if configuring else None,
             content_languages=languages,
@@ -539,7 +544,7 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
     voting_closed = online_voting_closed(poll)
     extension = (
         ExtensionForm(request.POST if configuring else None)
-        if poll.state == PollState.OPEN and not voting_closed
+        if has_admin_role and poll.state == PollState.OPEN and not voting_closed
         else None
     )
     if configuring and extension is not None and extension.is_valid():
@@ -556,7 +561,7 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
             messages.success(request, _("Date de clôture repoussée."))
             return redirect("backoffice:poll_config", poll_id=str(poll.pk))
 
-    can_withdraw = poll.state in (
+    can_withdraw = has_admin_role and poll.state in (
         PollState.ANNOUNCED,
         PollState.OPEN,
         PollState.CLOSED,
@@ -580,12 +585,16 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
             "poll": poll,
             "editable": False,
             "options": poll.options.all(),
-            "can_open_now": poll.state == PollState.ANNOUNCED,
+            "can_open_now": has_admin_role and poll.state == PollState.ANNOUNCED,
             "online_voting_closed": voting_closed,
             "extension": extension,
-            "closing_form": closing_form if poll.state == PollState.OPEN else None,
+            "closing_form": (
+                closing_form if has_admin_role and poll.state == PollState.OPEN else None
+            ),
             "can_close_now": (
-                poll.state == PollState.OPEN and poll.paper_entry_deadline <= timezone.now()
+                has_admin_role
+                and poll.state == PollState.OPEN
+                and poll.paper_entry_deadline <= timezone.now()
             ),
             "can_withdraw": can_withdraw,
             "withdrawal_form": withdrawal_form if can_withdraw else None,
@@ -593,6 +602,7 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
             "warnings": config_warnings(poll),
             "commune_admin": commune_admin,
             "template_form": template_form,
+            "read_only_draft": poll.state == PollState.DRAFT and not has_admin_role,
         },
     )
 
@@ -1046,13 +1056,23 @@ def paper_entry(request: HttpRequest, poll: Poll) -> HttpResponse:
     context["form"] = form
 
     if submitting and form.is_valid():
+        # §3.8: the receipt's language is the operator's own choice at entry,
+        # not whatever locale their browsing session happens to be under —
+        # `request.LANGUAGE_CODE` answers a different question (which
+        # translation of *this screen* to show the operator) and was
+        # previously used for both by mistake. Falls back to the poll's own
+        # default where the field is absent (a single-language poll offers
+        # no selector at all) or names a language the poll does not enable.
+        receipt_language = request.POST.get("receipt_language", "")
+        if receipt_language not in poll.languages:
+            receipt_language = poll.default_language
         try:
             ballot = ballots.enter_paper(
                 poll,
                 str(entry.pk),
                 form.cleaned_data["ranking"],
                 str(current_operator(request).pk),
-                request.LANGUAGE_CODE,
+                receipt_language,
                 identity_confirmed=bool(request.POST.get("identity_confirmed")),
                 note=request.POST.get("note", "").strip(),
             )
@@ -1224,13 +1244,18 @@ def countersign_queue(request: HttpRequest, poll: Poll) -> HttpResponse:
 # --- Screen 9: clôture et publication (§6.5.9, §9) ------------------------
 
 
-@require_poll_role(Role.POLL_ADMIN)
+@require_poll_role(Role.POLL_ADMIN, Role.AUDITOR)
 def results_publish(request: HttpRequest, poll: Poll) -> HttpResponse:
     """Screen 9 — closure hash, tally derivation, tie-break, publication (§9).
 
-    Poll admin only: publication is the admin's, not the entry operator's
-    (§3.7). No elector identity appears here — the counts are the ones frozen at
-    closure (§9) and the derivation is the pure tally of §8.
+    Poll admin and auditor: publication itself is the admin's, not the entry
+    operator's (§3.7) — but R-2.1 grants the auditor read-only access to
+    exactly what this screen shows once closed, the anonymised ballot list
+    (also the CSV/JSON artefacts below) and the derivation. Only the two POST
+    actions (recording a physical draw, publishing) require the admin role;
+    an auditor reaching either is a forged request, refused outright. No
+    elector identity appears here either way — the counts are the ones frozen
+    at closure (§9) and the derivation is the pure tally of §8.
 
     Before the poll is ``closed`` the screen only says why not and when it will
     close (the scheduled ``close_poll`` runs at ``paper_entry_deadline``, §4).
@@ -1262,6 +1287,8 @@ def results_publish(request: HttpRequest, poll: Poll) -> HttpResponse:
         return JsonResponse(closure.publication(poll), json_dumps_params={"ensure_ascii": False})
 
     if request.method == "POST":
+        if Role.POLL_ADMIN not in poll_roles(request.user, poll):
+            raise PermissionDenied(_("Publication réservée à l'administrateur du scrutin."))
         action = request.POST.get("action", "")
         if action == "record_tiebreak":
             order = request.POST.getlist("order")
@@ -1286,7 +1313,15 @@ def results_publish(request: HttpRequest, poll: Poll) -> HttpResponse:
     return render(
         request,
         "backoffice/results_publish.html",
-        {"poll": poll, "screen9": results_view.result_view(poll)},
+        {
+            "poll": poll,
+            "screen9": results_view.result_view(poll),
+            # R-2.1: the auditor's access here is read-only. Both action forms
+            # below are gated on this rather than only on the POST-time check
+            # above, so an auditor is never even offered a button their
+            # submission would refuse.
+            "can_act": Role.POLL_ADMIN in poll_roles(request.user, poll),
+        },
     )
 
 

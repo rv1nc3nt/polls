@@ -273,11 +273,17 @@ def test_t14_purge_keeps_everything_but_identity(db: None) -> None:
     assert dangling
     assert resolve_refs(dangling) == {dangling[0].object_ref: False}
 
-    # Idempotent: a re-run finds nothing left to delete.
+    # Idempotent: a re-run finds nothing left to delete, and — since it
+    # deleted nothing — logs no second RETENTION_PURGE event either. Without
+    # that second half, a scheduled `retention_purge` re-selecting this same
+    # poll every day thereafter (`due_polls` has no "already purged" marker
+    # to exclude on) would write an all-zero event forever, into a log with
+    # no delete path at all (INV-3).
     again = purge(poll)
     assert (again.registrations, again.roll_entries) == (0, 0)
     assert (again.paper_links, again.duplicate_attempts) == (0, 0)
     assert event_ids_before <= set(AuditEvent.objects.values_list("pk", flat=True))
+    assert AuditEvent.objects.filter(action=Action.RETENTION_PURGE, poll=poll).count() == 1
 
 
 # --- T-54 -----------------------------------------------------------------
@@ -543,7 +549,12 @@ def test_t76_a_poll_withdrawn_before_closure_purges_on_withdrawn_at(db: None) ->
     assert Poll.objects.get(pk=withdrawn.pk) in due_polls()
     report = purge(Poll.objects.get(pk=withdrawn.pk))
     assert report.roll_entries == 0  # never opened: no snapshot was ever taken
-    assert AuditEvent.objects.filter(action=Action.RETENTION_PURGE, poll=withdrawn).exists()
+    # Nothing at all to purge here — a poll withdrawn straight from
+    # `announced` never had a roll snapshot or a registration to begin with —
+    # so no RETENTION_PURGE event is logged either, matching the guard that
+    # keeps a poll re-selected by `due_polls` on every later run from writing
+    # a fresh, all-zero event forever.
+    assert not AuditEvent.objects.filter(action=Action.RETENTION_PURGE, poll=withdrawn).exists()
 
 
 def test_t76_a_poll_withdrawn_after_closure_keeps_the_closure_anchor(db: None) -> None:

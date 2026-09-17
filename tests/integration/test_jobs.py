@@ -22,6 +22,7 @@ from django.core.management import call_command
 from django.test import override_settings
 
 from apps.core.jobs import AlreadyRunning, job_lock
+from apps.core.models import JobRun
 from apps.elections.models import Poll, PollState
 
 
@@ -63,3 +64,27 @@ def test_t51_a_concurrent_open_poll_run_exits_0_and_touches_nothing(
     open_window_poll.refresh_from_db()
     assert open_window_poll.state == PollState.DRAFT
     assert open_window_poll.opening_seed is None
+
+
+def test_a_refused_open_poll_still_finalises_its_jobrun_row(
+    tmp_path: Path, open_window_poll: Poll
+) -> None:
+    """A refusal signals through ``raise SystemExit(EXIT_REFUSED)`` after
+    setting ``run.succeeded``/``run.detail`` (T-53) — and ``SystemExit`` is a
+    ``BaseException``, not an ``Exception``, so a narrower except clause in
+    ``job_lock`` would let it fall straight to ``finally`` without ever
+    calling ``save()``. The row this table exists to make a job observable by
+    must not be left ``succeeded=NULL`` forever, indistinguishable from one
+    still running."""
+    open_window_poll.languages = ["fr", "en"]
+    open_window_poll.save(update_fields=["languages"])
+
+    with override_settings(JOB_LOCK_DIR=tmp_path):
+        with pytest.raises(SystemExit) as exc_info:
+            call_command("open_poll")
+    assert exc_info.value.code == 1
+
+    run = JobRun.objects.filter(command="open_poll").latest("started_at")
+    assert run.succeeded is False
+    assert run.finished_at is not None
+    assert run.detail["refused"]

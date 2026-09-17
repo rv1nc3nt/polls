@@ -35,10 +35,18 @@ def register(request: HttpRequest, poll_id: str) -> HttpResponse:
     error = ""
 
     if request.method == "POST":
-        if not ratelimit.allow("registration", request, ratelimit.registration_limit()):
-            # R-5.8. Deliberately the same neutral wording as a duplicate: an
-            # attacker probing names and dates of birth learns nothing from
-            # being throttled either.
+        # R-5.8, §6.2 step 9: two separate limits, not one. `registration`
+        # bounds attempts at this form; `email` bounds the confirmation
+        # mail a successful one sends, and is deliberately the tighter of
+        # the two (settings/base.py) — an attacker who clears the first
+        # limit with genuinely distinct roll matches still cannot use this
+        # form to blast mail at whatever addresses those matches carry.
+        if not ratelimit.allow(
+            "registration", request, ratelimit.registration_limit()
+        ) or not ratelimit.allow("email", request, ratelimit.email_limit()):
+            # Deliberately the same neutral wording as a duplicate: an
+            # attacker probing names and dates of birth, or the mail limit
+            # itself, learns nothing from being throttled either.
             error = str(services.NEUTRAL_REFUSAL())
         elif form.is_valid():
             try:

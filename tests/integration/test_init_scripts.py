@@ -86,3 +86,35 @@ def test_t50_the_init_directory_holds_the_four_documented_files() -> None:
         "polls.rc.freebsd",
         "polls.rc.openbsd",
     } <= present
+
+
+def test_gunicorn_does_not_run_its_own_access_log() -> None:
+    """R-7.4 ter: nginx suppresses request-URI logging for ``/<lang>/bulletin/``
+    because those URLs carry a voter's plaintext token. Gunicorn sits behind
+    nginx and would log the same requests independently of that suppression —
+    its default access-log format includes the full request line — so
+    ``--access-logfile`` here would put the token in the journal regardless of
+    what the nginx config does. ``--error-logfile`` is unaffected: it is not a
+    per-request log."""
+
+    def _exec_start(text: str) -> str:
+        match = re.search(r"^ExecStart=.*?(?=\n\S|\n\n|\Z)", text, re.S | re.M)
+        assert match, "no ExecStart found"
+        return match.group(0)
+
+    unit_exec = _exec_start(_UNIT.read_text())
+    assert "--access-logfile" not in unit_exec
+    assert "--error-logfile" in unit_exec
+
+    ansible_exec = _exec_start(
+        (
+            Path(__file__).resolve().parents[2]
+            / "ansible"
+            / "roles"
+            / "polls"
+            / "templates"
+            / "polls.service.j2"
+        ).read_text()
+    )
+    assert "--access-logfile" not in ansible_exec
+    assert "--error-logfile" in ansible_exec

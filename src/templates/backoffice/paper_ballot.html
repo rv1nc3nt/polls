@@ -59,25 +59,36 @@
         </fieldset>
       </form>
 
-      <form method="post" class="decision__half">
-        {% csrf_token %}
-        <fieldset>
-          <legend>{% translate "Supprimer" %}</legend>
-          <p class="help">{% translate "La suppression retire le bulletin du décompte et rouvre le vote en ligne pour cet électeur. Le bulletin n'est jamais effacé physiquement." %}</p>
-          <p>
-            <label for="delete-reason">{% translate "Motif" %}</label>
-            <select id="delete-reason" name="reason">
-              <option value="">{% translate "— choisir —" %}</option>
-              {% for value, label in deletion_reasons %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
-            </select>
-          </p>
-          <p>
-            <label for="delete-note">{% translate "Note (facultative)" %}</label>
-            <input id="delete-note" type="text" name="note" maxlength="500">
-          </p>
-          <button type="submit" name="action" value="delete">{% translate "Supprimer le bulletin" %}</button>
-        </fieldset>
-      </form>
+      <div class="decision__half">
+        {% comment %}
+          R-2.4: deletion re-opens online voting for this elector (R-9.4) and
+          is materially more consequential than a correction — it must not
+          sit flush beside it as an equally-weighted option. A disclosure the
+          operator opens on purpose, same pattern as screen 10 and screen 13.
+        {% endcomment %}
+        <details>
+          <summary>{% translate "Supprimer" %}</summary>
+          <form method="post">
+            {% csrf_token %}
+            <fieldset>
+              <legend>{% translate "Supprimer" %}</legend>
+              <p class="help">{% translate "La suppression retire le bulletin du décompte et rouvre le vote en ligne pour cet électeur. Le bulletin n'est jamais effacé physiquement." %}</p>
+              <p>
+                <label for="delete-reason">{% translate "Motif" %}</label>
+                <select id="delete-reason" name="reason">
+                  <option value="">{% translate "— choisir —" %}</option>
+                  {% for value, label in deletion_reasons %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+                </select>
+              </p>
+              <p>
+                <label for="delete-note">{% translate "Note (facultative)" %}</label>
+                <input id="delete-note" type="text" name="note" maxlength="500">
+              </p>
+              <button type="submit" name="action" value="delete">{% translate "Supprimer le bulletin" %}</button>
+            </fieldset>
+          </form>
+        </details>
+      </div>
     </section>
   {% else %}
     <p class="notice">{% translate "Ce bulletin ne peut plus être modifié dans son état actuel." %}</p>

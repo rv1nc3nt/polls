@@ -198,6 +198,15 @@ def publication(poll: Poll) -> dict[str, Any]:
         "counts": poll.frozen_counts,
         "closure_override_reason": poll.closure_override_reason,
         "options": {o.option_id: o.label_i18n for o in poll.options.all()},
+        # R-11.2 requires the anonymised ballot list in *both* CSV and JSON
+        # form — not just the derivation built from it — so that a third party
+        # who fetches only the JSON artefact can still find their own tracking
+        # code and recompute the result (R-11.4). Same rows, same order and the
+        # same in-group sort as `published_csv`, so the two artefacts agree.
+        "ballots": [
+            {"tracking_code": str(b.tracking_code), "ranking": [sorted(g) for g in b.ranking]}
+            for b in sorted(ballots, key=lambda b: str(b.tracking_code))
+        ],
         "ballot_count": len(ballots),
         "winner": result.winner,
         "matrix": result.matrix,

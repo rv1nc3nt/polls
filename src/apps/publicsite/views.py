@@ -152,8 +152,20 @@ def _live_participation(poll: Poll) -> dict[str, int] | None:
     and belong to the publication, not this page. Counted from
     ``Registration.channel`` (INV-5), never from ballots, and never broken down
     further than the two channels.
+
+    ``state`` alone is not enough, the same gap divergences #14/#15 fixed for
+    the rest of this page: ``state`` still reads ``open`` through the whole
+    paper-keying stretch after ``closes_at``, during which online voting has
+    already stopped but paper ballots keep landing. Showing a still-updating
+    count there is exactly the running-turnout-during-the-vote disclosure
+    R-11.5 exists to prevent, even though the online electorate itself can no
+    longer act on it.
     """
-    if not (poll.show_live_participation and poll.state == PollState.OPEN):
+    if not (
+        poll.show_live_participation
+        and poll.state == PollState.OPEN
+        and not windows.online_voting_closed(poll)
+    ):
         return None
     active = Registration.objects.filter(poll=poll, state=RegistrationState.ACTIVE)
     online = active.filter(channel=Channel.ONLINE).count()

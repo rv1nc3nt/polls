@@ -61,10 +61,19 @@ def job_lock(name: str) -> Iterator[JobRun]:
     run = JobRun.objects.create(command=name)
     try:
         yield run
-    except Exception:
+    except BaseException:
+        # A deliberate refusal (T-53, T-57) signals through ``raise
+        # SystemExit(EXIT_REFUSED)`` after setting ``run.succeeded``/``run.detail``
+        # on this object — and ``SystemExit`` is a ``BaseException``, not an
+        # ``Exception``, so a narrower clause here would fall straight through to
+        # ``finally`` without ever calling ``save()``. That left a refused run's
+        # ``JobRun`` row indistinguishable in the database from one still in
+        # progress: the row this table exists to make observable stays
+        # ``succeeded=NULL`` forever. ``detail`` is saved here too, since a
+        # refusal has already populated it with the blockers before raising.
         run.succeeded = False
         run.finished_at = timezone.now()
-        run.save(update_fields=["succeeded", "finished_at"])
+        run.save(update_fields=["succeeded", "finished_at", "detail"])
         raise
     else:
         if run.succeeded is None:

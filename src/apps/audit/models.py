@@ -51,7 +51,6 @@ class Action(models.TextChoices):
     PAPER_BALLOT_CORRECTED = "paper_ballot_corrected", _("bulletin papier rectifié")
     PAPER_BALLOT_DELETED = "paper_ballot_deleted", _("bulletin papier supprimé")
     PAPER_BALLOT_COUNTERSIGNED = "paper_ballot_countersigned", _("bulletin contresigné")
-    CHANNEL_COLLISION_OVERRIDE = "channel_collision_override", _("collision de canal forcée")
     CLOSURE_OVERRIDE = "closure_override", _("clôture forcée")
     TALLY_RUN = "tally_run", _("dépouillement effectué")
     TIEBREAK_ENTERED = "tiebreak_entered", _("tirage au sort physique saisi")

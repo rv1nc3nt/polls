@@ -50,11 +50,19 @@ class Command(JobCommand):
             # at a time: a crash mid-run leaves the ones already sent stamped,
             # so the next invocation sends the remainder and nobody is reminded
             # twice (T-37, T-49). One bad address costs one reminder, not the run.
+            #
+            # The stamp is written *before* the send, not after: SMTP has no
+            # transaction of its own, so the only way to guarantee "stamped
+            # implies sent, and unsent implies unstamped" is to let a send
+            # failure unwind the stamp via this block's own rollback. The
+            # reverse order (send, then stamp) left a real gap — a `.save()`
+            # failing after a genuinely delivered reminder recorded nothing,
+            # so the next run resent it to the same address.
             try:
                 with transaction.atomic():
-                    mail.send_reminder(registration)
                     registration.reminder_sent_at = timezone.now()
                     registration.save(update_fields=["reminder_sent_at"])
+                    mail.send_reminder(registration)
             except Exception:
                 failed += 1
                 logger.exception("reminder failed for registration %s", registration.pk)

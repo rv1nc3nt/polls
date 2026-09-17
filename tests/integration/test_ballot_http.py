@@ -111,6 +111,32 @@ def test_an_invalid_token_is_a_dead_end_without_a_stack_trace(
     response = client.get(f"/fr/bulletin/{live_poll.pk}/acces/NOTATOKEN/")
     assert response.status_code == 404
     assert "Lien non valide" in response.content.decode()
+    assert response["Referrer-Policy"] == "no-referrer"
+    assert response["Cache-Control"] == "no-store"
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "acces/SOMETOKEN/",
+        "modifier/",
+        "recu/",
+        "info/mairie/",
+    ],
+)
+def test_a_nonexistent_poll_still_gets_the_token_route_headers_on_its_404(
+    client: Client, path: str, db: None
+) -> None:
+    """A stale or mistyped link, or a poll since marked ``is_sandbox``, is a
+    plain 404 from ``_reachable_poll_or_404`` — raised before any view body's
+    own ``tokensession.protect`` call runs. The URL still names a token (or
+    is a route that only ever carries one), so R-7.4 ter's headers belong on
+    this response exactly as much as on any other."""
+    missing = "00000000-0000-0000-0000-000000000000"
+    response = client.get(f"/fr/bulletin/{missing}/{path}")
+    assert response.status_code == 404
+    assert response["Referrer-Policy"] == "no-referrer"
+    assert response["Cache-Control"] == "no-store"
 
 
 def test_the_session_never_holds_the_token(client: Client, live_poll: Poll) -> None:

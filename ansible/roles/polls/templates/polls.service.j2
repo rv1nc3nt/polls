@@ -13,10 +13,16 @@ User={{ polls_user }}
 Group={{ polls_group }}
 EnvironmentFile={{ polls_config_dir }}/polls.env
 WorkingDirectory={{ polls_prefix }}/current
+# No --access-logfile: nginx already logs every request (nginx-vhost.conf.j2),
+# with the /<lang>/bulletin/ prefix deliberately excluded there because its
+# URLs carry a voter's plaintext token (R-7.4 ter). Gunicorn sits behind nginx
+# and would log independently of that suppression — its default access-log
+# format includes the full request line — so enabling it here would put the
+# token in the journal regardless of what the nginx config does.
 ExecStart={{ polls_prefix }}/current/.venv/bin/gunicorn config.wsgi:application \
     --chdir {{ polls_prefix }}/current \
     --bind {{ polls_bind }} --workers {{ polls_gunicorn_workers }} \
-    --access-logfile - --error-logfile -
+    --error-logfile -
 ExecReload=/bin/kill -HUP $MAINPID
 Restart=on-failure
 RestartSec=5

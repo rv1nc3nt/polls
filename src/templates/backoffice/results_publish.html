@@ -143,26 +143,30 @@
           runs the physical draw and records its outcome here; it is logged as
           TIEBREAK_ENTERED and publication is refused until it is entered.
         {% endcomment %}
-        <p class="notice">{% translate "Effectuez le tirage au sort physique, puis saisissez son résultat. La publication est bloquée tant qu'il n'est pas saisi." %}</p>
-        <form method="post">
-          {% csrf_token %}
-          <input type="hidden" name="action" value="record_tiebreak">
-          <fieldset>
-            <legend>{% translate "Ordre du tirage au sort (1 = gagnant)" %}</legend>
-            {% for option in screen9.tied %}
-              <p class="field">
-                <label for="order-{{ forloop.counter }}">{% blocktranslate with n=forloop.counter %}Rang {{ n }}{% endblocktranslate %}</label>
-                <select id="order-{{ forloop.counter }}" name="order" required>
-                  <option value="">{% translate "— choisir —" %}</option>
-                  {% for choice in screen9.tied %}
-                    <option value="{{ choice.option_id }}">{{ choice.label }} ({{ choice.option_id }})</option>
-                  {% endfor %}
-                </select>
-              </p>
-            {% endfor %}
-          </fieldset>
-          <button type="submit">{% translate "Enregistrer le résultat du tirage" %}</button>
-        </form>
+        {% if can_act %}
+          <p class="notice">{% translate "Effectuez le tirage au sort physique, puis saisissez son résultat. La publication est bloquée tant qu'il n'est pas saisi." %}</p>
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="record_tiebreak">
+            <fieldset>
+              <legend>{% translate "Ordre du tirage au sort (1 = gagnant)" %}</legend>
+              {% for option in screen9.tied %}
+                <p class="field">
+                  <label for="order-{{ forloop.counter }}">{% blocktranslate with n=forloop.counter %}Rang {{ n }}{% endblocktranslate %}</label>
+                  <select id="order-{{ forloop.counter }}" name="order" required>
+                    <option value="">{% translate "— choisir —" %}</option>
+                    {% for choice in screen9.tied %}
+                      <option value="{{ choice.option_id }}">{{ choice.label }} ({{ choice.option_id }})</option>
+                    {% endfor %}
+                  </select>
+                </p>
+              {% endfor %}
+            </fieldset>
+            <button type="submit">{% translate "Enregistrer le résultat du tirage" %}</button>
+          </form>
+        {% else %}
+          <p class="notice">{% translate "Résultat du tirage au sort physique en attente de saisie par l'administrateur du scrutin." %}</p>
+        {% endif %}
       {% endif %}
     </section>
   {% endif %}
@@ -184,13 +188,15 @@
       </ul>
       {% if screen9.pending_physical_tiebreak %}
         <p class="notice">{% translate "Publication impossible : le résultat du tirage au sort physique n'est pas saisi." %}</p>
-      {% else %}
+      {% elif can_act %}
         <form method="post">
           {% csrf_token %}
           <input type="hidden" name="action" value="publish">
           <p class="help">{% translate "La publication est définitive et rend les résultats accessibles publiquement. Elle est inscrite au journal d'audit." %}</p>
           <button type="submit">{% translate "Publier les résultats" %}</button>
         </form>
+      {% else %}
+        <p class="notice">{% translate "Publication en attente de l'administrateur du scrutin." %}</p>
       {% endif %}
     {% endif %}
   </section>

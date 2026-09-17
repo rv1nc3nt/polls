@@ -511,13 +511,39 @@ def test_extend_closes_at_refuses_once_online_voting_has_actually_closed(
 # --- the gate (§3.7) ------------------------------------------------------
 
 
-def test_an_auditor_cannot_reach_the_configuration_screen(
+def test_an_auditor_reads_the_configuration_screen_but_cannot_post_to_it(
     client: Client, open_window_poll: Poll, admin_user: User
 ) -> None:
-    """Configuration is the poll admin's, not the auditor's (§3.7)."""
+    """R-2.1 names the poll configuration among the auditor's read-only
+    access, alongside the ballot list and the audit log — not the poll
+    admin's alone (§3.7). Reading succeeds; any POST is a forged request."""
+    open_poll(open_window_poll)
     _grant(open_window_poll, admin_user, Role.AUDITOR)
     client.force_login(admin_user)
-    assert client.get(_url(open_window_poll)).status_code == 403
+    response = client.get(_url(open_window_poll))
+    assert response.status_code == 200
+    assert response.context["editable"] is False
+    body = response.content.decode()
+    # Never one of the action forms — read-only means no button, not just a
+    # refused submit — even though the poll is `open` here.
+    assert 'name="action" value="close_poll"' not in body
+    assert 'name="action" value="withdraw_poll"' not in body
+
+    assert client.post(_url(open_window_poll), {"action": "withdraw_poll"}).status_code == 403
+
+
+def test_an_auditor_reads_a_draft_poll_read_only_too(
+    client: Client, open_window_poll: Poll, admin_user: User
+) -> None:
+    """A `draft` poll is genuinely editable (R-3.3) — just not by this role.
+    The auditor never gets the editable form, draft included."""
+    assert open_window_poll.state == PollState.DRAFT
+    _grant(open_window_poll, admin_user, Role.AUDITOR)
+    client.force_login(admin_user)
+    response = client.get(_url(open_window_poll))
+    assert response.status_code == 200
+    assert response.context["editable"] is False
+    assert client.post(_url(open_window_poll), {"action": "open_poll"}).status_code == 403
 
 
 def test_the_dashboard_links_to_the_configuration_screen(

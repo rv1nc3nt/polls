@@ -56,7 +56,12 @@ _YOUTUBE_URL_LINE = re.compile(
     r"[ \t]*$",
     re.MULTILINE,
 )
-_IMAGE_REF = re.compile(r"\(image:([0-9a-fA-F-]{36})\)")
+#: Only the image syntax §3.1 bis names, ``![alt](image:<uuid>)`` — not a bare
+#: ``(image:<uuid>)`` inside an ordinary link like ``[text](image:<uuid>)``,
+#: which the unanchored form used to match too. Harmless in practice (the
+#: resolved target is always this option's own self-hosted file), but wider
+#: than the syntax the spec and T-79 describe.
+_IMAGE_REF = re.compile(r"!\[([^\]]*)\]\(image:([0-9a-fA-F-]{36})\)")
 
 _ALLOWED_TAGS = {
     "p",
@@ -106,9 +111,15 @@ def render_option_details(option: PollOption, language: str | None = None) -> Sa
             return match.group(0)
         return _embed_token(video_id)
 
-    text = _YOUTUBE_BLOCK.sub(_extract_embed, raw)
+    # Images resolved first, matching the fixed order §3.1 bis specifies: each
+    # step closes off a category of untrusted input before the next is given
+    # a chance to reopen it. Inert either way today — a resolved image URL
+    # can never itself satisfy `_YOUTUBE_URL_LINE`'s "alone on its own line"
+    # test — but a future change to either pattern should not have to
+    # rediscover that the order was supposed to matter.
+    text = _IMAGE_REF.sub(lambda m: _resolve_image(option, m), raw)
+    text = _YOUTUBE_BLOCK.sub(_extract_embed, text)
     text = _YOUTUBE_URL_LINE.sub(_extract_url_embed, text)
-    text = _IMAGE_REF.sub(lambda m: _resolve_image(option, m), text)
 
     html = _markdown.markdown(text)
     clean = nh3.clean(
@@ -127,14 +138,15 @@ def render_option_details(option: PollOption, language: str | None = None) -> Sa
 
 
 def _resolve_image(option: PollOption, match: re.Match[str]) -> str:
+    alt = match.group(1)
     try:
-        image_id = uuid.UUID(match.group(1))
+        image_id = uuid.UUID(match.group(2))
     except ValueError:
         return ""
     image = OptionImage.objects.filter(pk=image_id, option=option).first()
     if image is None:
         return ""
-    return f"({image.file.url})"
+    return f"![{alt}]({image.file.url})"
 
 
 def _youtube_iframe(video_id: str) -> str:

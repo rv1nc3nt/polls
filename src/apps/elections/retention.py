@@ -104,18 +104,25 @@ def purge(poll: Poll) -> PurgeReport:
         paper_links=links,
         duplicate_attempts=attempts,
     )
-    audit.record(
-        action=Action.RETENTION_PURGE,
-        poll=poll,
-        object_ref=audit.ref(poll),
-        after={
-            "registrations": registrations,
-            "roll_entries": roll_entries,
-            "paper_links": links,
-            "duplicate_attempts": attempts,
-        },
-        reason=Reason.DEADLINE_REACHED,
-    )
+    # ``due_polls`` has no "already purged" marker to exclude on, so a poll
+    # stays selected on every run after its anchor ages past the retention
+    # window. Logging unconditionally would write a fresh, all-zero
+    # RETENTION_PURGE event every day for the rest of the instance's life —
+    # into a log with no delete path at all (INV-3). Mirrors the same guard on
+    # ``purge_working_roll`` below.
+    if registrations or roll_entries or links or attempts:
+        audit.record(
+            action=Action.RETENTION_PURGE,
+            poll=poll,
+            object_ref=audit.ref(poll),
+            after={
+                "registrations": registrations,
+                "roll_entries": roll_entries,
+                "paper_links": links,
+                "duplicate_attempts": attempts,
+            },
+            reason=Reason.DEADLINE_REACHED,
+        )
     return report
 
 

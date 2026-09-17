@@ -22,6 +22,10 @@ view writes through the ORM.
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from functools import wraps
+from typing import Any
+
 from django.db import transaction
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -55,6 +59,25 @@ def _reachable_poll_or_404(poll_id: str) -> Poll:
     return get_object_or_404(Poll.objects.filter(is_sandbox=False), pk=poll_id)
 
 
+def _protect_404(view: Callable[..., HttpResponse]) -> Callable[..., HttpResponse]:
+    """R-7.4 ter's two headers belong on *every* response one of these routes
+    can produce, a 404 included — the URL still names a token (or a poll id
+    that does not resolve) regardless of what the view decides to answer.
+    ``_reachable_poll_or_404`` raises before any view body's own
+    ``tokensession.protect`` calls run, and with no poll to render a page
+    for there is nothing view-specific to fall back to either — hence the
+    generic 404 template, protected the same way as everything else here."""
+
+    @wraps(view)
+    def wrapped(request: HttpRequest, poll_id: str, *args: Any, **kwargs: Any) -> HttpResponse:
+        try:
+            return view(request, poll_id, *args, **kwargs)
+        except Http404:
+            return tokensession.protect(render(request, "404.html", status=404))
+
+    return wrapped
+
+
 def _ranking_display(poll: Poll, ranking: list[list[str]], language: str) -> list[str]:
     """``["1. A", "2. B = C"]`` for the receipt page — option labels, never ids
     on screen (§3.8)."""
@@ -72,6 +95,7 @@ def _to_notice(poll: Poll, kind: str) -> HttpResponse:
     return tokensession.protect(redirect("ballots:notice", poll_id=str(poll.pk), kind=kind))
 
 
+@_protect_404
 def access(request: HttpRequest, poll_id: str, token: str) -> HttpResponse:
     """The link from the confirmation mail (§6.2 step 7, §6.3)."""
     poll = _reachable_poll_or_404(poll_id)
@@ -145,6 +169,7 @@ def access(request: HttpRequest, poll_id: str, token: str) -> HttpResponse:
     return tokensession.protect(render(request, "ballots/cast.html", {"poll": poll, "form": form}))
 
 
+@_protect_404
 def modify(request: HttpRequest, poll_id: str) -> HttpResponse:
     """The token-free modification page (§6.3, R-7.1).
 
@@ -187,6 +212,7 @@ def modify(request: HttpRequest, poll_id: str) -> HttpResponse:
     )
 
 
+@_protect_404
 def receipt(request: HttpRequest, poll_id: str) -> HttpResponse:
     """The summary shown after a cast or modification (R-6.4).
 
@@ -208,6 +234,7 @@ def receipt(request: HttpRequest, poll_id: str) -> HttpResponse:
     return tokensession.protect(render(request, "ballots/receipt.html", context))
 
 
+@_protect_404
 def notice(request: HttpRequest, poll_id: str, kind: str) -> HttpResponse:
     """The token-free dead-end pages: paper elector, spent link, closed poll."""
     poll = _reachable_poll_or_404(poll_id)

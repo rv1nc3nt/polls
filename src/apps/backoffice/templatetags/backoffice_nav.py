@@ -116,12 +116,16 @@ _POLL_MENU: tuple[_Group, ...] = (
         _("Scrutin"),
         (
             _Item(_("Tableau de bord"), "dashboard", icon="dashboard"),
-            _Item(_("Configuration"), "poll_config", (_POLL_ADMIN,), icon="config"),
+            # R-2.1 grants the auditor read-only access to the configuration
+            # too, alongside the ballot list and the audit log; poll_config
+            # itself renders read-only for that role regardless of state.
+            _Item(_("Configuration"), "poll_config", (_POLL_ADMIN, _AUDITOR), icon="config"),
             # Read-only (§3.2, R-2.1): what is imported and when, never an
             # import action — that is the general "Liste électorale" above,
             # not something a poll submenu offers (docs/spec-divergences.md
-            # #11).
-            _Item(_("Liste électorale"), "roll_status", (_POLL_ADMIN,), icon="roll"),
+            # #11). The auditor holds this role too (R-4.4, T-65) — omitting
+            # it from `roles` here hid a screen the view already let them open.
+            _Item(_("Liste électorale"), "roll_status", (_POLL_ADMIN, _AUDITOR), icon="roll"),
             _Item(
                 _("Inscriptions"),
                 "registration_queue",
@@ -159,7 +163,10 @@ _POLL_MENU: tuple[_Group, ...] = (
     ),
     _Group(
         _("Résultats"),
-        (_Item(_("Dépouillement"), "results_publish", (_POLL_ADMIN,), icon="tally"),),
+        # R-2.1: read-only for the auditor here too, once the poll is closed —
+        # the anonymised ballot list this screen shows (and its CSV/JSON) is
+        # named in the same breath as the audit log.
+        (_Item(_("Dépouillement"), "results_publish", (_POLL_ADMIN, _AUDITOR), icon="tally"),),
     ),
     _Group(
         _("Suivi"),

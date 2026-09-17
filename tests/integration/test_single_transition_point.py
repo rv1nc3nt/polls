@@ -52,3 +52,47 @@ def test_only_the_transition_module_assigns_poll_state() -> None:
         "state is assigned outside apps.elections.transitions: "
         f"{[str(p.relative_to(SRC)) for p in offenders]}"
     )
+
+
+def test_the_reference_table_matches_the_triggers_real_enforcement() -> None:
+    """``transitions.TRANSITIONS`` is documentation, not enforcement — the
+    ``poll_state_irreversible`` trigger is what actually holds (its own
+    migration comment says so). Nothing previously checked the two stayed in
+    step, so the dict could drift silently from the trigger it describes the
+    moment either one gained an edge the other didn't.
+
+    Reads the trigger's SQL directly from the latest migration that redefines
+    it, rather than hitting a live database, so this stays a pure, DB-free
+    check of the two source texts against each other.
+    """
+    import re
+
+    from apps.elections.transitions import TRANSITIONS
+
+    migrations_dir = SRC / "apps" / "elections" / "migrations"
+    # The trigger is dropped and redefined by several migrations along the way
+    # (0002, 0006, 0007 — see 0006/0007's own comments on why SQLite forces
+    # this dance) but not by every migration since; the current definition is
+    # whichever of those that actually redefines it sorts last, not simply the
+    # newest migration file in the app.
+    candidates = sorted(p for p in migrations_dir.glob("*.py") if re.match(r"\d{4}_", p.name))
+    defining = [p for p in candidates if "CREATE TRIGGER poll_state_irreversible" in p.read_text()]
+    assert defining, "no migration defines poll_state_irreversible"
+    latest = defining[-1]
+    sql = latest.read_text()
+
+    edges = set(
+        re.findall(
+            r"OLD\.state = '(\w+)'\s+AND NEW\.state = '(\w+)'",
+            sql,
+        )
+    )
+    assert edges, f"no poll_state_irreversible edges found in {latest.name}"
+
+    from_dict = {
+        (str(source), str(target)) for source, targets in TRANSITIONS.items() for target in targets
+    }
+    assert from_dict == edges, (
+        f"TRANSITIONS and the {latest.name} trigger disagree: "
+        f"only in TRANSITIONS: {from_dict - edges}; only in the trigger: {edges - from_dict}"
+    )

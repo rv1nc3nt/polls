@@ -90,7 +90,12 @@
     an operator can consult it; the only change still permitted is R-3.4's
     extension of the closing date, offered below while the poll is open.
   {% endcomment %}
-  {% if poll.state == "withdrawn" %}
+  {% if read_only_draft %}
+    {% comment %} R-2.1: the auditor's read access to this screen is read-only by
+       design, not by the poll's own state — a still-`draft` poll is genuinely
+       editable, just not by this role. {% endcomment %}
+    <p class="notice">{% translate "Le scrutin est en brouillon. Cette configuration reste modifiable par l'administrateur du scrutin ; ce rôle n'y a accès qu'en lecture." %}</p>
+  {% elif poll.state == "withdrawn" %}
     {% comment %}
       R-3.11: this screen is the withdrawn poll's only remaining view —
       everything below is what was already frozen, kept visible to the poll
@@ -230,20 +235,28 @@
         any time, with a mandatory reason. Unlike opening and closing, nothing
         schedules this — it exists solely as the poll admin's own action, and
         it is irreversible: no further transition follows it.
+
+        R-2.4: irreversible, unlike every other action on this screen, so it
+        must not sit flush beside *annoncer*/*ouvrir*/*reporter*/*clôturer*
+        as one more routine option in the same list — a disclosure the
+        operator opens on purpose, same pattern as screens 6, 10 and 13.
       {% endcomment %}
-      <p class="help">{% translate "Retire ce scrutin du site public, immédiatement et irréversiblement : plus rien de lui — propositions, calendrier, participation, résultat déjà publié le cas échéant — n'y reste visible. Les bulletins et le journal d'audit sont conservés." %}</p>
-      <form method="post" class="danger">
-        {% csrf_token %}
-        <input type="hidden" name="action" value="withdraw_poll">
-        {% for field in withdrawal_form %}
-          <p class="field">
-            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-            {{ field }}
-            {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
-          </p>
-        {% endfor %}
-        <button type="submit">{% translate "Retirer le scrutin" %}</button>
-      </form>
+      <details>
+        <summary>{% translate "Retirer le scrutin" %}</summary>
+        <p class="help">{% translate "Retire ce scrutin du site public, immédiatement et irréversiblement : plus rien de lui — propositions, calendrier, participation, résultat déjà publié le cas échéant — n'y reste visible. Les bulletins et le journal d'audit sont conservés." %}</p>
+        <form method="post" class="danger">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="withdraw_poll">
+          {% for field in withdrawal_form %}
+            <p class="field">
+              <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {{ field }}
+              {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+            </p>
+          {% endfor %}
+          <button type="submit">{% translate "Retirer le scrutin" %}</button>
+        </form>
+      </details>
     </section>
   {% endif %}
 

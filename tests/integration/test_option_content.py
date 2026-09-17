@@ -153,6 +153,30 @@ def test_image_reference_resolves_only_to_its_own_option(open_window_poll: Poll)
     image.file.delete(save=False)
 
 
+def test_a_plain_link_to_an_image_id_is_never_resolved(open_window_poll: Poll) -> None:
+    """§3.1 bis names one syntax, ``![alt](image:<uuid>)`` — an ordinary link
+    written as ``[text](image:<uuid>)`` is not a request to embed an image
+    and must stay exactly what it looks like, an unresolved link."""
+    option = open_window_poll.options.first()
+    assert option is not None
+    image = OptionImage.objects.create(
+        option=option, content_type="image/png", content_hash="b" * 64
+    )
+    image.file.save("b.png", SimpleUploadedFile("b.png", _PNG), save=True)
+
+    option.details_i18n = {"fr": f"[voir](image:{image.pk})"}
+    option.save(update_fields=["details_i18n"])
+    html = optioncontent.render_option_details(option)
+    assert image.file.url not in html
+    # The link survives as text; only its `href` is dropped, by the
+    # sanitiser's ordinary http/https-only scheme rule (§3.1 bis step 3) —
+    # not because anything here recognised `image:` as an embed request.
+    assert "voir" in html
+    assert 'href="image:' not in html
+
+    image.file.delete(save=False)
+
+
 def test_image_reference_to_a_missing_id_degrades_quietly(open_window_poll: Poll) -> None:
     option = open_window_poll.options.first()
     assert option is not None

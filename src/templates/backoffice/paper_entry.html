@@ -68,6 +68,21 @@
           <input id="note" type="text" name="note" maxlength="500">
         </p>
 
+        {% if poll.languages|length > 1 %}
+          {% comment %} §3.8: "the receipt for a paper ballot uses the language selected
+             by the operator at entry, defaulting to the poll default" — an explicit
+             choice, not whatever locale the operator's own browsing session happens
+             to be under. Offered only where the poll actually has more than one. {% endcomment %}
+          <p class="field">
+            <label for="receipt_language">{% translate "Langue du récépissé" %}</label>
+            <select id="receipt_language" name="receipt_language">
+              {% for code in poll.languages %}
+                <option value="{{ code }}"{% if code == poll.default_language %} selected{% endif %}>{{ code }}</option>
+              {% endfor %}
+            </select>
+          </p>
+        {% endif %}
+
         <button type="submit" name="action" value="record">{% translate "Enregistrer le bulletin papier" %}</button>
       </form>
       {% endif %}

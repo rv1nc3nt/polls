@@ -122,6 +122,27 @@ def test_an_entry_operator_cannot_reach_the_screen(
     assert client.get(_url(closed_poll)).status_code == 403
 
 
+def test_an_auditor_reads_the_screen_but_cannot_publish(
+    client: Client, closed_poll: Poll, db: None
+) -> None:
+    """R-2.1 names the anonymised ballot list among the auditor's read-only
+    access, alongside the poll configuration and the audit log — this screen
+    is where that list, and its CSV/JSON artefacts, actually live."""
+    auditor = User.objects.create_user(username="aud.x", password="x", full_name="Aud X")
+    PollRole.objects.create(poll=closed_poll, user=auditor, role=Role.AUDITOR)
+    client.force_login(auditor)
+
+    response = client.get(_url(closed_poll))
+    assert response.status_code == 200
+    assert response.context["can_act"] is False
+    body = response.content.decode()
+    assert 'name="action" value="publish"' not in body
+
+    assert client.get(_url(closed_poll), {"format": "csv"}).status_code == 200
+    assert client.get(_url(closed_poll), {"format": "json"}).status_code == 200
+    assert client.post(_url(closed_poll), {"action": "publish"}).status_code == 403
+
+
 def test_the_poll_admin_sees_the_derivation(
     client: Client, closed_poll: Poll, admin_user: User
 ) -> None:
