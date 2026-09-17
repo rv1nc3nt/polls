@@ -496,6 +496,22 @@ story has a gap: instructions to any operator following R-3.12 or §6.5.14 in
 the field should say so, and `restore.yml`'s final report should probably say
 so too, until the fix lands.
 
+**Settled (2026-09-17).** `polls-backup.sh.j2` now writes `media-<stamp>.tar.gz`
+beside `db-<stamp>.sqlite3` in the same run, sharing the timestamp — the
+correspondence question above resolves by construction, since the two are
+never produced independently: a `db-<stamp>.sqlite3` and its `media-<stamp>.tar.gz`
+either both exist (one backup run) or the media side is simply absent (a
+snapshot from before this change, or a directory an operator deleted by hand).
+`restore.yml` derives the media archive's path from whichever snapshot it is
+restoring and, finding no match, restores the database anyway and reports the
+gap rather than failing the whole restore — reported, not refused, per the
+open question above, on the view that a database back with a stale-but-present
+media directory beats no restore at all. Retention and off-host replication
+apply to both files unchanged, since `polls-backup.sh.j2`'s retention `find`
+now matches either pattern and `rsync` already mirrors the whole backup
+directory. `molecule/restore` asserts the round trip with a marker file under
+`media/`.
+
 ## 14. The public page read "open" off `state`, not the clock
 
 **Specification, §6.6 (before this entry).** "While the poll is open the page

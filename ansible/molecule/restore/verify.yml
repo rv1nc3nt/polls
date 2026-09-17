@@ -2,13 +2,15 @@
 #
 # T-16: the backup/restore round trip.
 #
-#   1. record the audit-log row count and the published closure hash;
-#   2. destroy the state directory — simulate host loss;
-#   3. run restore.yml (provision a fresh tree, restore the newest snapshot,
+#   1. drop a marker file under media/ and take a fresh backup, so the
+#      snapshot under test carries a media archive (R-3.12);
+#   2. record the audit-log row count and the published closure hash;
+#   3. destroy the state directory — simulate host loss;
+#   4. run restore.yml (provision a fresh tree, restore the newest snapshot,
 #      smoke);
-#   4. assert the audit log came back with every row, /sante answers, and the
-#      published closure hash recomputes to the same value from the restored
-#      data.
+#   5. assert the audit log came back with every row, the media marker came
+#      back unchanged, /sante answers, and the published closure hash
+#      recomputes to the same value from the restored data.
 #
 # converge.yml runs the full role, and backup.yml takes an initial snapshot on
 # a fresh host (§15 step 8), so a snapshot always exists here; the guard below
@@ -21,6 +23,8 @@
   vars:
     polls_state_dir: /var/lib/polls
     polls_backup_dir: /var/backups/polls
+    polls_prefix: /opt/polls
+    polls_user: polls
     db_path: "{{ polls_state_dir }}/db.sqlite3"
   tasks:
     - name: Find the newest backup snapshot
@@ -38,6 +42,25 @@
           empty directory here means that step failed — investigate rather than
           skip T-16.
       when: snapshots.matched | int == 0
+
+    - name: Drop a marker file under media/ (R-3.12 stand-in for an option image)
+      ansible.builtin.copy:
+        dest: "{{ polls_state_dir }}/media/molecule-marker.txt"
+        content: "T-16 media round trip\n"
+        owner: "{{ polls_user }}"
+        group: "{{ polls_user }}"
+        mode: "0640"
+
+    - name: Take a fresh backup so the marker is inside a snapshot
+      # converge.yml's initial snapshot predates the marker above; without a
+      # second run here, the media archive under test would be empty and this
+      # scenario would prove nothing about R-3.12.
+      ansible.builtin.command:
+        cmd: "{{ polls_prefix }}/bin/polls-backup"
+      become: true
+      become_user: "{{ polls_user }}"
+      register: fresh_backup
+      changed_when: "'wrote' in fresh_backup.stdout"
 
     - name: Count the audit-log rows before the loss
       ansible.builtin.command:
@@ -103,6 +126,13 @@
       ansible.builtin.stat:
         path: "{{ db_path }}"
       register: db_after
+
+    - name: The media marker survived the round trip (R-3.12)
+      ansible.builtin.command:
+        cmd: cat /var/lib/polls/media/molecule-marker.txt
+      register: marker_after
+      changed_when: false
+      failed_when: (marker_after.stdout | trim) != "T-16 media round trip"
 
     - name: The audit log recovered every row
       ansible.builtin.command:

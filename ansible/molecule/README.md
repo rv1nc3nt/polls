@@ -7,7 +7,7 @@ in their own CI job and are not part of `pytest`.
 | Scenario | Acceptance test | What it does |
 |----------|-----------------|--------------|
 | `default` | **T-38** | Provisions and deploys into a fresh systemd container, then runs `converge` a second time (`molecule idempotence`) and a third in `--check` mode, asserting no drift, and that `SECRET_KEY`, the database and the audit log are untouched by the repeat runs. |
-| `restore` | **T-16** | Full install with a backup taken, records the audit-log row count and the published closure hash, wipes the state directory, runs `restore.yml`, and asserts the audit log came back whole and the closure hash still recomputes from the restored data. |
+| `restore` | **T-16** | Full install with a backup taken, records the audit-log row count and the published closure hash, wipes the state directory, runs `restore.yml`, and asserts the audit log came back whole, a marker file under `media/` (R-3.12) survived, and the closure hash still recomputes from the restored data. |
 
 ## Status
 

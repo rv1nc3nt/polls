@@ -7,12 +7,12 @@ editing one inventory file and running one command.
 **Full instructions are the [guide de l'administrateur d'instance](../docs/manuel/guide-administrateur.md)**
 (French) — control-machine prerequisites, the inventory variables, the
 tag-by-tag breakdown (`provision`, `deploy`, `backup`, `restore`, `smoke`),
-the scheduled-task options, supervision, and the operational limits to know
-about (notably: the backup/restore role does not yet cover
-`DJANGO_MEDIA_ROOT`, so option images and the commune logo/favicon are not in
-the nightly snapshot — see [`docs/specification-decision-log.md`](../docs/specification-decision-log.md)
-#18). What follows here is the layout of this directory, not a replacement
-for that guide.
+the scheduled-task options, and supervision. The nightly snapshot and the
+restore playbook both cover `DJANGO_MEDIA_ROOT` (option images and the
+commune logo/favicon) alongside the database — see
+[`docs/specification-decision-log.md`](../docs/specification-decision-log.md)
+#18 for how the two are kept in correspondence. What follows here is the
+layout of this directory, not a replacement for that guide.
 
 ## Quick start
 

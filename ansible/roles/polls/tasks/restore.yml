@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: 0BSD
-# Put a `VACUUM INTO` snapshot back in place as the live database, reconcile its
-# schema with the deployed code, and hand it to the service. Imported by
-# ansible/restore.yml between the deploy and the smoke play; never part of
-# site.yml.
+# Put a `VACUUM INTO` snapshot back in place as the live database, restore the
+# media archive taken alongside it, reconcile the schema with the deployed
+# code, and hand it all to the service. Imported by ansible/restore.yml between
+# the deploy and the smoke play; never part of site.yml.
 #
 # The audit log is immutable (INV-3) and rides along inside the file untouched —
 # the whole point of the exercise is that it comes back with every row (T-16).
@@ -49,6 +49,24 @@
   changed_when: false
   failed_when: (polls_restore_integrity.stdout | trim) != "ok"
 
+- name: Derive the matching media archive from the chosen snapshot
+  # polls-backup writes db-<stamp>.sqlite3 and media-<stamp>.tar.gz side by
+  # side with the same stamp; -e polls_restore_media_from overrides this for
+  # a snapshot pair that was renamed or copied out of the backup directory.
+  # polls_restore_media_from defaults to "" (defaults/main.yml), not undefined,
+  # so `| default(...)` would never fire here — an explicit emptiness check is
+  # needed instead.
+  ansible.builtin.set_fact:
+    polls_restore_media_from: >-
+      {{ (polls_restore_from | dirname) + '/' +
+         (polls_restore_from | basename | regex_replace('^db-(.*)\.sqlite3$', 'media-\1.tar.gz')) }}
+  when: polls_restore_media_from | default('') | length == 0
+
+- name: Check whether a matching media archive exists
+  ansible.builtin.stat:
+    path: "{{ polls_restore_media_from }}"
+  register: polls_restore_media_stat
+
 - name: Stop the web service while the database file is swapped
   ansible.builtin.systemd_service:
     name: polls.service
@@ -78,6 +96,33 @@
     owner: "{{ polls_user }}"
     group: "{{ polls_group }}"
     mode: "0640"
+
+- name: Set aside the pre-restore media directory, if one is present
+  ansible.builtin.command:
+    cmd: >-
+      mv {{ polls_state_dir }}/media
+      {{ polls_state_dir }}/media.pre-restore-{{ ansible_date_time.iso8601_basic_short }}
+    removes: "{{ polls_state_dir }}/media"
+  when: polls_restore_media_stat.stat.exists
+
+- name: Extract the media archive from the backup
+  # R-3.12: option images, the commune logo and favicon. tar was run as
+  # {{ polls_user }} at backup time and is extracted as root here, which
+  # preserves the original owner and mode from the archive.
+  ansible.builtin.unarchive:
+    src: "{{ polls_restore_media_from }}"
+    dest: "{{ polls_state_dir }}"
+    remote_src: true
+  when: polls_restore_media_stat.stat.exists
+
+- name: Warn when the chosen snapshot has no matching media archive
+  ansible.builtin.debug:
+    msg: >-
+      No media archive at {{ polls_restore_media_from }} — option images, the
+      commune logo and favicon (R-3.12) are not restored. Backups taken
+      before this feature was added have no media-*.tar.gz; the database
+      itself is unaffected.
+  when: not polls_restore_media_stat.stat.exists
 
 - name: Reconcile the restored schema with the deployed code
   # Mirrors deploy.yml step 4's environment; DJANGO_SECRET_KEY is a placeholder
@@ -109,4 +154,7 @@
     msg: >-
       Restored {{ polls_state_dir }}/db.sqlite3 from {{ polls_restore_from }}
       ({{ 'schema migrated' if polls_restore_migrate.changed else 'schema already current' }}).
-      The previous database, if any, is kept beside it as db.sqlite3.pre-restore-*.
+      {{ 'Restored ' + polls_state_dir + '/media from ' + polls_restore_media_from + '.'
+         if polls_restore_media_stat.stat.exists else 'No media archive was restored (see warning above).' }}
+      The previous database and media directory, if any, are kept beside them
+      as db.sqlite3.pre-restore-* and media.pre-restore-*.

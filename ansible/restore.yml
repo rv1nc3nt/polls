@@ -8,9 +8,11 @@
 #   ansible-playbook -i inventory.ini restore.yml
 #   ansible-playbook -i inventory.ini restore.yml -e polls_restore_from=/var/backups/polls/db-20260901T031700Z.sqlite3
 #
-# With no -e, restore.yml takes the newest db-*.sqlite3 under polls_backup_dir.
-# provision and deploy are idempotent, so running this against a host that is
-# merely damaged rather than lost is safe: only the database file is replaced.
+# With no -e, restore.yml takes the newest db-*.sqlite3 under polls_backup_dir,
+# plus the media-*.tar.gz that polls-backup wrote alongside it (R-3.12: option
+# images, commune logo and favicon). provision and deploy are idempotent, so
+# running this against a host that is merely damaged rather than lost is
+# safe: only the database file and the media directory are replaced.
 - name: Restore an instance from its most recent backup
   hosts: polls
   become: true

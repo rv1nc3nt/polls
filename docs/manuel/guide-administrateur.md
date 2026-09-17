@@ -129,8 +129,8 @@ Tout est idempotent et propre en `--check`. Un second passage ne change rien.
    selon `polls_scheduler`.
 7. **Vhost nginx** depuis un gabarit, TLS (certbot par défaut), en-têtes de
    sécurité, zone de limitation de débit cohérente avec l'application.
-8. **Sauvegardes** : `VACUUM INTO` nocturne, fenêtre de rétention, réplication
-   hors site optionnelle.
+8. **Sauvegardes** : `VACUUM INTO` nocturne, archive des images (R-3.12),
+   fenêtre de rétention, réplication hors site optionnelle.
 9. **Smoke play** en dernier : service up, `/sante` répond, **un courriel de
    test part réellement** vers `polls_smoke_test_email`. Le déploiement n'est
    pas « vert » tant que le mail n'a pas quitté la machine : chaque vote en
@@ -231,34 +231,29 @@ lui-même `polls-manage <tâche>` à un intervalle court.
   snapshot corrompu est refusé sur place (installer un fichier corrompu est pire
   qu'une sauvegarde ratée — le dégât ne se voit que plus tard, contre le journal
   d'audit).
-- Lien `latest.sqlite3` vers le dernier snapshot valide.
-- Fenêtre de rétention : `find -mtime +(jours-1) -delete`.
+- **Images** (R-3.12 : images de proposition, logo et favicon de la commune,
+  écran 14) : `{{ polls_state_dir }}/media` est archivé dans le même run en
+  `media-<horodatage>.tar.gz`, même horodatage que le snapshot de base — les
+  deux fichiers sont toujours produits ensemble, jamais l'un sans l'autre.
+- Liens `latest.sqlite3` et `latest-media.tar.gz` vers le dernier snapshot
+  valide de chacun.
+- Fenêtre de rétention : `find -mtime +(jours-1) -delete`, appliquée aux deux
+  motifs.
 - **Réplication hors site** via rsync si `polls_backup_replicate_to` est
-  renseigné. L'identité SSH du compte `polls` est à vous d'installer, comme les
-  secrets SMTP viennent du vault.
+  renseigné — rsync miroir tout le répertoire de sauvegarde, images comprises.
+  L'identité SSH du compte `polls` est à vous d'installer, comme les secrets
+  SMTP viennent du vault.
 - Le tag `backup` réaffirme les permissions `0700` du répertoire et ne les
-  élargit jamais : `token_salt` est dans chaque snapshot.
-- Un **premier snapshot** est pris à la fin de l'installation, pour que
-  `restore.yml` ait toujours de quoi travailler.
-
-> **Limite connue : les images ne sont pas sauvegardées.** Depuis R-3.12
-> (images de proposition, logo et favicon de la commune, écran 14), la base
-> seule ne reconstruit plus toutes les pages publiques — mais `backup.yml` et
-> `restore.yml` ne couvrent encore que `db.sqlite3` ; `{{ polls_state_dir
-> }}/media` n'a ni snapshot ni réplication hors site. Une restauration
-> aujourd'hui ramène la configuration (y compris les références `image:<uuid>`
-> dans les descriptions) sans les fichiers eux-mêmes : rendu dégradé mais pas
-> d'erreur — le logo et le favicon de la commune, référencés directement,
-> affichent un lien brisé plutôt qu'un simple manque. Voir
-> `docs/specification-decision-log.md` #18 pour le détail ; en attendant que cela soit
-> traité, sauvegardez ce répertoire séparément si des scrutins de votre
-> instance utilisent des images.
+  élargit jamais : `token_salt` est dans chaque snapshot de base.
+- Un **premier snapshot** (base et images) est pris à la fin de l'installation,
+  pour que `restore.yml` ait toujours de quoi travailler.
 
 Vérifier :
 
 ```sh
 ls -l /var/backups/polls/
 sqlite3 /var/backups/polls/latest.sqlite3 'PRAGMA integrity_check;'
+tar -tzf /var/backups/polls/latest-media.tar.gz | head
 ```
 
 ## 9. Restauration
@@ -280,9 +275,14 @@ ansible-playbook -i inventory.ini restore.yml \
 Déroulé : vérification d'intégrité du snapshot **avant** de s'y fier → arrêt du
 service web → l'ancienne base est mise de côté en `db.sqlite3.pre-restore-<...>`
 → suppression des sidecars WAL/SHM périmés → copie du snapshot en base vive →
-`migrate` (un snapshot peut précéder le code déployé) → redémarrage du service →
-smoke play. `provision` et `deploy` étant idempotents, lancer `restore.yml`
-contre un hôte simplement endommagé est sûr : seule la base est remplacée.
+l'ancien répertoire `media/`, s'il existe, est mis de côté en
+`media.pre-restore-<...>` puis l'archive `media-<même horodatage>.tar.gz` est
+extraite à sa place (absente pour un snapshot antérieur à cette fonctionnalité,
+la restauration continue sans images et le signale) → `migrate` (un snapshot
+peut précéder le code déployé) → redémarrage du service → smoke play.
+`provision` et `deploy` étant idempotents, lancer `restore.yml` contre un hôte
+simplement endommagé est sûr : seuls la base et le répertoire `media/` sont
+remplacés.
 
 ## 10. Supervision
 

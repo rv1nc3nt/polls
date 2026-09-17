@@ -29,7 +29,8 @@ polls_allow_migrate_during_open_poll: false
 polls_tls_method: certbot       # certbot | nginx-acme
 
 # --- Backups (§15 step 8) --------------------------------------------------
-# Nightly `VACUUM INTO` under polls_backup_dir, which stays 0700 / polls_user:
+# Nightly `VACUUM INTO`, plus a tar of DJANGO_MEDIA_ROOT (R-3.12) stamped with
+# the same timestamp, under polls_backup_dir, which stays 0700 / polls_user:
 # poll.token_salt is in the database and so in every snapshot (§14).
 polls_backup_retention_days: 30   # snapshots older than this are pruned; 0 keeps all
 polls_backup_hour: 3              # local time; Europe/Paris is set in provision.yml
@@ -43,6 +44,8 @@ polls_backup_replicate_opts: "-a --delete"
 # --- Restore (restore.yml, §15) -----------------------------------------
 # Snapshot to restore; "" picks the newest db-*.sqlite3 under polls_backup_dir.
 polls_restore_from: ""
+# Matching media archive; "" derives media-<stamp>.tar.gz from polls_restore_from.
+polls_restore_media_from: ""
 
 # --- Source of the application release (§15 step 3) -------------------------
 # Set polls_repo_url to clone the tag named in polls_release on the target.

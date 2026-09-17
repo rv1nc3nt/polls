@@ -10,9 +10,11 @@ set -eu
 umask 077
 
 db="{{ polls_state_dir }}/db.sqlite3"
+media_dir="{{ polls_state_dir }}/media"
 dest_dir="{{ polls_backup_dir }}"
 stamp="$(date -u +%Y%m%dT%H%M%SZ)"
 dest="${dest_dir}/db-${stamp}.sqlite3"
+media_dest="${dest_dir}/media-${stamp}.tar.gz"
 
 if [ ! -f "$db" ]; then
     echo "polls-backup: no database at $db" >&2
@@ -23,7 +25,7 @@ fi
 # consistent copy without holding a write lock for the duration (§15 step 8).
 # Write to a temp name first, cleaned up on any exit, so a crashed or killed
 # run never leaves a half-file that later looks like a valid snapshot.
-trap 'rm -f "${dest}.partial"' EXIT
+trap 'rm -f "${dest}.partial" "${media_dest}.partial"' EXIT
 sqlite3 "$db" "VACUUM INTO '${dest}.partial'"
 mv "${dest}.partial" "$dest"
 
@@ -37,10 +39,20 @@ fi
 
 ln -sfn "$dest" "${dest_dir}/latest.sqlite3"
 
+# Option images, commune logo and favicon (R-3.12) live under media/, outside
+# the database; a snapshot that lost them would silently restore a poll with
+# every proposition's picture missing. Skip if the directory is absent rather
+# than fail — a fresh install with no uploads yet has none.
+if [ -d "$media_dir" ]; then
+    tar -czf "${media_dest}.partial" -C "{{ polls_state_dir }}" media
+    mv "${media_dest}.partial" "$media_dest"
+    ln -sfn "$media_dest" "${dest_dir}/latest-media.tar.gz"
+fi
+
 {% if (polls_backup_retention_days | int) > 0 %}
 # Retention window: drop snapshots strictly older than the window. `-mtime +N`
 # means "more than N*24h ago", so N = days - 1 keeps exactly the last N days.
-find "$dest_dir" -maxdepth 1 -type f -name 'db-*.sqlite3' \
+find "$dest_dir" -maxdepth 1 -type f \( -name 'db-*.sqlite3' -o -name 'media-*.tar.gz' \) \
     -mtime +{{ (polls_backup_retention_days | int) - 1 }} -delete
 {% endif %}
 {% if polls_backup_replicate_to | length > 0 %}
