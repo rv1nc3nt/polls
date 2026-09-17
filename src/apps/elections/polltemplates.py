@@ -5,7 +5,7 @@ direction (§3.9; screens 2 and 13, §6.5.2, §6.5.13).
 A template carries only the tally mechanism and the ballot rules built around
 it — never a title, a description, options or any date, which belong to
 duplicating an existing poll directly (R-3.6), a separate and still-unbuilt
-path (docs/spec-divergences.md #10).
+path (docs/specification-decision-log.md #10).
 
 Two writers here. ``save_as_template`` reads a poll's current configuration
 into a new named row; it is callable in any poll state, since none of these

@@ -105,7 +105,7 @@ the good error message; the triggers are what hold.
 - Copyright is **Romain VINCENT**'s. Licence 0BSD, `SPDX-License-Identifier:
   0BSD` in every source file.
 - Where the code departs from the specification, record it in
-  `docs/spec-divergences.md` rather than leaving it to be discovered.
+  `docs/specification-decision-log.md` rather than leaving it to be discovered.
 
 ## Pushing back
 
@@ -155,7 +155,7 @@ taken — that costs more than it saves.
 - `WorkingRollEntry` is commune-wide, not poll-scoped (§3.2) — screen 3 (the
   import itself, commune-level, R-2.1) replaces it for every poll at once; a
   poll's own menu only shows a read-only `roll_status` of what is currently
-  imported and when (`docs/spec-divergences.md` #11). The
+  imported and when (`docs/specification-decision-log.md` #11). The
   `open_window_poll` fixture seeds one row of it, so a test asserting an exact
   `WorkingRollEntry.objects.count()` after an import must count that row too.
 - Latin-1 decodes every byte 0–255, so a CSV upload can never fail to decode —

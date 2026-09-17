@@ -30,7 +30,7 @@ urlpatterns = [
     # Commune-level (R-2.1: the commune administrator imports the roll, not a
     # poll admin), like comptes/ and messagerie/ above — never
     # scrutin/<poll_id>/…, so no poll submenu can reach it (§3.2,
-    # docs/spec-divergences.md #11).
+    # docs/specification-decision-log.md #11).
     path("liste-electorale/", views.roll_import, name="roll_import"),
     path(
         "liste-electorale/verification/",

@@ -12,10 +12,11 @@ Append-only. A modification inserts ``version + 1`` and marks the prior row
 superseded or deleted (INV-3, T-24).
 
 An elector who has already voted online cannot also be keyed a paper ballot:
-``enter_paper`` refuses, because §7 makes the online ballot unlocatable from the
-registration, so a paper entry could neither replace it nor be counted beside it
-without double-counting the voter. This diverges from R-9.3 / T-8, which provide
-for a reasoned override — see ``docs/spec-divergences.md``.
+``enter_paper`` refuses, per R-9.3, because §7 makes the online ballot
+unlocatable from the registration, so a paper entry could neither replace it nor
+be counted beside it without double-counting the voter — see
+``docs/specification-decision-log.md`` #5 for why the requirements were amended to this
+flat refusal rather than the reasoned override R-9.3 first called for.
 """
 
 from __future__ import annotations
@@ -152,3 +153,46 @@ class PaperBallotLink(models.Model):
 
     def __str__(self) -> str:
         return f"bulletin papier {self.ballot_id}"
+
+
+class ReconciliationRecord(models.Model):
+    """The formal reconciliation of R-8.6, where ``Poll.paper_requires_reconciliation``
+    is set.
+
+    One per poll: the paper forms retained by the commune, counted by an
+    operator and checked against the paper ballots the system actually holds
+    at that moment — exactly the set the tally and the closure hash will count
+    (§3.4), frozen here rather than recomputed later for the same reason
+    ``Poll.frozen_counts`` is (§9). Signed by a named operator and kept here
+    rather than folded into the audit log, whose ``reason`` may hold no prose
+    (§10) — a discrepancy note is exactly the kind of thing that belongs on a
+    referenced row, not on an event. ``apps.elections.transitions`` refuses
+    ``close_poll`` until this row exists wherever the flag is set; R-8.6 offers
+    no override for a missing one, unlike R-8.7 bis's countersignature guard.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    poll = models.OneToOneField(
+        "elections.Poll", on_delete=models.CASCADE, related_name="reconciliation_record"
+    )
+    forms_retained_count = models.PositiveIntegerField()
+    # The live paper ballots recorded at the instant of signing (§3.4) — an
+    # operator has no other way to know this number is right, so it is
+    # computed, never entered.
+    recorded_ballots_count = models.PositiveIntegerField()
+    note = models.TextField(blank=True)
+    signed_by = models.ForeignKey(
+        "core.User", on_delete=models.PROTECT, related_name="signed_reconciliations"
+    )
+    signed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("procès-verbal de rapprochement")
+        verbose_name_plural = _("procès-verbaux de rapprochement")
+
+    def __str__(self) -> str:
+        return f"rapprochement {self.poll_id}"
+
+    @property
+    def discrepancy(self) -> int:
+        return self.forms_retained_count - self.recorded_ballots_count

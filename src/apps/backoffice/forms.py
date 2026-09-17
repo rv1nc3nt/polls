@@ -452,6 +452,25 @@ class ClosureOverrideForm(forms.Form):
     )
 
 
+class ReconciliationForm(forms.Form):
+    """Screen 9's reconciliation entry (R-8.6), shown while the poll is still
+    ``open`` and ``paper_requires_reconciliation`` is set.
+
+    Only the physical count is entered — the system's own paper-ballot count is
+    computed by ``ballots.services.record_reconciliation``, never taken from the
+    operator, who has no independent way to know it is right.
+    """
+
+    forms_retained_count = forms.IntegerField(
+        label=_("Formulaires papier conservés par la commune"), min_value=0
+    )
+    note = forms.CharField(
+        label=_("Remarques (écart constaté, etc.)"),
+        required=False,
+        widget=forms.Textarea(attrs={"rows": 3}),
+    )
+
+
 #: R-3.11's reason vocabulary. Narrowed like ``EXTENSION_REASONS`` above: the
 #: full ``Reason`` set includes ballot- and registration-review codes that
 #: would be valid enum values and false records here (§10).

@@ -39,12 +39,12 @@ Screen 3 (R-2.1: importing the roll is the commune administrator's) also has
 ``roll_status``, a poll-scoped addition open to that poll's ``poll_admin`` and,
 per R-4.4, its ``auditor``: while the poll is ``draft`` it shows which import
 is in force and when, same as it always did; once the poll has its own frozen
-copy it browses that instead — see docs/spec-divergences.md #11. Screen 11
+copy it browses that instead — see docs/specification-decision-log.md #11. Screen 11
 runs before any
 account exists, so it cannot use either gate: ``require_first_run`` opens it
 only while no account has been created.
 
-Here so far, additionally: "Nouveau scrutin" (§6.5, docs/spec-divergences.md
+Here so far, additionally: "Nouveau scrutin" (§6.5, docs/specification-decision-log.md
 #10), the create step the numbered screens never included — commune-level
 like 10 and 12, reusing screen 2's form and write path (``elections.config``)
 rather than a screen of its own; and screen 13 (modèles de scrutin, §6.5.13),
@@ -149,6 +149,7 @@ from .forms import (
     OptionFormSet,
     PollConfigForm,
     PollCreateForm,
+    ReconciliationForm,
     TemplateNameForm,
     WithdrawalForm,
     config_initial,
@@ -356,7 +357,7 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
     are the admin's, not the entry operator's (§3.7).
 
     Also where R-2.1's "annonce, ouvre, clôt" is exercised by hand (§4,
-    docs/spec-divergences.md):
+    docs/specification-decision-log.md):
 
     - *Annoncer maintenant* (``draft → announced``, R-3.10) — optional, and
       only while ``draft``: the poll admin who wants an early public preview
@@ -839,7 +840,7 @@ def registration_decide(request: HttpRequest, poll: Poll) -> HttpResponse:
 # (§3.2), so an import started from one poll's back-office silently replaced
 # what every other draft poll would pick up at opening — a poll submenu is
 # exactly the wrong place to invite that confusion from. See
-# docs/spec-divergences.md #11. ``roll_status`` below is what a poll's own menu
+# docs/specification-decision-log.md #11. ``roll_status`` below is what a poll's own menu
 # offers instead: no import action there, ever — only a view of the roll (R-4.4).
 
 #: The parsed file, held between the upload step and the review step.
@@ -1017,8 +1018,8 @@ def paper_entry(request: HttpRequest, poll: Poll) -> HttpResponse:
     One page: a search step until a snapshot entry is chosen, then the ranking
     form. Where the elector already has a paper ballot the operator is sent to
     screen 6; where they have already voted online the screen is a dead end —
-    that vote stands and cannot be replaced by a paper one (see
-    ``docs/spec-divergences.md``).
+    that vote stands and cannot be replaced by a paper one (R-9.3,
+    ``docs/specification-decision-log.md`` #5).
     """
     if poll.state != PollState.OPEN:
         messages.error(
@@ -1258,8 +1259,12 @@ def results_publish(request: HttpRequest, poll: Poll) -> HttpResponse:
     at closure (§9) and the derivation is the pure tally of §8.
 
     Before the poll is ``closed`` the screen only says why not and when it will
-    close (the scheduled ``close_poll`` runs at ``paper_entry_deadline``, §4).
-    Once ``closed`` it shows the derivation and offers, in order:
+    close (the scheduled ``close_poll`` runs at ``paper_entry_deadline``, §4) —
+    except where ``paper_requires_reconciliation`` is set, in which case it is
+    also where the poll admin enters R-8.6's reconciliation record, the one
+    step ``close_poll`` refuses to proceed without and cron cannot supply, same
+    reasoning as the countersignature override (§6.5.2). Once ``closed`` it
+    shows the derivation and offers, in order:
 
     * the ``physical`` draw entry (§8.3), where the tally reports a tie the
       computed rule does not resolve — posted through ``elections.closure``;
@@ -1272,10 +1277,44 @@ def results_publish(request: HttpRequest, poll: Poll) -> HttpResponse:
     CSV alone.
     """
     if poll.state not in (PollState.CLOSED, PollState.PUBLISHED):
+        record = getattr(poll, "reconciliation_record", None)
+        reconciliation_form = None
+        has_admin_role = Role.POLL_ADMIN in poll_roles(request.user, poll)
+        reconciliation_open = (
+            poll.state == PollState.OPEN and poll.paper_requires_reconciliation and record is None
+        )
+        if reconciliation_open and has_admin_role:
+            if request.method == "POST" and request.POST.get("action") == "record_reconciliation":
+                reconciliation_form = ReconciliationForm(request.POST)
+                if reconciliation_form.is_valid():
+                    try:
+                        ballots.record_reconciliation(
+                            poll,
+                            reconciliation_form.cleaned_data["forms_retained_count"],
+                            str(current_operator(request).pk),
+                            note=reconciliation_form.cleaned_data["note"],
+                        )
+                    except BallotRefused as refused:
+                        messages.error(request, str(refused))
+                    else:
+                        messages.success(request, _("Rapprochement enregistré."))
+                        return redirect("backoffice:results_publish", poll_id=str(poll.pk))
+            else:
+                reconciliation_form = ReconciliationForm()
+        elif request.method == "POST" and request.POST.get("action") == "record_reconciliation":
+            # Reached with a forged or stale request: the form only ever
+            # renders under `reconciliation_open and has_admin_role` above.
+            raise PermissionDenied(_("Rapprochement réservé à l'administrateur du scrutin."))
         return render(
             request,
             "backoffice/results_publish.html",
-            {"poll": poll, "not_closed": True, "blockers": dashboard.blockers(poll)},
+            {
+                "poll": poll,
+                "not_closed": True,
+                "blockers": dashboard.blockers(poll),
+                "reconciliation_record": record,
+                "reconciliation_form": reconciliation_form,
+            },
         )
 
     fmt = request.GET.get("format")
@@ -1321,6 +1360,10 @@ def results_publish(request: HttpRequest, poll: Poll) -> HttpResponse:
             # above, so an auditor is never even offered a button their
             # submission would refuse.
             "can_act": Role.POLL_ADMIN in poll_roles(request.user, poll),
+            # R-8.6: archived here for the poll admin and the auditor; absent
+            # where the flag was never set, in which case the audit log serves
+            # as the record instead (R-8.6's own fallback).
+            "reconciliation_record": getattr(poll, "reconciliation_record", None),
         },
     )
 

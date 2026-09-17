@@ -28,6 +28,37 @@
     </section>
   {% endif %}
 
+  {% if poll.paper_requires_reconciliation %}
+    {% comment %}
+      R-8.6: the paper forms retained by the commune, checked against the paper
+      ballots the system holds, signed before close_poll will proceed
+      (closing_blockers' "reconciliation_pending", never overridable).
+    {% endcomment %}
+    <section aria-labelledby="rapprochement">
+      <h2 id="rapprochement">{% translate "Rapprochement des bulletins papier" %}</h2>
+      {% if reconciliation_record %}
+        <p class="notice">{% translate "Rapprochement enregistré." %}</p>
+        <dl class="facts">
+          <dt>{% translate "Formulaires papier conservés" %}</dt><dd>{{ reconciliation_record.forms_retained_count }}</dd>
+          <dt>{% translate "Bulletins papier enregistrés dans le système" %}</dt><dd>{{ reconciliation_record.recorded_ballots_count }}</dd>
+          <dt>{% translate "Écart" %}</dt><dd>{{ reconciliation_record.discrepancy }}</dd>
+          <dt>{% translate "Signé par" %}</dt><dd>{{ reconciliation_record.signed_by }}, {{ reconciliation_record.signed_at }}</dd>
+          {% if reconciliation_record.note %}<dt>{% translate "Remarques" %}</dt><dd>{{ reconciliation_record.note }}</dd>{% endif %}
+        </dl>
+      {% elif reconciliation_form %}
+        <p class="help">{% translate "Comptez les formulaires papier conservés par la commune et saisissez leur nombre ; il est confronté au nombre de bulletins papier effectivement enregistrés. La clôture reste bloquée tant que ce rapprochement n'est pas signé." %}</p>
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="record_reconciliation">
+          {{ reconciliation_form.as_p }}
+          <button type="submit">{% translate "Enregistrer le rapprochement" %}</button>
+        </form>
+      {% else %}
+        <p class="notice">{% translate "Rapprochement en attente de saisie par l'administrateur du scrutin, une fois la fin de la saisie des bulletins papier atteinte." %}</p>
+      {% endif %}
+    </section>
+  {% endif %}
+
 {% else %}
 
   {% comment %} `screen9` is the read model of apps/elections/results_view.py;
@@ -50,6 +81,20 @@
     </dl>
     <p class="help">{% translate "L'empreinte couvre exactement les bulletins retenus, sérialisés par code de suivi et identifiants de proposition. Un tiers la recalcule à partir du seul fichier CSV publié." %}</p>
   </section>
+
+  {% if reconciliation_record %}
+    {% comment %} R-8.6: archived here, signed before closure was possible (see closing_blockers). {% endcomment %}
+    <section aria-labelledby="rapprochement">
+      <h2 id="rapprochement">{% translate "Rapprochement des bulletins papier" %}</h2>
+      <dl class="facts">
+        <dt>{% translate "Formulaires papier conservés" %}</dt><dd>{{ reconciliation_record.forms_retained_count }}</dd>
+        <dt>{% translate "Bulletins papier enregistrés dans le système" %}</dt><dd>{{ reconciliation_record.recorded_ballots_count }}</dd>
+        <dt>{% translate "Écart" %}</dt><dd>{{ reconciliation_record.discrepancy }}</dd>
+        <dt>{% translate "Signé par" %}</dt><dd>{{ reconciliation_record.signed_by }}, {{ reconciliation_record.signed_at }}</dd>
+        {% if reconciliation_record.note %}<dt>{% translate "Remarques" %}</dt><dd>{{ reconciliation_record.note }}</dd>{% endif %}
+      </dl>
+    </section>
+  {% endif %}
 
   <section aria-labelledby="participation">
     <h2 id="participation">{% translate "Participation figée à la clôture" %}</h2>

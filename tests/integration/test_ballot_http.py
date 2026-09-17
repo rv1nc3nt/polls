@@ -272,7 +272,7 @@ def test_modifying_sends_no_mail(
     django_capture_on_commit_callbacks: Callable[..., Any],
 ) -> None:
     """R-7.4 forbids a ballot → registration path, so a modification cannot mail
-    a receipt — recorded in docs/spec-divergences.md."""
+    a receipt — recorded in docs/specification-decision-log.md."""
     _registration, token = _register(live_poll)
     client.get(_access_url(live_poll, token))
     with django_capture_on_commit_callbacks(execute=True):

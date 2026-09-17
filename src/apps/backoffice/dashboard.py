@@ -103,6 +103,8 @@ def describe_blocker(code: str) -> str:
             return _("Clôture bloquée : %(count)s bulletin(s) en attente de contreseing.") % {
                 "count": rest
             }
+        case "reconciliation_pending":
+            return _("Clôture bloquée : rapprochement des bulletins papier non enregistré (R-8.6).")
         case "missing_translation":
             what, _sep2, language = rest.rpartition(":")
             if what.startswith("option:"):
@@ -240,6 +242,17 @@ def _actions_for_state(poll: Poll) -> list[PermittedAction]:
                         (Role.ENTRY_OPERATOR,),
                         url_name="backoffice:countersign_queue",
                         icon="countersign",
+                    )
+                )
+            if poll.paper_requires_reconciliation:
+                # R-8.6: entered from screen 9 itself, ahead of closure, which
+                # it blocks until signed (transitions.closing_blockers).
+                actions.append(
+                    PermittedAction(
+                        _("Rapprochement des bulletins papier"),
+                        (Role.POLL_ADMIN,),
+                        url_name="backoffice:results_publish",
+                        icon="tally",
                     )
                 )
             return actions

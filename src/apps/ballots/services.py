@@ -20,6 +20,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from django.db import IntegrityError, transaction
+from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from apps.audit import services as audit
@@ -28,11 +29,11 @@ from apps.core.codes import new_tracking_code
 from apps.core.crypto import ballot_hash as ballot_hash_of
 from apps.core.models import User
 from apps.core.types import BallotHash, Token, TokenSalt
-from apps.elections.models import Poll, RollEntry
+from apps.elections.models import Poll, PollState, RollEntry
 from apps.elections.windows import check_ballot_window
 from apps.registrations import services as registrations
 
-from .models import Ballot, BallotSource, BallotStatus, PaperBallotLink
+from .models import Ballot, BallotSource, BallotStatus, PaperBallotLink, ReconciliationRecord
 
 # Re-exported: callers have always caught ``services.BallotRefused``; it now
 # lives with the validation that raises it (§6.3, T-29).
@@ -107,8 +108,9 @@ def modify(poll: Poll, ballot_hash: BallotHash, ranking: list[list[str]]) -> Bal
     a voter reference (INV-1): the modification link exchanged the token for it
     and redirected token-free (R-7.4 ter, T-21). It follows that a modification
     writes no confirmation mail — there is no path back to the address — which
-    is recorded in ``docs/spec-divergences.md``; the tracking code is unchanged
-    and was mailed at the first cast.
+    is what R-6.4 now asks for (``docs/specification-decision-log.md`` #6): the emailed
+    receipt is required on the first cast only, since the tracking code is
+    unchanged and was mailed then.
 
     Inserts ``version + 1`` keeping the tracking code and the hash, and marks
     the prior row ``superseded``. The current live row is locked first, so two
@@ -246,12 +248,13 @@ def enter_paper(
 
     * a live or pending paper ballot already exists → refuse; correcting it is
       screen 6's job, not a second entry;
-    * the elector has already voted online → refuse. §7 makes that ballot
-      unlocatable from the registration, so a paper entry could neither replace
-      it nor be counted beside it without double-counting the voter. This
-      diverges from R-9.3 / T-8, which provide for a reasoned override —
-      recorded in ``docs/spec-divergences.md``. Where the poll permits
-      modification the elector changes their own ballot online instead;
+    * the elector has already voted online → refuse, per R-9.3. §7 makes that
+      ballot unlocatable from the registration, so a paper entry could neither
+      replace it nor be counted beside it without double-counting the voter —
+      see ``docs/specification-decision-log.md`` #5 for why R-9.3 was amended to this flat
+      refusal rather than the reasoned override it first called for. Where the
+      poll permits modification the elector changes their own ballot online
+      instead;
     * otherwise → written ``live``, or ``pending_countersign`` where the poll
       requires a second operator (R-8.7), and the elector's channel indicator is
       set to ``paper``.
@@ -419,3 +422,55 @@ def countersign(ballot: Ballot, operator_id: str) -> Ballot:
         after={"status": BallotStatus.LIVE},
     )
     return locked
+
+
+@transaction.atomic
+def record_reconciliation(
+    poll: Poll, forms_retained_count: int, operator_id: str, note: str = ""
+) -> ReconciliationRecord:
+    """R-8.6: the paper forms retained by the commune, reconciled against the
+    paper ballots recorded in the system, at closure.
+
+    Restricted to the same window screen 2 offers the manual ``close_poll``
+    itself — ``paper_entry_deadline`` already passed — so the count cannot be
+    taken, then made stale by a paper entry or correction the window still
+    legitimately admits afterwards (§6.4). One per poll: a second attempt is
+    refused rather than silently overwriting a signed record. There is no
+    override, unlike ``close_poll``'s countersignature guard (R-8.7 bis) —
+    R-8.6 offers none, and ``transitions.closing_blockers`` refuses closure
+    outright until this row exists.
+    """
+    if poll.state != PollState.OPEN:
+        raise BallotRefused(
+            _("Le rapprochement ne peut être enregistré que sur un scrutin ouvert.")
+        )
+    if timezone.now() < poll.paper_entry_deadline:
+        raise BallotRefused(
+            _(
+                "Le rapprochement n'est possible qu'une fois la fin de la saisie "
+                "des bulletins papier atteinte."
+            )
+        )
+    if ReconciliationRecord.objects.filter(poll=poll).exists():
+        raise BallotRefused(_("Le rapprochement a déjà été enregistré pour ce scrutin."))
+
+    operator = User.objects.get(pk=operator_id)
+    recorded = Ballot.live.filter(poll=poll, source=BallotSource.PAPER).count()
+    record = ReconciliationRecord.objects.create(
+        poll=poll,
+        forms_retained_count=forms_retained_count,
+        recorded_ballots_count=recorded,
+        note=note,
+        signed_by=operator,
+    )
+    audit.record(
+        action=Action.RECONCILIATION_RECORDED,
+        poll=poll,
+        actor=operator,
+        object_ref=audit.ref(record),
+        after={
+            "forms_retained_count": forms_retained_count,
+            "recorded_ballots_count": recorded,
+        },
+    )
+    return record

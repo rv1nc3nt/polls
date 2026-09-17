@@ -354,7 +354,7 @@ class PollTemplate(models.Model):
     tally mechanism and the ballot rules built around it — never a title, a
     description, options or any date. Duplicating those belongs to
     duplicating an existing poll directly (R-3.6), a separate and still-unbuilt
-    path (docs/spec-divergences.md #10). Commune-level, one catalogue rather
+    path (docs/specification-decision-log.md #10). Commune-level, one catalogue rather
     than one per poll, like ``MailSettings`` — but many rows, not one, so
     there is no ``pk=1`` singleton constraint here.
 

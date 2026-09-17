@@ -35,8 +35,8 @@
       {% if channel == "online" %}
         {% comment %} The elector has already voted online. §7 makes that ballot
            unlocatable from the registration, so a paper entry could neither
-           replace it nor be counted beside it — the screen is a dead end.
-           Diverges from R-9.3 / T-8; see docs/spec-divergences.md. {% endcomment %}
+           replace it nor be counted beside it — the screen is a dead end, per
+           R-9.3 (docs/specification-decision-log.md #5). {% endcomment %}
         <div class="collision" role="alert">
           <p class="collision__title">{% translate "Cet électeur a déjà voté en ligne." %}</p>
           <p>{% translate "Ce vote fait foi. Il ne peut pas être remplacé par un bulletin papier, ni être supprimé — perdre le lien de vote est définitif." %}</p>

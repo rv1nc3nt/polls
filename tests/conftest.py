@@ -71,3 +71,63 @@ def paper_poll_countersign(db: None) -> Poll:
     )
     open_poll(poll)
     return Poll.objects.get(pk=poll.pk)
+
+
+@pytest.fixture
+def paper_poll_reconciliation_window_open(db: None) -> Poll:
+    """Open, with ``paper_requires_reconciliation`` set and the paper window
+    still open — for tests that need to seed paper ballots before reconciling,
+    or that exercise the premature-entry refusal (§6.4)."""
+    now = timezone.now()
+    poll = Poll.objects.create(
+        title_i18n={"fr": "Rapprochement (fenêtre ouverte)"},
+        description_i18n={"fr": "Deux propositions."},
+        languages=["fr"],
+        opens_at=now - timedelta(days=1),
+        closes_at=now + timedelta(days=1),
+        paper_entry_deadline=now + timedelta(days=1),
+        paper_requires_reconciliation=True,
+    )
+    for position, option_id in enumerate(["a", "b", "c"]):
+        PollOption.objects.create(
+            poll=poll, option_id=option_id, label_i18n={"fr": option_id.upper()}, position=position
+        )
+    WorkingRollEntry.objects.create(
+        birth_name="Bernard",
+        first_names="Julie",
+        date_of_birth="03/03/1990",
+        date_of_birth_parsed="1990-03-03",
+        list_types=["principale"],
+    )
+    open_poll(poll)
+    return Poll.objects.get(pk=poll.pk)
+
+
+@pytest.fixture
+def paper_poll_reconciliation(db: None) -> Poll:
+    """Open, with ``paper_requires_reconciliation`` set (frozen at creation,
+    INV-6) and ``paper_entry_deadline`` already passed, so
+    ``ballots.services.record_reconciliation`` is immediately callable (R-8.6)."""
+    now = timezone.now()
+    poll = Poll.objects.create(
+        title_i18n={"fr": "Rapprochement"},
+        description_i18n={"fr": "Deux propositions."},
+        languages=["fr"],
+        opens_at=now - timedelta(days=2),
+        closes_at=now - timedelta(hours=1),
+        paper_entry_deadline=now - timedelta(hours=1),
+        paper_requires_reconciliation=True,
+    )
+    for position, option_id in enumerate(["a", "b", "c"]):
+        PollOption.objects.create(
+            poll=poll, option_id=option_id, label_i18n={"fr": option_id.upper()}, position=position
+        )
+    WorkingRollEntry.objects.create(
+        birth_name="Bernard",
+        first_names="Julie",
+        date_of_birth="03/03/1990",
+        date_of_birth_parsed="1990-03-03",
+        list_types=["principale"],
+    )
+    open_poll(poll)
+    return Poll.objects.get(pk=poll.pk)

@@ -29,7 +29,7 @@ reached from the general back-office menu, gated on the commune-admin flag
 (R-2.1), not from any one poll's — an earlier version scoped it to a poll and
 that invited exactly the confusion §3.2 warns about, since what it replaces is
 shared by every poll still in ``draft`` regardless of which one's menu started
-the import (docs/spec-divergences.md #11). A poll's own menu offers
+the import (docs/specification-decision-log.md #11). A poll's own menu offers
 ``backoffice.views.roll_status`` instead: read-only, no import action.
 """
 

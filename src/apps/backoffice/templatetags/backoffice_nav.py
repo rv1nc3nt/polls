@@ -93,7 +93,7 @@ _GLOBAL_ITEMS: tuple[_Item, ...] = (
     _Item(_("Nouveau scrutin"), "poll_create", (_COMMUNE,), icon="new"),
     # R-2.1: importing the roll is the commune administrator's, not a poll's —
     # WorkingRollEntry is commune-wide (§3.2), so this lives here and never in
-    # a poll submenu (docs/spec-divergences.md #11). A poll's own menu shows a
+    # a poll submenu (docs/specification-decision-log.md #11). A poll's own menu shows a
     # read-only entry instead — see ``_POLL_MENU``'s "Liste électorale".
     _Item(
         _("Liste électorale"),
@@ -122,7 +122,7 @@ _POLL_MENU: tuple[_Group, ...] = (
             _Item(_("Configuration"), "poll_config", (_POLL_ADMIN, _AUDITOR), icon="config"),
             # Read-only (§3.2, R-2.1): what is imported and when, never an
             # import action — that is the general "Liste électorale" above,
-            # not something a poll submenu offers (docs/spec-divergences.md
+            # not something a poll submenu offers (docs/specification-decision-log.md
             # #11). The auditor holds this role too (R-4.4, T-65) — omitting
             # it from `roles` here hid a screen the view already let them open.
             _Item(_("Liste électorale"), "roll_status", (_POLL_ADMIN, _AUDITOR), icon="roll"),

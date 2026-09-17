@@ -313,3 +313,98 @@ def test_the_override_reason_from_closure_is_shown(client: Client, admin_user: U
 
     body = client.get(_url(poll)).content.decode()
     assert Reason.COUNTERSIGN_UNAVAILABLE in body
+
+
+# --- formal reconciliation (R-8.6, docs/specification-decision-log.md #16) -----
+
+
+@pytest.fixture
+def reconciliation_poll(admin_user: User) -> Poll:
+    """Open, ``paper_requires_reconciliation`` set, ``paper_entry_deadline``
+    already passed — the reconciliation form is immediately actionable."""
+    now = timezone.now()
+    poll = Poll.objects.create(
+        title_i18n={"fr": "Rapprochement"},
+        description_i18n={"fr": "Trois propositions."},
+        languages=["fr"],
+        opens_at=now - timedelta(days=2),
+        closes_at=now - timedelta(hours=1),
+        paper_entry_deadline=now - timedelta(hours=1),
+        paper_requires_reconciliation=True,
+    )
+    for position, option_id in enumerate(["a", "b", "c"]):
+        PollOption.objects.create(
+            poll=poll, option_id=option_id, label_i18n={"fr": option_id.upper()}, position=position
+        )
+    WorkingRollEntry.objects.create(
+        birth_name="Bernard",
+        first_names="Julie",
+        date_of_birth="03/03/1990",
+        date_of_birth_parsed="1990-03-03",
+        list_types=["principale"],
+    )
+    open_poll(poll)
+    _grant(poll, admin_user)
+    return Poll.objects.get(pk=poll.pk)
+
+
+def test_the_admin_sees_the_reconciliation_form_while_open(
+    client: Client, reconciliation_poll: Poll, admin_user: User
+) -> None:
+    client.force_login(admin_user)
+    body = client.get(_url(reconciliation_poll)).content.decode()
+    assert 'name="action" value="record_reconciliation"' in body
+    assert "Ce qui bloquerait la clôture" in body
+    assert "rapprochement" in body.lower()
+
+
+def test_recording_it_clears_the_closure_blocker_and_archives_the_counts(
+    client: Client, reconciliation_poll: Poll, admin_user: User
+) -> None:
+    from apps.audit.models import Action as AuditAction
+    from apps.ballots.models import ReconciliationRecord
+    from apps.elections.transitions import closing_blockers
+
+    client.force_login(admin_user)
+    assert "reconciliation_pending" in closing_blockers(reconciliation_poll)
+
+    response = client.post(
+        _url(reconciliation_poll),
+        {"action": "record_reconciliation", "forms_retained_count": "3", "note": "RAS"},
+    )
+    assert response.status_code == 302
+
+    record = ReconciliationRecord.objects.get(poll=reconciliation_poll)
+    assert record.forms_retained_count == 3
+    assert record.recorded_ballots_count == 0
+    assert record.signed_by == admin_user
+    assert AuditEvent.objects.filter(
+        action=AuditAction.RECONCILIATION_RECORDED, poll=reconciliation_poll
+    ).exists()
+
+    reconciliation_poll.refresh_from_db()
+    assert "reconciliation_pending" not in closing_blockers(reconciliation_poll)
+
+    body = client.get(_url(reconciliation_poll)).content.decode()
+    assert "Rapprochement enregistré" in body
+    assert 'name="action" value="record_reconciliation"' not in body
+
+    closed = close_poll(reconciliation_poll)
+    assert closed.state == PollState.CLOSED
+
+
+def test_an_auditor_cannot_record_the_reconciliation(
+    client: Client, reconciliation_poll: Poll, db: None
+) -> None:
+    auditor = User.objects.create_user(username="aud.r", password="x", full_name="Aud R")
+    PollRole.objects.create(poll=reconciliation_poll, user=auditor, role=Role.AUDITOR)
+    client.force_login(auditor)
+
+    body = client.get(_url(reconciliation_poll)).content.decode()
+    assert 'name="action" value="record_reconciliation"' not in body
+
+    response = client.post(
+        _url(reconciliation_poll),
+        {"action": "record_reconciliation", "forms_retained_count": "0"},
+    )
+    assert response.status_code == 403

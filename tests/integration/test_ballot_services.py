@@ -161,8 +161,8 @@ def _voted_online(poll: Poll, entry: RollEntry) -> Registration:
 
 def test_an_online_ballot_refuses_a_paper_entry(open_paper_poll: Poll, operator: User) -> None:
     """§7 makes the online ballot unlocatable, so it can neither be replaced nor
-    counted beside a paper one — the entry is refused outright (divergence from
-    R-9.3 / T-8, docs/spec-divergences.md)."""
+    counted beside a paper one — the entry is refused outright, per R-9.3
+    (docs/specification-decision-log.md #5)."""
     entry = _entry(open_paper_poll)
     registration = _voted_online(open_paper_poll, entry)
 

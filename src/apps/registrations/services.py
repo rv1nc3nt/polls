@@ -533,9 +533,10 @@ def send_ballot_receipt(registration_id: str, tracking_code: str, ranking: list[
     Called from the ballot view's ``on_commit`` with plain values, so no
     ``apps.ballots`` symbol is imported here (INV-1). A *modification* never
     reaches this: it runs from a session ``ballot_hash`` with no path back to
-    the registration (R-7.4), recorded in ``docs/spec-divergences.md``. The
-    tracking code is stable across versions and was mailed here at the first
-    cast, so the voter always holds it.
+    the registration (R-7.4), which is why R-6.4 requires the emailed receipt
+    on the first cast only (``docs/specification-decision-log.md`` #6). The tracking code
+    is stable across versions and was mailed here at the first cast, so the
+    voter always holds it.
     """
     registration = Registration.objects.filter(pk=registration_id).first()
     if registration is None or not registration.email:

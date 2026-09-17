@@ -24,7 +24,7 @@ from django.utils.translation import gettext as _
 
 from apps.audit import services as audit
 from apps.audit.models import Action, Reason
-from apps.ballots.models import BallotStatus
+from apps.ballots.models import BallotStatus, ReconciliationRecord
 from apps.core.crypto import new_opening_seed
 from apps.core.models import User
 
@@ -96,6 +96,13 @@ def closing_blockers(poll: Poll) -> list[str]:
     than dangerous: the window checks already refuse every ballot write past
     ``paper_entry_deadline`` regardless of state, so the poll is closed in
     substance while the state field waits.
+
+    ``reconciliation_pending`` (R-8.6) is never overridable, unlike
+    ``pending_countersign`` — the requirements give ``close_poll`` a mandatory-
+    reason escape hatch for an outstanding countersignature (R-8.7 bis) but
+    none for a missing reconciliation, so ``_close_poll_locked``'s
+    ``overridable`` check, which accepts only ``pending_countersign:`` blockers,
+    already refuses this one unconditionally without any change there.
     """
     blockers: list[str] = []
     if poll.state != PollState.OPEN:
@@ -103,6 +110,11 @@ def closing_blockers(poll: Poll) -> list[str]:
     pending = poll.ballots.filter(status=BallotStatus.PENDING_COUNTERSIGN).count()
     if pending:
         blockers.append(f"pending_countersign:{pending}")
+    if (
+        poll.paper_requires_reconciliation
+        and not ReconciliationRecord.objects.filter(poll=poll).exists()
+    ):
+        blockers.append("reconciliation_pending")
     return blockers
 
 

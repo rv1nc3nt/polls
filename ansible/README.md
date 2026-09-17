@@ -10,7 +10,7 @@ tag-by-tag breakdown (`provision`, `deploy`, `backup`, `restore`, `smoke`),
 the scheduled-task options, supervision, and the operational limits to know
 about (notably: the backup/restore role does not yet cover
 `DJANGO_MEDIA_ROOT`, so option images and the commune logo/favicon are not in
-the nightly snapshot — see [`docs/spec-divergences.md`](../docs/spec-divergences.md)
+the nightly snapshot — see [`docs/specification-decision-log.md`](../docs/specification-decision-log.md)
 #18). What follows here is the layout of this directory, not a replacement
 for that guide.
 

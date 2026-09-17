@@ -11,7 +11,7 @@ never a tenant column.
 Written to [`spec-plateforme-vote.md`](spec-plateforme-vote.md), which restates
 the functional requirements — the `R-x.y` numbers cited throughout — in
 implementation terms. Departures of the code from the specification are recorded
-in [`docs/spec-divergences.md`](docs/spec-divergences.md).
+in [`docs/specification-decision-log.md`](docs/specification-decision-log.md).
 
 ## What this software is not for
 
@@ -134,7 +134,7 @@ Outstanding:
   though the features themselves are built.
 - The Ansible role's **backup and restore playbook covers only `db.sqlite3`**,
   not `DJANGO_MEDIA_ROOT` (option images, the commune logo and favicon) — a
-  restore today leaves those references broken (`docs/spec-divergences.md`
+  restore today leaves those references broken (`docs/specification-decision-log.md`
   #18).
 - No prebuilt **container image** or no-toolchain deployment guide yet, and no
   generated **third-party licence notice** (§14).

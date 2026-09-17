@@ -250,7 +250,7 @@ lui-même `polls-manage <tâche>` à un intervalle court.
 > dans les descriptions) sans les fichiers eux-mêmes : rendu dégradé mais pas
 > d'erreur — le logo et le favicon de la commune, référencés directement,
 > affichent un lien brisé plutôt qu'un simple manque. Voir
-> `docs/spec-divergences.md` #18 pour le détail ; en attendant que cela soit
+> `docs/specification-decision-log.md` #18 pour le détail ; en attendant que cela soit
 > traité, sauvegardez ce répertoire séparément si des scrutins de votre
 > instance utilisent des images.
 

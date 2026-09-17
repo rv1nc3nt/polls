@@ -1,10 +1,12 @@
-# Divergences from the specification
+# Specification decision log
 
 Per §0 of `spec-plateforme-vote.md`, a divergence between the implementation
 specification and the functional requirements it restates is resolved in favour
 of the requirements, and the specification corrected. This file records where the
-**code** departs from the specification, so a reviewer can settle each one rather
-than discover it.
+**code** departed from the specification, so a reviewer can settle each one rather
+than discover it — and keeps the entry after it is settled, since the resolution
+is the point: it is what stops the next reader from "fixing" the code back
+towards a specification wording that was deliberately changed out from under it.
 
 Items 1–6 were settled on 2026-09-09 by amending `spec-plateforme-vote.md` and,
 where noted, the functional requirements (`cahier-des-charges.md` /
@@ -598,14 +600,45 @@ screen 7, the closure guard and override in §9 and §4, T-19/T-32/T-57/T-68 —
 and the signed form is at least named everywhere paper entry is described
 (§6.4, R-8.2). Reconciliation alone is a bare boolean with nothing behind it.
 
-**Not settled.** Needs a decision before it can be written up: what
-"reconciled against the recorded ballots" produces as an artefact (a count
-comparison? a per-form checklist against `PaperBallotLink` rows?), who
-performs it and from which back-office screen, whether it gates closure or
-publication the way an outstanding countersignature does, and what the
-"reconciliation record" is stored as (a new model, a structured audit event, an
-uploaded document). Until that lands in §6.5/§9, a commune that enables
-`paper_requires_reconciliation` gets a flag with no behaviour behind it.
+**Settled (2026-09-17).** A count comparison, not a per-form checklist: a
+per-form match against `PaperBallotLink` rows would require the paper forms
+themselves to carry a machine-readable identifier, which R-8.2 bis's signed
+form does not and the plain R-8.4 receipt cannot (it is handed to the elector,
+not retained by the commune). What R-8.6 actually asks the commune to compare
+is a count the commune holds physically (the retained forms) against a count
+the system holds (the recorded ballots) — the same shape §9's own participation
+counts already take.
+
+`ballots.models.ReconciliationRecord` (§3.5's neighbour): one row per poll,
+`forms_retained_count` entered by the poll admin, `recorded_ballots_count`
+computed from the live paper ballots at the instant of signing — never entered,
+since the operator has no independent way to know it is right — plus an
+optional prose `note` for a discrepancy, `signed_by` and `signed_at`. Kept as
+its own model rather than a structured audit event: §10 already reserves
+`AuditEvent.reason` for a code, never prose, and a discrepancy note is exactly
+the kind of thing that belongs on a referenced row instead (the same reasoning
+that keeps `PaperBallotLink.note` off the audit table). `Action.RECONCILIATION_RECORDED`
+logs that it happened, referencing the new row, with the two counts in `after`
+— no prose, same discipline as every other audit event.
+
+Screen 9 (§6.5.9), not a new numbered screen: it is entered by the poll admin
+while the poll is still `open`, once `paper_entry_deadline` has passed — the
+same restriction screen 2 already puts on the manual `close_poll` trigger, for
+the same reason (a count taken earlier could be made stale by a paper entry or
+correction the window still legitimately admits). It gates closure: unlike
+`pending_countersign` (R-8.7 bis), R-8.6 offers no override, so
+`transitions.closing_blockers` adds a `reconciliation_pending` blocker that
+`_close_poll_locked`'s existing `overridable` check (which accepts only
+`pending_countersign:`-prefixed blockers) already refuses unconditionally.
+Where the flag is off, none of this runs and `closing_blockers` never mentions
+it — R-8.6's own fallback, "the audit log serves as the record", already holds
+for that poll from the paper-ballot audit events §10 requires regardless
+(`PAPER_BALLOT_CREATED`/`_CORRECTED`/`_DELETED`).
+
+Not published: unlike the countersignature override, which R-8.7 bis and
+T-19/T-32 explicitly send into the publication, R-8.6 says only "signed and
+archived" — an internal record, visible to the poll admin and the auditor on
+screen 9, never on the public results page or in the CSV/JSON artefacts.
 
 ## 17. R-8.2 bis's required content is not carried by the receipt as specified
 
