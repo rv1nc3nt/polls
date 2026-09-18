@@ -11,7 +11,13 @@ polls-verifier-core = { path = "../core" }
 eframe = "0.29"
 
 [target.'cfg(target_os = "linux")'.dependencies]
-rfd = { version = "0.15", default-features = false, features = ["xdg-portal", "tokio"] }
+# xdg-portal talks to the desktop's file chooser over D-Bus (ashpd/zbus); the
+# synchronous FileDialog::pick_file() rfd exposes runs that on a bare
+# pollster::block_on, not inside a real async runtime, so it needs zbus's
+# async-io executor (paired with "async-std" here only to pull in the glue
+# ashpd expects) rather than zbus's tokio one — the tokio feature panics with
+# "there is no reactor running" because there is no tokio::Runtime around it.
+rfd = { version = "0.15", default-features = false, features = ["xdg-portal", "async-std"] }
 
 [target.'cfg(not(target_os = "linux"))'.dependencies]
 rfd = { version = "0.15", default-features = false }
