@@ -1,16 +1,9 @@
-[package]
-name = "polls-verifier"
-version = "0.1.0"
-edition = "2021"
-license = "0BSD"
-authors = ["Romain VINCENT"]
-description = "Independent verifier for the commune polling platform (§8, §9)"
+[workspace]
+resolver = "2"
+members = ["core", "cli", "gui"]
 
-# No dependencies, deliberately: SHA-256, the CSV reader and the Schulze method
-# are implemented here from docs/canonical-serialisation.md and §8 of the
-# specification. A shared crate would be a shared implementation, which is the
-# one thing this binary must not have.
-[dependencies]
+# `cargo test`/`build` with no --package flag, as the CLAUDE.md commands and CI
+# do, runs every member: the CLI, its zero-dependency core, and the GUI alike.
 
 [profile.release]
 opt-level = 2

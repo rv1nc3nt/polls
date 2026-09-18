@@ -1,0 +1,14 @@
+[package]
+name = "polls-verifier"
+version = "0.1.0"
+edition = "2021"
+license = "0BSD"
+authors = ["Romain VINCENT"]
+description = "Independent verifier for the commune polling platform (§8, §9) — command line"
+
+[dependencies]
+polls-verifier-core = { path = "../core" }
+
+[[bin]]
+name = "polls-verifier"
+path = "src/main.rs"

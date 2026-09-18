@@ -44,7 +44,9 @@ transactional apply shared by the CLI and screen 3) ·
 `auditlog.py` and `review.py` the read models for screens 1, 4 and 8)
 · `src/apps/publicsite/`
 · `src/templates/` · `src/static/` · `locale/` (French is the msgid language, so
-only `en` has a catalogue) · `verifier/` independent Rust verifier · `ansible/`
+only `en` has a catalogue) · `verifier/` independent Rust verifier — `core/`
+the zero-dependency verification logic, `cli/` and `gui/` two thin front ends
+over it — · `ansible/`
 · `contrib/init/`.
 
 ## Properties that must not be broken

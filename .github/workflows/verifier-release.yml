@@ -17,16 +17,20 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            artifact: polls-verifier-linux-x86_64
+            cli_artifact: polls-verifier-linux-x86_64
+            gui_artifact: polls-verifier-gui-linux-x86_64
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            artifact: polls-verifier-windows-x86_64.exe
+            cli_artifact: polls-verifier-windows-x86_64.exe
+            gui_artifact: polls-verifier-gui-windows-x86_64.exe
           - os: macos-latest
             target: aarch64-apple-darwin
-            artifact: polls-verifier-macos-aarch64
+            cli_artifact: polls-verifier-macos-aarch64
+            gui_artifact: polls-verifier-gui-macos-aarch64
           - os: macos-latest
             target: x86_64-apple-darwin
-            artifact: polls-verifier-macos-x86_64
+            cli_artifact: polls-verifier-macos-x86_64
+            gui_artifact: polls-verifier-gui-macos-x86_64
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -35,16 +39,24 @@ jobs:
           targets: ${{ matrix.target }}
       - run: cargo test --manifest-path verifier/Cargo.toml --target ${{ matrix.target }}
       - run: cargo build --manifest-path verifier/Cargo.toml --release --target ${{ matrix.target }}
-      - name: Rename binary to its published artifact name
+      - name: Rename binaries to their published artifact names
         shell: bash
         run: |
-          bin=verifier/target/${{ matrix.target }}/release/polls-verifier
-          [ -f "$bin.exe" ] && bin="$bin.exe"
-          cp "$bin" "${{ matrix.artifact }}"
+          dir=verifier/target/${{ matrix.target }}/release
+          cli="$dir/polls-verifier"
+          gui="$dir/polls-verifier-gui"
+          [ -f "$cli.exe" ] && cli="$cli.exe"
+          [ -f "$gui.exe" ] && gui="$gui.exe"
+          cp "$cli" "${{ matrix.cli_artifact }}"
+          cp "$gui" "${{ matrix.gui_artifact }}"
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact }}
-          path: ${{ matrix.artifact }}
+          name: ${{ matrix.cli_artifact }}
+          path: ${{ matrix.cli_artifact }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.gui_artifact }}
+          path: ${{ matrix.gui_artifact }}
 
   attach:
     # workflow_dispatch has no release to attach to; that path is for

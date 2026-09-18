@@ -1,30 +1,9 @@
 // SPDX-License-Identifier: 0BSD
-//! Independent verifier for the commune polling platform (§8, §9, §14).
-//!
-//! It reads only the published CSV, never the database, and recomputes the
-//! canonical serialisation, the closure hash, the pairwise matrix, the Schulze
-//! winner and the tie-break. It was written from
-//! `docs/canonical-serialisation.md` and §8 of the specification, and shares no
-//! code with the Python implementation — a property the language boundary
-//! enforces structurally.
-//!
-//! When the two disagree, the resolution is to return to the specification and
-//! determine which is wrong, never to adjust this binary until it matches.
-//!
-//! Usage:
-//!
-//!     polls-verifier ballots.csv \
-//!         [--closure-hash <hex>] [--opening-seed <hex>] [--winner <option_id>]
-//!
-//! Exit codes: 0 agreement, 1 disagreement, 2 usage or input error.
-
-mod schulze;
-mod sha256;
+//! Parsing the published CSV and the canonical serialisation of the live
+//! ballot set (`docs/canonical-serialisation.md`, §9). Shared by the CLI and
+//! the GUI so there is exactly one Rust implementation of this grammar.
 
 use std::collections::BTreeSet;
-use std::process::ExitCode;
-
-use sha256::{hex, sha256};
 
 /// One row of the published CSV: a tracking code and a ranking.
 pub struct Ballot {
@@ -35,7 +14,7 @@ pub struct Ballot {
 
 /// Parse the two-column published CSV (§9). The header is `tracking_code,ranking`
 /// and the ranking cell is the canonical JSON array of arrays.
-fn parse_csv(text: &str) -> Result<Vec<Ballot>, String> {
+pub fn parse_csv(text: &str) -> Result<Vec<Ballot>, String> {
     let mut ballots = Vec::new();
     for (lineno, line) in text.lines().enumerate() {
         if line.trim().is_empty() {
@@ -121,7 +100,7 @@ pub fn canonical_serialisation(ballots: &[Ballot]) -> Vec<u8> {
     out
 }
 
-fn options_in(ballots: &[Ballot]) -> Vec<String> {
+pub fn options_in(ballots: &[Ballot]) -> Vec<String> {
     let mut set = BTreeSet::new();
     for ballot in ballots {
         for group in &ballot.ranking {
@@ -133,89 +112,7 @@ fn options_in(ballots: &[Ballot]) -> Vec<String> {
     set.into_iter().collect()
 }
 
-fn arg_value(args: &[String], flag: &str) -> Option<String> {
-    args.iter().position(|a| a == flag).and_then(|i| args.get(i + 1)).cloned()
-}
-
-fn main() -> ExitCode {
-    let args: Vec<String> = std::env::args().skip(1).collect();
-    let Some(path) = args.first().filter(|a| !a.starts_with("--")) else {
-        eprintln!("usage: polls-verifier <ballots.csv> [--closure-hash <hex>] [--opening-seed <hex>] [--winner <option_id>]");
-        return ExitCode::from(2);
-    };
-
-    let text = match std::fs::read_to_string(path) {
-        Ok(text) => text,
-        Err(err) => {
-            eprintln!("cannot read {path}: {err}");
-            return ExitCode::from(2);
-        }
-    };
-    let ballots = match parse_csv(&text) {
-        Ok(ballots) => ballots,
-        Err(err) => {
-            eprintln!("{err}");
-            return ExitCode::from(2);
-        }
-    };
-
-    let serialised = canonical_serialisation(&ballots);
-    let hash = sha256(&serialised);
-    let options = options_in(&ballots);
-    let rankings: Vec<Vec<Vec<String>>> = ballots.iter().map(|b| b.ranking.clone()).collect();
-    let matrix = schulze::pairwise(&rankings, &options);
-    let paths = schulze::strongest_paths(&matrix, &options);
-    let winners = schulze::winners(&paths, &options);
-
-    println!("ballots        {}", ballots.len());
-    println!("closure_hash   {}", hex(&hash));
-    println!("options        {}", options.join(", "));
-    println!("pairwise matrix");
-    for (i, row) in matrix.iter().enumerate() {
-        println!("  {:>10} {:?}", options[i], row);
-    }
-    println!("schulze winners {}", winners.join(", "));
-
-    let mut ok = true;
-
-    if let Some(expected) = arg_value(&args, "--closure-hash") {
-        let matched = expected.trim().eq_ignore_ascii_case(&hex(&hash));
-        println!("closure hash    {}", if matched { "AGREES" } else { "DIFFERS" });
-        ok &= matched;
-    }
-
-    let mut final_winner = winners.first().cloned();
-    if winners.len() > 1 {
-        match arg_value(&args, "--opening-seed") {
-            Some(seed_hex) => match parse_hex(&seed_hex) {
-                Some(seed) => {
-                    let drawn = schulze::tiebreak(&winners, &seed, &hash);
-                    println!("tie-break order {}", drawn.join(", "));
-                    final_winner = drawn.first().cloned();
-                }
-                None => {
-                    eprintln!("--opening-seed must be hex");
-                    return ExitCode::from(2);
-                }
-            },
-            None => println!("tie among {} options; pass --opening-seed to resolve", winners.len()),
-        }
-    }
-
-    if let Some(expected) = arg_value(&args, "--winner") {
-        let matched = final_winner.as_deref() == Some(expected.as_str());
-        println!("winner          {}", if matched { "AGREES" } else { "DIFFERS" });
-        ok &= matched;
-    }
-
-    if ok {
-        ExitCode::SUCCESS
-    } else {
-        ExitCode::from(1)
-    }
-}
-
-fn parse_hex(text: &str) -> Option<Vec<u8>> {
+pub fn parse_hex(text: &str) -> Option<Vec<u8>> {
     let text = text.trim();
     if text.len() % 2 != 0 {
         return None;
@@ -229,6 +126,7 @@ fn parse_hex(text: &str) -> Option<Vec<u8>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::sha256::{hex, sha256};
 
     #[test]
     fn worked_vector_from_the_documentation() {

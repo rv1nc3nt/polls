@@ -7,8 +7,8 @@ canonicalisation guarantee, so the bytes are defined here rather than left to a
 library.
 
 Reference implementations: `src/apps/core/canonical.py` (Python) and
-`verifier/src/main.rs` (Rust, written from this document and sharing no code
-with it).
+`verifier/core/src/canonical.rs` (Rust, written from this document and sharing
+no code with it).
 
 ## The set
 

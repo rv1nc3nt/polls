@@ -87,6 +87,7 @@ platforms are best effort, installation by hand.**
     src/apps/backoffice/   Espace mairie (§6.5) — the majority of the build
     src/apps/publicsite/   Public pages (§6.6) and GET /sante
     verifier/              Independent Rust verifier; shares no code (§14)
+                           core/ verification logic, cli/ and gui/ front ends
     ansible/               Deployment (§15)
     docs/                  Canonical serialisation, spec divergences,
                            manuel/ (French user manual, all four roles)

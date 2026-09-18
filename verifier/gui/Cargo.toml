@@ -1,0 +1,17 @@
+[package]
+name = "polls-verifier-gui"
+version = "0.1.0"
+edition = "2021"
+license = "0BSD"
+authors = ["Romain VINCENT"]
+description = "Independent verifier for the commune polling platform (§8, §9) — desktop GUI"
+
+[dependencies]
+polls-verifier-core = { path = "../core" }
+eframe = "0.29"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+rfd = { version = "0.15", default-features = false, features = ["xdg-portal", "tokio"] }
+
+[target.'cfg(not(target_os = "linux"))'.dependencies]
+rfd = { version = "0.15", default-features = false }
