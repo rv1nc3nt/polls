@@ -109,6 +109,13 @@ the good error message; the triggers are what hold.
 - Where the code departs from the specification, record it in
   `docs/specification-decision-log.md` rather than leaving it to be discovered.
 
+## Releases
+
+A release is a GitHub Release named `vX.Y.Z`, tagged on `main`. The tag must
+always match `version` in `pyproject.toml` — bump `pyproject.toml` in the same
+commit that gets tagged and released, not before and not after, so the two
+never drift apart.
+
 ## Pushing back
 
 The specification is careful and mostly right, so treat it as the default. But
