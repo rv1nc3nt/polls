@@ -29,6 +29,63 @@
      `data-theme` on the root — set by static/js/theme.js from the viewer's
      choice — wins over it in either direction. */
 
+/* Libre Franklin (headings and body text) and IBM Plex Mono (tracking codes,
+   the ballot's rank selects) — vendored under static/fonts/ rather than
+   linked from fonts.googleapis.com: §14's self-hosting posture rules out a
+   third party seeing every visitor's IP on every page load, which a live
+   Google Fonts request would. Latin subset only (French needs nothing else)
+   is why seven small files cover both families in full. Each is SIL Open
+   Font License 1.1, redistributable; see static/fonts/README.md. */
+@font-face {
+  font-family: "Libre Franklin";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../fonts/librefranklin-400.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Libre Franklin";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../fonts/librefranklin-400italic.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Libre Franklin";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("../fonts/librefranklin-500.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Libre Franklin";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../fonts/librefranklin-600.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Libre Franklin";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../fonts/librefranklin-700.woff2") format("woff2");
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("../fonts/ibmplexmono-500.woff2") format("woff2");
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../fonts/ibmplexmono-600.woff2") format("woff2");
+}
+
 :root {
   color-scheme: light;
 
@@ -45,13 +102,14 @@
   --accent-ink: #ffffff;
   --accent-soft: #e9e9fb;    /* accent wash behind --ink text — 15:1 */
   --ok: #1f6b2c;             /* 6:1 on --paper */
+  --ok-soft: #e7f2e6;        /* ok wash — pairs with --ok the way --accent-soft pairs with --accent */
   --warn: #7a5c00;           /* 6.3:1 on --paper */
 
   --shadow: 0 1px 2px rgba(17, 17, 26, 0.05), 0 6px 20px -4px rgba(17, 17, 26, 0.10);
   --shadow-sm: 0 1px 2px rgba(17, 17, 26, 0.06);
 
-  --radius: 0.7rem;
-  --radius-sm: 0.4rem;
+  --radius: 0.85rem;
+  --radius-sm: 0.5rem;
   --measure: 42rem;          /* comfortable reading width for prose */
   --page: 78rem;             /* the centred content column */
 }
@@ -72,6 +130,7 @@
     --accent-ink: #10121a;   /* 12:1 on --accent */
     --accent-soft: #242739;
     --ok: #74c983;           /* 9:1 on --paper */
+    --ok-soft: #1c2e20;
     --warn: #d9b45f;         /* 9.7:1 on --paper */
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 20px -4px rgba(0, 0, 0, 0.55);
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
@@ -93,6 +152,7 @@
   --accent-ink: #10121a;
   --accent-soft: #242739;
   --ok: #74c983;
+  --ok-soft: #1c2e20;
   --warn: #d9b45f;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 20px -4px rgba(0, 0, 0, 0.55);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
@@ -104,12 +164,19 @@ body {
   margin: 0;
   color: var(--ink);
   background: var(--paper);
-  font: 1rem/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+  font: 1rem/1.6 "Libre Franklin", system-ui, -apple-system, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
   /* The one piece of civic identity the platform allows itself: a bleu France
      rule across the top of every page. Decorative, removed for print. */
   border-top: 3px solid var(--accent);
 }
+
+code, kbd, samp { font-family: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace; }
+
+/* A decorative icon beside a word that already carries the meaning (R-14.1):
+   one fixed size wherever it appears, in the text's own colour, never resized
+   or recoloured by context. */
+.ic { width: 1rem; height: 1rem; flex: none; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; vertical-align: -0.15em; }
 
 /* One centred column. Bars and content share the same bounds so their edges
    line up on a wide monitor; the inline padding is the same everywhere. */
@@ -149,13 +216,29 @@ a:hover { text-decoration-thickness: 2px; }
 h1, h2, h3 { line-height: 1.2; text-wrap: balance; }
 h1 {
   font-size: clamp(1.75rem, 1.3rem + 1.9vw, 2.35rem);
+  font-weight: 700;
   letter-spacing: -0.02em;
   margin: 0 0 1.25rem;
-  padding-bottom: 0.35rem;
-  border-bottom: 2px solid var(--accent);
 }
-h2 { font-size: clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem); margin: 2.1rem 0 0.7rem; letter-spacing: -0.01em; }
-h3 { font-size: 1.05rem; margin: 1.5rem 0 0.5rem; }
+
+/* The heading's own rule, quiet rather than an accent-coloured underline: a
+   thin neutral line under the row a page's <h1> sits in (with its own action,
+   on screens that have one), not on the heading itself — so a page with no
+   action still gets the same rule from the row alone. */
+.title-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 1.25rem;
+}
+.title-row h1 { margin: 0; }
+
+h2 { font-size: clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem); font-weight: 600; margin: 2.1rem 0 0.7rem; letter-spacing: -0.01em; }
+h3 { font-size: 1.05rem; font-weight: 600; margin: 1.5rem 0 0.5rem; }
 p { margin: 0 0 0.8rem; }
 main > p, .paper-form p, .receipt p { max-width: var(--measure); }
 section { margin-bottom: 2rem; }
@@ -263,21 +346,24 @@ body.bo main { padding: 0; }
 }
 
 /* The poll state, written out — the wash only sorts it, it does not carry it
-   (R-14.1). A finished poll drops to a plain outline. */
+   (R-14.1) — same pattern as .poll-index__state on the public list: an icon
+   and the word, coloured by what the word already says. */
 .bo-state {
-  display: inline-block;
-  padding: 0.15rem 0.55rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.65rem;
   border: 1px solid transparent;
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent);
-  font-size: 0.75rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
+.bo-state--draft { background: var(--paper-quiet); color: var(--ink-quiet); }
+.bo-state--announced { background: var(--accent-soft); color: var(--accent); }
+.bo-state--open { background: var(--ok-soft); color: var(--ok); }
 .bo-state--closed,
-.bo-state--published {
+.bo-state--published,
+.bo-state--withdrawn {
   background: var(--paper);
   border-color: var(--rule);
   color: var(--ink-quiet);
@@ -505,7 +591,8 @@ details form.inline input[type="password"] { width: min(16rem, 100%); }
 input:focus-visible, select:focus-visible, textarea:focus-visible { border-color: var(--focus); }
 input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); width: 1rem; height: 1rem; }
 
-button {
+button, .button {
+  display: inline-block;
   padding: 0.6rem 1.1rem;
   font-weight: 600;
   border: 1px solid transparent;
@@ -513,15 +600,17 @@ button {
   background: var(--accent);
   color: var(--accent-ink);
   cursor: pointer;
+  text-decoration: none;
   transition: opacity 0.12s ease, background 0.12s ease;
 }
-button:hover { opacity: 0.88; }
-button:active { opacity: 0.76; }
+button:hover, .button:hover { opacity: 0.88; text-decoration: none; }
+button:active, .button:active { opacity: 0.76; }
 
 /* Secondary and destructive actions carry the same word-first labelling; the
    quieter fill keeps a routine screen from looking like a wall of blue, and
    sets the primary action apart (R-2.4, §6.5). */
 button.secondary,
+.button.secondary,
 form.inline button {
   background: var(--surface);
   color: var(--ink);
@@ -550,29 +639,26 @@ legend { font-weight: 700; padding: 0 0.4rem; }
 .tabs__list {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.3rem;
+  gap: 0.3rem 1.25rem;
   border-bottom: 1px solid var(--rule);
-  margin-bottom: 1.25rem;
+  margin-bottom: 1.1rem;
 }
 .tabs__tab {
-  padding: 0.55rem 0.9rem;
-  font-weight: 500;
-  color: var(--ink);
+  padding: 0 0 0.65rem;
+  font-weight: 600;
+  color: var(--ink-quiet);
   background: none;
-  border: 1px solid transparent;
-  border-bottom: none;
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  margin-bottom: -1px;
 }
-.tabs__tab:hover { opacity: 1; background: var(--paper-quiet); }
+.tabs__tab:hover { opacity: 1; color: var(--ink); background: none; }
 /* The selected tab carries the state in weight and a filled underline, not
    colour alone (3.1) — `aria-selected` is the source of truth either way. */
 .tabs__tab.is-selected {
-  font-weight: 700;
-  color: var(--accent);
-  background: var(--surface);
-  border-color: var(--rule);
-  border-bottom: 2px solid var(--surface);
-  margin-bottom: -1px;
+  color: var(--ink);
+  border-bottom-color: var(--accent);
 }
 /* A rejected submission opens on the first failing tab (tabs.js), but a
    near-empty form fails several at once; the rest stayed unmarked with
@@ -677,7 +763,57 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
    would be a box in a box — drop it back to a plain grid. */
 .review .facts, .paper-elector .facts { box-shadow: none; border: 0; background: none; padding: 0; }
 
+/* The calendar's own .facts (§6.4): each <dt> carries a decorative icon ahead
+   of the word (R-14.1 — the label is what says "ouverture"/"clôture", the
+   icon only echoes it), inside the <dt> itself so the <dl> stays valid. */
+.facts--icons dt { display: flex; align-items: center; gap: 0.5rem; }
+
+/* A .facts list whose every dd is a plain count (the two Participation
+   sections, public and back-office) reads better as a row of figures than as
+   a label/value table — each dt+dd pair wrapped in its own <div> (valid
+   inside <dl>, HTML §4.4.9) becomes one tile; the count itself is set in the
+   tabular-figure mono face so the digits line up. */
+.facts--stats { grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); gap: 1rem; }
+/* A label that wraps to two lines ("Inscrits n'ayant pas encore voté") must
+   not push its own number lower than the single-line labels beside it — the
+   whole point of a stat row is that the figures line up. Reserving two
+   lines' height for every label, wrapped or not, keeps every dd starting at
+   the same baseline regardless of how long its own dt happens to be. */
+.facts--stats dt { font-size: 0.85rem; min-height: 2.6rem; }
+.facts--stats dd {
+  font-family: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 1.6rem;
+  font-weight: 600;
+  margin-top: 0.2rem;
+}
+
 .actions { list-style: none; padding: 0; margin: 0.5rem 0 0; display: flex; flex-direction: column; gap: 0.5rem; }
+/* One bordered row per action rather than a bare link — the same card treatment
+   as .poll-index below, so the two lists a mairie operator and a visitor each
+   scan most often read as the same kind of object. */
+.actions li a {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.75rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--rule-soft);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: var(--ink);
+  font-weight: 600;
+  transition: border-color 0.12s ease;
+}
+.actions li a:hover { border-color: var(--accent); text-decoration: none; }
+.actions li a .ic { color: var(--ink-quiet); }
+.actions li a .ic.chev { margin-left: auto; }
+.actions li .pending {
+  display: block;
+  padding: 0.75rem 1rem;
+  border: 1px dashed var(--rule-soft);
+  border-radius: var(--radius-sm);
+}
 
 /* ---- screen 8: journal d'audit ------------------------------------- */
 
@@ -713,9 +849,24 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 
 .paper-search { margin-bottom: 1.75rem; }
 .paper-elector .facts, .receipt__ranking, .paper-ranking { margin: 0.5rem 0 1.25rem; }
-.ranking, .ranking-summary { list-style: decimal; padding-left: 1.4rem; margin: 0.5rem 0 1.25rem; }
-.ranking__row { padding: 0.35rem 0; }
-.ranking__row label { display: inline-block; margin: 0 0.6rem 0 0; font-weight: 400; }
+/* The rank itself is already spelled out in each row's select ("1er choix", "sans
+   rang"…), so the list doesn't also need a decimal number competing with it —
+   unlike .ranking-summary below, a read-only recap where the position in the
+   list *is* the rank. */
+.ranking { list-style: none; padding-left: 0; margin: 0.5rem 0 1.25rem; display: flex; flex-direction: column; gap: 0.6rem; }
+.ranking__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem 1rem;
+  padding: 0.85rem 1.05rem;
+  background: var(--surface);
+  border: 1px solid var(--rule-soft);
+  border-radius: var(--radius-sm);
+}
+.ranking__row label { margin: 0; font-weight: 600; }
+.ranking-summary { list-style: decimal; padding-left: 1.4rem; margin: 0.5rem 0 1.25rem; }
 .ranking-summary li { padding: 0.2rem 0; }
 
 /* The dead end when the elector has already voted online (§6.4). Red, and also
@@ -757,7 +908,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
   font-size: 1.7rem;
   font-weight: 600;
   letter-spacing: 0.12em;
-  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-family: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
   margin: 0.2rem 0 0.5rem;
 }
 .tracking-code {
@@ -771,12 +922,59 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 .noprint a + a { margin-left: 1.25rem; }
 
 /* ---- public poll page and results (§6.6, §9) ----------------------
-   Reading pages: prose width on the text, the propositions as a plain list,
-   the consultative-status statement set apart without colour carrying it. */
+   Reading pages: prose width on the text, the propositions as a tab per
+   option (.tabs__list/.tabs__tab, shared with screen 2's config editor
+   above), the consultative-status statement set apart without colour
+   carrying it. */
 
-.status { font-weight: 600; }
-.propositions { padding-left: 1.4rem; margin: 0.5rem 0 0; }
-.propositions li { padding: 0.2rem 0; }
+/* The poll's own state, called out the same way as a .message: a coloured
+   left border on a tinted box, word-first (the sentence itself already says
+   "ouverte"/"close"/…, R-14.1) so the colour only sorts what the words
+   already say. */
+.status {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  font-weight: 600;
+  border-left: 4px solid var(--rule);
+  background: var(--paper-quiet);
+  padding: 0.7rem 0.95rem;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  margin: 0 0 1.25rem;
+}
+.status .ic { margin-top: 0.2rem; color: var(--ink-quiet); }
+.status span { flex: 1; }
+/* The richer form — a title plus an explanatory sentence, not just one line
+   (the dashboard's pending-review callout) — takes a <div> instead of the
+   bare <span> above; its own paragraph drops back to normal weight. */
+.status div { flex: 1; }
+.status div p { margin: 0.2rem 0 0; font-weight: 400; }
+.status--open { border-left-color: var(--ok); }
+.status--open .ic { color: var(--ok); }
+.status--preview { border-left-color: var(--accent); }
+.status--preview .ic { color: var(--accent); }
+.status--warn { border-left-color: var(--warn); }
+.status--warn .ic { color: var(--warn); }
+.status--closed { border-left-color: var(--rule); font-weight: 500; }
+
+/* The poll page's main content and its "Participer" card (§6.6): a sticky
+   aside rather than the button repeated top and bottom of the page, so it
+   stays in view as the reader scrolls the propositions and the calendar. */
+.poll-layout { display: grid; grid-template-columns: 1.6fr 1fr; gap: 2rem; align-items: start; margin-top: 0.5rem; }
+.poll-layout__aside { position: sticky; top: 1.25rem; }
+@media (max-width: 58rem) {
+  .poll-layout { grid-template-columns: 1fr; }
+  .poll-layout__aside { position: static; }
+}
+.cta-card {
+  background: var(--surface);
+  border: 1px solid var(--rule-soft);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 1.4rem 1.5rem;
+}
+.cta-card h2 { margin-top: 0; font-size: 1.15rem; }
+.cta-card .button { width: 100%; text-align: center; }
 .extensions { list-style: none; padding: 0; margin: 0.5rem 0 0; }
 .extensions li { padding: 0.4rem 0; border-bottom: 1px solid var(--rule-soft); max-width: var(--measure); }
 .extensions li:last-child { border-bottom: 0; }
@@ -819,11 +1017,48 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 .result-hero .facts { box-shadow: none; border: 0; background: none; padding: 0; margin: 0; }
 .legal { border-top: 1px solid var(--rule); padding-top: 1rem; }
 .legal p { max-width: var(--measure); }
-.poll-index { list-style: none; padding: 0; }
-.poll-index li { padding: 0.9rem 0; border-bottom: 1px solid var(--rule-soft); }
-.poll-index li:first-child { border-top: 1px solid var(--rule-soft); }
-.poll-index a { font-weight: 600; font-size: 1.05rem; }
-.poll-index .help { display: block; }
+/* One bordered, rounded row per poll rather than a hairline-separated list — the
+   same card treatment as .actions above, so the two lists read as one system. */
+.poll-index { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 0.75rem; }
+.poll-index li {
+  padding: 1.1rem 1.3rem;
+  background: var(--surface);
+  border: 1px solid var(--rule-soft);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.poll-index li:hover { border-color: var(--rule); box-shadow: var(--shadow); }
+.poll-index__link {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1.25rem;
+  color: inherit;
+  text-decoration: none;
+}
+.poll-index__main { flex: 1 1 18rem; min-width: 0; }
+.poll-index__title { display: block; font-weight: 600; font-size: 1.05rem; color: var(--link); }
+.poll-index__link:hover .poll-index__title { text-decoration: underline; }
+.poll-index__meta { display: block; color: var(--ink-quiet); font-size: 0.88rem; margin-top: 0.15rem; }
+/* Row.status (apps.publicsite.views._status_key), never read off poll.state
+   alone — otherwise a poll past closes_at still reads "ouverte" for as long
+   as the scheduled close_poll job takes to catch up (§5.1, §6.4, T-67/T-68).
+   The word is what carries the state (R-14.1); the tint only sorts it. */
+.poll-index__state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: none;
+  padding: 0.3rem 0.7rem;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+.poll-index__state--open { color: var(--ok); background: var(--ok-soft); }
+.poll-index__state--preview { color: var(--accent); background: var(--accent-soft); }
+.poll-index__state--closed { color: var(--ink-quiet); background: var(--paper-quiet); }
+.poll-index .outcome--compact { padding-top: 0.6rem; margin-top: 0.6rem; border-top: 1px dashed var(--rule-soft); }
 /* A published poll's outcome, surfaced on the landing page itself (R-11.2,
    R-11.4) rather than left for a click into the poll's own page — the
    smaller sibling of .outcome on the results page. */
@@ -852,17 +1087,34 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 .commune-branding__preview { max-width: 12rem; max-height: 6rem; width: auto; height: auto; border-radius: 4px; border: 1px solid var(--rule-soft); }
 .commune-branding__preview--favicon { max-width: 4rem; max-height: 4rem; }
 
+/* ---- back-to-top shortcut (poll_detail.html) ------------------------
+   Fixed and visible by default — a harmless permanent fixture — so a visitor
+   with JavaScript disabled still has the shortcut once the page runs long
+   with tabs, calendar, participation and legal sections one after another.
+   static/js/backtotop.js is the only thing that ever adds `.is-hidden`, and
+   only once scroll position says the title is already off-screen, so with
+   JavaScript the button stays out of the way until it is actually useful. */
+.backtotop {
+  position: fixed;
+  right: clamp(1rem, 4vw, 2rem);
+  bottom: 1.5rem;
+  z-index: 5;
+  box-shadow: var(--shadow);
+}
+.backtotop.is-hidden { display: none; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; }
 }
 
 @media print {
   body { border-top: 0; }
-  .banner, .bo-side, .bo-crumb, .messages, .contentinfo, .langswitch, .themeswitch, .noprint { display: none !important; }
+  .banner, .bo-side, .bo-crumb, .messages, .contentinfo, .langswitch, .themeswitch, .noprint, .backtotop { display: none !important; }
   .receipt { border: none; border-radius: 0; box-shadow: none; padding: 0; max-width: none; }
   main, body.bo main { margin: 0; padding: 0; max-width: none; }
   .bo-main { padding: 0; }
-  h1 { border-bottom: 0; }
+  .title-row { border-bottom: 0; }
+  .poll-layout__aside { position: static; }
 }
 
 </style>
@@ -870,6 +1122,17 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 </head>
 <body class="bo">
   <a class="skip" href="#contenu">Aller au contenu</a>
+
+  
+  <svg class="bo-ico-sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="pub-ico-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3.2 2"/></symbol>
+    <symbol id="pub-ico-flag" viewBox="0 0 24 24"><path d="M6 3.5v17"/><path d="M6 4.5h11l-2.3 3.5L17 11.5H6"/></symbol>
+    <symbol id="pub-ico-lock" viewBox="0 0 24 24"><rect x="5.5" y="10.5" width="13" height="9.5" rx="1.6"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></symbol>
+    <symbol id="pub-ico-check" viewBox="0 0 24 24"><path d="M4 12.5 9.5 18 20 6.5"/></symbol>
+    <symbol id="pub-ico-cal" viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14.5" rx="1.6"/><path d="M4 9.5h16"/><path d="M8 3.5v4"/><path d="M16 3.5v4"/></symbol>
+    <symbol id="pub-ico-paper" viewBox="0 0 24 24"><path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V8Z"/><path d="M14 3v5h4"/><path d="M9.5 13h5"/><path d="M9.5 16.5h5"/></symbol>
+    <symbol id="pub-ico-warn" viewBox="0 0 24 24"><path d="M12 4 21 19.5H3Z"/><path d="M12 10v4"/><circle cx="12" cy="16.7" r="0.4" fill="currentColor"/></symbol>
+  </svg>
 
   <header class="banner">
     
@@ -882,7 +1145,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
       
       <a class="account__public" href="/" target="_blank" rel="noopener">Voir le site public</a>
       <form action="/fr/mairie/deconnexion/" method="post">
-        <input type="hidden" name="csrfmiddlewaretoken" value="uuclmSygCRPxZboUtmF299PqHITsKutkJCNRRMvJAnqILk8ZWv3woFTrYoED1i2S">
+        <input type="hidden" name="csrfmiddlewaretoken" value="wVgnjkWqWuaf61F29pvYoZc4a9Kc2zXGe5mBfZtmV6VIc4TjNsvyl8IWuTH2OMSU">
         <button type="submit">Se déconnecter</button>
       </form>
     </div>
@@ -912,6 +1175,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
   <symbol id="ico-tally" viewBox="0 0 24 24"><path d="M4 20h16"/><path d="M6.5 20v-6"/><path d="M12 20V5"/><path d="M17.5 20v-9"/></symbol>
   <symbol id="ico-audit" viewBox="0 0 24 24"><path d="m12 3.5 7 2.4v5.3c0 4.6-3 7.4-7 8.8-4-1.4-7-4.2-7-8.8V5.9Z"/><path d="m9 12 2 2 4-4.5"/></symbol>
   <symbol id="ico-commune" viewBox="0 0 24 24"><path d="M4 20h16"/><path d="M5.5 20V10.5L12 5l6.5 5.5V20"/><path d="M9.5 20v-5h5v5"/></symbol>
+  <symbol id="ico-chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
 </svg>
 
 <nav class="bo-side" aria-label="Navigation de l’espace mairie">
@@ -934,7 +1198,10 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
   
     
     <div class="bo-side__poll">
-      <span class="bo-state bo-state--draft">brouillon</span>
+      <span class="bo-state bo-state--draft">
+        
+        brouillon
+      </span>
     </div>
     
       <p class="bo-side__group" id="bo-grp-1">Scrutin</p>
@@ -943,7 +1210,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
           <li>
             
             <a class="bo-side__link"
-               href="/fr/mairie/scrutin/379657f7-ba26-4776-9792-3a5f929750a5/">
+               href="/fr/mairie/scrutin/00cee3f1-49a3-4b5c-8d8a-3b0d9e0336a1/">
               <svg class="bo-ico" aria-hidden="true"><use href="#ico-dashboard"></use></svg>
               <span class="bo-side__text">Tableau de bord</span>
             </a>
@@ -952,7 +1219,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
           <li>
             
             <a class="bo-side__link is-current"
-               href="/fr/mairie/scrutin/379657f7-ba26-4776-9792-3a5f929750a5/configuration/" aria-current="page">
+               href="/fr/mairie/scrutin/00cee3f1-49a3-4b5c-8d8a-3b0d9e0336a1/configuration/" aria-current="page">
               <svg class="bo-ico" aria-hidden="true"><use href="#ico-config"></use></svg>
               <span class="bo-side__text">Configuration</span>
             </a>
@@ -961,7 +1228,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
           <li>
             
             <a class="bo-side__link"
-               href="/fr/mairie/scrutin/379657f7-ba26-4776-9792-3a5f929750a5/liste-electorale/">
+               href="/fr/mairie/scrutin/00cee3f1-49a3-4b5c-8d8a-3b0d9e0336a1/liste-electorale/">
               <svg class="bo-ico" aria-hidden="true"><use href="#ico-roll"></use></svg>
               <span class="bo-side__text">Liste électorale</span>
             </a>
@@ -970,7 +1237,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
           <li>
             
             <a class="bo-side__link"
-               href="/fr/mairie/scrutin/379657f7-ba26-4776-9792-3a5f929750a5/inscriptions/">
+               href="/fr/mairie/scrutin/00cee3f1-49a3-4b5c-8d8a-3b0d9e0336a1/inscriptions/">
               <svg class="bo-ico" aria-hidden="true"><use href="#ico-registrations"></use></svg>
               <span class="bo-side__text">Inscriptions</span>
             </a>
@@ -984,7 +1251,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
           <li>
             
             <a class="bo-side__link"
-               href="/fr/mairie/scrutin/379657f7-ba26-4776-9792-3a5f929750a5/bulletins-papier/">
+               href="/fr/mairie/scrutin/00cee3f1-49a3-4b5c-8d8a-3b0d9e0336a1/bulletins-papier/">
               <svg class="bo-ico" aria-hidden="true"><use href="#ico-paper"></use></svg>
               <span class="bo-side__text">Bulletins papier</span>
             </a>
@@ -998,7 +1265,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
           <li>
             
             <a class="bo-side__link"
-               href="/fr/mairie/scrutin/379657f7-ba26-4776-9792-3a5f929750a5/depouillement/">
+               href="/fr/mairie/scrutin/00cee3f1-49a3-4b5c-8d8a-3b0d9e0336a1/depouillement/">
               <svg class="bo-ico" aria-hidden="true"><use href="#ico-tally"></use></svg>
               <span class="bo-side__text">Dépouillement</span>
             </a>
@@ -1012,7 +1279,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
           <li>
             
             <a class="bo-side__link"
-               href="/fr/mairie/scrutin/379657f7-ba26-4776-9792-3a5f929750a5/journal/">
+               href="/fr/mairie/scrutin/00cee3f1-49a3-4b5c-8d8a-3b0d9e0336a1/journal/">
               <svg class="bo-ico" aria-hidden="true"><use href="#ico-audit"></use></svg>
               <span class="bo-side__text">Journal d&#x27;audit</span>
             </a>
@@ -1025,8 +1292,8 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
   
   <div class="bo-side__tools">
     <form class="langswitch bo-side__lang" action="/i18n/setlang/" method="post">
-      <input type="hidden" name="csrfmiddlewaretoken" value="uuclmSygCRPxZboUtmF299PqHITsKutkJCNRRMvJAnqILk8ZWv3woFTrYoED1i2S">
-      <input type="hidden" name="next" value="/fr/mairie/scrutin/379657f7-ba26-4776-9792-3a5f929750a5/configuration/">
+      <input type="hidden" name="csrfmiddlewaretoken" value="wVgnjkWqWuaf61F29pvYoZc4a9Kc2zXGe5mBfZtmV6VIc4TjNsvyl8IWuTH2OMSU">
+      <input type="hidden" name="next" value="/fr/mairie/scrutin/00cee3f1-49a3-4b5c-8d8a-3b0d9e0336a1/configuration/">
       <label for="bo-lang-select">Langue</label>
       <select id="bo-lang-select" name="language">
         
@@ -1064,7 +1331,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
         </li>
         
           <li>
-            <a href="/fr/mairie/scrutin/379657f7-ba26-4776-9792-3a5f929750a5/">Nom de la future salle des fêtes</a>
+            <a href="/fr/mairie/scrutin/00cee3f1-49a3-4b5c-8d8a-3b0d9e0336a1/">Nom de la future salle des fêtes</a>
           </li>
         
         <li aria-current="page">Configuration</li>
@@ -1073,7 +1340,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
   
 
   <div class="bo-main">
-    <h1>Configuration du scrutin</h1>
+    <div class="title-row"><h1>Configuration du scrutin</h1></div>
     
 
 
@@ -1083,7 +1350,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 
 
   
-  <p class="notice">Le scrutin est en brouillon : toute la configuration est modifiable. Elle se fige à l'ouverture (R-3.3). Les points encore incomplets sont signalés sur le tableau de bord.</p>
+  <p class="notice">Le scrutin est en brouillon : toute la configuration est modifiable. Elle se fige à l'ouverture. Les points encore incomplets sont signalés sur le tableau de bord.</p>
 
   
   <div class="tabs" data-tabs
@@ -1106,7 +1373,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 
 
     <form method="post">
-      <input type="hidden" name="csrfmiddlewaretoken" value="uuclmSygCRPxZboUtmF299PqHITsKutkJCNRRMvJAnqILk8ZWv3woFTrYoED1i2S">
+      <input type="hidden" name="csrfmiddlewaretoken" value="wVgnjkWqWuaf61F29pvYoZc4a9Kc2zXGe5mBfZtmV6VIc4TjNsvyl8IWuTH2OMSU">
       
 
 
@@ -1222,7 +1489,7 @@ Choix du nom de l&#x27;équipement en cours de construction rue des Écoles.</te
       
         <p class="field">
           <label for="">Langues supplémentaires</label>
-          <span class="help">Le titre, la description et chaque proposition devront être traduits dans chaque langue avant l&#x27;ouverture (§3.8).</span>
+          <span class="help">Le titre, la description et chaque proposition devront être traduits dans chaque langue avant l&#x27;ouverture.</span>
           <div id="id_extra_languages"><div>
     <label for="id_extra_languages_0"><input type="checkbox" name="extra_languages" value="fr" id="id_extra_languages_0">
  Français</label>
@@ -1248,7 +1515,7 @@ Choix du nom de l&#x27;équipement en cours de construction rue des Écoles.</te
       <legend>Nature du scrutin</legend>
       <p class="help">
         
-          Scrutin réel (non bac à sable), fixé à la création (R-3.7).
+          Scrutin réel (non bac à sable), fixé à la création.
         
       </p>
     </fieldset>
@@ -1273,12 +1540,12 @@ Choix du nom de l&#x27;équipement en cours de construction rue des Écoles.</te
 
 <fieldset class="option-row" data-option-row>
   <legend>Proposition <span data-option-number>1</span></legend>
-  <input type="hidden" name="opt-0-pk" value="0b24c706-5809-44a4-88d1-311e165c5b0b" id="id_opt-0-pk">
+  <input type="hidden" name="opt-0-pk" value="896dd904-1edb-4766-8800-f0686e8ad4c0" id="id_opt-0-pk">
   
     
       <p class="field">
         <label for="id_opt-0-option_id">Identifiant</label>
-        <span class="help">Court, sans espace ni accent. Porté par les bulletins et le résultat publié : ne le modifiez pas après l&#x27;ouverture (§3.8).</span>
+        <span class="help">Court, sans espace ni accent. Porté par les bulletins et le résultat publié : ne le modifiez pas après l&#x27;ouverture.</span>
         <input type="text" name="opt-0-option_id" value="hugo" maxlength="50" aria-describedby="id_opt-0-option_id_helptext" id="id_opt-0-option_id">
         
       </p>
@@ -1323,12 +1590,12 @@ Choix du nom de l&#x27;équipement en cours de construction rue des Écoles.</te
 
 <fieldset class="option-row" data-option-row>
   <legend>Proposition <span data-option-number>2</span></legend>
-  <input type="hidden" name="opt-1-pk" value="1eaa4829-1326-4773-8439-b228c1d3690f" id="id_opt-1-pk">
+  <input type="hidden" name="opt-1-pk" value="94506c15-238a-428c-a4b2-b2f438b51689" id="id_opt-1-pk">
   
     
       <p class="field">
         <label for="id_opt-1-option_id">Identifiant</label>
-        <span class="help">Court, sans espace ni accent. Porté par les bulletins et le résultat publié : ne le modifiez pas après l&#x27;ouverture (§3.8).</span>
+        <span class="help">Court, sans espace ni accent. Porté par les bulletins et le résultat publié : ne le modifiez pas après l&#x27;ouverture.</span>
         <input type="text" name="opt-1-option_id" value="marie-curie" maxlength="50" aria-describedby="id_opt-1-option_id_helptext" id="id_opt-1-option_id">
         
       </p>
@@ -1373,12 +1640,12 @@ Choix du nom de l&#x27;équipement en cours de construction rue des Écoles.</te
 
 <fieldset class="option-row" data-option-row>
   <legend>Proposition <span data-option-number>3</span></legend>
-  <input type="hidden" name="opt-2-pk" value="0385f4ac-be6c-475f-9fd7-cfa5f038b740" id="id_opt-2-pk">
+  <input type="hidden" name="opt-2-pk" value="b4b8edb3-50f1-497d-a316-93d44fcd815c" id="id_opt-2-pk">
   
     
       <p class="field">
         <label for="id_opt-2-option_id">Identifiant</label>
-        <span class="help">Court, sans espace ni accent. Porté par les bulletins et le résultat publié : ne le modifiez pas après l&#x27;ouverture (§3.8).</span>
+        <span class="help">Court, sans espace ni accent. Porté par les bulletins et le résultat publié : ne le modifiez pas après l&#x27;ouverture.</span>
         <input type="text" name="opt-2-option_id" value="tilleuls" maxlength="50" aria-describedby="id_opt-2-option_id_helptext" id="id_opt-2-option_id">
         
       </p>
@@ -1428,7 +1695,7 @@ Choix du nom de l&#x27;équipement en cours de construction rue des Écoles.</te
     
       <p class="field">
         <label for="id_opt-3-option_id">Identifiant</label>
-        <span class="help">Court, sans espace ni accent. Porté par les bulletins et le résultat publié : ne le modifiez pas après l&#x27;ouverture (§3.8).</span>
+        <span class="help">Court, sans espace ni accent. Porté par les bulletins et le résultat publié : ne le modifiez pas après l&#x27;ouverture.</span>
         <input type="text" name="opt-3-option_id" maxlength="50" aria-describedby="id_opt-3-option_id_helptext" id="id_opt-3-option_id">
         
       </p>
@@ -1478,7 +1745,7 @@ Choix du nom de l&#x27;équipement en cours de construction rue des Écoles.</te
     
       <p class="field">
         <label for="id_opt-4-option_id">Identifiant</label>
-        <span class="help">Court, sans espace ni accent. Porté par les bulletins et le résultat publié : ne le modifiez pas après l&#x27;ouverture (§3.8).</span>
+        <span class="help">Court, sans espace ni accent. Porté par les bulletins et le résultat publié : ne le modifiez pas après l&#x27;ouverture.</span>
         <input type="text" name="opt-4-option_id" maxlength="50" aria-describedby="id_opt-4-option_id_helptext" id="id_opt-4-option_id">
         
       </p>
@@ -1535,7 +1802,7 @@ Choix du nom de l&#x27;équipement en cours de construction rue des Écoles.</te
     
       <p class="field">
         <label for="id_opt-__prefix__-option_id">Identifiant</label>
-        <span class="help">Court, sans espace ni accent. Porté par les bulletins et le résultat publié : ne le modifiez pas après l&#x27;ouverture (§3.8).</span>
+        <span class="help">Court, sans espace ni accent. Porté par les bulletins et le résultat publié : ne le modifiez pas après l&#x27;ouverture.</span>
         <input type="text" name="opt-__prefix__-option_id" maxlength="50" aria-describedby="id_opt-__prefix__-option_id_helptext" id="id_opt-__prefix__-option_id">
         
       </p>
@@ -1586,8 +1853,8 @@ Choix du nom de l&#x27;équipement en cours de construction rue des Écoles.</te
       
         <p class="field">
           <label for="id_opens_at">Ouverture du scrutin <span class="required">(obligatoire)</span></label>
-          <span class="help">Heure locale du serveur. Le scrutin s&#x27;ouvre à cette heure, ou plus tard si la tâche planifiée a pris du retard (§4).</span>
-          <input type="datetime-local" name="opens_at" value="2026-10-03T09:50" required aria-describedby="id_opens_at_helptext" id="id_opens_at">
+          <span class="help">Heure locale du serveur. Le scrutin s&#x27;ouvre à cette heure, ou plus tard si la tâche planifiée a pris du retard.</span>
+          <input type="datetime-local" name="opens_at" value="2026-10-08T13:44" required aria-describedby="id_opens_at_helptext" id="id_opens_at">
           
         </p>
       
@@ -1596,7 +1863,7 @@ Choix du nom de l&#x27;équipement en cours de construction rue des Écoles.</te
         <p class="field">
           <label for="id_closes_at">Clôture du vote en ligne <span class="required">(obligatoire)</span></label>
           
-          <input type="datetime-local" name="closes_at" value="2026-10-17T09:50" required id="id_closes_at">
+          <input type="datetime-local" name="closes_at" value="2026-10-22T13:44" required id="id_closes_at">
           
         </p>
       
@@ -1604,8 +1871,8 @@ Choix du nom de l&#x27;équipement en cours de construction rue des Écoles.</te
       
         <p class="field">
           <label for="id_paper_entry_deadline">Fin de saisie des bulletins papier <span class="required">(obligatoire)</span></label>
-          <span class="help">Au moins égale à la clôture. Laissez-la égale à la clôture s&#x27;il n&#x27;y a pas de saisie papier différée : toute période pendant laquelle un bulletin peut encore entrer en base est affichée publiquement (§6.4).</span>
-          <input type="datetime-local" name="paper_entry_deadline" value="2026-10-17T09:50" required aria-describedby="id_paper_entry_deadline_helptext" id="id_paper_entry_deadline">
+          <span class="help">Au moins égale à la clôture. Laissez-la égale à la clôture s&#x27;il n&#x27;y a pas de saisie papier différée : toute période pendant laquelle un bulletin peut encore entrer en base est affichée publiquement.</span>
+          <input type="datetime-local" name="paper_entry_deadline" value="2026-10-22T13:44" required aria-describedby="id_paper_entry_deadline_helptext" id="id_paper_entry_deadline">
           
         </p>
       
@@ -1669,7 +1936,7 @@ Choix du nom de l&#x27;équipement en cours de construction rue des Écoles.</te
       
         <p class="field">
           <label for="id_tally_method">Méthode de dépouillement</label>
-          <span class="help">Schulze : chaque bulletin classe les propositions par préférence ; la gagnante bat chacune des autres en confrontation directe ou par un chemin de préférences plus fort — adapté à une question à plusieurs options (§8.1). Majoritaire : compte la première préférence de chaque bulletin, comme un scrutin classique à un tour. Par assentiment : compte chaque proposition approuvée sur le bulletin, sans classement — utile pour « cochez toutes celles qui conviennent » (§8.2).</span>
+          <span class="help">Schulze : chaque bulletin classe les propositions par préférence ; la gagnante bat chacune des autres en confrontation directe ou par un chemin de préférences plus fort — adapté à une question à plusieurs options. Majoritaire : compte la première préférence de chaque bulletin, comme un scrutin classique à un tour. Par assentiment : compte chaque proposition approuvée sur le bulletin, sans classement — utile pour « cochez toutes celles qui conviennent ».</span>
           <select name="tally_method" aria-describedby="id_tally_method_helptext" id="id_tally_method">
   <option value="schulze">Schulze</option>
 
@@ -1685,7 +1952,7 @@ Choix du nom de l&#x27;équipement en cours de construction rue des Écoles.</te
       
         <p class="field">
           <label for="id_tally_method_version">Version de la méthode</label>
-          <span class="help">Figée avec le scrutin : un résultat déjà publié reste reproductible même si le calcul évolue ensuite pour les scrutins suivants (R-10.2).</span>
+          <span class="help">Figée avec le scrutin : un résultat déjà publié reste reproductible même si le calcul évolue ensuite pour les scrutins suivants.</span>
           <input type="text" name="tally_method_version" value="1" maxlength="20" required aria-describedby="id_tally_method_version_helptext" id="id_tally_method_version">
           
         </p>
@@ -1694,7 +1961,7 @@ Choix du nom de l&#x27;équipement en cours de construction rue des Écoles.</te
       
         <p class="field">
           <label for="id_require_complete_ranking">Classement complet obligatoire</label>
-          <span class="help">Un bulletin doit-il classer toutes les propositions ? Sinon, celles qu&#x27;un électeur laisse de côté comptent ex æquo en dernière position (R-10.4). S&#x27;applique quelle que soit la méthode de dépouillement choisie ci-dessus.</span>
+          <span class="help">Un bulletin doit-il classer toutes les propositions ? Sinon, celles qu&#x27;un électeur laisse de côté comptent ex æquo en dernière position. S&#x27;applique quelle que soit la méthode de dépouillement choisie ci-dessus.</span>
           <input type="checkbox" name="require_complete_ranking" aria-describedby="id_require_complete_ranking_helptext" id="id_require_complete_ranking">
           
         </p>
@@ -1703,7 +1970,7 @@ Choix du nom de l&#x27;équipement en cours de construction rue des Écoles.</te
       
         <p class="field">
           <label for="id_allow_ties_in_ballot">Ex æquo autorisés sur un bulletin</label>
-          <span class="help">Permet à un électeur de placer plusieurs propositions au même rang, y compris en tête. Avec la méthode majoritaire, une égalité en tête donne une voix à chacune des propositions concernées — presque toujours une erreur de configuration pour une question à choix unique (§8.2).</span>
+          <span class="help">Permet à un électeur de placer plusieurs propositions au même rang, y compris en tête. Avec la méthode majoritaire, une égalité en tête donne une voix à chacune des propositions concernées — presque toujours une erreur de configuration pour une question à choix unique.</span>
           <input type="checkbox" name="allow_ties_in_ballot" aria-describedby="id_allow_ties_in_ballot_helptext" id="id_allow_ties_in_ballot">
           
         </p>
@@ -1712,7 +1979,7 @@ Choix du nom de l&#x27;équipement en cours de construction rue des Écoles.</te
       
         <p class="field">
           <label for="id_tiebreak_rule">Départage en cas d&#x27;égalité</label>
-          <span class="help">Si le dépouillement ne peut départager deux propositions : « tirage au sort calculé » recalcule un ordre reproductible à partir de l&#x27;empreinte de clôture, imprévisible et non truquable avant celle-ci (§8.3) ; « tirage au sort physique » suspend le dépouillement, le résultat étant saisi ensuite par un administrateur du scrutin après un tirage au sort en mairie (R-10.5, R-10.5 bis).</span>
+          <span class="help">Si le dépouillement ne peut départager deux propositions : « tirage au sort calculé » recalcule un ordre reproductible à partir de l&#x27;empreinte de clôture, imprévisible et non truquable avant celle-ci ; « tirage au sort physique » suspend le dépouillement, le résultat étant saisi ensuite par un administrateur du scrutin après un tirage au sort en mairie.</span>
           <select name="tiebreak_rule" aria-describedby="id_tiebreak_rule_helptext" id="id_tiebreak_rule">
   <option value="computed" selected>tirage au sort calculé</option>
 
@@ -1732,7 +1999,7 @@ Choix du nom de l&#x27;équipement en cours de construction rue des Écoles.</te
       
         <p class="field">
           <label for="id_allow_ballot_modification">Autoriser la modification d&#x27;un bulletin déjà voté</label>
-          <span class="help">Ce n&#x27;est pas qu&#x27;un réglage de confidentialité. Désactiver la modification renforce l&#x27;anonymat — aucun lien n&#x27;est alors calculé entre un bulletin et le jeton qui l&#x27;a émis — mais retire à un électeur sous contrainte son seul recours : revoter seul une fois la pression levée (§7). La commune choisit lequel des deux risques elle préfère porter.</span>
+          <span class="help">Ce n&#x27;est pas qu&#x27;un réglage de confidentialité. Désactiver la modification renforce l&#x27;anonymat — aucun lien n&#x27;est alors calculé entre un bulletin et le jeton qui l&#x27;a émis — mais retire à un électeur sous contrainte son seul recours : revoter seul une fois la pression levée. La commune choisit lequel des deux risques elle préfère porter.</span>
           <input type="checkbox" name="allow_ballot_modification" aria-describedby="id_allow_ballot_modification_helptext" id="id_allow_ballot_modification">
           
         </p>
@@ -1741,7 +2008,7 @@ Choix du nom de l&#x27;équipement en cours de construction rue des Écoles.</te
       
         <p class="field">
           <label for="">Types de liste ouvrant le droit de vote</label>
-          <span class="help">Une question municipale prend la liste principale et la complémentaire municipale ; la complémentaire européenne seule ne confère aucun droit ici (R-4.7).</span>
+          <span class="help">Une question municipale prend la liste principale et la complémentaire municipale ; la complémentaire européenne seule ne confère aucun droit ici.</span>
           <div id="id_eligible_list_types"><div>
     <label for="id_eligible_list_types_0"><input type="checkbox" name="eligible_list_types" value="principale" id="id_eligible_list_types_0" checked>
  liste principale</label>
@@ -1763,7 +2030,7 @@ Choix du nom de l&#x27;équipement en cours de construction rue des Écoles.</te
       
         <p class="field">
           <label for="id_show_live_participation">Afficher la participation pendant le scrutin</label>
-          <span class="help">Par défaut non : publier la participation pendant le vote peut l&#x27;influencer (§6.6).</span>
+          <span class="help">Par défaut non : publier la participation pendant le vote peut l&#x27;influencer.</span>
           <input type="checkbox" name="show_live_participation" aria-describedby="id_show_live_participation_helptext" id="id_show_live_participation">
           
         </p>
@@ -1807,7 +2074,7 @@ Choix du nom de l&#x27;équipement en cours de construction rue des Écoles.</te
       
         <p class="field">
           <label for="id_paper_requires_signed_form">Formulaire signé exigé pour un bulletin papier</label>
-          <span class="help">Exige la collecte d&#x27;un formulaire papier portant le classement, la déclaration sur l&#x27;honneur et l&#x27;identité de l&#x27;électeur avant la saisie (R-8.2 bis). En son absence, ces informations figurent sur le reçu remis à l&#x27;électeur (R-8.4).</span>
+          <span class="help">Exige la collecte d&#x27;un formulaire papier portant le classement, la déclaration sur l&#x27;honneur et l&#x27;identité de l&#x27;électeur avant la saisie. En son absence, ces informations figurent sur le reçu remis à l&#x27;électeur.</span>
           <input type="checkbox" name="paper_requires_signed_form" aria-describedby="id_paper_requires_signed_form_helptext" id="id_paper_requires_signed_form">
           
         </p>
@@ -1816,7 +2083,7 @@ Choix du nom de l&#x27;équipement en cours de construction rue des Écoles.</te
       
         <p class="field">
           <label for="id_paper_requires_countersign">Contreseing d&#x27;un second opérateur exigé</label>
-          <span class="help">Le bulletin saisi n&#x27;est compté qu&#x27;après validation par un second opérateur nommé ; la clôture du scrutin est refusée tant qu&#x27;une saisie attend ce contreseing, sauf motif dérogatoire du poll admin (R-8.7, R-8.7 bis).</span>
+          <span class="help">Le bulletin saisi n&#x27;est compté qu&#x27;après validation par un second opérateur nommé ; la clôture du scrutin est refusée tant qu&#x27;une saisie attend ce contreseing, sauf motif dérogatoire du poll admin.</span>
           <input type="checkbox" name="paper_requires_countersign" aria-describedby="id_paper_requires_countersign_helptext" id="id_paper_requires_countersign">
           
         </p>
@@ -1825,7 +2092,7 @@ Choix du nom de l&#x27;équipement en cours de construction rue des Écoles.</te
       
         <p class="field">
           <label for="id_paper_requires_reconciliation">Rapprochement des bulletins papier exigé</label>
-          <span class="help">Les formulaires papier sont conservés par la commune et rapprochés des bulletins enregistrés à la clôture, dans un procès-verbal signé et archivé ; à défaut, le journal d&#x27;audit en tient lieu (R-8.6).</span>
+          <span class="help">Les formulaires papier sont conservés par la commune et rapprochés des bulletins enregistrés à la clôture, dans un procès-verbal signé et archivé ; à défaut, le journal d&#x27;audit en tient lieu.</span>
           <input type="checkbox" name="paper_requires_reconciliation" aria-describedby="id_paper_requires_reconciliation_helptext" id="id_paper_requires_reconciliation">
           
         </p>
@@ -1861,9 +2128,9 @@ Choix du nom de l&#x27;équipement en cours de construction rue des Écoles.</te
   <section aria-labelledby="announce-now">
     <h2 id="announce-now">Annonce</h2>
     
-    <p class="help">Rend ce scrutin visible sur le site public avant son ouverture : propositions et calendrier affichés, sans inscription ni vote possibles. La configuration se fige au moment de l'annonce, comme à l'ouverture (R-3.3) — utile en particulier si le bulletin ne pourra plus être modifié une fois voté.</p>
+    <p class="help">Rend ce scrutin visible sur le site public avant son ouverture : propositions et calendrier affichés, sans inscription ni vote possibles. La configuration se fige au moment de l'annonce, comme à l'ouverture — utile en particulier si le bulletin ne pourra plus être modifié une fois voté.</p>
     <form method="post" class="inline">
-      <input type="hidden" name="csrfmiddlewaretoken" value="uuclmSygCRPxZboUtmF299PqHITsKutkJCNRRMvJAnqILk8ZWv3woFTrYoED1i2S">
+      <input type="hidden" name="csrfmiddlewaretoken" value="wVgnjkWqWuaf61F29pvYoZc4a9Kc2zXGe5mBfZtmV6VIc4TjNsvyl8IWuTH2OMSU">
       <input type="hidden" name="action" value="announce_poll">
       <button type="submit">Annoncer le scrutin maintenant</button>
     </form>
@@ -1874,7 +2141,7 @@ Choix du nom de l&#x27;équipement en cours de construction rue des Écoles.</te
     
     <p class="help">Le scrutin s'ouvre normalement tout seul à la date d'ouverture configurée, même en retard si besoin. Vous pouvez aussi l'ouvrir maintenant vous-même, y compris par avance et sans passer par l'annonce : la liste électorale sera figée à cet instant, mais personne ne pourra voter avant l'heure d'ouverture configurée.</p>
     <form method="post" class="inline">
-      <input type="hidden" name="csrfmiddlewaretoken" value="uuclmSygCRPxZboUtmF299PqHITsKutkJCNRRMvJAnqILk8ZWv3woFTrYoED1i2S">
+      <input type="hidden" name="csrfmiddlewaretoken" value="wVgnjkWqWuaf61F29pvYoZc4a9Kc2zXGe5mBfZtmV6VIc4TjNsvyl8IWuTH2OMSU">
       <input type="hidden" name="action" value="open_poll">
       <button type="submit">Ouvrir le scrutin maintenant</button>
     </form>
@@ -1894,17 +2161,17 @@ Choix du nom de l&#x27;équipement en cours de construction rue des Écoles.</te
         <legend>Salle Victor-Hugo <span class="help">(hugo)</span></legend>
         
         <form method="post"
-              action="/fr/mairie/scrutin/379657f7-ba26-4776-9792-3a5f929750a5/configuration/propositions/0b24c706-5809-44a4-88d1-311e165c5b0b/images/"
+              action="/fr/mairie/scrutin/00cee3f1-49a3-4b5c-8d8a-3b0d9e0336a1/configuration/propositions/896dd904-1edb-4766-8800-f0686e8ad4c0/images/"
               enctype="multipart/form-data" class="inline">
-          <input type="hidden" name="csrfmiddlewaretoken" value="uuclmSygCRPxZboUtmF299PqHITsKutkJCNRRMvJAnqILk8ZWv3woFTrYoED1i2S">
+          <input type="hidden" name="csrfmiddlewaretoken" value="wVgnjkWqWuaf61F29pvYoZc4a9Kc2zXGe5mBfZtmV6VIc4TjNsvyl8IWuTH2OMSU">
           <p class="field">
-            <label for="image-0b24c706-5809-44a4-88d1-311e165c5b0b">Ajouter une image</label>
-            <input type="file" name="image" id="image-0b24c706-5809-44a4-88d1-311e165c5b0b"
+            <label for="image-896dd904-1edb-4766-8800-f0686e8ad4c0">Ajouter une image</label>
+            <input type="file" name="image" id="image-896dd904-1edb-4766-8800-f0686e8ad4c0"
                    accept="image/png,image/jpeg,image/gif,image/webp" required>
           </p>
           <p class="field">
-            <label for="alt-0b24c706-5809-44a4-88d1-311e165c5b0b">Texte alternatif</label>
-            <input type="text" name="alt_text" id="alt-0b24c706-5809-44a4-88d1-311e165c5b0b" maxlength="300">
+            <label for="alt-896dd904-1edb-4766-8800-f0686e8ad4c0">Texte alternatif</label>
+            <input type="text" name="alt_text" id="alt-896dd904-1edb-4766-8800-f0686e8ad4c0" maxlength="300">
           </p>
           <button type="submit">Ajouter</button>
         </form>
@@ -1914,17 +2181,17 @@ Choix du nom de l&#x27;équipement en cours de construction rue des Écoles.</te
         <legend>Salle Marie-Curie <span class="help">(marie-curie)</span></legend>
         
         <form method="post"
-              action="/fr/mairie/scrutin/379657f7-ba26-4776-9792-3a5f929750a5/configuration/propositions/1eaa4829-1326-4773-8439-b228c1d3690f/images/"
+              action="/fr/mairie/scrutin/00cee3f1-49a3-4b5c-8d8a-3b0d9e0336a1/configuration/propositions/94506c15-238a-428c-a4b2-b2f438b51689/images/"
               enctype="multipart/form-data" class="inline">
-          <input type="hidden" name="csrfmiddlewaretoken" value="uuclmSygCRPxZboUtmF299PqHITsKutkJCNRRMvJAnqILk8ZWv3woFTrYoED1i2S">
+          <input type="hidden" name="csrfmiddlewaretoken" value="wVgnjkWqWuaf61F29pvYoZc4a9Kc2zXGe5mBfZtmV6VIc4TjNsvyl8IWuTH2OMSU">
           <p class="field">
-            <label for="image-1eaa4829-1326-4773-8439-b228c1d3690f">Ajouter une image</label>
-            <input type="file" name="image" id="image-1eaa4829-1326-4773-8439-b228c1d3690f"
+            <label for="image-94506c15-238a-428c-a4b2-b2f438b51689">Ajouter une image</label>
+            <input type="file" name="image" id="image-94506c15-238a-428c-a4b2-b2f438b51689"
                    accept="image/png,image/jpeg,image/gif,image/webp" required>
           </p>
           <p class="field">
-            <label for="alt-1eaa4829-1326-4773-8439-b228c1d3690f">Texte alternatif</label>
-            <input type="text" name="alt_text" id="alt-1eaa4829-1326-4773-8439-b228c1d3690f" maxlength="300">
+            <label for="alt-94506c15-238a-428c-a4b2-b2f438b51689">Texte alternatif</label>
+            <input type="text" name="alt_text" id="alt-94506c15-238a-428c-a4b2-b2f438b51689" maxlength="300">
           </p>
           <button type="submit">Ajouter</button>
         </form>
@@ -1934,17 +2201,17 @@ Choix du nom de l&#x27;équipement en cours de construction rue des Écoles.</te
         <legend>Salle des Tilleuls <span class="help">(tilleuls)</span></legend>
         
         <form method="post"
-              action="/fr/mairie/scrutin/379657f7-ba26-4776-9792-3a5f929750a5/configuration/propositions/0385f4ac-be6c-475f-9fd7-cfa5f038b740/images/"
+              action="/fr/mairie/scrutin/00cee3f1-49a3-4b5c-8d8a-3b0d9e0336a1/configuration/propositions/b4b8edb3-50f1-497d-a316-93d44fcd815c/images/"
               enctype="multipart/form-data" class="inline">
-          <input type="hidden" name="csrfmiddlewaretoken" value="uuclmSygCRPxZboUtmF299PqHITsKutkJCNRRMvJAnqILk8ZWv3woFTrYoED1i2S">
+          <input type="hidden" name="csrfmiddlewaretoken" value="wVgnjkWqWuaf61F29pvYoZc4a9Kc2zXGe5mBfZtmV6VIc4TjNsvyl8IWuTH2OMSU">
           <p class="field">
-            <label for="image-0385f4ac-be6c-475f-9fd7-cfa5f038b740">Ajouter une image</label>
-            <input type="file" name="image" id="image-0385f4ac-be6c-475f-9fd7-cfa5f038b740"
+            <label for="image-b4b8edb3-50f1-497d-a316-93d44fcd815c">Ajouter une image</label>
+            <input type="file" name="image" id="image-b4b8edb3-50f1-497d-a316-93d44fcd815c"
                    accept="image/png,image/jpeg,image/gif,image/webp" required>
           </p>
           <p class="field">
-            <label for="alt-0385f4ac-be6c-475f-9fd7-cfa5f038b740">Texte alternatif</label>
-            <input type="text" name="alt_text" id="alt-0385f4ac-be6c-475f-9fd7-cfa5f038b740" maxlength="300">
+            <label for="alt-b4b8edb3-50f1-497d-a316-93d44fcd815c">Texte alternatif</label>
+            <input type="text" name="alt_text" id="alt-b4b8edb3-50f1-497d-a316-93d44fcd815c" maxlength="300">
           </p>
           <button type="submit">Ajouter</button>
         </form>
@@ -1964,6 +2231,9 @@ Choix du nom de l&#x27;équipement en cours de construction rue des Écoles.</te
   <footer class="contentinfo">
     
     <p>Cette consultation est consultative : son résultat ne lie pas le conseil municipal.</p>
+
+    
+    
 
     
     

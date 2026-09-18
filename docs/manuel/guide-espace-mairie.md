@@ -230,7 +230,9 @@ permises dans l'état courant**.
   traduction manquante, liste électorale non figée — pour qu'un manque soit
   visible **avant** l'heure d'ouverture, pas à l'heure d'ouverture.
 - En **ouvert**, il nomme ce qui bloquerait la clôture — *clôture bloquée : n
-  bulletins en attente de contreseing*.
+  bulletins en attente de contreseing*, ou, si `paper_requires_reconciliation`
+  est activé et qu'il n'est pas encore enregistré, *clôture bloquée :
+  rapprochement des bulletins papier non enregistré* (§8, R-8.6).
 - La participation est **comptée sur les inscriptions, jamais sur les
   bulletins** ; sur un scrutin clos, ce sont les compteurs figés à la clôture
   qui s'affichent, pas un comptage frais (les inscriptions derrière un comptage
@@ -507,9 +509,9 @@ bulletin en son nom.
 
 - **formulaire papier signé** collecté ;
 - **contreseing** par un second opérateur ;
-- **rapprochement formel** à la clôture (les formulaires sont conservés par la
-  commune et rapprochés des bulletins enregistrés, procès-verbal signé et
-  archivé).
+- **rapprochement formel** à la clôture — les formulaires conservés par la
+  commune sont rapprochés des bulletins enregistrés, procès-verbal signé et
+  archivé (§8, R-8.6).
 
 Dans tous les cas, le **noyau minimal de traçabilité** (R-8.3 à R-8.5)
 s'applique.
@@ -610,6 +612,29 @@ obligatoire**, qui est enregistré et **apparaît dans la publication**. Les
 saisies non contresignées ne sont pas comptées, et l'abandon silencieux de
 bulletins à la clôture n'est pas permis.
 
+### Rapprochement des bulletins papier (R-8.6)
+
+Présent **uniquement** si `paper_requires_reconciliation` est activé (§7). Une
+fois `paper_entry_deadline` atteinte — la même échéance qui conditionne la
+clôture manuelle de l'écran 2 — l'administrateur du scrutin compte les
+**formulaires papier conservés** par la commune et saisit leur nombre ; il est
+confronté au nombre de **bulletins papier effectivement enregistrés** dans le
+système, calculé et jamais saisi. L'écart entre les deux, s'il y en a un, est
+affiché mais n'empêche rien : c'est un fait constaté, pas une erreur à
+corriger avant de continuer. La figure 17 ci-dessus montre l'état une fois
+signé, entre l'empreinte de clôture et la participation figée.
+
+Contrairement au contreseing (R-8.7 bis), **il n'existe pas de passage outre** :
+tant que le scrutin porte `paper_requires_reconciliation` et qu'aucun
+rapprochement n'est enregistré, la clôture reste bloquée, qu'elle soit
+manuelle ou programmée. Une fois signé, un second enregistrement est refusé —
+le rapprochement ne se corrige pas, il se constate une fois. L'action est
+consignée au journal d'audit (`RECONCILIATION_RECORDED`) et le procès-verbal
+reste consultable par la suite pour l'administrateur du scrutin et
+l'auditeur — **archivé, jamais publié** : à la différence du passage outre au
+contreseing, R-8.6 demande qu'il soit « signé et archivé », pas mis à la
+disposition du public.
+
 ### Ce qui est publié (R-11.2)
 
 - la **liste anonymisée des bulletins** (code de suivi + classement) en CSV et
@@ -673,9 +698,10 @@ Le journal enregistre au minimum (R-12.1) : modifications de configuration ;
 changements d'état et reports de clôture ; imports et copies figées de la liste ;
 décisions rendues sur les inscriptions mises en examen ; tentatives
 d'inscription refusées ; création, correction et suppression de bulletins
-papier ; contreseings et passages outre à la clôture ; passages outre à
-l'avertissement de concurrence des canaux ; attributions de rôle ; et **les
-accès au journal lui-même**.
+papier ; contreseings et passages outre à la clôture ; rapprochement des
+bulletins papier (R-8.6, §8) ; passages outre à l'avertissement de
+concurrence des canaux ; attributions de rôle ; et **les accès au journal
+lui-même**.
 
 Chaque entrée indique l'opérateur, l'horodatage, l'objet, l'état **avant/après**
 et le motif quand il en faut un. Les événements stockent une **référence + un

@@ -29,6 +29,63 @@
      `data-theme` on the root — set by static/js/theme.js from the viewer's
      choice — wins over it in either direction. */
 
+/* Libre Franklin (headings and body text) and IBM Plex Mono (tracking codes,
+   the ballot's rank selects) — vendored under static/fonts/ rather than
+   linked from fonts.googleapis.com: §14's self-hosting posture rules out a
+   third party seeing every visitor's IP on every page load, which a live
+   Google Fonts request would. Latin subset only (French needs nothing else)
+   is why seven small files cover both families in full. Each is SIL Open
+   Font License 1.1, redistributable; see static/fonts/README.md. */
+@font-face {
+  font-family: "Libre Franklin";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../fonts/librefranklin-400.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Libre Franklin";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../fonts/librefranklin-400italic.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Libre Franklin";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("../fonts/librefranklin-500.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Libre Franklin";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../fonts/librefranklin-600.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Libre Franklin";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../fonts/librefranklin-700.woff2") format("woff2");
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("../fonts/ibmplexmono-500.woff2") format("woff2");
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../fonts/ibmplexmono-600.woff2") format("woff2");
+}
+
 :root {
   color-scheme: light;
 
@@ -45,13 +102,14 @@
   --accent-ink: #ffffff;
   --accent-soft: #e9e9fb;    /* accent wash behind --ink text — 15:1 */
   --ok: #1f6b2c;             /* 6:1 on --paper */
+  --ok-soft: #e7f2e6;        /* ok wash — pairs with --ok the way --accent-soft pairs with --accent */
   --warn: #7a5c00;           /* 6.3:1 on --paper */
 
   --shadow: 0 1px 2px rgba(17, 17, 26, 0.05), 0 6px 20px -4px rgba(17, 17, 26, 0.10);
   --shadow-sm: 0 1px 2px rgba(17, 17, 26, 0.06);
 
-  --radius: 0.7rem;
-  --radius-sm: 0.4rem;
+  --radius: 0.85rem;
+  --radius-sm: 0.5rem;
   --measure: 42rem;          /* comfortable reading width for prose */
   --page: 78rem;             /* the centred content column */
 }
@@ -72,6 +130,7 @@
     --accent-ink: #10121a;   /* 12:1 on --accent */
     --accent-soft: #242739;
     --ok: #74c983;           /* 9:1 on --paper */
+    --ok-soft: #1c2e20;
     --warn: #d9b45f;         /* 9.7:1 on --paper */
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 20px -4px rgba(0, 0, 0, 0.55);
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
@@ -93,6 +152,7 @@
   --accent-ink: #10121a;
   --accent-soft: #242739;
   --ok: #74c983;
+  --ok-soft: #1c2e20;
   --warn: #d9b45f;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 20px -4px rgba(0, 0, 0, 0.55);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
@@ -104,12 +164,19 @@ body {
   margin: 0;
   color: var(--ink);
   background: var(--paper);
-  font: 1rem/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+  font: 1rem/1.6 "Libre Franklin", system-ui, -apple-system, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
   /* The one piece of civic identity the platform allows itself: a bleu France
      rule across the top of every page. Decorative, removed for print. */
   border-top: 3px solid var(--accent);
 }
+
+code, kbd, samp { font-family: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace; }
+
+/* A decorative icon beside a word that already carries the meaning (R-14.1):
+   one fixed size wherever it appears, in the text's own colour, never resized
+   or recoloured by context. */
+.ic { width: 1rem; height: 1rem; flex: none; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; vertical-align: -0.15em; }
 
 /* One centred column. Bars and content share the same bounds so their edges
    line up on a wide monitor; the inline padding is the same everywhere. */
@@ -149,13 +216,29 @@ a:hover { text-decoration-thickness: 2px; }
 h1, h2, h3 { line-height: 1.2; text-wrap: balance; }
 h1 {
   font-size: clamp(1.75rem, 1.3rem + 1.9vw, 2.35rem);
+  font-weight: 700;
   letter-spacing: -0.02em;
   margin: 0 0 1.25rem;
-  padding-bottom: 0.35rem;
-  border-bottom: 2px solid var(--accent);
 }
-h2 { font-size: clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem); margin: 2.1rem 0 0.7rem; letter-spacing: -0.01em; }
-h3 { font-size: 1.05rem; margin: 1.5rem 0 0.5rem; }
+
+/* The heading's own rule, quiet rather than an accent-coloured underline: a
+   thin neutral line under the row a page's <h1> sits in (with its own action,
+   on screens that have one), not on the heading itself — so a page with no
+   action still gets the same rule from the row alone. */
+.title-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 1.25rem;
+}
+.title-row h1 { margin: 0; }
+
+h2 { font-size: clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem); font-weight: 600; margin: 2.1rem 0 0.7rem; letter-spacing: -0.01em; }
+h3 { font-size: 1.05rem; font-weight: 600; margin: 1.5rem 0 0.5rem; }
 p { margin: 0 0 0.8rem; }
 main > p, .paper-form p, .receipt p { max-width: var(--measure); }
 section { margin-bottom: 2rem; }
@@ -263,21 +346,24 @@ body.bo main { padding: 0; }
 }
 
 /* The poll state, written out — the wash only sorts it, it does not carry it
-   (R-14.1). A finished poll drops to a plain outline. */
+   (R-14.1) — same pattern as .poll-index__state on the public list: an icon
+   and the word, coloured by what the word already says. */
 .bo-state {
-  display: inline-block;
-  padding: 0.15rem 0.55rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.65rem;
   border: 1px solid transparent;
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent);
-  font-size: 0.75rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
+.bo-state--draft { background: var(--paper-quiet); color: var(--ink-quiet); }
+.bo-state--announced { background: var(--accent-soft); color: var(--accent); }
+.bo-state--open { background: var(--ok-soft); color: var(--ok); }
 .bo-state--closed,
-.bo-state--published {
+.bo-state--published,
+.bo-state--withdrawn {
   background: var(--paper);
   border-color: var(--rule);
   color: var(--ink-quiet);
@@ -505,7 +591,8 @@ details form.inline input[type="password"] { width: min(16rem, 100%); }
 input:focus-visible, select:focus-visible, textarea:focus-visible { border-color: var(--focus); }
 input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); width: 1rem; height: 1rem; }
 
-button {
+button, .button {
+  display: inline-block;
   padding: 0.6rem 1.1rem;
   font-weight: 600;
   border: 1px solid transparent;
@@ -513,15 +600,17 @@ button {
   background: var(--accent);
   color: var(--accent-ink);
   cursor: pointer;
+  text-decoration: none;
   transition: opacity 0.12s ease, background 0.12s ease;
 }
-button:hover { opacity: 0.88; }
-button:active { opacity: 0.76; }
+button:hover, .button:hover { opacity: 0.88; text-decoration: none; }
+button:active, .button:active { opacity: 0.76; }
 
 /* Secondary and destructive actions carry the same word-first labelling; the
    quieter fill keeps a routine screen from looking like a wall of blue, and
    sets the primary action apart (R-2.4, §6.5). */
 button.secondary,
+.button.secondary,
 form.inline button {
   background: var(--surface);
   color: var(--ink);
@@ -550,29 +639,26 @@ legend { font-weight: 700; padding: 0 0.4rem; }
 .tabs__list {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.3rem;
+  gap: 0.3rem 1.25rem;
   border-bottom: 1px solid var(--rule);
-  margin-bottom: 1.25rem;
+  margin-bottom: 1.1rem;
 }
 .tabs__tab {
-  padding: 0.55rem 0.9rem;
-  font-weight: 500;
-  color: var(--ink);
+  padding: 0 0 0.65rem;
+  font-weight: 600;
+  color: var(--ink-quiet);
   background: none;
-  border: 1px solid transparent;
-  border-bottom: none;
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  margin-bottom: -1px;
 }
-.tabs__tab:hover { opacity: 1; background: var(--paper-quiet); }
+.tabs__tab:hover { opacity: 1; color: var(--ink); background: none; }
 /* The selected tab carries the state in weight and a filled underline, not
    colour alone (3.1) — `aria-selected` is the source of truth either way. */
 .tabs__tab.is-selected {
-  font-weight: 700;
-  color: var(--accent);
-  background: var(--surface);
-  border-color: var(--rule);
-  border-bottom: 2px solid var(--surface);
-  margin-bottom: -1px;
+  color: var(--ink);
+  border-bottom-color: var(--accent);
 }
 /* A rejected submission opens on the first failing tab (tabs.js), but a
    near-empty form fails several at once; the rest stayed unmarked with
@@ -677,7 +763,57 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
    would be a box in a box — drop it back to a plain grid. */
 .review .facts, .paper-elector .facts { box-shadow: none; border: 0; background: none; padding: 0; }
 
+/* The calendar's own .facts (§6.4): each <dt> carries a decorative icon ahead
+   of the word (R-14.1 — the label is what says "ouverture"/"clôture", the
+   icon only echoes it), inside the <dt> itself so the <dl> stays valid. */
+.facts--icons dt { display: flex; align-items: center; gap: 0.5rem; }
+
+/* A .facts list whose every dd is a plain count (the two Participation
+   sections, public and back-office) reads better as a row of figures than as
+   a label/value table — each dt+dd pair wrapped in its own <div> (valid
+   inside <dl>, HTML §4.4.9) becomes one tile; the count itself is set in the
+   tabular-figure mono face so the digits line up. */
+.facts--stats { grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); gap: 1rem; }
+/* A label that wraps to two lines ("Inscrits n'ayant pas encore voté") must
+   not push its own number lower than the single-line labels beside it — the
+   whole point of a stat row is that the figures line up. Reserving two
+   lines' height for every label, wrapped or not, keeps every dd starting at
+   the same baseline regardless of how long its own dt happens to be. */
+.facts--stats dt { font-size: 0.85rem; min-height: 2.6rem; }
+.facts--stats dd {
+  font-family: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 1.6rem;
+  font-weight: 600;
+  margin-top: 0.2rem;
+}
+
 .actions { list-style: none; padding: 0; margin: 0.5rem 0 0; display: flex; flex-direction: column; gap: 0.5rem; }
+/* One bordered row per action rather than a bare link — the same card treatment
+   as .poll-index below, so the two lists a mairie operator and a visitor each
+   scan most often read as the same kind of object. */
+.actions li a {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.75rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--rule-soft);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: var(--ink);
+  font-weight: 600;
+  transition: border-color 0.12s ease;
+}
+.actions li a:hover { border-color: var(--accent); text-decoration: none; }
+.actions li a .ic { color: var(--ink-quiet); }
+.actions li a .ic.chev { margin-left: auto; }
+.actions li .pending {
+  display: block;
+  padding: 0.75rem 1rem;
+  border: 1px dashed var(--rule-soft);
+  border-radius: var(--radius-sm);
+}
 
 /* ---- screen 8: journal d'audit ------------------------------------- */
 
@@ -713,9 +849,24 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 
 .paper-search { margin-bottom: 1.75rem; }
 .paper-elector .facts, .receipt__ranking, .paper-ranking { margin: 0.5rem 0 1.25rem; }
-.ranking, .ranking-summary { list-style: decimal; padding-left: 1.4rem; margin: 0.5rem 0 1.25rem; }
-.ranking__row { padding: 0.35rem 0; }
-.ranking__row label { display: inline-block; margin: 0 0.6rem 0 0; font-weight: 400; }
+/* The rank itself is already spelled out in each row's select ("1er choix", "sans
+   rang"…), so the list doesn't also need a decimal number competing with it —
+   unlike .ranking-summary below, a read-only recap where the position in the
+   list *is* the rank. */
+.ranking { list-style: none; padding-left: 0; margin: 0.5rem 0 1.25rem; display: flex; flex-direction: column; gap: 0.6rem; }
+.ranking__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem 1rem;
+  padding: 0.85rem 1.05rem;
+  background: var(--surface);
+  border: 1px solid var(--rule-soft);
+  border-radius: var(--radius-sm);
+}
+.ranking__row label { margin: 0; font-weight: 600; }
+.ranking-summary { list-style: decimal; padding-left: 1.4rem; margin: 0.5rem 0 1.25rem; }
 .ranking-summary li { padding: 0.2rem 0; }
 
 /* The dead end when the elector has already voted online (§6.4). Red, and also
@@ -757,7 +908,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
   font-size: 1.7rem;
   font-weight: 600;
   letter-spacing: 0.12em;
-  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-family: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
   margin: 0.2rem 0 0.5rem;
 }
 .tracking-code {
@@ -771,12 +922,59 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 .noprint a + a { margin-left: 1.25rem; }
 
 /* ---- public poll page and results (§6.6, §9) ----------------------
-   Reading pages: prose width on the text, the propositions as a plain list,
-   the consultative-status statement set apart without colour carrying it. */
+   Reading pages: prose width on the text, the propositions as a tab per
+   option (.tabs__list/.tabs__tab, shared with screen 2's config editor
+   above), the consultative-status statement set apart without colour
+   carrying it. */
 
-.status { font-weight: 600; }
-.propositions { padding-left: 1.4rem; margin: 0.5rem 0 0; }
-.propositions li { padding: 0.2rem 0; }
+/* The poll's own state, called out the same way as a .message: a coloured
+   left border on a tinted box, word-first (the sentence itself already says
+   "ouverte"/"close"/…, R-14.1) so the colour only sorts what the words
+   already say. */
+.status {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  font-weight: 600;
+  border-left: 4px solid var(--rule);
+  background: var(--paper-quiet);
+  padding: 0.7rem 0.95rem;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  margin: 0 0 1.25rem;
+}
+.status .ic { margin-top: 0.2rem; color: var(--ink-quiet); }
+.status span { flex: 1; }
+/* The richer form — a title plus an explanatory sentence, not just one line
+   (the dashboard's pending-review callout) — takes a <div> instead of the
+   bare <span> above; its own paragraph drops back to normal weight. */
+.status div { flex: 1; }
+.status div p { margin: 0.2rem 0 0; font-weight: 400; }
+.status--open { border-left-color: var(--ok); }
+.status--open .ic { color: var(--ok); }
+.status--preview { border-left-color: var(--accent); }
+.status--preview .ic { color: var(--accent); }
+.status--warn { border-left-color: var(--warn); }
+.status--warn .ic { color: var(--warn); }
+.status--closed { border-left-color: var(--rule); font-weight: 500; }
+
+/* The poll page's main content and its "Participer" card (§6.6): a sticky
+   aside rather than the button repeated top and bottom of the page, so it
+   stays in view as the reader scrolls the propositions and the calendar. */
+.poll-layout { display: grid; grid-template-columns: 1.6fr 1fr; gap: 2rem; align-items: start; margin-top: 0.5rem; }
+.poll-layout__aside { position: sticky; top: 1.25rem; }
+@media (max-width: 58rem) {
+  .poll-layout { grid-template-columns: 1fr; }
+  .poll-layout__aside { position: static; }
+}
+.cta-card {
+  background: var(--surface);
+  border: 1px solid var(--rule-soft);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 1.4rem 1.5rem;
+}
+.cta-card h2 { margin-top: 0; font-size: 1.15rem; }
+.cta-card .button { width: 100%; text-align: center; }
 .extensions { list-style: none; padding: 0; margin: 0.5rem 0 0; }
 .extensions li { padding: 0.4rem 0; border-bottom: 1px solid var(--rule-soft); max-width: var(--measure); }
 .extensions li:last-child { border-bottom: 0; }
@@ -819,11 +1017,48 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 .result-hero .facts { box-shadow: none; border: 0; background: none; padding: 0; margin: 0; }
 .legal { border-top: 1px solid var(--rule); padding-top: 1rem; }
 .legal p { max-width: var(--measure); }
-.poll-index { list-style: none; padding: 0; }
-.poll-index li { padding: 0.9rem 0; border-bottom: 1px solid var(--rule-soft); }
-.poll-index li:first-child { border-top: 1px solid var(--rule-soft); }
-.poll-index a { font-weight: 600; font-size: 1.05rem; }
-.poll-index .help { display: block; }
+/* One bordered, rounded row per poll rather than a hairline-separated list — the
+   same card treatment as .actions above, so the two lists read as one system. */
+.poll-index { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 0.75rem; }
+.poll-index li {
+  padding: 1.1rem 1.3rem;
+  background: var(--surface);
+  border: 1px solid var(--rule-soft);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.poll-index li:hover { border-color: var(--rule); box-shadow: var(--shadow); }
+.poll-index__link {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1.25rem;
+  color: inherit;
+  text-decoration: none;
+}
+.poll-index__main { flex: 1 1 18rem; min-width: 0; }
+.poll-index__title { display: block; font-weight: 600; font-size: 1.05rem; color: var(--link); }
+.poll-index__link:hover .poll-index__title { text-decoration: underline; }
+.poll-index__meta { display: block; color: var(--ink-quiet); font-size: 0.88rem; margin-top: 0.15rem; }
+/* Row.status (apps.publicsite.views._status_key), never read off poll.state
+   alone — otherwise a poll past closes_at still reads "ouverte" for as long
+   as the scheduled close_poll job takes to catch up (§5.1, §6.4, T-67/T-68).
+   The word is what carries the state (R-14.1); the tint only sorts it. */
+.poll-index__state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: none;
+  padding: 0.3rem 0.7rem;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+.poll-index__state--open { color: var(--ok); background: var(--ok-soft); }
+.poll-index__state--preview { color: var(--accent); background: var(--accent-soft); }
+.poll-index__state--closed { color: var(--ink-quiet); background: var(--paper-quiet); }
+.poll-index .outcome--compact { padding-top: 0.6rem; margin-top: 0.6rem; border-top: 1px dashed var(--rule-soft); }
 /* A published poll's outcome, surfaced on the landing page itself (R-11.2,
    R-11.4) rather than left for a click into the poll's own page — the
    smaller sibling of .outcome on the results page. */
@@ -852,17 +1087,34 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 .commune-branding__preview { max-width: 12rem; max-height: 6rem; width: auto; height: auto; border-radius: 4px; border: 1px solid var(--rule-soft); }
 .commune-branding__preview--favicon { max-width: 4rem; max-height: 4rem; }
 
+/* ---- back-to-top shortcut (poll_detail.html) ------------------------
+   Fixed and visible by default — a harmless permanent fixture — so a visitor
+   with JavaScript disabled still has the shortcut once the page runs long
+   with tabs, calendar, participation and legal sections one after another.
+   static/js/backtotop.js is the only thing that ever adds `.is-hidden`, and
+   only once scroll position says the title is already off-screen, so with
+   JavaScript the button stays out of the way until it is actually useful. */
+.backtotop {
+  position: fixed;
+  right: clamp(1rem, 4vw, 2rem);
+  bottom: 1.5rem;
+  z-index: 5;
+  box-shadow: var(--shadow);
+}
+.backtotop.is-hidden { display: none; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; }
 }
 
 @media print {
   body { border-top: 0; }
-  .banner, .bo-side, .bo-crumb, .messages, .contentinfo, .langswitch, .themeswitch, .noprint { display: none !important; }
+  .banner, .bo-side, .bo-crumb, .messages, .contentinfo, .langswitch, .themeswitch, .noprint, .backtotop { display: none !important; }
   .receipt { border: none; border-radius: 0; box-shadow: none; padding: 0; max-width: none; }
   main, body.bo main { margin: 0; padding: 0; max-width: none; }
   .bo-main { padding: 0; }
-  h1 { border-bottom: 0; }
+  .title-row { border-bottom: 0; }
+  .poll-layout__aside { position: static; }
 }
 
 </style>
@@ -870,6 +1122,17 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 </head>
 <body class="bo">
   <a class="skip" href="#contenu">Aller au contenu</a>
+
+  
+  <svg class="bo-ico-sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="pub-ico-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3.2 2"/></symbol>
+    <symbol id="pub-ico-flag" viewBox="0 0 24 24"><path d="M6 3.5v17"/><path d="M6 4.5h11l-2.3 3.5L17 11.5H6"/></symbol>
+    <symbol id="pub-ico-lock" viewBox="0 0 24 24"><rect x="5.5" y="10.5" width="13" height="9.5" rx="1.6"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></symbol>
+    <symbol id="pub-ico-check" viewBox="0 0 24 24"><path d="M4 12.5 9.5 18 20 6.5"/></symbol>
+    <symbol id="pub-ico-cal" viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14.5" rx="1.6"/><path d="M4 9.5h16"/><path d="M8 3.5v4"/><path d="M16 3.5v4"/></symbol>
+    <symbol id="pub-ico-paper" viewBox="0 0 24 24"><path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V8Z"/><path d="M14 3v5h4"/><path d="M9.5 13h5"/><path d="M9.5 16.5h5"/></symbol>
+    <symbol id="pub-ico-warn" viewBox="0 0 24 24"><path d="M12 4 21 19.5H3Z"/><path d="M12 10v4"/><circle cx="12" cy="16.7" r="0.4" fill="currentColor"/></symbol>
+  </svg>
 
   <header class="banner">
     
@@ -882,7 +1145,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
       
       <a class="account__public" href="/" target="_blank" rel="noopener">Voir le site public</a>
       <form action="/fr/mairie/deconnexion/" method="post">
-        <input type="hidden" name="csrfmiddlewaretoken" value="jtRbNJP8cefirIpP72JL4KMa4ox2mnqk1qAH6hqzr697HYt74ja6IrOBHtHwAKXq">
+        <input type="hidden" name="csrfmiddlewaretoken" value="bBaQ20IkJEfKkRDqXtoFSp4epRUwQZ8ERIPBjJnxaWiTfG7tbAxfQMtdOh5bCJsw">
         <button type="submit">Se déconnecter</button>
       </form>
     </div>
@@ -912,6 +1175,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
   <symbol id="ico-tally" viewBox="0 0 24 24"><path d="M4 20h16"/><path d="M6.5 20v-6"/><path d="M12 20V5"/><path d="M17.5 20v-9"/></symbol>
   <symbol id="ico-audit" viewBox="0 0 24 24"><path d="m12 3.5 7 2.4v5.3c0 4.6-3 7.4-7 8.8-4-1.4-7-4.2-7-8.8V5.9Z"/><path d="m9 12 2 2 4-4.5"/></symbol>
   <symbol id="ico-commune" viewBox="0 0 24 24"><path d="M4 20h16"/><path d="M5.5 20V10.5L12 5l6.5 5.5V20"/><path d="M9.5 20v-5h5v5"/></symbol>
+  <symbol id="ico-chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
 </svg>
 
 <nav class="bo-side" aria-label="Navigation de l’espace mairie">
@@ -934,7 +1198,11 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
   
     
     <div class="bo-side__poll">
-      <span class="bo-state bo-state--open">ouvert</span>
+      <span class="bo-state bo-state--open">
+        <svg class="ic" aria-hidden="true"><use href="#pub-ico-clock"/></svg>
+        
+        ouvert
+      </span>
     </div>
     
       <p class="bo-side__group" id="bo-grp-1">Scrutin</p>
@@ -943,21 +1211,53 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
           <li>
             
             <a class="bo-side__link"
-               href="/fr/mairie/scrutin/02618c37-f586-4f5f-8017-db8054d53521/">
+               href="/fr/mairie/scrutin/579189a0-f7b1-42a1-ad39-09a5c8b5a3c7/">
               <svg class="bo-ico" aria-hidden="true"><use href="#ico-dashboard"></use></svg>
               <span class="bo-side__text">Tableau de bord</span>
             </a>
           </li>
         
+          <li>
+            
+            <a class="bo-side__link"
+               href="/fr/mairie/scrutin/579189a0-f7b1-42a1-ad39-09a5c8b5a3c7/configuration/">
+              <svg class="bo-ico" aria-hidden="true"><use href="#ico-config"></use></svg>
+              <span class="bo-side__text">Configuration</span>
+            </a>
+          </li>
+        
+          <li>
+            
+            <a class="bo-side__link"
+               href="/fr/mairie/scrutin/579189a0-f7b1-42a1-ad39-09a5c8b5a3c7/liste-electorale/">
+              <svg class="bo-ico" aria-hidden="true"><use href="#ico-roll"></use></svg>
+              <span class="bo-side__text">Liste électorale</span>
+            </a>
+          </li>
+        
       </ul>
     
-      <p class="bo-side__group" id="bo-grp-2">Suivi</p>
+      <p class="bo-side__group" id="bo-grp-2">Résultats</p>
       <ul class="bo-side__list" aria-labelledby="bo-grp-2">
         
           <li>
             
+            <a class="bo-side__link"
+               href="/fr/mairie/scrutin/579189a0-f7b1-42a1-ad39-09a5c8b5a3c7/depouillement/">
+              <svg class="bo-ico" aria-hidden="true"><use href="#ico-tally"></use></svg>
+              <span class="bo-side__text">Dépouillement</span>
+            </a>
+          </li>
+        
+      </ul>
+    
+      <p class="bo-side__group" id="bo-grp-3">Suivi</p>
+      <ul class="bo-side__list" aria-labelledby="bo-grp-3">
+        
+          <li>
+            
             <a class="bo-side__link is-current"
-               href="/fr/mairie/scrutin/02618c37-f586-4f5f-8017-db8054d53521/journal/" aria-current="page">
+               href="/fr/mairie/scrutin/579189a0-f7b1-42a1-ad39-09a5c8b5a3c7/journal/" aria-current="page">
               <svg class="bo-ico" aria-hidden="true"><use href="#ico-audit"></use></svg>
               <span class="bo-side__text">Journal d&#x27;audit</span>
             </a>
@@ -970,8 +1270,8 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
   
   <div class="bo-side__tools">
     <form class="langswitch bo-side__lang" action="/i18n/setlang/" method="post">
-      <input type="hidden" name="csrfmiddlewaretoken" value="jtRbNJP8cefirIpP72JL4KMa4ox2mnqk1qAH6hqzr697HYt74ja6IrOBHtHwAKXq">
-      <input type="hidden" name="next" value="/fr/mairie/scrutin/02618c37-f586-4f5f-8017-db8054d53521/journal/">
+      <input type="hidden" name="csrfmiddlewaretoken" value="bBaQ20IkJEfKkRDqXtoFSp4epRUwQZ8ERIPBjJnxaWiTfG7tbAxfQMtdOh5bCJsw">
+      <input type="hidden" name="next" value="/fr/mairie/scrutin/579189a0-f7b1-42a1-ad39-09a5c8b5a3c7/journal/">
       <label for="bo-lang-select">Langue</label>
       <select id="bo-lang-select" name="language">
         
@@ -1009,7 +1309,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
         </li>
         
           <li>
-            <a href="/fr/mairie/scrutin/02618c37-f586-4f5f-8017-db8054d53521/">Réaménagement de la place de la Mairie</a>
+            <a href="/fr/mairie/scrutin/579189a0-f7b1-42a1-ad39-09a5c8b5a3c7/">Réaménagement de la place de la Mairie</a>
           </li>
         
         <li aria-current="page">Journal d&#x27;audit</li>
@@ -1018,7 +1318,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
   
 
   <div class="bo-main">
-    <h1>Journal d'audit</h1>
+    <div class="title-row"><h1>Journal d'audit</h1></div>
     
 
   
@@ -1030,9 +1330,9 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
       <select id="f-actor" name="actor">
         <option value="">Tous</option>
         
-          <option value="be1047b6-d35b-41e4-b437-0d38152f29e0">André Klein</option>
+          <option value="58e4726c-9763-4278-9bd8-164fa577736e">André Klein</option>
         
-          <option value="43cc5f6d-d744-46e5-bb36-e91318747fe3">Sophie Blanchard</option>
+          <option value="ad2ca2cb-97dd-4d2d-b5a2-3b15a4af4995">Sophie Blanchard</option>
         
       </select>
     </p>
@@ -1070,12 +1370,12 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
     <tbody>
       
         <tr>
-          <td>13 septembre 2026 09:50</td>
+          <td>18 septembre 2026 13:44</td>
           
           <td>Sophie Blanchard</td>
           <td>bulletin papier saisi</td>
           <td>
-            <code>ballot:47e980ba-ccdb-443a-8ea3-8f73b874f19f</code>
+            <code>ballot:8fa4005d-9c29-4f03-b105-64de70cf0f76</code>
             
           </td>
           <td>identité confirmée en mairie</td>
@@ -1086,28 +1386,28 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
         </tr>
       
         <tr>
-          <td>13 septembre 2026 09:50</td>
+          <td>18 septembre 2026 13:44</td>
           
           <td>system</td>
           <td>transition d&#x27;état</td>
           <td>
-            <code>poll:02618c37-f586-4f5f-8017-db8054d53521</code>
+            <code>poll:579189a0-f7b1-42a1-ad39-09a5c8b5a3c7</code>
             
           </td>
           <td></td>
           <td>
             <code>{&quot;state&quot;: &quot;draft&quot;}</code> →
-            <code>{&quot;opened_at&quot;: &quot;2026-09-13T07:50:35.064184+00:00&quot;, &quot;state&quot;: &quot;open&quot;}</code>
+            <code>{&quot;opened_at&quot;: &quot;2026-09-18T11:44:23.501049+00:00&quot;, &quot;state&quot;: &quot;open&quot;}</code>
           </td>
         </tr>
       
         <tr>
-          <td>13 septembre 2026 09:50</td>
+          <td>18 septembre 2026 13:44</td>
           
           <td>system</td>
           <td>copie figée prise</td>
           <td>
-            <code>poll:02618c37-f586-4f5f-8017-db8054d53521</code>
+            <code>poll:579189a0-f7b1-42a1-ad39-09a5c8b5a3c7</code>
             
           </td>
           <td></td>
@@ -1129,6 +1429,9 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
   <footer class="contentinfo">
     
     <p>Cette consultation est consultative : son résultat ne lie pas le conseil municipal.</p>
+
+    
+    
 
     
     

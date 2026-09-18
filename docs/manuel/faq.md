@@ -191,6 +191,13 @@ Soit vous obtenez les contreseings (écran 7), soit l'administrateur du scrutin
 la publication**. Les bulletins non contresignés ne sont pas comptés ; on
 n'abandonne pas de bulletins en silence (R-8.7 bis).
 
+### La clôture est refusée : « rapprochement des bulletins papier non enregistré ».
+Le scrutin exige le **rapprochement formel** (§7, R-8.6) : comptez les
+formulaires papier conservés par la commune et saisissez leur nombre sur
+l'écran de clôture, une fois `paper_entry_deadline` atteinte. Contrairement au
+contreseing, **il n'y a pas de passage outre** — la clôture attend
+l'enregistrement, sans exception.
+
 ### Puis-je afficher la participation en direct ?
 Seulement si la configuration du scrutin le prévoit (désactivé par défaut) :
 publier la participation en cours de vote peut l'influencer. Quand c'est

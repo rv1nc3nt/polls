@@ -289,6 +289,7 @@ if pub is None:
         paper_entry_deadline=now - timedelta(days=1),
         tally_method=TallyMethod.SCHULZE,
         require_complete_ranking=True,
+        paper_requires_reconciliation=True,
     )
     for pos, (oid, label) in enumerate(
         [
@@ -324,6 +325,27 @@ if pub is None:
         )
         reg.confirm_mailbox(registration)
         bal.cast_online(pub, token, ranking)
+
+    # one paper ballot, so screen 9's R-8.6 rapprochement (below) reconciles
+    # against a non-zero count instead of the degenerate 0-against-0 case.
+    pub_entry = pub.roll_entries.filter(birth_name="Traoré").first()
+    if pub_entry:
+        bal.enter_paper(
+            pub,
+            str(pub_entry.pk),
+            [["dimanche"], ["soir"], ["midi"]],
+            str(operator.pk),
+            "fr",
+            identity_confirmed=True,
+        )
+
+    # paper_entry_deadline moves back into the past (R-3.4 lets it, §3.4) so
+    # record_reconciliation's own window check (§6.5.9) accepts it, exactly
+    # as an operator would only reach this screen once entry has closed.
+    pub.closes_at = now - timedelta(hours=1)
+    pub.paper_entry_deadline = now - timedelta(hours=1)
+    pub.save()
+    bal.record_reconciliation(pub, 1, str(poll_admin.pk), note="")
 
     close_poll(pub, actor=poll_admin)
     pub.refresh_from_db()
