@@ -14,7 +14,8 @@ Il se lit selon le rôle que l'on tient :
 | responsable informatique qui installe et exploite une instance pour la commune | **[Guide de l'administrateur d'instance](guide-administrateur.md)** — installation, déploiement, planificateur, sauvegarde, restauration, supervision, mises à jour, obligations RGPD techniques |
 | élu·e ou agent·e travaillant dans l'espace mairie | **[Guide de l'espace mairie](guide-espace-mairie.md)** — rôles, création et configuration d'un scrutin, import de la liste électorale, file des inscriptions, bulletins papier, contreseing, clôture, publication, journal d'audit |
 | électeur ou électrice invité·e à une consultation | **[Guide de l'électeur](guide-electeur.md)** — s'inscrire, confirmer son adresse, voter, modifier son vote, vérifier l'enregistrement, voter sur papier |
-| n'importe lequel des trois, avec une question précise | **[Foire aux questions](faq.md)** — une sous-partie par rôle |
+| n'importe qui, électeur ou non, souhaitant recalculer un résultat publié par ses propres moyens | **[Vérifier un résultat par vous-même](verifier.md)** — télécharger et utiliser le vérificateur indépendant, sans compétence technique préalable |
+| n'importe lequel des rôles ci-dessus, avec une question précise | **[Foire aux questions](faq.md)** — une sous-partie par rôle |
 
 ## À propos des captures d'écran
 

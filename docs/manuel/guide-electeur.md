@@ -223,7 +223,8 @@ Vous pouvez :
    classement est celui que vous avez déposé ;
 2. **recalculer le résultat** vous-même à partir des données publiées — une
    implémentation indépendante du dépouillement et de l'empreinte est publiée à
-   cette fin.
+   cette fin. Voir [Vérifier un résultat par vous-même](verifier.md) pour la
+   marche à suivre pas à pas, sans compétence technique préalable.
 
 > **À savoir.** Si vous conservez votre code de suivi, vous pouvez retrouver
 > votre propre ligne dans le fichier publié et donc prouver à un tiers comment
