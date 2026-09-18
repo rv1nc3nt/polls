@@ -4434,6 +4434,10 @@ msgstr ""
 msgid "Haut de page"
 msgstr "Back to top"
 
+#: src/templates/publicsite/_crumb.html:5
+msgid "Accueil"
+msgstr "Home"
+
 #: src/templates/publicsite/poll_list.html:5
 #: src/templates/publicsite/poll_list.html:8
 msgid "Consultations"
@@ -4512,10 +4516,6 @@ msgstr "Poll withdrawn"
 #, python-format
 msgid "Résultats : « %(title)s »"
 msgstr "Results: \"%(title)s\""
-
-#: src/templates/publicsite/results.html:9
-msgid "← Revenir à la page de la consultation"
-msgstr "← Back to the poll page"
 
 #: src/templates/publicsite/results.html:15
 #, python-format

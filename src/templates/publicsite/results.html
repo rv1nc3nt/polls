@@ -5,8 +5,9 @@
 {% block title %}{% translate "Résultats" %} — {{ poll.title }}{% endblock %}
 
 {% block content %}
+  {% include "publicsite/_crumb.html" %}
+
   <h1>{% blocktranslate with title=poll.title %}Résultats : « {{ title }} »{% endblocktranslate %}</h1>
-  <p><a href="{% url 'publicsite:poll_detail' poll.id %}">{% translate "← Revenir à la page de la consultation" %}</a></p>
 
   <section aria-labelledby="issue" class="result-hero">
     <h2 id="issue" class="result-hero__eyebrow">{% translate "Issue" %}</h2>

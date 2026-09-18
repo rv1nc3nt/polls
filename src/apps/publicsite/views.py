@@ -24,8 +24,10 @@ from django.db.migrations.executor import MigrationExecutor
 from django.db.models import QuerySet
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
+from django.utils.translation import gettext as _
 
 from apps.audit.models import Action, AuditEvent, Reason
 from apps.elections import closure, optioncontent, results_view, windows
@@ -88,7 +90,7 @@ def help_page(request: HttpRequest) -> HttpResponse:
     modification and result verification work — none of it poll-specific, so
     no queryset here, unlike every other view in this module.
     """
-    return render(request, "publicsite/help.html", {})
+    return render(request, "publicsite/help.html", {"breadcrumbs": [{"label": _("Aide")}]})
 
 
 def poll_list(request: HttpRequest) -> HttpResponse:
@@ -206,7 +208,11 @@ def poll_detail(request: HttpRequest, poll_id: str) -> HttpResponse:
         is_sandbox=False, state=PollState.WITHDRAWN, pk=poll_id
     ).exists()
     if withdrawn:
-        return render(request, "publicsite/poll_withdrawn.html", {})
+        return render(
+            request,
+            "publicsite/poll_withdrawn.html",
+            {"breadcrumbs": [{"label": _("Scrutin retiré")}]},
+        )
     poll = get_object_or_404(_public_polls(), pk=poll_id)
     language = request.LANGUAGE_CODE
     # ``status`` is clock-gated the same way ``apps.elections.windows`` gates
@@ -217,12 +223,14 @@ def poll_detail(request: HttpRequest, poll_id: str) -> HttpResponse:
     # ``paper_entry_deadline`` (§6.4) at the earliest — confusing, since the
     # window checks are already refusing every online vote (T-67, T-68).
     status = _status_key(poll, timezone.now())
+    title = poll.title(language)
     return render(
         request,
         "publicsite/poll_detail.html",
         {
             "poll": poll,
-            "title": poll.title(language),
+            "title": title,
+            "breadcrumbs": [{"label": title}],
             "description": poll.description(language),
             "options": [
                 {
@@ -275,5 +283,15 @@ def results(request: HttpRequest, poll_id: str) -> HttpResponse:
     return render(
         request,
         "publicsite/results.html",
-        {"poll": poll, "view": results_view.result_view(poll)},
+        {
+            "poll": poll,
+            "view": results_view.result_view(poll),
+            "breadcrumbs": [
+                {
+                    "label": poll.title(request.LANGUAGE_CODE),
+                    "url": reverse("publicsite:poll_detail", args=[poll.pk]),
+                },
+                {"label": _("Résultats")},
+            ],
+        },
     )

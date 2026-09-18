@@ -5,6 +5,8 @@
 {% block title %}{{ title }}{% endblock %}
 
 {% block content %}
+  {% include "publicsite/_crumb.html" %}
+
   <div class="title-row">
     <h1>{{ title }}</h1>
   </div>

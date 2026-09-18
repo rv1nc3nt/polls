@@ -1,0 +1,14 @@
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD — same shape as backoffice/base.html's .bo-crumb, R-14.1. #}
+<nav class="pub-crumb" aria-label="{% translate 'Fil d’Ariane' %}">
+  <ol>
+    <li{% if not breadcrumbs %} aria-current="page"{% endif %}>
+      <a href="{% url 'publicsite:poll_list' %}">{% translate "Accueil" %}</a>
+    </li>
+    {% for crumb in breadcrumbs %}
+      <li{% if forloop.last %} aria-current="page"{% endif %}>
+        {% if crumb.url %}<a href="{{ crumb.url }}">{{ crumb.label }}</a>{% else %}{{ crumb.label }}{% endif %}
+      </li>
+    {% endfor %}
+  </ol>
+</nav>

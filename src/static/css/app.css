@@ -987,6 +987,24 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
    above), the consultative-status statement set apart without colour
    carrying it. */
 
+/* Fil d'Ariane (R-14.1): same list/separator shape as .bo-crumb above, but not
+   sticky — the public pages have no fixed side column for it to sit clear of. */
+.pub-crumb { margin-bottom: 1.1rem; }
+.pub-crumb ol {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  font-size: 0.85rem;
+}
+.pub-crumb li { display: flex; gap: 0.35rem; align-items: baseline; }
+.pub-crumb li + li::before { content: "\203A"; color: var(--ink-quiet); }
+.pub-crumb a { color: var(--link); text-decoration: none; }
+.pub-crumb a:hover { text-decoration: underline; }
+.pub-crumb [aria-current="page"] { color: var(--ink-quiet); font-weight: 600; }
+
 /* The poll's own state, called out the same way as a .message: a coloured
    left border on a tinted box, word-first (the sentence itself already says
    "ouverte"/"close"/…, R-14.1) so the colour only sorts what the words

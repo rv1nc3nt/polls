@@ -5,6 +5,8 @@
 {% block title %}{% translate "Consultations" %}{% endblock %}
 
 {% block content %}
+  {% include "publicsite/_crumb.html" %}
+
   <div class="title-row"><h1>{% translate "Consultations" %}</h1></div>
   {% url 'publicsite:help' as help_url %}
   <p class="help">{% blocktranslate %}Première visite ? Consultez la page <a href="{{ help_url }}">Aide</a> pour savoir comment participer.{% endblocktranslate %}</p>
