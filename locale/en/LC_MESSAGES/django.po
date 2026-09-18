@@ -3698,6 +3698,7 @@ msgid "Rechercher un scrutin"
 msgstr "Search for a poll"
 
 #: src/templates/backoffice/role_admin.html:35
+#: src/templates/publicsite/poll_list.html:18
 msgid "Filtrer par état"
 msgstr "Filter by state"
 
@@ -4452,58 +4453,70 @@ msgstr ""
 "First visit? See the <a href=\"%(help_url)s\">Help</a> page to find out how "
 "to take part."
 
-#: src/templates/publicsite/poll_list.html:29
+#: src/templates/publicsite/poll_list.html:43
 #, python-format
 msgid "Ouverture le %(when)s"
 msgstr "Opens on %(when)s"
 
-#: src/templates/publicsite/poll_list.html:31
+#: src/templates/publicsite/poll_list.html:45
 #, python-format
 msgid "Clôture le %(when)s"
 msgstr "Closes on %(when)s"
 
-#: src/templates/publicsite/poll_list.html:33
+#: src/templates/publicsite/poll_list.html:47
 #, python-format
 msgid "Consultation close le %(when)s"
 msgstr "Consultation closed on %(when)s"
 
-#: src/templates/publicsite/poll_list.html:38
+#: src/templates/publicsite/poll_list.html:20
+#: src/templates/publicsite/poll_list.html:52
 msgid "À venir"
 msgstr "Upcoming"
 
-#: src/templates/publicsite/poll_list.html:40
+#: src/templates/publicsite/poll_list.html:21
+#: src/templates/publicsite/poll_list.html:54
 msgid "Ouverte"
 msgstr "Open"
 
-#: src/templates/publicsite/poll_list.html:42
+#: src/templates/publicsite/poll_list.html:22
+#: src/templates/publicsite/poll_list.html:56
 msgid "Close — résultats publiés"
 msgstr "Closed — results published"
 
-#: src/templates/publicsite/poll_list.html:44
+#: src/templates/publicsite/poll_list.html:23
+#: src/templates/publicsite/poll_list.html:58
 msgid "Close — dépouillement en cours"
 msgstr "Closed — tally under way"
+
+#: src/templates/publicsite/poll_list.html:19
+msgid "Toutes"
+msgstr "All"
 
 # publicsite/poll_list.html (R-11.2, R-11.4): the landing page surfaces a
 # published poll's outcome, not only its own page — added by hand for the
 # same reason as the header explains.
-#: src/templates/publicsite/poll_list.html:55
+#: src/templates/publicsite/poll_list.html:68
 #, python-format
 msgid "Résultat : « %(label)s » retenue."
 msgstr "Result: “%(label)s” carried."
 
-#: src/templates/publicsite/poll_list.html:57
+#: src/templates/publicsite/poll_list.html:70
 msgid "Résultat : égalité."
 msgstr "Result: a tie."
 
-#: src/templates/publicsite/poll_list.html:59
+#: src/templates/publicsite/poll_list.html:72
 msgid "Résultat : aucun bulletin retenu."
 msgstr "Result: no ballot was retained."
 
-#: src/templates/publicsite/poll_list.html:61
+#: src/templates/publicsite/poll_list.html:74
 msgid "Voir le résultat détaillé →"
 msgstr "See the detailed result →"
 
-#: src/templates/publicsite/poll_list.html:69
+#: src/templates/publicsite/poll_list.html:82
+msgid "Aucune consultation ne correspond à ce filtre."
+msgstr "No polls match this filter."
+
+#: src/templates/publicsite/poll_list.html:84
 msgid "Aucune consultation pour le moment."
 msgstr "No polls at this time."
 

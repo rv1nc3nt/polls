@@ -11,6 +11,19 @@
   {% url 'publicsite:help' as help_url %}
   <p class="help">{% blocktranslate %}Première visite ? Consultez la page <a href="{{ help_url }}">Aide</a> pour savoir comment participer.{% endblocktranslate %}</p>
 
+  {% if has_polls %}
+    {% comment %} Same four values as the badge below (apps.publicsite.views._status_key),
+       so filtering stays consistent with what each row already shows — a poll counted as
+       "closed" here is exactly one whose badge reads "closed" (§5.1). {% endcomment %}
+    <p class="tags" aria-label="{% translate 'Filtrer par état' %}">
+      <a href="{% url 'publicsite:poll_list' %}"{% if not status %} class="tag active"{% else %} class="tag"{% endif %}>{% translate "Toutes" %}</a>
+      <a href="?statut=preview"{% if status == "preview" %} class="tag active"{% else %} class="tag"{% endif %}>{% translate "À venir" %}</a>
+      <a href="?statut=open"{% if status == "open" %} class="tag active"{% else %} class="tag"{% endif %}>{% translate "Ouverte" %}</a>
+      <a href="?statut=published"{% if status == "published" %} class="tag active"{% else %} class="tag"{% endif %}>{% translate "Close — résultats publiés" %}</a>
+      <a href="?statut=closed"{% if status == "closed" %} class="tag active"{% else %} class="tag"{% endif %}>{% translate "Close — dépouillement en cours" %}</a>
+    </p>
+  {% endif %}
+
   {% if rows %}
     <ul class="poll-index">
       {% for row in rows %}
@@ -65,6 +78,8 @@
         {% endwith %}
       {% endfor %}
     </ul>
+  {% elif status %}
+    <p>{% translate "Aucune consultation ne correspond à ce filtre." %}</p>
   {% else %}
     <p>{% translate "Aucune consultation pour le moment." %}</p>
   {% endif %}

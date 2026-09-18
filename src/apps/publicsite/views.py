@@ -93,6 +93,12 @@ def help_page(request: HttpRequest) -> HttpResponse:
     return render(request, "publicsite/help.html", {"breadcrumbs": [{"label": _("Aide")}]})
 
 
+#: The ``?statut=`` values the template's filter tags may send back, matching
+#: the badge shown on each row (``_status_key``'s own return values). Anything
+#: else in the query string is treated as no filter at all.
+_STATUS_FILTERS = ("preview", "open", "published", "closed")
+
+
 def poll_list(request: HttpRequest) -> HttpResponse:
     """INV-8: sandbox polls never appear in public listings (T-15).
 
@@ -103,6 +109,11 @@ def poll_list(request: HttpRequest) -> HttpResponse:
     (R-11.2, R-11.4). Shaped into plain dicts here, one per row, because the
     template cannot index ``result_view``'s dataclass by a variable poll id
     (see ``results_view``'s own docstring).
+
+    The ``statut`` filter narrows this same list rather than the queryset: a
+    row's badge is clock-gated (``_status_key``), not read off ``Poll.state``,
+    so filtering has to happen after that same recomputation to stay
+    consistent with what the badge shows.
     """
     language = request.LANGUAGE_CODE
     now = timezone.now()
@@ -120,7 +131,17 @@ def poll_list(request: HttpRequest) -> HttpResponse:
                 "status": _status_key(poll, now),
             }
         )
-    return render(request, "publicsite/poll_list.html", {"rows": rows})
+    has_polls = bool(rows)
+    status = request.GET.get("statut", "")
+    if status not in _STATUS_FILTERS:
+        status = ""
+    if status:
+        rows = [row for row in rows if row["status"] == status]
+    return render(
+        request,
+        "publicsite/poll_list.html",
+        {"rows": rows, "status": status, "has_polls": has_polls},
+    )
 
 
 def _extensions(poll: Poll) -> list[dict[str, object]]:

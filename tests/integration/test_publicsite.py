@@ -216,6 +216,32 @@ def test_an_open_polls_own_page_carries_no_outcome_on_the_landing_page(
     assert f"/fr/scrutin/{open_poll_fixture.pk}/resultats/" not in body
 
 
+# --- filtering the landing page by status (§6.6) -------------------------
+
+
+def test_the_landing_page_can_be_filtered_by_status(
+    client: Client, open_poll_fixture: Poll, published_poll: Poll
+) -> None:
+    body = client.get("/fr/?statut=open").content.decode()
+    assert f"/fr/scrutin/{open_poll_fixture.pk}/" in body
+    assert f"/fr/scrutin/{published_poll.pk}/" not in body
+
+
+def test_filtering_to_a_status_with_no_match_says_so(
+    client: Client, open_poll_fixture: Poll
+) -> None:
+    body = client.get("/fr/?statut=closed").content.decode()
+    assert "Aucune consultation ne correspond à ce filtre." in body
+
+
+def test_an_unrecognised_status_value_is_ignored(
+    client: Client, open_poll_fixture: Poll, published_poll: Poll
+) -> None:
+    body = client.get("/fr/?statut=bogus").content.decode()
+    assert f"/fr/scrutin/{open_poll_fixture.pk}/" in body
+    assert f"/fr/scrutin/{published_poll.pk}/" in body
+
+
 # --- participation: shown only where configured (R-11.5, T-20) ---------
 
 
