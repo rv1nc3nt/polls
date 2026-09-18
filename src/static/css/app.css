@@ -697,6 +697,15 @@ tbody tr.selected th, tbody tr.selected td { background: var(--accent-soft); }
 
 /* ---- tables ---------------------------------------------------------- */
 
+/* R-14.2: a table whose column count tracks something the commune controls
+   (propositions in the pairwise matrix, R-11.3) has no upper bound the CSS
+   can plan around. Past a handful of columns it cannot fit a phone screen
+   whatever the type scale does, so it scrolls in its own box — same
+   principle as `td code` below, applied to the table as a whole rather than
+   forcing the surrounding page to scroll sideways with it. */
+.table-scroll { overflow-x: auto; margin: 0.5rem 0 2rem; }
+.table-scroll table { margin: 0; }
+
 table { border-collapse: collapse; width: 100%; margin: 0.5rem 0 2rem; }
 caption { text-align: left; font-weight: 600; padding-bottom: 0.6rem; }
 th, td { text-align: left; padding: 0.65rem 0.75rem; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
@@ -737,7 +746,13 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
    read-only configuration. */
 .facts {
   display: grid;
-  grid-template-columns: max-content 1fr;
+  /* `minmax(0, …)` rather than bare `max-content 1fr` (R-14.2): a grid track's
+     automatic minimum is its content's unwrapped width, so a long label
+     ("Fin de la saisie des bulletins papier") or value would otherwise hold
+     the column — and everything alongside it in the ancestor grid, up
+     through .poll-layout — to that width even on a phone screen, forcing the
+     whole page to scroll sideways instead of the text wrapping. */
+  grid-template-columns: minmax(0, max-content) minmax(0, 1fr);
   gap: 0.5rem 1.5rem;
   margin: 0.5rem 0 1.5rem;
   padding: 1.1rem 1.3rem;
@@ -746,8 +761,23 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
 }
-.facts dt { font-weight: 600; color: var(--ink-quiet); }
-.facts dd { margin: 0; }
+.facts dt { font-weight: 600; color: var(--ink-quiet); min-width: 0; }
+.facts dd { margin: 0; min-width: 0; }
+/* A hash or seed (§9's verification section) is one unbroken run of
+   characters, unlike the sentences and dates .facts otherwise holds — scoped
+   to `code` so an ordinary value still wraps at word boundaries rather than
+   splitting mid-word the moment the column narrows. */
+.facts dd code { overflow-wrap: anywhere; }
+/* Below phone width, `minmax(0, …)` above stops the page scrolling sideways,
+   but a label like "Fin de la saisie des bulletins papier" still claims most
+   of the row, leaving the value a handful of pixels to wrap into — legible
+   in principle, unreadable in practice. Stacking the pair — label, then
+   value, each at the row's full width — is what an elector on a phone
+   actually needs (R-14.2), not just the absence of a scrollbar. */
+@media (max-width: 34rem) {
+  .facts { grid-template-columns: 1fr; }
+  .facts dt:not(:first-child) { margin-top: 0.5rem; }
+}
 /* Nested inside another boxed block (a review article), the card treatment
    would be a box in a box — drop it back to a plain grid. */
 .review .facts, .paper-elector .facts { box-shadow: none; border: 0; background: none; padding: 0; }
@@ -949,10 +979,14 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 /* The poll page's main content and its "Participer" card (§6.6): a sticky
    aside rather than the button repeated top and bottom of the page, so it
    stays in view as the reader scrolls the propositions and the calendar. */
-.poll-layout { display: grid; grid-template-columns: 1.6fr 1fr; gap: 2rem; align-items: start; margin-top: 0.5rem; }
+/* `minmax(0, …)` on both tracks (R-14.2): without it a track's automatic
+   minimum is its content's unwrapped width, so unwrappable content anywhere
+   in .poll-layout__main or __aside would hold this grid — not just the
+   .facts columns nested inside it — wider than the viewport. */
+.poll-layout { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 2rem; align-items: start; margin-top: 0.5rem; }
 .poll-layout__aside { position: sticky; top: 1.25rem; }
 @media (max-width: 58rem) {
-  .poll-layout { grid-template-columns: 1fr; }
+  .poll-layout { grid-template-columns: minmax(0, 1fr); }
   .poll-layout__aside { position: static; }
 }
 .cta-card {

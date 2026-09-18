@@ -49,6 +49,10 @@
   <section aria-labelledby="raisonnement">
     <h2 id="raisonnement">{% translate "Le raisonnement" %}</h2>
 
+    {% comment %} R-14.2: the matrix has one column per proposition, with no upper bound
+       on how many a commune configures — .table-scroll lets the table itself scroll
+       past a handful of columns rather than taking the whole page with it. {% endcomment %}
+    <div class="table-scroll">
     <table>
       <caption>{% translate "Matrice des préférences deux à deux — la ligne bat la colonne" %}</caption>
       <thead>
@@ -68,10 +72,12 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
 
     {% if view.orderings %}
       {% comment %} R-11.3: for a small option count, the count of ballots per distinct
          ordering — enough on its own to recompute the result. {% endcomment %}
+      <div class="table-scroll">
       <table>
         <caption>{% translate "Nombre de bulletins par ordre de classement" %}</caption>
         <thead>
@@ -86,6 +92,7 @@
           {% endfor %}
         </tbody>
       </table>
+      </div>
     {% endif %}
 
     {% if view.tied %}
