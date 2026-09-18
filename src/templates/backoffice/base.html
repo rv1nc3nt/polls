@@ -36,8 +36,9 @@
 
 {% block nav %}{% bo_nav %}{% endblock %}
 
-{% comment %} The language and theme controls live in the left panel here, not the footer
-   (§6.5). `bo_nav` renders them at the foot of the panel. {% endcomment %}
+{% comment %} The language and theme controls live in the left panel here, not the banner
+   or the footer (§6.5). `bo_nav` renders them at the foot of the panel. {% endcomment %}
+{% block header_tools %}{% endblock %}
 {% block footer_tools %}{% endblock %}
 
 {% block content %}

@@ -271,6 +271,31 @@ section:last-child { margin-bottom: 0; }
 
 .account__public { white-space: nowrap; }
 
+/* Language and theme controls, in the banner (base.html `header_tools`). The
+   base `.langswitch`/`.themeswitch` rules size their select, submit and toggle
+   buttons for a full-width footer row and bottom-align them (`align-items:
+   end`) against labels of two different weights — inline with the site name
+   that reads as three controls at three heights. Here both groups share one
+   compact control height and are centre-aligned against each other instead. */
+.header-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 1.25rem; }
+.header-tools .langswitch,
+.header-tools .themeswitch { margin-top: 0; align-items: center; gap: 0.4rem; }
+.header-tools .langswitch label,
+.header-tools .themeswitch > span {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink-quiet);
+}
+.header-tools select,
+.header-tools .langswitch button,
+.header-tools .themeswitch button {
+  min-height: 2rem;
+  font-size: 0.82rem;
+}
+.header-tools select { padding: 0.2rem 0.5rem; }
+.header-tools .langswitch button { padding: 0.3rem 0.7rem; }
+.header-tools .themeswitch button { padding: 0.3rem 0.6rem; }
+
 .contentinfo { border-top: 1px solid var(--rule); color: var(--ink-quiet); font-size: 0.9rem; margin-top: 1rem; }
 
 /* ---- espace mairie shell (§6.5) ---------------------------------------
