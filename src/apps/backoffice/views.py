@@ -92,7 +92,15 @@ from apps.ballots.ranking import BallotRefused
 from apps.core.codes import format_tracking_code
 from apps.core.models import Role, User
 from apps.core.types import TrackingCode
-from apps.elections import closure, config, optionimages, polltemplates, results_view, rollimport
+from apps.elections import (
+    closure,
+    config,
+    optioncontent,
+    optionimages,
+    polltemplates,
+    results_view,
+    rollimport,
+)
 from apps.elections.models import (
     OptionImage,
     Poll,
@@ -604,6 +612,58 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
             "commune_admin": commune_admin,
             "template_form": template_form,
             "read_only_draft": poll.state == PollState.DRAFT and not has_admin_role,
+        },
+    )
+
+
+@require_poll_role(Role.POLL_ADMIN, Role.AUDITOR)
+def poll_preview(request: HttpRequest, poll: Poll) -> HttpResponse:
+    """Screen 2 addition — aperçu (§6.5.2).
+
+    A ``draft``'s configuration is not public and may still change at any
+    moment (R-3.3); the only other way to see how it would read on the public
+    site is *annoncer maintenant*, which both publishes it and freezes it for
+    good (INV-6, R-3.10). This renders ``publicsite/poll_detail.html`` — the
+    actual public template, not a copy of it — from the poll as currently
+    configured, so a poll admin can proofread propositions, images and the
+    calendar before committing to either. Once the poll has left ``draft`` the
+    real public page already does that job, from the frozen, canonical
+    configuration rather than this view's own read of it, so this redirects
+    there instead of keeping a second read path alive.
+    """
+    if poll.state != PollState.DRAFT:
+        return redirect("publicsite:poll_detail", poll_id=str(poll.pk))
+    language = request.LANGUAGE_CODE
+    title = poll.title(language)
+    return render(
+        request,
+        "backoffice/poll_preview.html",
+        {
+            "poll": poll,
+            "title": title,
+            "breadcrumbs": [{"label": title}],
+            "description": poll.description(language),
+            "options": [
+                {
+                    "option_id": option.option_id,
+                    "label": option.label(language),
+                    "details_html": optioncontent.render_option_details(option, language),
+                }
+                for option in poll.options.all()
+            ],
+            "has_paper_window": poll.paper_entry_deadline > poll.closes_at,
+            # A draft has none of these yet — no extension can be logged before
+            # the poll ever opens, and R-11.5's turnout figures apply only to
+            # an open poll (`_live_participation`, apps.publicsite.views).
+            "extensions": [],
+            "participation": None,
+            # Neither `is_preview` (`announced`) nor `is_open`/`is_published`
+            # applies to a `draft` — poll_preview.html overrides the `status`
+            # block instead of relying on any of these to pick one.
+            "is_preview": False,
+            "is_open": False,
+            "online_voting_closed": False,
+            "is_published": False,
         },
     )
 

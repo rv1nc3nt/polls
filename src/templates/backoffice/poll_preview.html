@@ -1,0 +1,20 @@
+{% extends "publicsite/poll_detail.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD #}
+{% comment %}
+  Draft-only aperçu (§6.5.2). Extends the public template itself, not a copy
+  of it, so what a poll admin proofreads here is exactly what
+  publicsite.poll_detail will later render from the same poll — only the
+  ribbon below and the status notice are this screen's own.
+{% endcomment %}
+
+{% block content %}
+  <div class="notice" role="note">
+    <p>{% translate "Aperçu interne : cette page n'est pas publique. Le scrutin est en brouillon et sa configuration peut encore changer avant l'annonce." %}</p>
+  </div>
+  {{ block.super }}
+{% endblock %}
+
+{% block status %}
+  <p class="status status--preview"><svg class="ic" aria-hidden="true"><use href="#pub-ico-flag"/></svg><span>{% translate "Brouillon — pas encore annoncé ni visible du public." %}</span></p>
+{% endblock %}

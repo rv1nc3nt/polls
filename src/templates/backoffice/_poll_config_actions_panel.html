@@ -47,6 +47,20 @@
     </section>
   {% endif %}
 
+  <section aria-labelledby="preview">
+    <h2 id="preview">{% translate "Aperçu" %}</h2>
+    {% comment %}
+      Read-only, no state change: renders the same template
+      publicsite.poll_detail will use, from the configuration as it stands
+      right now — the only other way to see that is *annoncer*, which
+      publishes it and freezes it for good (INV-6, R-3.10). Opens in a new
+      tab since it is meant to be checked alongside this editor, not instead
+      of it.
+    {% endcomment %}
+    <p class="help">{% translate "Affiche cette page telle qu'elle apparaîtra sur le site public une fois le scrutin annoncé, à partir de la configuration actuelle — sans rien publier ni figer." %}</p>
+    <p><a class="button secondary" href="{% url 'backoffice:poll_preview' poll.id %}" target="_blank" rel="noopener">{% translate "Voir l'aperçu" %}</a></p>
+  </section>
+
   <section aria-labelledby="announce-now">
     <h2 id="announce-now">{% translate "Annonce" %}</h2>
     {% comment %}

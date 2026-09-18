@@ -11,6 +11,7 @@
     <h1>{{ title }}</h1>
   </div>
 
+  {% block status %}
   {% if is_preview %}
     {% comment %} R-3.10: the poll is `announced` — an early preview the poll admin chose to
        offer. Points at the configured opening instant rather than at a
@@ -36,6 +37,7 @@
   {% else %}
     <p class="status status--closed"><svg class="ic" aria-hidden="true"><use href="#pub-ico-lock"/></svg><span>{% translate "Consultation close. Le dépouillement est en cours ; les résultats seront publiés ici." %}</span></p>
   {% endif %}
+  {% endblock %}
 
   {% if description %}{{ description|linebreaks }}{% endif %}
 
