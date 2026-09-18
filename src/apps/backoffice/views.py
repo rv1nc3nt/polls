@@ -1704,6 +1704,7 @@ def commune_settings(request: HttpRequest) -> HttpResponse:
             data_protection_contact=form.cleaned_data["data_protection_contact"],
             public_base_url=form.cleaned_data["public_base_url"],
             legal_notice=form.cleaned_data["legal_notice"],
+            show_name_with_logo=form.cleaned_data["show_name_with_logo"],
         )
         communesettings.save(draft, actor=current_operator(request))
         messages.success(request, _("Paramètres de la commune enregistrés."))

@@ -253,7 +253,7 @@ section:last-child { margin-bottom: 0; }
   border-bottom: 1px solid var(--rule);
 }
 .site-name { font-weight: 700; margin: 0; font-size: 1.15rem; letter-spacing: -0.01em; }
-.site-name a { color: var(--ink); text-decoration: none; }
+.site-name a { color: var(--ink); text-decoration: none; display: flex; align-items: center; gap: 0.6rem; }
 .site-name a:hover { color: var(--accent); }
 .site-logo { display: block; max-height: 2.25rem; width: auto; }
 .account { display: flex; gap: 0.75rem; align-items: center; }

@@ -749,6 +749,7 @@ class CommuneSettingsForm(forms.ModelForm):  # type: ignore[type-arg]  # not sub
             "data_protection_contact",
             "public_base_url",
             "legal_notice",
+            "show_name_with_logo",
         )
         labels = {
             "name": _("Nom de la commune"),
@@ -756,6 +757,7 @@ class CommuneSettingsForm(forms.ModelForm):  # type: ignore[type-arg]  # not sub
             "data_protection_contact": _("Contact du référent"),
             "public_base_url": _("Adresse du site"),
             "legal_notice": _("Mentions légales"),
+            "show_name_with_logo": _("Afficher le nom de la commune à côté du logo"),
         }
 
     def clean_public_base_url(self) -> str:

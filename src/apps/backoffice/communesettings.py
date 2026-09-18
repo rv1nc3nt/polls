@@ -46,6 +46,7 @@ _FIELDS = (
     "data_protection_contact",
     "public_base_url",
     "legal_notice",
+    "show_name_with_logo",
 )
 
 
@@ -58,6 +59,7 @@ class CommuneSettingsDraft:
     data_protection_contact: str
     public_base_url: str = ""
     legal_notice: str = ""
+    show_name_with_logo: bool = False
 
 
 def current() -> Commune | None:
@@ -169,7 +171,8 @@ def _remove_branding(commune: Commune, *, field: str, actor: User) -> Commune:
 @transaction.atomic
 def set_logo(commune: Commune, upload: UploadedFile[bytes], *, actor: User) -> Commune:
     """Screen 14's logo upload: shown in the page header in place of the
-    plain commune name (``base.html``) where one is set."""
+    plain commune name (``base.html``) where one is set, unless
+    ``show_name_with_logo`` asks to keep the name printed beside it."""
     return _set_branding(
         commune,
         upload,

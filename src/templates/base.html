@@ -45,7 +45,12 @@
     {% comment %} `home_url` is `/` on the public site; the espace mairie points it at
        « Scrutins » instead, so a signed-in operator clicking the name stays on the
        back office rather than landing on the public pages. {% endcomment %}
-    <p class="site-name"><a href="{% block home_url %}/{% endblock %}">{% if commune.logo %}<img src="{{ commune.logo.url }}" alt="{{ commune.name }}" class="site-logo">{% elif commune %}{{ commune.name }}{% else %}{% translate "Consultation citoyenne" %}{% endif %}</a></p>
+    {% comment %} §6.5.14: the logo replaces the plain name by default, but
+       `show_name_with_logo` lets a commune keep the name printed beside a logo
+       that does not carry it legibly on its own. The name is then visible text,
+       so the image's `alt` goes empty (decorative) rather than duplicating it
+       for a screen reader — R-14.1 wants the name announced once, not twice. {% endcomment %}
+    <p class="site-name"><a href="{% block home_url %}/{% endblock %}">{% if commune.logo %}<img src="{{ commune.logo.url }}" alt="{% if not commune.show_name_with_logo %}{{ commune.name }}{% endif %}" class="site-logo">{% if commune.show_name_with_logo %}<span class="site-name__text">{{ commune.name }}</span>{% endif %}{% elif commune %}{{ commune.name }}{% else %}{% translate "Consultation citoyenne" %}{% endif %}</a></p>
     {% block header_extra %}{% endblock %}
   </header>
 

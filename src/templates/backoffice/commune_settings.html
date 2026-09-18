@@ -33,7 +33,7 @@
   {% endcomment %}
   <section aria-labelledby="commune-logo">
     <h2 id="commune-logo">{% translate "Logo" %}</h2>
-    <p class="help">{% translate "Affiché dans l'en-tête à la place du nom de la commune. PNG, JPEG, GIF ou WebP, 2 Mo maximum." %}</p>
+    <p class="help">{% translate "Affiché dans l'en-tête à la place du nom de la commune, sauf si l'option ci-dessus est cochée. PNG, JPEG, GIF ou WebP, 2 Mo maximum." %}</p>
     {% if commune.logo %}
       <p><img src="{{ commune.logo.url }}" alt="" class="commune-branding__preview"></p>
       <form method="post" action="{% url 'backoffice:commune_logo_remove' %}" class="inline">

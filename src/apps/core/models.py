@@ -111,6 +111,11 @@ class Commune(models.Model):
     logo = models.FileField(_("logo"), upload_to=commune_logo_path, blank=True, default="")
     logo_content_type = models.CharField(max_length=40, blank=True, default="")
     logo_content_hash = models.CharField(max_length=64, blank=True, default="")
+    # §6.5.14: the logo replaces the plain commune name in the header by
+    # default, but a commune whose logo does not carry its name legibly (a
+    # crest with no text, say) can ask to keep the name printed beside it.
+    # Meaningless, and ignored by base.html, where no logo is set.
+    show_name_with_logo = models.BooleanField(_("afficher le nom à côté du logo"), default=False)
     favicon = models.FileField(_("favicon"), upload_to=commune_favicon_path, blank=True, default="")
     favicon_content_type = models.CharField(max_length=40, blank=True, default="")
     favicon_content_hash = models.CharField(max_length=64, blank=True, default="")
