@@ -395,6 +395,17 @@
 # Switching polls_scheduler on an existing host leaves the previous mode's
 # units in place; remove them by hand.
 
+- name: Restart polls.service now, not at end of play
+  # Handlers only fire at end-of-play by default, and main.yml's own
+  # flush_handlers (added by efa86e9) sits after this whole file's
+  # import_tasks — too late for the /sante check right below. Without a
+  # flush here, "Restart polls" (notified above by the env-file render, the
+  # `current` symlink switch and the unit file template) is still pending
+  # when we ask /sante whether the deploy is up, so a redeploy checks the
+  # previous release's still-running workers against a database migrate has
+  # already moved forward, and the mismatch 500s.
+  ansible.builtin.meta: flush_handlers
+
 - name: Wait for the web service to answer /sante
   ansible.builtin.uri:
     url: "http://{{ polls_bind }}/sante"
