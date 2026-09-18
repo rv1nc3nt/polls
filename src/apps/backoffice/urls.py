@@ -25,6 +25,12 @@ urlpatterns = [
     path("commune/", views.commune_settings, name="commune_settings"),
     path("commune/logo/", views.commune_logo_upload, name="commune_logo_upload"),
     path("commune/logo/supprimer/", views.commune_logo_remove, name="commune_logo_remove"),
+    path("commune/logo-sombre/", views.commune_logo_dark_upload, name="commune_logo_dark_upload"),
+    path(
+        "commune/logo-sombre/supprimer/",
+        views.commune_logo_dark_remove,
+        name="commune_logo_dark_remove",
+    ),
     path("commune/favicon/", views.commune_favicon_upload, name="commune_favicon_upload"),
     path("commune/favicon/supprimer/", views.commune_favicon_remove, name="commune_favicon_remove"),
     # Commune-level (R-2.1: the commune administrator imports the roll, not a

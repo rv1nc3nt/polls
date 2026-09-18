@@ -1750,6 +1750,35 @@ def commune_logo_remove(request: HttpRequest) -> HttpResponse:
 
 
 @require_commune_admin
+def commune_logo_dark_upload(request: HttpRequest) -> HttpResponse:
+    """Screen 14's dark-theme logo upload, shown instead of ``logo`` once
+    the visitor's theme is dark."""
+    commune = communesettings.current()
+    if request.method == "POST" and commune is not None:
+        upload = request.FILES.get("logo_dark")
+        if upload is None:
+            messages.error(request, _("Choisissez une image."))
+        else:
+            try:
+                communesettings.set_logo_dark(commune, upload, actor=current_operator(request))
+            except communesettings.InvalidBrandingImage as refused:
+                messages.error(request, str(refused))
+            else:
+                messages.success(request, _("Logo (thème sombre) mis à jour."))
+    return redirect("backoffice:commune_settings")
+
+
+@require_commune_admin
+def commune_logo_dark_remove(request: HttpRequest) -> HttpResponse:
+    """The mirror of ``commune_logo_dark_upload`` above."""
+    commune = communesettings.current()
+    if request.method == "POST" and commune is not None:
+        communesettings.remove_logo_dark(commune, actor=current_operator(request))
+        messages.success(request, _("Logo (thème sombre) supprimé."))
+    return redirect("backoffice:commune_settings")
+
+
+@require_commune_admin
 def commune_favicon_upload(request: HttpRequest) -> HttpResponse:
     """Screen 14's favicon upload."""
     commune = communesettings.current()

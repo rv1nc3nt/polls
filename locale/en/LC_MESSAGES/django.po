@@ -14,7 +14,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: commune-polls\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-18 17:43+0200\n"
+"POT-Creation-Date: 2026-09-18 19:14+0200\n"
 "Language: en\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -250,19 +250,21 @@ msgid "Ce compte détient déjà ce rôle sur ce scrutin."
 msgstr "This account already holds this role on this poll."
 
 #: src/apps/backoffice/communesettings.py:182
+#: src/apps/backoffice/communesettings.py:205
 msgid "Image trop volumineuse (2 Mo maximum)."
 msgstr "Image too large (2 MB maximum)."
 
 #: src/apps/backoffice/communesettings.py:183
+#: src/apps/backoffice/communesettings.py:206
 #: src/apps/elections/optionimages.py:61
 msgid "Format d'image non reconnu (PNG, JPEG, GIF ou WebP attendus)."
 msgstr "Unrecognised image format (PNG, JPEG, GIF or WebP expected)."
 
-#: src/apps/backoffice/communesettings.py:203
+#: src/apps/backoffice/communesettings.py:226
 msgid "Image trop volumineuse (256 Ko maximum)."
 msgstr "Image too large (256 KB maximum)."
 
-#: src/apps/backoffice/communesettings.py:204
+#: src/apps/backoffice/communesettings.py:227
 msgid "Format d'image non reconnu (ICO, PNG, JPEG, GIF ou WebP attendus)."
 msgstr "Unrecognised image format (ICO, PNG, JPEG, GIF or WebP expected)."
 
@@ -764,7 +766,7 @@ msgstr ""
 msgid "Contact du référent"
 msgstr "Referent's contact"
 
-#: src/apps/backoffice/forms.py:628 src/apps/core/models.py:84
+#: src/apps/backoffice/forms.py:628 src/apps/core/models.py:90
 msgid "Adresse électronique ou postale, publiée dans la notice d'information."
 msgstr "Email or postal address, published in the information notice."
 
@@ -860,7 +862,7 @@ msgstr "Test address"
 msgid "Nom du modèle"
 msgstr "Template name"
 
-#: src/apps/backoffice/forms.py:759 src/templates/base.html:99
+#: src/apps/backoffice/forms.py:759 src/templates/base.html:105
 msgid "Mentions légales"
 msgstr "Legal notice"
 
@@ -1050,7 +1052,7 @@ msgid "Date de clôture repoussée."
 msgstr "Closing date extended."
 
 #: src/apps/backoffice/views.py:626 src/apps/backoffice/views.py:1731
-#: src/apps/backoffice/views.py:1759
+#: src/apps/backoffice/views.py:1760 src/apps/backoffice/views.py:1788
 msgid "Choisissez une image."
 msgstr "Choose an image."
 
@@ -1221,11 +1223,19 @@ msgstr "Logo updated."
 msgid "Logo supprimé."
 msgstr "Logo removed."
 
-#: src/apps/backoffice/views.py:1766
+#: src/apps/backoffice/views.py:1767
+msgid "Logo (thème sombre) mis à jour."
+msgstr "Logo (dark theme) updated."
+
+#: src/apps/backoffice/views.py:1777
+msgid "Logo (thème sombre) supprimé."
+msgstr "Logo (dark theme) removed."
+
+#: src/apps/backoffice/views.py:1795
 msgid "Favicon mis à jour."
 msgstr "Favicon updated."
 
-#: src/apps/backoffice/views.py:1776
+#: src/apps/backoffice/views.py:1805
 msgid "Favicon supprimé."
 msgstr "Favicon removed."
 
@@ -1423,19 +1433,19 @@ msgid "Ce lien n'est pas valide. En cas de doute, adressez-vous à la mairie."
 msgstr "This link is not valid. If in doubt, contact the town hall."
 
 # Screen 11 — première installation (§6.5.11) and the commune record.
-#: src/apps/core/models.py:64
+#: src/apps/core/models.py:70
 msgid "nom de la commune"
 msgstr "commune name"
 
-#: src/apps/core/models.py:66
+#: src/apps/core/models.py:72
 msgid "Tel qu'il doit apparaître sur les pages publiques et dans la notice."
 msgstr "As it should appear on the public pages and in the notice."
 
-#: src/apps/core/models.py:74
+#: src/apps/core/models.py:80
 msgid "référent données personnelles"
 msgstr "data-protection referent"
 
-#: src/apps/core/models.py:77
+#: src/apps/core/models.py:83
 msgid ""
 "Personne ou service à qui les électeurs adressent leurs demandes d'accès, de "
 "rectification et d'effacement."
@@ -1443,16 +1453,16 @@ msgstr ""
 "Person or office to whom electors address their access, rectification and "
 "erasure requests."
 
-#: src/apps/core/models.py:82
+#: src/apps/core/models.py:88
 msgid "contact du référent"
 msgstr "referent's contact"
 
 # §6.5.14 (commune settings screen, and the site's own address for mail links): added by hand for the same reason as the header explains.
-#: src/apps/core/models.py:93
+#: src/apps/core/models.py:99
 msgid "adresse du site"
 msgstr "site address"
 
-#: src/apps/core/models.py:98
+#: src/apps/core/models.py:104
 msgid ""
 "Ex. : https://votecommune.fr — sans barre oblique finale. Utilisée pour "
 "composer les liens des courriels envoyés aux électeurs. Laissez vide pour "
@@ -1462,24 +1472,28 @@ msgstr ""
 "outgoing mail. Leave blank to use the address configured at deployment."
 
 # §6.5.14 (logo and favicon): added by hand for the same reason as the header explains.
-#: src/apps/core/models.py:111
+#: src/apps/core/models.py:117
 msgid "logo"
 msgstr "logo"
 
-#: src/apps/core/models.py:118
+#: src/apps/core/models.py:126
+msgid "logo (thème sombre)"
+msgstr "logo (dark theme)"
+
+#: src/apps/core/models.py:134
 msgid "afficher le nom à côté du logo"
 msgstr "show the name next to the logo"
 
-#: src/apps/core/models.py:119
+#: src/apps/core/models.py:135
 msgid "favicon"
 msgstr "favicon"
 
 # §6.5.14 (legal notice, configurable footer text): added by hand for the same reason as the header explains.
-#: src/apps/core/models.py:131
+#: src/apps/core/models.py:147
 msgid "mentions légales"
 msgstr "legal notice"
 
-#: src/apps/core/models.py:135
+#: src/apps/core/models.py:151
 msgid ""
 "Affichées en pied de page de chaque page : éditeur du site, hébergeur, etc. "
 "Laissez vide pour n'afficher aucune mention."
@@ -1487,47 +1501,47 @@ msgstr ""
 "Shown in the footer of every page: site publisher, host, etc. Leave blank to "
 "show no notice at all."
 
-#: src/apps/core/models.py:141 src/apps/core/models.py:142
+#: src/apps/core/models.py:157 src/apps/core/models.py:158
 msgid "commune"
 msgstr "commune"
 
-#: src/apps/core/models.py:157 src/apps/registrations/models.py:33
+#: src/apps/core/models.py:173 src/apps/registrations/models.py:33
 msgid "aucun"
 msgstr "none"
 
-#: src/apps/core/models.py:158
+#: src/apps/core/models.py:174
 msgid "STARTTLS"
 msgstr "STARTTLS"
 
-#: src/apps/core/models.py:159
+#: src/apps/core/models.py:175
 msgid "SSL/TLS implicite"
 msgstr "Implicit SSL/TLS"
 
-#: src/apps/core/models.py:182
+#: src/apps/core/models.py:198
 msgid "serveur SMTP"
 msgstr "SMTP server"
 
-#: src/apps/core/models.py:183
+#: src/apps/core/models.py:199
 msgid "port"
 msgstr "port"
 
-#: src/apps/core/models.py:185
+#: src/apps/core/models.py:201
 msgid "chiffrement"
 msgstr "encryption"
 
-#: src/apps/core/models.py:190
+#: src/apps/core/models.py:206
 msgid "identifiant"
 msgstr "username"
 
-#: src/apps/core/models.py:191
+#: src/apps/core/models.py:207
 msgid "mot de passe (chiffré)"
 msgstr "password (encrypted)"
 
-#: src/apps/core/models.py:193
+#: src/apps/core/models.py:209
 msgid "adresse d'expédition"
 msgstr "sending address"
 
-#: src/apps/core/models.py:196
+#: src/apps/core/models.py:212
 msgid ""
 "Laissez vide pour utiliser l'adresse par défaut du déploiement. Doit "
 "généralement correspondre au compte authentifié auprès du serveur."
@@ -1535,47 +1549,47 @@ msgstr ""
 "Leave blank to use the deployment's default address. Should usually match "
 "the account authenticated with the server."
 
-#: src/apps/core/models.py:200
+#: src/apps/core/models.py:216
 msgid "dernière modification"
 msgstr "last changed"
 
-#: src/apps/core/models.py:203 src/apps/core/models.py:204
+#: src/apps/core/models.py:219 src/apps/core/models.py:220
 msgid "paramètres de messagerie"
 msgstr "mail settings"
 
-#: src/apps/core/models.py:210
+#: src/apps/core/models.py:226
 msgid "(non configuré)"
 msgstr "(not configured)"
 
-#: src/apps/core/models.py:236
+#: src/apps/core/models.py:252
 msgid "administrateur de la commune"
 msgstr "commune administrator"
 
-#: src/apps/core/models.py:238
+#: src/apps/core/models.py:254
 msgid "Gère les comptes et crée les scrutins."
 msgstr "Manages accounts and creates polls."
 
-#: src/apps/core/models.py:240
+#: src/apps/core/models.py:256
 msgid "nom complet"
 msgstr "full name"
 
-#: src/apps/core/models.py:243
+#: src/apps/core/models.py:259
 msgid "compte"
 msgstr "account"
 
-#: src/apps/core/models.py:244
+#: src/apps/core/models.py:260
 msgid "comptes"
 msgstr "accounts"
 
-#: src/apps/core/models.py:251
+#: src/apps/core/models.py:267
 msgid "administrateur du scrutin"
 msgstr "poll administrator"
 
-#: src/apps/core/models.py:252
+#: src/apps/core/models.py:268
 msgid "opérateur de saisie"
 msgstr "entry operator"
 
-#: src/apps/core/models.py:253
+#: src/apps/core/models.py:269
 msgid "auditeur"
 msgstr "auditor"
 
@@ -1992,27 +2006,27 @@ msgstr "Mairie area"
 msgid "rôle à s’attribuer"
 msgstr "role to assign yourself"
 
-#: src/templates/backoffice/_nav.html:97 src/templates/base.html:114
+#: src/templates/backoffice/_nav.html:97 src/templates/base.html:120
 msgid "Langue"
 msgstr "Language"
 
-#: src/templates/backoffice/_nav.html:105 src/templates/base.html:121
+#: src/templates/backoffice/_nav.html:105 src/templates/base.html:127
 msgid "Changer"
 msgstr "Change"
 
-#: src/templates/backoffice/_nav.html:109 src/templates/base.html:129
+#: src/templates/backoffice/_nav.html:109 src/templates/base.html:135
 msgid "Thème"
 msgstr "Theme"
 
-#: src/templates/backoffice/_nav.html:111 src/templates/base.html:131
+#: src/templates/backoffice/_nav.html:111 src/templates/base.html:137
 msgid "Clair"
 msgstr "Light"
 
-#: src/templates/backoffice/_nav.html:112 src/templates/base.html:132
+#: src/templates/backoffice/_nav.html:112 src/templates/base.html:138
 msgid "Sombre"
 msgstr "Dark"
 
-#: src/templates/backoffice/_nav.html:113 src/templates/base.html:133
+#: src/templates/backoffice/_nav.html:113 src/templates/base.html:139
 msgid "Système"
 msgstr "System"
 
@@ -2473,8 +2487,8 @@ msgid ""
 "Affiché dans l'en-tête à la place du nom de la commune, sauf si l'option ci-"
 "dessus est cochée. PNG, JPEG, GIF ou WebP, 2 Mo maximum."
 msgstr ""
-"Shown in the header in place of the commune name, unless the option above "
-"is checked. PNG, JPEG, GIF or WebP, 2 MB maximum."
+"Shown in the header in place of the commune name, unless the option above is "
+"checked. PNG, JPEG, GIF or WebP, 2 MB maximum."
 
 #: src/templates/backoffice/commune_settings.html:43
 msgid "Supprimer le logo"
@@ -2486,14 +2500,37 @@ msgstr "Replace the logo"
 
 #: src/templates/backoffice/commune_settings.html:52
 #: src/templates/backoffice/commune_settings.html:72
+#: src/templates/backoffice/commune_settings.html:92
 msgid "Envoyer"
 msgstr "Send"
 
 #: src/templates/backoffice/commune_settings.html:57
+msgid "Logo (thème sombre)"
+msgstr "Logo (dark theme)"
+
+#: src/templates/backoffice/commune_settings.html:58
+msgid ""
+"Facultatif : remplace le logo ci-dessus lorsque le visiteur affiche la page "
+"en thème sombre. Sans effet tant qu'aucun logo n'est défini. PNG, JPEG, GIF "
+"ou WebP, 2 Mo maximum."
+msgstr ""
+"Optional: replaces the logo above when the visitor displays the page in "
+"dark theme. Without effect while no logo is set. PNG, JPEG, GIF or WebP, 2 "
+"MB maximum."
+
+#: src/templates/backoffice/commune_settings.html:63
+msgid "Supprimer le logo (thème sombre)"
+msgstr "Remove the logo (dark theme)"
+
+#: src/templates/backoffice/commune_settings.html:69
+msgid "Remplacer le logo (thème sombre)"
+msgstr "Replace the logo (dark theme)"
+
+#: src/templates/backoffice/commune_settings.html:77
 msgid "Favicon"
 msgstr "Favicon"
 
-#: src/templates/backoffice/commune_settings.html:58
+#: src/templates/backoffice/commune_settings.html:78
 msgid ""
 "L'icône affichée dans l'onglet du navigateur. ICO, PNG, JPEG, GIF ou WebP, "
 "256 Ko maximum."
@@ -2501,11 +2538,11 @@ msgstr ""
 "The icon shown in the browser tab. ICO, PNG, JPEG, GIF or WebP, 256 KB "
 "maximum."
 
-#: src/templates/backoffice/commune_settings.html:63
+#: src/templates/backoffice/commune_settings.html:83
 msgid "Supprimer le favicon"
 msgstr "Remove the favicon"
 
-#: src/templates/backoffice/commune_settings.html:69
+#: src/templates/backoffice/commune_settings.html:89
 msgid "Remplacer le favicon"
 msgstr "Replace the favicon"
 
@@ -3023,7 +3060,7 @@ msgstr ""
 "the system, unlike a ballot cast online, for the purposes of traceability "
 "and of any deletion you may later request."
 
-#: src/templates/backoffice/paper_receipt.html:41 src/templates/base.html:83
+#: src/templates/backoffice/paper_receipt.html:41 src/templates/base.html:89
 #: src/templates/registrations/mail/ballot_receipt.txt:19
 #: src/templates/registrations/mail/confirmation.txt:16
 msgid ""
@@ -4066,7 +4103,7 @@ msgstr ""
 "To modify your ballot before closure, reopen the link you received at "
 "registration. Nobody else can do this in your place."
 
-#: src/templates/base.html:14 src/templates/base.html:59
+#: src/templates/base.html:14 src/templates/base.html:65
 msgid "Consultation citoyenne"
 msgstr "Citizen consultation"
 
@@ -4077,7 +4114,7 @@ msgstr "Skip to content"
 # templates/base.html, templates/publicsite/poll_list.html and
 # templates/publicsite/help.html: the public FAQ and its footer/landing-page
 # links, added by hand for the same reason as the header explains.
-#: src/templates/base.html:109 src/templates/publicsite/help.html:5
+#: src/templates/base.html:115 src/templates/publicsite/help.html:5
 #: src/templates/publicsite/help.html:8
 msgid "Aide"
 msgstr "Help"

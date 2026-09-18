@@ -256,6 +256,16 @@ section:last-child { margin-bottom: 0; }
 .site-name a { color: var(--ink); text-decoration: none; display: flex; align-items: center; gap: 0.6rem; }
 .site-name a:hover { color: var(--accent); }
 .site-logo { display: block; max-height: 2.25rem; width: auto; }
+/* §6.5.14: `logo_dark` swaps in for `logo` under the same rule the top-of-file
+   colour tokens use — both the OS `prefers-color-scheme` and theme.js's
+   explicit `data-theme` override — so the two never show at once. */
+.site-logo--dark { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .site-logo--light { display: none; }
+  :root:not([data-theme="light"]) .site-logo--dark { display: block; }
+}
+:root[data-theme="dark"] .site-logo--light { display: none; }
+:root[data-theme="dark"] .site-logo--dark { display: block; }
 .account { display: flex; gap: 0.75rem; align-items: center; }
 .account__name { font-weight: 600; }
 
@@ -1115,6 +1125,10 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 
 .commune-branding__preview { max-width: 12rem; max-height: 6rem; width: auto; height: auto; border-radius: 4px; border: 1px solid var(--rule-soft); }
 .commune-branding__preview--favicon { max-width: 4rem; max-height: 4rem; }
+/* A dark-theme logo is typically light-coloured artwork meant for a dark
+   background — previewed on one here regardless of the operator's own
+   theme, or it would often look blank. */
+.commune-branding__preview--dark { background: #17181b; padding: 0.5rem; }
 
 /* ---- back-to-top shortcut (poll_detail.html) ------------------------
    Fixed and visible by default — a harmless permanent fixture — so a visitor

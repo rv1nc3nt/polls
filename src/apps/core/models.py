@@ -39,6 +39,12 @@ def commune_logo_path(instance: Commune, filename: str) -> str:
     return f"commune/logo-{instance.logo_content_hash}{ext}"
 
 
+def commune_logo_dark_path(instance: Commune, filename: str) -> str:
+    """The dark-theme variant's counterpart to ``commune_logo_path`` above."""
+    ext = images.EXTENSIONS[instance.logo_dark_content_type]
+    return f"commune/logo-dark-{instance.logo_dark_content_hash}{ext}"
+
+
 def commune_favicon_path(instance: Commune, filename: str) -> str:
     """The favicon's counterpart to ``commune_logo_path`` above."""
     ext = images.EXTENSIONS[instance.favicon_content_type]
@@ -111,6 +117,16 @@ class Commune(models.Model):
     logo = models.FileField(_("logo"), upload_to=commune_logo_path, blank=True, default="")
     logo_content_type = models.CharField(max_length=40, blank=True, default="")
     logo_content_hash = models.CharField(max_length=64, blank=True, default="")
+    # §6.5.14: a dark-theme variant of the logo above, shown instead of it
+    # once base.html's dark theme (CSS toggled by static/js/theme.js) is
+    # active. Independent upload, same content-addressed storage — but
+    # meaningless, and never rendered by base.html, without the light `logo`
+    # also set: there is no theme to switch away from a bare commune name.
+    logo_dark = models.FileField(
+        _("logo (thème sombre)"), upload_to=commune_logo_dark_path, blank=True, default=""
+    )
+    logo_dark_content_type = models.CharField(max_length=40, blank=True, default="")
+    logo_dark_content_hash = models.CharField(max_length=64, blank=True, default="")
     # §6.5.14: the logo replaces the plain commune name in the header by
     # default, but a commune whose logo does not carry its name legibly (a
     # crest with no text, say) can ask to keep the name printed beside it.

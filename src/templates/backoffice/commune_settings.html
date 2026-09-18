@@ -51,6 +51,26 @@
     </form>
   </section>
 
+  <section aria-labelledby="commune-logo-dark">
+    <h2 id="commune-logo-dark">{% translate "Logo (thème sombre)" %}</h2>
+    <p class="help">{% translate "Facultatif : remplace le logo ci-dessus lorsque le visiteur affiche la page en thème sombre. Sans effet tant qu'aucun logo n'est défini. PNG, JPEG, GIF ou WebP, 2 Mo maximum." %}</p>
+    {% if commune.logo_dark %}
+      <p><img src="{{ commune.logo_dark.url }}" alt="" class="commune-branding__preview commune-branding__preview--dark"></p>
+      <form method="post" action="{% url 'backoffice:commune_logo_dark_remove' %}" class="inline">
+        {% csrf_token %}
+        <button type="submit" class="secondary">{% translate "Supprimer le logo (thème sombre)" %}</button>
+      </form>
+    {% endif %}
+    <form method="post" action="{% url 'backoffice:commune_logo_dark_upload' %}" enctype="multipart/form-data" class="inline">
+      {% csrf_token %}
+      <p class="field">
+        <label for="commune-logo-dark-file">{% translate "Remplacer le logo (thème sombre)" %}</label>
+        <input type="file" name="logo_dark" id="commune-logo-dark-file" accept="image/png,image/jpeg,image/gif,image/webp" required>
+      </p>
+      <button type="submit">{% translate "Envoyer" %}</button>
+    </form>
+  </section>
+
   <section aria-labelledby="commune-favicon">
     <h2 id="commune-favicon">{% translate "Favicon" %}</h2>
     <p class="help">{% translate "L'icône affichée dans l'onglet du navigateur. ICO, PNG, JPEG, GIF ou WebP, 256 Ko maximum." %}</p>

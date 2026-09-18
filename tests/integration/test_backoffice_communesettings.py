@@ -22,6 +22,8 @@ from apps.core.models import Commune, User
 SETTINGS_URL = "/fr/mairie/commune/"
 LOGO_URL = "/fr/mairie/commune/logo/"
 LOGO_REMOVE_URL = "/fr/mairie/commune/logo/supprimer/"
+LOGO_DARK_URL = "/fr/mairie/commune/logo-sombre/"
+LOGO_DARK_REMOVE_URL = "/fr/mairie/commune/logo-sombre/supprimer/"
 FAVICON_URL = "/fr/mairie/commune/favicon/"
 FAVICON_REMOVE_URL = "/fr/mairie/commune/favicon/supprimer/"
 
@@ -293,3 +295,81 @@ def test_the_favicon_is_independent_of_the_logo(admin_client: Client, commune: C
     assert not commune.logo
     assert commune.favicon.name is not None
     assert commune.favicon.name.endswith(".ico")
+
+
+# --- the dark-theme logo (§6.5.14, optional, independent of the light one) --
+
+
+def test_the_gate_applies_to_the_dark_logo_endpoints_too(
+    client: Client, plain_operator: User
+) -> None:
+    client.force_login(plain_operator)
+    upload = SimpleUploadedFile("logo.png", PNG_BYTES, content_type="image/png")
+    assert client.post(LOGO_DARK_URL, {"logo_dark": upload}).status_code == 403
+    assert client.post(LOGO_DARK_REMOVE_URL).status_code == 403
+
+
+def test_uploading_a_dark_logo_persists_it_independently_of_the_light_one(
+    admin_client: Client, commune: Commune
+) -> None:
+    upload = SimpleUploadedFile("logo-dark.png", PNG_BYTES, content_type="image/png")
+    response = admin_client.post(LOGO_DARK_URL, {"logo_dark": upload}, follow=True)
+    assert any("Logo (thème sombre) mis à jour" in m for m in _messages(response))
+    commune.refresh_from_db()
+    assert commune.logo_dark.name
+    assert commune.logo_dark.name.endswith(".png")
+    assert commune.logo_dark_content_type == "image/png"
+    assert not commune.logo
+
+
+def test_an_oversized_dark_logo_is_refused(admin_client: Client, commune: Commune) -> None:
+    from apps.backoffice import communesettings
+
+    oversized = b"\x89PNG\r\n\x1a\n" + b"\x00" * communesettings.MAX_LOGO_SIZE
+    upload = SimpleUploadedFile("logo-dark.png", oversized, content_type="image/png")
+    response = admin_client.post(LOGO_DARK_URL, {"logo_dark": upload}, follow=True)
+    assert any("volumineuse" in m for m in _messages(response))
+    commune.refresh_from_db()
+    assert not commune.logo_dark
+
+
+def test_removing_a_dark_logo_deletes_the_file_and_clears_the_field(
+    admin_client: Client, commune: Commune
+) -> None:
+    upload = SimpleUploadedFile("logo-dark.png", PNG_BYTES, content_type="image/png")
+    admin_client.post(LOGO_DARK_URL, {"logo_dark": upload})
+    commune.refresh_from_db()
+    storage = commune.logo_dark.storage
+    name = commune.logo_dark.name
+    assert name is not None
+
+    response = admin_client.post(LOGO_DARK_REMOVE_URL, follow=True)
+    assert any("Logo (thème sombre) supprimé" in m for m in _messages(response))
+    commune.refresh_from_db()
+    assert not commune.logo_dark
+    assert commune.logo_dark_content_type == ""
+    assert not storage.exists(name)
+
+
+def test_the_dark_logo_upload_is_audited_by_field_not_value(
+    admin_client: Client, commune: Commune
+) -> None:
+    upload = SimpleUploadedFile("logo-dark.png", PNG_BYTES, content_type="image/png")
+    admin_client.post(LOGO_DARK_URL, {"logo_dark": upload})
+    event = AuditEvent.objects.get(action=Action.COMMUNE_BRANDING_CHANGED)
+    assert event.object_ref == "commune:1"
+    assert event.after == {"field": "logo_dark"}
+
+
+def test_the_dark_logo_is_independent_of_the_light_logo(
+    admin_client: Client, commune: Commune
+) -> None:
+    logo = SimpleUploadedFile("logo.png", PNG_BYTES, content_type="image/png")
+    logo_dark = SimpleUploadedFile("logo-dark.png", PNG_BYTES + b"\x01", content_type="image/png")
+    admin_client.post(LOGO_URL, {"logo": logo})
+    admin_client.post(LOGO_DARK_URL, {"logo_dark": logo_dark})
+    admin_client.post(LOGO_REMOVE_URL)
+    commune.refresh_from_db()
+    assert not commune.logo
+    assert commune.logo_dark.name is not None
+    assert commune.logo_dark.name.endswith(".png")

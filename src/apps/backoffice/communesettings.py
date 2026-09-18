@@ -191,6 +191,29 @@ def remove_logo(commune: Commune, *, actor: User) -> Commune:
 
 
 @transaction.atomic
+def set_logo_dark(commune: Commune, upload: UploadedFile[bytes], *, actor: User) -> Commune:
+    """Screen 14's dark-theme logo upload: shown in place of ``logo`` once
+    base.html's dark theme is active. Meaningless without ``logo`` also set
+    (base.html never renders it otherwise), but that is a rendering choice,
+    not a reason to refuse the upload here."""
+    return _set_branding(
+        commune,
+        upload,
+        field="logo_dark",
+        sniff=images.sniff_raster,
+        max_size=MAX_LOGO_SIZE,
+        size_error=_("Image trop volumineuse (2 Mo maximum)."),
+        format_error=_("Format d'image non reconnu (PNG, JPEG, GIF ou WebP attendus)."),
+        actor=actor,
+    )
+
+
+@transaction.atomic
+def remove_logo_dark(commune: Commune, *, actor: User) -> Commune:
+    return _remove_branding(commune, field="logo_dark", actor=actor)
+
+
+@transaction.atomic
 def set_favicon(commune: Commune, upload: UploadedFile[bytes], *, actor: User) -> Commune:
     """Screen 14's favicon upload: the browser-tab icon (``base.html``),
     accepting ``.ico`` in addition to every raster format the logo does."""

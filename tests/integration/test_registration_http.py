@@ -135,6 +135,53 @@ def test_the_header_shows_the_logo_in_place_of_the_commune_name_once_one_is_set(
     assert 'alt="Sainte-Marie-du-Mont"' in body_with_logo
 
 
+def test_a_dark_theme_logo_is_shown_alongside_the_light_one(
+    client: Client, live_poll: Poll
+) -> None:
+    """§6.5.14: `logo_dark` is CSS-toggled (app.css's `.site-logo--dark` rule),
+    not server-selected, so both `<img>` tags are always in the response and
+    it is `class` that distinguishes them."""
+    from django.core.files.base import ContentFile
+
+    commune = Commune.objects.create(
+        name="Sainte-Marie-du-Mont",
+        data_protection_referent="x",
+        data_protection_contact="y",
+    )
+    commune.logo_content_type = "image/png"
+    commune.logo_content_hash = "deadbeef"
+    commune.logo.save("logo.png", ContentFile(b"\x89PNG\r\n\x1a\n"), save=True)
+    commune.logo_dark_content_type = "image/png"
+    commune.logo_dark_content_hash = "beefdead"
+    commune.logo_dark.save("logo-dark.png", ContentFile(b"\x89PNG\r\n\x1a\n\x01"), save=True)
+
+    body = client.get(f"/fr/inscription/{live_poll.pk}/").content.decode()
+    assert 'class="site-logo site-logo--light"' in body
+    assert 'class="site-logo site-logo--dark"' in body
+    assert commune.logo.url in body
+    assert commune.logo_dark.url in body
+
+
+def test_a_dark_theme_logo_alone_has_no_effect_without_the_light_one(
+    client: Client, live_poll: Poll
+) -> None:
+    """§6.5.14: there is no theme to switch away from a bare commune name."""
+    from django.core.files.base import ContentFile
+
+    commune = Commune.objects.create(
+        name="Sainte-Marie-du-Mont",
+        data_protection_referent="x",
+        data_protection_contact="y",
+    )
+    commune.logo_dark_content_type = "image/png"
+    commune.logo_dark_content_hash = "beefdead"
+    commune.logo_dark.save("logo-dark.png", ContentFile(b"\x89PNG\r\n\x1a\n"), save=True)
+
+    body = client.get(f"/fr/inscription/{live_poll.pk}/").content.decode()
+    assert "<img" not in body
+    assert "Sainte-Marie-du-Mont</a>" in body
+
+
 def test_a_matched_registration_is_told_to_check_its_mail(
     client: Client, live_poll: Poll, django_capture_on_commit_callbacks: Callable[..., Any]
 ) -> None:

@@ -49,8 +49,14 @@
        `show_name_with_logo` lets a commune keep the name printed beside a logo
        that does not carry it legibly on its own. The name is then visible text,
        so the image's `alt` goes empty (decorative) rather than duplicating it
-       for a screen reader — R-14.1 wants the name announced once, not twice. {% endcomment %}
-    <p class="site-name"><a href="{% block home_url %}/{% endblock %}">{% if commune.logo %}<img src="{{ commune.logo.url }}" alt="{% if not commune.show_name_with_logo %}{{ commune.name }}{% endif %}" class="site-logo">{% if commune.show_name_with_logo %}<span class="site-name__text">{{ commune.name }}</span>{% endif %}{% elif commune %}{{ commune.name }}{% else %}{% translate "Consultation citoyenne" %}{% endif %}</a></p>
+       for a screen reader — R-14.1 wants the name announced once, not twice.
+       `logo_dark` is an optional second image for the dark theme (CSS-toggled
+       by static/js/theme.js, in app.css's `.site-logo--light`/`--dark` rule),
+       swapped in instead of `logo` rather than left to `prefers-color-scheme`
+       alone so it also follows an explicit `data-theme` override; both share
+       the same `alt`, which is harmless since the hidden one carries no
+       accessible text (`display: none` removes it from the tree). {% endcomment %}
+    <p class="site-name"><a href="{% block home_url %}/{% endblock %}">{% if commune.logo %}<img src="{{ commune.logo.url }}" alt="{% if not commune.show_name_with_logo %}{{ commune.name }}{% endif %}" class="site-logo site-logo--light">{% if commune.logo_dark %}<img src="{{ commune.logo_dark.url }}" alt="{% if not commune.show_name_with_logo %}{{ commune.name }}{% endif %}" class="site-logo site-logo--dark">{% endif %}{% if commune.show_name_with_logo %}<span class="site-name__text">{{ commune.name }}</span>{% endif %}{% elif commune %}{{ commune.name }}{% else %}{% translate "Consultation citoyenne" %}{% endif %}</a></p>
     {% block header_extra %}{% endblock %}
   </header>
 
