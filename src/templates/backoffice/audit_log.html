@@ -38,6 +38,7 @@
     <button type="submit">{% translate "Filtrer" %}</button>
   </form>
 
+  <div class="table-scroll">
   <table>
     <caption>
       {% blocktranslate count total=page.paginator.count trimmed %}
@@ -83,6 +84,7 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
 
   {% if page.has_other_pages %}
     {# The filters ride along, or turning the page silently drops them. #}

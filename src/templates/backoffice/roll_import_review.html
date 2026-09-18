@@ -78,6 +78,7 @@
         {% endif %}
 
         <h3>{% translate "Aperçu (20 premières entrées)" %}</h3>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr>
@@ -103,6 +104,7 @@
             {% endfor %}
           </tbody>
         </table>
+        </div>
 
         <p>
           <button type="submit" name="action" value="confirm" {% if report.blocking %}disabled{% endif %}>

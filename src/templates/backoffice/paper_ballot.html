@@ -97,6 +97,7 @@
   {% if versions|length > 1 %}
     <section aria-labelledby="history">
       <h2 id="history">{% translate "Historique des versions" %}</h2>
+      <div class="table-scroll">
       <table>
         <thead><tr><th scope="col">{% translate "Version" %}</th><th scope="col">{% translate "État" %}</th><th scope="col">{% translate "Créée le" %}</th></tr></thead>
         <tbody>
@@ -105,6 +106,7 @@
           {% endfor %}
         </tbody>
       </table>
+      </div>
     </section>
   {% endif %}
 {% endblock %}

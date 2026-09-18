@@ -611,7 +611,13 @@ form.danger button {
   border-color: var(--focus);
 }
 
+/* `min-width: 0` (R-14.2): browsers give `<fieldset>` an intrinsic minimum
+   width from its content — a legacy quirk of how the legend is positioned —
+   that a plain `width: auto` does not override, so a config screen's
+   fieldset would hold itself wider than the phone viewport regardless of how
+   narrow its own fields are willing to go. */
 fieldset {
+  min-width: 0;
   border: 1px solid var(--rule);
   border-radius: var(--radius);
   padding: 1rem 1.1rem;

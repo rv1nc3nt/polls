@@ -49,6 +49,7 @@
             reason; the concordance column is written out, never a colour or an
             icon alone (R-14.1).
           {% endcomment %}
+          <div class="table-scroll">
           <table>
             <caption>{% translate "Choisir l'entrée à rattacher, puis accepter" %}</caption>
             <thead>
@@ -87,6 +88,7 @@
               {% endfor %}
             </tbody>
           </table>
+          </div>
         {% else %}
           <p>{% translate "Aucune entrée proche. Vérifiez auprès de la personne, ou en mairie." %}</p>
         {% endif %}

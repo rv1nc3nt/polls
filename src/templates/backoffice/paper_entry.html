@@ -94,6 +94,7 @@
       <input type="hidden" name="q" value="{{ query }}">
       <h2>{% translate "Résultats" %}</h2>
       {% if matches %}
+        <div class="table-scroll">
         <table>
           <caption>{% translate "Choisir l'électeur, puis continuer" %}</caption>
           <thead>
@@ -128,6 +129,7 @@
             {% endfor %}
           </tbody>
         </table>
+        </div>
         <button type="submit">{% translate "Continuer avec cet électeur" %}</button>
       {% else %}
         <p>{% translate "Aucune entrée proche. Précisez la recherche, ou vérifiez l'inscription de la personne sur la liste électorale." %}</p>

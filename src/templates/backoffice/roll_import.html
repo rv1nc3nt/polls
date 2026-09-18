@@ -53,6 +53,7 @@
     <button type="submit">{% translate "Rechercher" %}</button>
   </form>
 
+  <div class="table-scroll">
   <table>
     <caption>
       {% blocktranslate count total=page.paginator.count trimmed %}
@@ -85,6 +86,7 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
 
   {% if page.has_other_pages %}
     {% with keep="&q="|add:query %}

@@ -17,6 +17,7 @@
   {% endif %}
 
   {% if polls %}
+    <div class="table-scroll">
     <table>
       <caption>{% translate "Scrutins sur lesquels vous avez un rôle" %}</caption>
       <thead>
@@ -39,6 +40,7 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
   {% else %}
     <p>{% translate "Aucun scrutin ne vous est attribué." %}</p>
   {% endif %}

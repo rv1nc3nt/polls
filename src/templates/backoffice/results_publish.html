@@ -124,6 +124,7 @@
       </dd>
     </dl>
 
+    <div class="table-scroll">
     <table>
       <caption>{% translate "Matrice des préférences deux à deux — lignes battant colonnes" %}</caption>
       <thead>
@@ -143,8 +144,10 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
 
     {% if screen9.orderings %}
+      <div class="table-scroll">
       <table>
         <caption>{% translate "Récapitulatif par ordre de classement" %}</caption>
         <thead>
@@ -159,6 +162,7 @@
           {% endfor %}
         </tbody>
       </table>
+      </div>
     {% endif %}
   </section>
 
