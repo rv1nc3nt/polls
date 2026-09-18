@@ -121,7 +121,7 @@ Implemented and tested — the four CI gates (`ruff`, `ruff format`,
 - the independent Rust verifier and its cross-check against the Python tally;
 - the Ansible role — `provision`, `deploy`, `backup`, `restore`, `smoke` (§15).
 
-Every acceptance test T-1…T-78 (§12) has a test or a Molecule scenario.
+Every acceptance test T-1…T-81 (§12) has a test or a Molecule scenario.
 
 Outstanding:
 
@@ -129,13 +129,6 @@ Outstanding:
   throwaway systemd host, not the pytest database — and **T-13**'s
   screen-reader pass stays a manual step before each poll opens (the
   keyboard-only half is automated).
-- **T-79 and T-80** (§3.1 bis, R-3.12 — Markdown/YouTube sanitisation of an
-  option's `details`, and the `OptionImage` freeze triggers) have no test yet,
-  though the features themselves are built.
-- The Ansible role's **backup and restore playbook covers only `db.sqlite3`**,
-  not `DJANGO_MEDIA_ROOT` (option images, the commune logo and favicon) — a
-  restore today leaves those references broken (`docs/specification-decision-log.md`
-  #18).
 - No prebuilt **container image** or no-toolchain deployment guide yet, and no
   generated **third-party licence notice** (§14).
 - **RGAA conformance audit** of the markup (R-14.1) and an **email
