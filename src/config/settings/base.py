@@ -170,8 +170,19 @@ RATE_LIMIT_EMAIL = os.environ.get("DJANGO_RATE_LIMIT_EMAIL", "3/1h")
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
+    "filters": {
+        # R-7.4 ter: nginx and gunicorn are told not to log the ballot-token
+        # routes (ansible/roles/polls/templates/nginx-vhost.conf.j2,
+        # polls.service.j2), but django.request logs request.path itself on
+        # any unhandled exception, independent of either. Applied at the
+        # handler, not a specific logger, so it covers every record that
+        # carries a request (apps/core/logging.py).
+        "redact_ballot_token_path": {"()": "apps.core.logging.RedactBallotTokenPath"},
+    },
     # §14: commands log to stdout/stderr, captured by whatever invoked them.
-    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "handlers": {
+        "console": {"class": "logging.StreamHandler", "filters": ["redact_ballot_token_path"]}
+    },
     "root": {"handlers": ["console"], "level": os.environ.get("DJANGO_LOG_LEVEL", "INFO")},
 }
 

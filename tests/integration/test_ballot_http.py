@@ -10,6 +10,8 @@ work from (T-21).
 
 from __future__ import annotations
 
+import io
+import logging
 import re
 from collections.abc import Callable
 from datetime import timedelta
@@ -23,6 +25,7 @@ from django.utils import timezone
 from apps.ballots import services as ballot_services
 from apps.ballots.models import Ballot, BallotSource, BallotStatus
 from apps.core.codes import format_tracking_code
+from apps.core.logging import REDACTED, RedactBallotTokenPath
 from apps.core.models import User
 from apps.core.types import Token, TrackingCode
 from apps.elections.models import Poll, PollOption, RollEntry, WorkingRollEntry
@@ -113,6 +116,37 @@ def test_an_invalid_token_is_a_dead_end_without_a_stack_trace(
     assert "Lien non valide" in response.content.decode()
     assert response["Referrer-Policy"] == "no-referrer"
     assert response["Cache-Control"] == "no-store"
+
+
+def test_an_unhandled_exception_on_the_access_route_does_not_log_the_token(
+    live_poll: Poll, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """R-7.4 ter: nginx and gunicorn are told not to log this route
+    (``ansible/.../nginx-vhost.conf.j2``), but ``django.request`` logs
+    ``request.path`` itself on any unhandled exception, independent of
+    either — so a bug here, not just a request, must not leak the token
+    (``apps/core/logging.py``)."""
+    _, token = _register(live_poll)
+
+    def _boom(poll: Poll, tok: Token) -> None:
+        raise RuntimeError("simulated failure")
+
+    monkeypatch.setattr("apps.registrations.services.arrive", _boom)
+
+    buffer = io.StringIO()
+    handler = logging.StreamHandler(buffer)
+    handler.addFilter(RedactBallotTokenPath())
+    logger = logging.getLogger("django.request")
+    logger.addHandler(handler)
+    try:
+        response = Client(raise_request_exception=False).get(_access_url(live_poll, token))
+    finally:
+        logger.removeHandler(handler)
+
+    assert response.status_code == 500
+    logged = buffer.getvalue()
+    assert token.reveal() not in logged
+    assert REDACTED in logged
 
 
 @pytest.mark.parametrize(
