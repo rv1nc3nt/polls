@@ -228,6 +228,11 @@ h1 {
 
 h2 { font-size: clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem); font-weight: 600; margin: 2.1rem 0 0.7rem; letter-spacing: -0.01em; }
 h3 { font-size: 1.05rem; font-weight: 600; margin: 1.5rem 0 0.5rem; }
+/* Justified body copy, front and back office alike — `hyphens` softens the
+   wider word-gaps a narrow column (R-14.2's phone width included) otherwise
+   forces on a fully-justified line. `lang` on <html> (base.html) is what
+   lets the browser pick the right hyphenation dictionary for it. */
+p, li, blockquote { text-align: justify; hyphens: auto; }
 p { margin: 0 0 0.8rem; }
 main > p, .paper-form p, .receipt p { max-width: var(--measure); }
 section { margin-bottom: 2rem; }
@@ -757,7 +762,15 @@ legend { font-weight: 700; padding: 0 0.4rem; }
   max-height: calc(min(80vh, 40rem) - 3.5rem);
   overflow-y: auto;
   padding: 1.1rem;
+  /* Styled rather than left to the platform default: an overlay-scrollbar
+     OS (GNOME, macOS) draws nothing here until the pointer is over the
+     track, which reads as "this popup has no scrollbar" at a glance. */
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule) transparent;
 }
+.details-dialog__body::-webkit-scrollbar { width: 10px; }
+.details-dialog__body::-webkit-scrollbar-track { background: transparent; }
+.details-dialog__body::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 999px; }
 
 /* The account-management disclosure stacks three small forms; space them and
    let each lay its label, field and button out in a row. */
