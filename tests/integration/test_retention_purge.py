@@ -43,7 +43,6 @@ from apps.elections.retention import (
     working_roll_due,
 )
 from apps.elections.transitions import (
-    announce_poll,
     close_poll,
     open_poll,
     publish_poll,
@@ -55,6 +54,7 @@ from apps.registrations.models import (
     Registration,
     RegistrationState,
 )
+from tests.conftest import force_announce, force_open
 
 # --- fixtures for the scan of T-55 --------------------------------------------
 
@@ -207,7 +207,7 @@ def test_t14_purge_keeps_everything_but_identity(db: None) -> None:
     poll = _poll("Aménagement de la place")
     _roll_entry("Dupont", "Émile", "12/05/1970", "1970-05-12")
     _roll_entry("Nguyen", "Thi Lan", "21/11/1990", "1990-11-21")
-    open_poll(poll)
+    force_open(poll)
     poll = Poll.objects.get(pk=poll.pk)
     nguyen = RollEntry.objects.get(poll=poll, birth_name="Nguyen")
 
@@ -300,7 +300,7 @@ def test_t54_purge_on_a_published_poll_leaves_inv2_in_force(db: None) -> None:
 
     published = _poll("Scrutin publié")
     _roll_entry("Dupont", "Émile", "12/05/1970", "1970-05-12")
-    open_poll(published)
+    force_open(published)
     published = Poll.objects.get(pk=published.pk)
     registrations.register(
         published,
@@ -325,7 +325,7 @@ def test_t54_purge_on_a_published_poll_leaves_inv2_in_force(db: None) -> None:
     # A second poll, closed and left populated: its registration — created while
     # the window was open — is the UPDATE target once the window is aged shut.
     closed = _poll("Scrutin clos")
-    open_poll(closed)
+    force_open(closed)
     survivor, _token = registrations.register(
         closed,
         _form("Dupont", "Émile", "12/05/1970", "emile.dupont@example.fr"),
@@ -379,7 +379,7 @@ def test_t55_no_audit_event_carries_identity_before_or_after_the_purge(db: None)
     _roll_entry(
         "Zampieri", "Églantine", "08/01/1983", "1983-01-08", list_type="complementaire_europeenne"
     )
-    open_poll(poll)
+    force_open(poll)
     poll = Poll.objects.get(pk=poll.pk)
 
     # Clean match, mailbox confirmed, votes online.
@@ -492,8 +492,8 @@ def test_t66_working_roll_purged_only_once_idle_and_aged(db: None) -> None:
     assert WorkingRollEntry.objects.exists()
 
     announced = _poll("Aperçu public")
-    announce_poll(announced)  # a detour, not a different destination (R-3.10)
-    open_poll(draft)  # neither draft nor announced is left now
+    force_announce(announced)  # a detour, not a different destination (R-3.10)
+    force_open(draft)  # neither draft nor announced is left now
     assert working_roll_due() is False
 
     open_poll(Poll.objects.get(pk=announced.pk))  # no poll left in draft or announced now
@@ -538,7 +538,7 @@ def test_t76_a_poll_withdrawn_before_closure_purges_on_withdrawn_at(db: None) ->
     without the ``withdrawn_at`` anchor it would never become due."""
     poll = _poll("Aperçu retiré")
     _roll_entry("Dupont", "Émile", "12/05/1970", "1970-05-12")
-    withdrawn = withdraw_poll(announce_poll(poll), reason=Reason.ADMINISTRATIVE_DECISION)
+    withdrawn = withdraw_poll(force_announce(poll), reason=Reason.ADMINISTRATIVE_DECISION)
     assert withdrawn.closed_at is None
     assert withdrawn.withdrawn_at is not None
 
@@ -564,7 +564,7 @@ def test_t76_a_poll_withdrawn_after_closure_keeps_the_closure_anchor(db: None) -
     operator = User.objects.create_user(username="op.retention", password="x")
     poll = _poll("Publié puis retiré")
     _roll_entry("Dupont", "Émile", "12/05/1970", "1970-05-12")
-    open_poll(poll)
+    force_open(poll)
     poll = Poll.objects.get(pk=poll.pk)
     close_poll(poll)
     poll = Poll.objects.get(pk=poll.pk)

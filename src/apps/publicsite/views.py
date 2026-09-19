@@ -23,7 +23,7 @@ from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 from django.db.models import QuerySet
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
@@ -202,6 +202,63 @@ def _live_participation(poll: Poll) -> dict[str, int] | None:
     }
 
 
+def _draft_preview_context(poll: Poll, language: str) -> dict[str, object]:
+    """Title, description and options exactly as a preview of ``poll`` shows
+    them — shared by the poll admin's own internal aperçu
+    (``apps.backoffice.views.poll_preview``) and the unguessable share-link
+    view below (R-3.10 bis), so the two draw from one read of the poll
+    rather than two independently-maintained copies.
+
+    Deliberately narrower than ``poll_detail``'s own context: a preview has
+    no extensions yet, no participation (R-11.5 applies only once open), and
+    no clock-derived status — those are each caller's own concern, not
+    something a still-``draft`` poll has.
+    """
+    title = poll.title(language)
+    return {
+        "title": title,
+        "breadcrumbs": [{"label": title}],
+        "description": poll.description(language),
+        "options": [
+            {
+                "option_id": option.option_id,
+                "label": option.label(language),
+                # R-3.12, §3.1 bis: optional, so this is often empty — never
+                # a reason not to show the proposition itself.
+                "details_html": optioncontent.render_option_details(option, language),
+            }
+            for option in poll.options.all()
+        ],
+        "has_paper_window": poll.paper_entry_deadline > poll.closes_at,
+    }
+
+
+def poll_preview_shared(request: HttpRequest, poll_id: str, token: str) -> HttpResponse:
+    """The unguessable, unauthenticated draft preview (R-3.10 bis).
+
+    Anyone holding the link the poll admin generated from screen 2 sees
+    exactly what that admin's own internal aperçu shows — without an
+    account, and without freezing anything: the page re-reads ``poll`` on
+    every request, so it can and does change between two visits, exactly as
+    the draft itself can (§6.6). A blank ``preview_token`` never matches a
+    nonempty path segment, so a poll with no link generated 404s here just
+    as a wrong token does — the two are indistinguishable, on purpose.
+
+    Once the poll has left ``draft`` the token no longer matters — the real
+    public page (or the withdrawn notice, or a 404 if never public) already
+    exists and does this page's job better, so a still-held link redirects
+    there instead of dying.
+    """
+    poll = get_object_or_404(Poll, pk=poll_id, preview_token=token)
+    if poll.state != PollState.DRAFT:
+        return redirect("publicsite:poll_detail", poll_id=str(poll.pk))
+    return render(
+        request,
+        "publicsite/poll_preview_shared.html",
+        {"poll": poll, **_draft_preview_context(poll, request.LANGUAGE_CODE)},
+    )
+
+
 def poll_detail(request: HttpRequest, poll_id: str) -> HttpResponse:
     """The public poll page (§6.6).
 
@@ -244,26 +301,12 @@ def poll_detail(request: HttpRequest, poll_id: str) -> HttpResponse:
     # ``paper_entry_deadline`` (§6.4) at the earliest — confusing, since the
     # window checks are already refusing every online vote (T-67, T-68).
     status = _status_key(poll, timezone.now())
-    title = poll.title(language)
     return render(
         request,
         "publicsite/poll_detail.html",
         {
             "poll": poll,
-            "title": title,
-            "breadcrumbs": [{"label": title}],
-            "description": poll.description(language),
-            "options": [
-                {
-                    "option_id": option.option_id,
-                    "label": option.label(language),
-                    # R-3.12, §3.1 bis: optional, so this is often empty —
-                    # never a reason not to show the proposition itself.
-                    "details_html": optioncontent.render_option_details(option, language),
-                }
-                for option in poll.options.all()
-            ],
-            "has_paper_window": poll.paper_entry_deadline > poll.closes_at,
+            **_draft_preview_context(poll, language),
             "extensions": _extensions(poll),
             "participation": _live_participation(poll),
             "is_preview": status == "preview",

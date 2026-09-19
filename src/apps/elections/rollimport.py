@@ -431,7 +431,7 @@ def apply_import(
     All-or-nothing: refuses outright on a structurally unusable file, so a bad
     file writes nothing (T-11, R-4.5). Replaces ``WorkingRollEntry`` entirely;
     it never touches ``RollEntry``, the frozen snapshot an already-open poll
-    took at ``draft → open`` — the two live in different apps, and nothing here
+    took when it opened — the two live in different apps, and nothing here
     imports the one that holds it (T-26).
 
     ``row_count`` logged is the number of rows read, not the number of entries

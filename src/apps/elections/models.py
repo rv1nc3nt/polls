@@ -19,10 +19,10 @@ from apps.core.crypto import new_token_salt
 
 
 class PollState(models.TextChoices):
-    """``draft → [announced] → open → closed → published`` (R-3.2).
+    """``draft → announced → open → closed → published`` (R-3.2).
 
-    ``announced`` is an optional waypoint, not a required one (R-3.10): a poll
-    may go straight ``draft → open`` as before, or pause at ``announced`` —
+    ``announced`` is a mandatory waypoint, not an optional one (R-3.10): a
+    poll cannot reach ``open`` without first pausing at ``announced`` —
     publicly visible, configuration already frozen (INV-6 already reads
     ``state != draft``, so this falls out of the existing rule without a
     change to it) — for as long as the poll admin likes before opening it.
@@ -72,8 +72,10 @@ class TiebreakRule(models.TextChoices):
 
 #: Configuration fields frozen once the poll leaves ``draft`` (INV-6, R-3.3).
 #: ``closes_at`` and ``paper_entry_deadline`` are absent: they move together
-#: through the reasoned extension action of R-3.4. ``state``, ``opening_seed``
-#: and ``closure_hash`` are lifecycle fields, not configuration.
+#: through the reasoned extension action of R-3.4. ``state``, ``opening_seed``,
+#: ``closure_hash`` and ``preview_token`` are lifecycle/access fields, not
+#: configuration — ``preview_token`` in particular must stay editable in
+#: ``draft``, the only state it does anything in (R-3.10 bis).
 FROZEN_CONFIG_FIELDS: frozenset[str] = frozenset(
     {
         "title_i18n",
@@ -141,6 +143,11 @@ class Poll(models.Model):
     is_sandbox = models.BooleanField(default=False)
 
     state = models.CharField(max_length=20, choices=PollState.choices, default=PollState.DRAFT)
+    # R-3.10 bis: the draft-preview share link, generated/regenerated/revoked
+    # only while ``draft``. Persisted directly, unlike the §7 voter token —
+    # this identifies a preview, not a voter, so INV-1's unlinkability
+    # reasoning for "never persist the plaintext" does not apply here.
+    preview_token = models.CharField(max_length=64, blank=True, default="")
     closure_hash = models.BinaryField(max_length=32, null=True, blank=True)
     closed_at = models.DateTimeField(null=True, blank=True)
     # R-3.11: set once, on withdrawal. The retention anchor of R-13.3 for a
@@ -434,7 +441,7 @@ class RollEntryFields(models.Model):
 
 
 class RollEntry(RollEntryFields):
-    """The frozen snapshot taken at ``draft → open`` (§3.2, R-4.3).
+    """The frozen snapshot taken when the poll opens (§3.2, R-4.3).
 
     Immutable thereafter: INV-7's trigger refuses every ``UPDATE`` outright and
     permits ``DELETE`` only once the poll is ``closed`` or ``published``, which

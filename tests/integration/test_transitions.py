@@ -26,6 +26,7 @@ from apps.elections.transitions import (
     withdraw_poll,
     withdrawing_blockers,
 )
+from tests.conftest import force_open
 
 
 def test_opening_takes_the_snapshot_and_the_seed_in_one_transaction(
@@ -33,7 +34,12 @@ def test_opening_takes_the_snapshot_and_the_seed_in_one_transaction(
 ) -> None:
     """§4: both MUST occur in the same transaction as the state write, so two
     concurrent runs cannot produce two snapshots or two seeds (T-51)."""
-    poll = open_poll(open_window_poll)
+    # announce_poll now requires opens_at still in the future (R-3.10); this
+    # fixture's is deliberately in the past for other tests' sake.
+    open_window_poll.opens_at = timezone.now() + timedelta(hours=1)
+    open_window_poll.save(update_fields=["opens_at"])
+    announce_poll(open_window_poll)
+    poll = open_poll(Poll.objects.get(pk=open_window_poll.pk))
     assert poll.state == PollState.OPEN
     assert poll.opening_seed is not None
     assert poll.roll_entries.count() == WorkingRollEntry.objects.count()
@@ -47,6 +53,8 @@ def test_t70_announcing_is_lighter_than_opening(open_window_poll: Poll) -> None:
     preview announcing freezes must not show a gap that only fell back
     silently because nobody but the poll admin could see it. Configuration
     is frozen the instant it runs (INV-6 already reads ``state != draft``)."""
+    open_window_poll.opens_at = timezone.now() + timedelta(hours=1)
+    open_window_poll.save(update_fields=["opens_at"])
     WorkingRollEntry.objects.all().delete()
     assert announcing_blockers(open_window_poll) == []
     # Would block opening, though — announcing is lighter in this one respect.
@@ -78,11 +86,35 @@ def test_t70_announcing_refuses_a_missing_translation(open_window_poll: Poll) ->
     assert open_window_poll.state == PollState.DRAFT
 
 
-def test_open_poll_accepts_an_announced_poll_exactly_like_draft(
+def test_t82_open_poll_refuses_a_still_draft_poll(open_window_poll: Poll) -> None:
+    """T-82, R-3.2/R-3.10: ``announced`` is now mandatory, not a detour —
+    ``open_poll`` refuses a poll that never announced itself, whatever its
+    ``opens_at``, and leaves it in ``draft``."""
+    assert "not_announced" in opening_blockers(open_window_poll)
+    with pytest.raises(TransitionRefused):
+        open_poll(open_window_poll)
+    open_window_poll.refresh_from_db()
+    assert open_window_poll.state == PollState.DRAFT
+
+
+def test_t83_announcing_refuses_once_opens_at_has_passed_and_recovers(
     open_window_poll: Poll,
 ) -> None:
-    """R-3.10: announcing is a detour, not a different destination."""
+    """T-83, R-3.10: announcing a poll whose opening hour is already behind
+    it would freeze a preview only to open immediately behind it. Recovery
+    is an ordinary draft edit — push ``opens_at`` forward (R-3.3) — not an
+    override."""
+    assert "opens_at_not_in_future" in announcing_blockers(open_window_poll)
+    with pytest.raises(TransitionRefused):
+        announce_poll(open_window_poll)
+    open_window_poll.refresh_from_db()
+    assert open_window_poll.state == PollState.DRAFT
+
+    open_window_poll.opens_at = timezone.now() + timedelta(hours=1)
+    open_window_poll.save(update_fields=["opens_at"])
     poll = announce_poll(open_window_poll)
+    assert poll.state == PollState.ANNOUNCED
+
     opened = open_poll(Poll.objects.get(pk=poll.pk))
     assert opened.state == PollState.OPEN
     assert opened.opening_seed is not None
@@ -126,7 +158,7 @@ def test_t57_closure_refuses_while_a_ballot_awaits_countersignature(
 ) -> None:
     """§9: silently dropping uncountersigned ballots at closure is not
     acceptable, so the transition stops and the dashboard shows the count."""
-    poll = open_poll(open_window_poll)
+    poll = force_open(open_window_poll)
     Ballot.objects.create(
         poll=poll,
         tracking_code=new_tracking_code(),
@@ -151,7 +183,7 @@ def test_t32_closure_override_excludes_uncountersigned_ballots(
     from apps.core.canonical import closure_hash
     from apps.elections.closure import live_ballots
 
-    poll = open_poll(open_window_poll)
+    poll = force_open(open_window_poll)
     live = Ballot.objects.create(
         poll=poll,
         tracking_code=new_tracking_code(),
@@ -181,7 +213,7 @@ def test_frozen_counts_are_stored_at_closure_not_derived_later(
     open_window_poll: Poll,
 ) -> None:
     """§9, T-58: they read ``Registration``, which the retention job deletes."""
-    poll = open_poll(open_window_poll)
+    poll = force_open(open_window_poll)
     closed = close_poll(poll)
     assert set(closed.frozen_counts) == {
         "registered",
@@ -225,23 +257,25 @@ def test_t72_withdraw_poll_succeeds_from_each_of_the_four_public_states(
     refused, since ``withdrawn`` joins nothing (R-3.2)."""
     admin = User.objects.create_user(username="p.admin", password="x")
 
+    open_window_poll.opens_at = timezone.now() + timedelta(hours=1)
+    open_window_poll.save(update_fields=["opens_at"])
     announced = withdraw_poll(announce_poll(open_window_poll), reason=Reason.OTHER)
     assert announced.state == PollState.WITHDRAWN
     assert announced.withdrawn_at is not None
     with pytest.raises(TransitionRefused):
         withdraw_poll(announced, reason=Reason.OTHER)
 
-    opened = withdraw_poll(open_poll(_minimal_poll("Ouvert")), reason=Reason.OTHER)
+    opened = withdraw_poll(force_open(_minimal_poll("Ouvert")), reason=Reason.OTHER)
     assert opened.state == PollState.WITHDRAWN
 
-    closed = withdraw_poll(close_poll(open_poll(_minimal_poll("Clos"))), reason=Reason.OTHER)
+    closed = withdraw_poll(close_poll(force_open(_minimal_poll("Clos"))), reason=Reason.OTHER)
     assert closed.state == PollState.WITHDRAWN
     # A poll withdrawn after closure keeps the earlier, correct anchor (§11).
     assert closed.closed_at is not None
     assert closed.withdrawn_at is not None
     assert closed.closed_at < closed.withdrawn_at
 
-    published_source = publish_poll(close_poll(open_poll(_minimal_poll("Publié"))), admin)
+    published_source = publish_poll(close_poll(force_open(_minimal_poll("Publié"))), admin)
     published = withdraw_poll(published_source, reason=Reason.OTHER)
     assert published.state == PollState.WITHDRAWN
 
@@ -257,7 +291,7 @@ def test_t73_withdraw_poll_refuses_draft_and_a_missing_reason(open_window_poll: 
         withdraw_poll(open_window_poll, reason=Reason.OTHER)
     assert Poll.objects.get(pk=open_window_poll.pk).state == PollState.DRAFT
 
-    poll = open_poll(open_window_poll)
+    poll = force_open(open_window_poll)
     assert withdrawing_blockers(poll, "") == ["reason_required"]
     with pytest.raises(TransitionRefused):
         withdraw_poll(poll, reason="")
@@ -271,7 +305,7 @@ def test_withdrawal_leaves_ballots_and_closure_hash_untouched(open_window_poll: 
     """R-3.11: a visibility change, not a deletion — the live ballot set, the
     closure hash and the frozen counts a published poll carries stay exactly
     as they were."""
-    poll = open_poll(open_window_poll)
+    poll = force_open(open_window_poll)
     Ballot.objects.create(
         poll=poll,
         tracking_code=new_tracking_code(),

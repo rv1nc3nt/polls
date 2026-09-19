@@ -90,12 +90,12 @@ from apps.ballots.forms import RankingForm
 from apps.ballots.models import Ballot, BallotSource, BallotStatus, PaperBallotLink
 from apps.ballots.ranking import BallotRefused
 from apps.core.codes import format_tracking_code
+from apps.core.crypto import new_token
 from apps.core.models import Role, User
 from apps.core.types import TrackingCode
 from apps.elections import (
     closure,
     config,
-    optioncontent,
     optionimages,
     polltemplates,
     results_view,
@@ -122,6 +122,7 @@ from apps.elections.transitions import (
     withdraw_poll,
 )
 from apps.elections.windows import WindowClosed, online_voting_closed
+from apps.publicsite.views import _draft_preview_context
 from apps.registrations import mail as registration_mail
 from apps.registrations import services as registrations
 from apps.registrations.models import Channel, Registration
@@ -367,14 +368,14 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
     Also where R-2.1's "annonce, ouvre, clôt" is exercised by hand (§4,
     docs/specification-decision-log.md):
 
-    - *Annoncer maintenant* (``draft → announced``, R-3.10) — optional, and
-      only while ``draft``: the poll admin who wants an early public preview
-      takes this detour, config freezing the moment it runs, same as opening
-      does (INV-6 already reads ``state != draft``).
-    - *Ouvrir maintenant* (``draft`` or ``announced`` → ``open``) — at any
-      time, since nothing in the window checks of §5.1 depends on ``state``
-      having moved: a poll opened early still cannot be voted in before its
-      configured ``opens_at``.
+    - *Annoncer maintenant* (``draft → announced``, R-3.10) — mandatory, and
+      only while ``draft``: this is the only door to ``open`` (R-3.2), config
+      freezing the moment it runs, same as opening does (INV-6 already reads
+      ``state != draft``).
+    - *Ouvrir maintenant* (``announced → open``) — at any time once
+      announced, since nothing in the window checks of §5.1 depends on
+      ``state`` having moved: a poll opened early still cannot be voted in
+      before its configured ``opens_at``.
     - *Clôturer maintenant* (``open → closed``) — offered only once
       ``paper_entry_deadline`` has passed: closing early would freeze
       ``closure_hash`` and the §9 counts ahead of ballots the write path would
@@ -447,10 +448,10 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
 
     opening = action == "open_poll"
     if opening:
-        # The button only ever renders on a ``draft`` or ``announced`` poll
-        # (below); reaching here otherwise is a forged or stale request.
-        if poll.state not in (PollState.DRAFT, PollState.ANNOUNCED):
-            raise PermissionDenied(_("Le scrutin doit être en brouillon ou annoncé."))
+        # The button only ever renders on an ``announced`` poll (below);
+        # reaching here otherwise is a forged or stale request.
+        if poll.state != PollState.ANNOUNCED:
+            raise PermissionDenied(_("Le scrutin doit être annoncé."))
         try:
             open_poll(poll, actor=operator)
         except TransitionRefused as refused:
@@ -630,28 +631,62 @@ def poll_preview(request: HttpRequest, poll: Poll) -> HttpResponse:
     real public page already does that job, from the frozen, canonical
     configuration rather than this view's own read of it, so this redirects
     there instead of keeping a second read path alive.
+
+    Also where R-3.10 bis's share link is generated, regenerated or revoked
+    (POLL_ADMIN only — an auditor keeps read access to this screen, but does
+    not get to mint new access to it). Neither action is a state change or
+    needs a reason; both are logged without the token itself ever reaching
+    the audit row (INV-3).
     """
     if poll.state != PollState.DRAFT:
         return redirect("publicsite:poll_detail", poll_id=str(poll.pk))
+    operator = current_operator(request)
+    has_admin_role = Role.POLL_ADMIN in poll_roles(operator, poll)
+    if request.method == "POST":
+        if not has_admin_role:
+            raise PermissionDenied(_("Action réservée à l'administrateur du scrutin."))
+        action = request.POST.get("action", "")
+        if action == "generate_preview_link":
+            # .reveal(): preview_token is a plain, persisted CharField, not a
+            # §7 voter token — holding the redacting `Token` wrapper here
+            # would only make `poll.preview_token` awkward to use below.
+            poll.preview_token = new_token().reveal()
+            poll.save(update_fields=["preview_token"])
+            audit.record(
+                action=Action.PREVIEW_LINK_GENERATED,
+                poll=poll,
+                actor=operator,
+                object_ref=audit.ref(poll),
+            )
+            messages.success(request, _("Lien de partage généré."))
+        elif action == "revoke_preview_link":
+            poll.preview_token = ""
+            poll.save(update_fields=["preview_token"])
+            audit.record(
+                action=Action.PREVIEW_LINK_REVOKED,
+                poll=poll,
+                actor=operator,
+                object_ref=audit.ref(poll),
+            )
+            messages.success(request, _("Lien de partage révoqué."))
+        return redirect("backoffice:poll_preview", poll_id=str(poll.pk))
     language = request.LANGUAGE_CODE
-    title = poll.title(language)
+    preview_link_url = (
+        request.build_absolute_uri(
+            reverse(
+                "publicsite:poll_preview_shared",
+                kwargs={"poll_id": str(poll.pk), "token": poll.preview_token},
+            )
+        )
+        if poll.preview_token
+        else ""
+    )
     return render(
         request,
         "backoffice/poll_preview.html",
         {
             "poll": poll,
-            "title": title,
-            "breadcrumbs": [{"label": title}],
-            "description": poll.description(language),
-            "options": [
-                {
-                    "option_id": option.option_id,
-                    "label": option.label(language),
-                    "details_html": optioncontent.render_option_details(option, language),
-                }
-                for option in poll.options.all()
-            ],
-            "has_paper_window": poll.paper_entry_deadline > poll.closes_at,
+            **_draft_preview_context(poll, language),
             # A draft has none of these yet — no extension can be logged before
             # the poll ever opens, and R-11.5's turnout figures apply only to
             # an open poll (`_live_participation`, apps.publicsite.views).
@@ -664,6 +699,8 @@ def poll_preview(request: HttpRequest, poll: Poll) -> HttpResponse:
             "is_open": False,
             "online_voting_closed": False,
             "is_published": False,
+            "has_admin_role": has_admin_role,
+            "preview_link_url": preview_link_url,
         },
     )
 

@@ -430,6 +430,14 @@ version was replaced; no period where the flag design shipped. R-3.10, R-3.1,
 R-3.2, R-3.3 and R-13.3 bis were written for the state-based design from the
 start of this entry's existence in the requirements.
 
+**Not reopened by R-3.10 bis (2026-09-19).** The share-link preview added
+later (item 20) is not the rejected design above revived: that one made a
+`draft` *publicly discoverable* by a flag any visitor could trip over; this
+one is opt-in, unlisted, and reachable only by a link the poll admin
+generates and hands out deliberately. The one objection from this entry that
+does carry over — a viewer sees content that can still change — is accepted
+there explicitly, and the page says so, rather than solved by freezing.
+
 ## 11. Screen 3 (import de la liste électorale) was gated per poll
 
 **Requirements, R-2.1's role table.** "Commune administrator — Creates polls,
@@ -679,3 +687,67 @@ template, and acceptance coverage, to include the four elements R-8.2 bis
 lists whenever `paper_requires_signed_form` is off — but recorded here rather
 than assumed, since the signed-form path itself also needs the same content
 and nothing currently specifies its layout either.
+
+## 19. `announced` became mandatory, reversing item 13's "optional waypoint"
+
+**What changed.** R-3.2 and R-3.10 used to make `announced` an optional
+waypoint: `open_poll` accepted either `draft` or `announced` as its source,
+so a poll admin who never announced still had their poll open on schedule,
+unattended, at `opens_at`. Item 13 recorded the deliberate choice to make
+`announced` a real state rather than a boolean flag, precisely so that
+choosing it was free of side effects beyond freezing configuration early —
+optionality was central to that entry's reasoning and is explicitly what this
+item reverses.
+
+**Why.** An unattended `draft → open` transition means nobody ever reviewed
+the frozen configuration a poll opens with — the scheduled `open_poll` command
+cannot distinguish "deliberately skipped the preview" from "forgot the poll
+existed". Requested directly: the scheduled job, and manual opening, should
+only ever act on a poll a human deliberately announced.
+
+**What the requirements say now.** R-3.2: `draft → announced → open → closed
+→ published`, no `draft → open` edge — announcing is mandatory, not optional.
+R-3.10 gained a second guard beyond the existing translation check:
+announcing is refused once `opens_at` has already passed, so a stale preview
+can never freeze open immediately behind it. R-3.3 already made `opens_at`
+freely editable while still `draft`; that is the only recovery path for a
+poll admin who missed the window — push `opens_at` forward, then announce —
+deliberately with no override mechanism, since R-3.3 already provides one.
+
+**What the code does.** `TRANSITIONS` in `apps/elections/transitions.py` no
+longer has a `draft → open` edge; `poll_state_irreversible`
+(`elections/migrations/`) drops the matching trigger clause, so a raw SQL
+`UPDATE` is refused identically to the application. `opening_blockers` now
+requires `state == announced` (blocker `not_announced`, replacing
+`not_draft_or_announced`); `announcing_blockers` gained the `opens_at`
+guard (blocker `opens_at_not_in_future`). The scheduled `open_poll` command's
+selection narrowed from `state IN (draft, announced)` to `state = announced`.
+Screen 2's draft-state "ouvrir maintenant" button (bypassing announce) was
+removed; only the already-`announced` state offers it now.
+
+**Settled (2026-09-18).**
+
+## 20. The draft-preview share link (R-3.10 bis) is deliberately not frozen
+
+Not a divergence — recorded because it's the obvious question a future
+reader would ask, given item 13's neighbouring entry: why does this second
+preview mechanism *not* freeze the configuration the way `announced` does?
+
+**Why not.** Freezing would mean either duplicating INV-6's mechanism for a
+second, `draft`-only case (exactly what item 13 rejected once already), or
+routing the share link through a real state transition — but there is no
+state to put a still-secret, not-yet-reviewed poll into that wouldn't also
+make it a candidate for the scheduled `open_poll` job or the public listing.
+`announced` already exists for "frozen and reviewable"; this feature exists
+for the different, narrower case of "let one outside person look at what's
+there right now, without either of those consequences."
+
+**What the code does instead.** `Poll.preview_token` is a plain, mutable
+field, deliberately outside `FROZEN_CONFIG_FIELDS` — the page it gates
+re-renders the *current* draft on every request, exactly like the poll
+admin's own internal aperçu, and says plainly that it can change. The
+mutability item 13 objected to is accepted here, not engineered around,
+because unlike that rejected design this one is never publicly listed: only
+someone the admin deliberately handed the link to can see it change.
+
+**Settled (2026-09-19).**

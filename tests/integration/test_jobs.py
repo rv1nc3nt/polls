@@ -24,6 +24,7 @@ from django.test import override_settings
 from apps.core.jobs import AlreadyRunning, job_lock
 from apps.core.models import JobRun
 from apps.elections.models import Poll, PollState
+from tests.conftest import force_announce
 
 
 def test_job_lock_refuses_a_concurrent_holder(tmp_path: Path, db: None) -> None:
@@ -47,9 +48,12 @@ def test_job_lock_is_released_on_exit_for_the_next_run(tmp_path: Path, db: None)
 def test_t51_a_concurrent_open_poll_run_exits_0_and_touches_nothing(
     tmp_path: Path, open_window_poll: Poll
 ) -> None:
-    """``open_window_poll`` is ``draft`` with ``opens_at`` already past, so the
-    command's own selection would open it — the lock, not the query, is what
-    must stop the second instance here."""
+    """``open_window_poll`` is moved straight to ``announced`` with
+    ``opens_at`` already past (bypassing ``announce_poll``'s guard, which
+    would otherwise refuse a past ``opens_at`` — not what this test is
+    about), so the command's own selection would open it — the lock, not the
+    query, is what must stop the second instance here."""
+    force_announce(open_window_poll)
     handle = (tmp_path / "open_poll.lock").open("w")
     fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
     try:
@@ -62,7 +66,7 @@ def test_t51_a_concurrent_open_poll_run_exits_0_and_touches_nothing(
         handle.close()
 
     open_window_poll.refresh_from_db()
-    assert open_window_poll.state == PollState.DRAFT
+    assert open_window_poll.state == PollState.ANNOUNCED
     assert open_window_poll.opening_seed is None
 
 
@@ -78,6 +82,7 @@ def test_a_refused_open_poll_still_finalises_its_jobrun_row(
     still running."""
     open_window_poll.languages = ["fr", "en"]
     open_window_poll.save(update_fields=["languages"])
+    force_announce(open_window_poll)
 
     with override_settings(JOB_LOCK_DIR=tmp_path):
         with pytest.raises(SystemExit) as exc_info:

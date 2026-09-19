@@ -21,9 +21,9 @@ from apps.ballots.ranking import BallotRefused
 from apps.core.models import User
 from apps.core.types import Token
 from apps.elections.models import Poll, PollOption, RollEntry, WorkingRollEntry
-from apps.elections.transitions import open_poll
 from apps.elections.windows import WindowClosed
 from apps.registrations.models import Channel, Registration, RegistrationState
+from tests.conftest import force_open
 
 STRICT = [["a"], ["b"], ["c"]]
 
@@ -448,7 +448,7 @@ def test_t34_no_ballot_after_the_intended_instant_across_the_dst_fold(
         date_of_birth_parsed="1970-05-12",
         list_types=["principale"],
     )
-    open_poll(poll)
+    force_open(poll)
     poll = Poll.objects.get(pk=poll.pk)
     _registration_id, token = _voter(poll)
 
@@ -508,10 +508,9 @@ def test_modify_supersedes_and_keeps_one_live_version(open_paper_poll: Poll) -> 
 
 
 def test_modify_is_refused_where_the_poll_forbids_it(open_window_poll: Poll) -> None:
-    from apps.elections.transitions import open_poll
 
     Poll.objects.filter(pk=open_window_poll.pk).update(allow_ballot_modification=False)
-    open_poll(open_window_poll)
+    force_open(open_window_poll)
     poll = Poll.objects.get(pk=open_window_poll.pk)
 
     _registration_id, token = _voter(poll)

@@ -186,7 +186,7 @@ qu'une première tourne se termine en code 0 sans rien faire ; un hôte qui éta
 
 | Tâche | Ce qu'elle fait | Sélection |
 |---|---|---|
-| `open_poll` | `draft → open` : fige la copie de la liste électorale et tire la graine d'ouverture, dans la même transaction que l'état. | scrutins `draft` dont `opens_at` est atteint |
+| `open_poll` | `announced → open` : fige la copie de la liste électorale et tire la graine d'ouverture, dans la même transaction que l'état. N'agit que sur un scrutin déjà annoncé — un scrutin resté `draft` n'ouvre jamais tout seul (R-3.10). | scrutins `announced` dont `opens_at` est atteint |
 | `close_poll` | `open → closed` : calcule l'empreinte de clôture, fige les compteurs de participation. Ne dépouille pas. | scrutins `open` dont l'échéance de saisie est atteinte |
 | `send_reminders` | rappel 48 h avant clôture aux inscrits actifs n'ayant pas voté (R-5.7). | |
 | `retention_purge` | efface les données d'identité des scrutins clos depuis deux mois (R-13.3). | |

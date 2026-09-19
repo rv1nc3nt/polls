@@ -25,6 +25,7 @@ from apps.audit.models import Reason
 from apps.ballots.models import Ballot, BallotSource, BallotStatus
 from apps.core.canonical import CanonicalBallot, closure_hash
 from apps.core.codes import new_tracking_code
+from apps.core.crypto import new_token
 from apps.core.models import User
 from apps.core.types import TrackingCode
 from apps.elections import closure
@@ -35,11 +36,11 @@ from apps.elections.transitions import (
     announce_poll,
     close_poll,
     extend_closes_at,
-    open_poll,
     publish_poll,
     withdraw_poll,
 )
 from apps.registrations.models import Channel, Registration, RegistrationState
+from tests.conftest import force_announce, force_open
 
 
 def _make_poll(*, show_live: bool = False, sandbox: bool = False) -> Poll:
@@ -94,14 +95,14 @@ def _cast(poll: Poll, rankings: list[list[list[str]]]) -> None:
 @pytest.fixture
 def open_poll_fixture(db: None) -> Poll:
     poll = _make_poll()
-    open_poll(poll)
+    force_open(poll)
     return Poll.objects.get(pk=poll.pk)
 
 
 @pytest.fixture
 def published_poll(db: None) -> Poll:
     poll = _make_poll()
-    open_poll(poll)
+    force_open(poll)
     _register(poll, "voter1", channel=Channel.ONLINE)
     _cast(poll, [[["a"], ["b"], ["c"]], [["a"], ["b"], ["c"]]])
     close_poll(poll)
@@ -119,7 +120,7 @@ def test_a_draft_poll_is_not_public(client: Client, db: None) -> None:
 
 def test_a_sandbox_poll_is_not_public(client: Client, db: None) -> None:
     poll = _make_poll(sandbox=True)
-    open_poll(poll)
+    force_open(poll)
     assert client.get(f"/fr/scrutin/{poll.pk}/").status_code == 404
     assert poll.pk  # sanity
 
@@ -147,7 +148,7 @@ def test_the_page_stops_advertising_the_vote_once_closes_at_has_passed(
     refuses every online vote — the page must say so instead of still reading
     "ouverte" and pointing at a registration link that leads nowhere."""
     poll = _make_poll()
-    open_poll(poll)
+    force_open(poll)
     poll = Poll.objects.get(pk=poll.pk)
     poll.closes_at = timezone.now() - timedelta(hours=1)
     poll.paper_entry_deadline = timezone.now() + timedelta(days=1)
@@ -174,7 +175,7 @@ def test_a_poll_opened_early_is_not_advertised_before_its_configured_opening(
     poll = _make_poll()
     poll.opens_at = timezone.now() + timedelta(hours=1)
     poll.save(update_fields=["opens_at"])
-    open_poll(poll)
+    force_open(poll)
     poll = Poll.objects.get(pk=poll.pk)
     assert poll.state == "open"
 
@@ -185,7 +186,7 @@ def test_a_poll_opened_early_is_not_advertised_before_its_configured_opening(
 
 def test_a_closed_unpublished_poll_says_the_tally_is_under_way(client: Client, db: None) -> None:
     poll = _make_poll()
-    open_poll(poll)
+    force_open(poll)
     close_poll(poll)
     body = client.get(f"/fr/scrutin/{poll.pk}/").content.decode()
     assert "dépouillement" in body.lower()
@@ -256,7 +257,7 @@ def test_turnout_is_absent_by_default(client: Client, open_poll_fixture: Poll) -
 
 def test_turnout_is_shown_when_the_flag_is_set(client: Client, db: None) -> None:
     poll = _make_poll(show_live=True)
-    open_poll(poll)
+    force_open(poll)
     _register(poll, "v1", channel=Channel.ONLINE)
     _register(poll, "v2", channel=Channel.ONLINE)
     _register(poll, "v3", channel=Channel.PAPER)
@@ -270,7 +271,7 @@ def test_no_running_count_leaks_once_the_poll_is_closed(client: Client, db: None
     """R-11.5 / §9: after closure the figures belong to the publication, not
     this page — which for a closed-but-unpublished poll means nothing here."""
     poll = _make_poll(show_live=True)
-    open_poll(poll)
+    force_open(poll)
     _register(poll, "v1", channel=Channel.ONLINE)
     close_poll(poll)
     body = client.get(f"/fr/scrutin/{poll.pk}/").content.decode()
@@ -305,7 +306,7 @@ def test_no_running_count_during_the_paper_keying_stretch_either(client: Client,
         date_of_birth_parsed="1970-05-12",
         list_types=["principale"],
     )
-    open_poll(poll)
+    force_open(poll)
     poll = Poll.objects.get(pk=poll.pk)
     assert poll.state == PollState.OPEN
     _register(poll, "v1", channel=Channel.PAPER)
@@ -320,7 +321,7 @@ def test_no_running_count_during_the_paper_keying_stretch_either(client: Client,
 
 def test_a_logged_extension_appears_on_the_page(client: Client, db: None) -> None:
     poll = _make_poll()
-    open_poll(poll)
+    force_open(poll)
     actor = User.objects.create_user(username="p.admin", password="x", full_name="P. Admin")
     extend_closes_at(
         Poll.objects.get(pk=poll.pk),
@@ -341,14 +342,14 @@ def test_a_logged_extension_appears_on_the_page(client: Client, db: None) -> Non
 
 def test_results_are_404_until_published(client: Client, db: None) -> None:
     poll = _make_poll()
-    open_poll(poll)
+    force_open(poll)
     close_poll(poll)
     assert client.get(f"/fr/scrutin/{poll.pk}/resultats/").status_code == 404
 
 
 def test_a_sandbox_published_poll_has_no_public_results(client: Client, db: None) -> None:
     poll = _make_poll(sandbox=True)
-    open_poll(poll)
+    force_open(poll)
     _cast(poll, [[["a"], ["b"], ["c"]]])
     close_poll(poll)
     publish_poll(poll, User.objects.create_user(username="p.admin", password="x"))
@@ -403,7 +404,7 @@ def test_t36_published_artefacts_cross_check(client: Client, db: None) -> None:
       ``pending_email`` one is not a registrant yet (R-5.5, T-27).
     """
     poll = _make_poll()
-    open_poll(poll)
+    force_open(poll)
     poll = Poll.objects.get(pk=poll.pk)
 
     # Registrations, by channel. The platform never joins these to a ballot
@@ -530,7 +531,7 @@ def _publish_with_labels(labels: dict[str, dict[str, str]]) -> Poll:
         # Still ``draft`` here, so the INV-6 option trigger permits the write.
         option.label_i18n = labels[option.option_id]
         option.save(update_fields=["label_i18n"])
-    open_poll(poll)
+    force_open(poll)
     poll = Poll.objects.get(pk=poll.pk)
     for code, ranking in _T23_BALLOTS:
         Ballot.objects.create(
@@ -623,7 +624,7 @@ def test_a_draft_poll_never_appears_even_short_of_two_options(client: Client, db
 
 def test_an_announced_poll_previews_publicly(client: Client, db: None) -> None:
     poll = _make_poll()
-    announce_poll(poll)
+    force_announce(poll)
     poll = Poll.objects.get(pk=poll.pk)
 
     listing = client.get("/fr/").content.decode()
@@ -640,8 +641,8 @@ def test_an_announced_poll_previews_publicly(client: Client, db: None) -> None:
     # No participation either: `_live_participation` only computes for `open`.
     assert "Participation" not in body
 
-    # `open_poll` accepts `announced` exactly as it accepts `draft` (R-3.10).
-    open_poll(poll)
+    # `open_poll` accepts `announced` — the only source it accepts now (R-3.10).
+    force_open(poll)
     poll.refresh_from_db()
     assert poll.state == "open"
     assert client.get(f"/fr/scrutin/{poll.pk}/").status_code == 200
@@ -650,11 +651,91 @@ def test_an_announced_poll_previews_publicly(client: Client, db: None) -> None:
 def test_a_sandbox_poll_stays_hidden_even_once_announced(client: Client, db: None) -> None:
     """INV-8: ``announced`` cannot make a sandbox poll public."""
     poll = _make_poll(sandbox=True)
-    announce_poll(poll)
+    force_announce(poll)
     poll.refresh_from_db()
     assert poll.state == "announced"
     assert client.get(f"/fr/scrutin/{poll.pk}/").status_code == 404
     assert poll.title() not in client.get("/fr/").content.decode()
+
+
+# --- share link: an unguessable, unauthenticated draft preview (R-3.10 bis) -
+
+
+def _preview_share_url(poll: Poll, token: str) -> str:
+    return f"/fr/scrutin/{poll.pk}/apercu/{token}/"
+
+
+def test_t84_a_share_link_shows_the_current_draft_and_changes_with_it(
+    client: Client, db: None
+) -> None:
+    """Unlike the frozen ``announced`` preview of T-69, this one re-reads the
+    poll on every request: a title changed after the link was generated
+    shows up on the very next fetch, and the page says the content can
+    change."""
+    poll = _make_poll()
+    poll.preview_token = new_token().reveal()
+    poll.save(update_fields=["preview_token"])
+
+    body = client.get(_preview_share_url(poll, poll.preview_token)).content.decode()
+    assert "Aménagement de la place" in body
+    assert "A" in body and "B" in body and "C" in body
+    assert "Brouillon — pas encore annoncé ni visible du public." in body
+    assert "peut changer" in body
+    # No route to register or vote from a still-draft preview (§5.1).
+    assert f"/fr/inscription/{poll.pk}/" not in body
+    assert "Participation" not in body
+
+    poll.title_i18n["fr"] = "Nouveau titre"
+    poll.save(update_fields=["title_i18n"])
+    body = client.get(_preview_share_url(poll, poll.preview_token)).content.decode()
+    assert "Nouveau titre" in body
+    assert "Aménagement de la place" not in body
+
+
+def test_t84_a_wrong_or_missing_token_404s(client: Client, db: None) -> None:
+    poll = _make_poll()
+    poll.preview_token = new_token().reveal()
+    poll.save(update_fields=["preview_token"])
+
+    wrong = "A" * len(poll.preview_token)
+    assert client.get(_preview_share_url(poll, wrong)).status_code == 404
+
+    untouched = _make_poll()  # preview_token blank by default
+    assert client.get(_preview_share_url(untouched, new_token().reveal())).status_code == 404
+
+
+def test_t85_regenerating_or_revoking_invalidates_the_old_link(client: Client, db: None) -> None:
+    poll = _make_poll()
+    old_token = new_token().reveal()
+    poll.preview_token = old_token
+    poll.save(update_fields=["preview_token"])
+    assert client.get(_preview_share_url(poll, old_token)).status_code == 200
+
+    poll.preview_token = new_token().reveal()
+    poll.save(update_fields=["preview_token"])
+    assert client.get(_preview_share_url(poll, old_token)).status_code == 404
+    assert client.get(_preview_share_url(poll, poll.preview_token)).status_code == 200
+
+    poll.preview_token = ""
+    poll.save(update_fields=["preview_token"])
+    assert client.get(_preview_share_url(poll, old_token)).status_code == 404
+
+
+def test_t85_the_link_redirects_once_the_poll_leaves_draft(client: Client, db: None) -> None:
+    poll = _make_poll()
+    token = new_token().reveal()
+    poll.preview_token = token
+    poll.save(update_fields=["preview_token"])
+
+    force_announce(poll)
+    response = client.get(_preview_share_url(poll, token))
+    assert response.status_code == 302
+    assert response["Location"] == f"/fr/scrutin/{poll.pk}/"
+
+    force_open(poll)
+    response = client.get(_preview_share_url(poll, token))
+    assert response.status_code == 302
+    assert response["Location"] == f"/fr/scrutin/{poll.pk}/"
 
 
 # --- withdrawal: nothing remains public (R-3.11, T-75) ---------------------
@@ -667,17 +748,17 @@ def test_t75_a_withdrawn_poll_shows_only_a_fixed_notice(client: Client, db: None
     results page, its CSV and its JSON all 404 for the ``published`` one —
     exactly as they would for a poll that was never published at all (§6.6)."""
     announced = Poll.objects.get(
-        pk=withdraw_poll(announce_poll(_make_poll()), reason=Reason.OTHER).pk
+        pk=withdraw_poll(force_announce(_make_poll()), reason=Reason.OTHER).pk
     )
 
     opened_source = _make_poll()
-    open_poll(opened_source)
+    force_open(opened_source)
     opened = Poll.objects.get(
         pk=withdraw_poll(Poll.objects.get(pk=opened_source.pk), reason=Reason.OTHER).pk
     )
 
     published_source = _make_poll()
-    open_poll(published_source)
+    force_open(published_source)
     _register(published_source, "voter1", channel=Channel.ONLINE)
     _cast(published_source, [[["a"], ["b"], ["c"]]])
     close_poll(published_source)

@@ -157,9 +157,11 @@
       <h2 id="open-now">{% translate "Ouverture" %}</h2>
       {% comment %}
         R-3.10, §4: an `announced` poll is already publicly visible
-        (visible on the public site right now) but not yet votable. Same
-        guarded transition and the same "any time, ahead of opens_at is
-        fine" reasoning as the draft screen's own *ouvrir maintenant*.
+        (visible on the public site right now) but not yet votable. This is
+        now the only *ouvrir maintenant* entry point — opening from `draft`
+        directly no longer exists, so reaching this state is required first.
+        Triggering it here any time ahead of `opens_at` is safe: the window
+        checks of §5.1 gate voting on the clock, never on `state`.
       {% endcomment %}
       <p class="notice">{% translate "Ce scrutin est annoncé : il est visible sur le site public, mais le vote n'est pas encore ouvert." %}</p>
       <p class="help">{% translate "Le scrutin s'ouvre normalement tout seul à la date d'ouverture configurée, même en retard si besoin. Vous pouvez aussi l'ouvrir maintenant vous-même, y compris par avance." %}</p>

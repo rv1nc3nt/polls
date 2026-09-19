@@ -23,7 +23,7 @@ from django.utils.translation import gettext as _
 from apps.core.models import Role
 from apps.elections.closure import frozen_counts
 from apps.elections.models import Poll, PollState
-from apps.elections.transitions import closing_blockers, opening_blockers
+from apps.elections.transitions import announcing_blockers, closing_blockers, opening_blockers
 from apps.elections.windows import online_voting_closed
 from apps.registrations.models import Channel, Registration, RegistrationState
 
@@ -82,17 +82,22 @@ def participation(poll: Poll) -> Participation:
 def describe_blocker(code: str) -> str:
     """A blocker code (§4) as a sentence a council member can act on.
 
-    ``opening_blockers`` and ``closing_blockers`` return codes so that the
-    scheduled commands can log them (§14); this screen is where they become
-    French, because the point of naming them before the opening hour is that
-    somebody fixes them (§6.5.1).
+    ``announcing_blockers``, ``opening_blockers`` and ``closing_blockers``
+    return codes so that the scheduled commands can log them (§14); this
+    screen is where they become French, because the point of naming them
+    before the opening hour is that somebody fixes them (§6.5.1).
     """
     head, _sep, rest = code.partition(":")
     match head:
         case "not_draft":
             return _("Le scrutin n'est plus en brouillon.")
-        case "not_draft_or_announced":
-            return _("Le scrutin doit être en brouillon ou annoncé pour pouvoir s'ouvrir.")
+        case "not_announced":
+            return _("Le scrutin doit être annoncé pour pouvoir s'ouvrir.")
+        case "opens_at_not_in_future":
+            return _(
+                "La date d'ouverture est déjà passée : reportez-la avant de pouvoir "
+                "annoncer le scrutin."
+            )
         case "not_open":
             return _("Le scrutin n'est pas ouvert.")
         case "fewer_than_two_options":
@@ -126,9 +131,14 @@ def blockers(poll: Poll) -> list[str]:
 
     Named while there is still time to act on them: a silent non-opening at the
     advertised hour is the worst outcome available here, and a closure that
-    stops on an uncountersigned ballot is the second worst.
+    stops on an uncountersigned ballot is the second worst. ``announced`` is
+    now mandatory (R-3.10), so a still-``draft`` poll's next transition is
+    announcing, not opening — its blockers come from ``announcing_blockers``,
+    not ``opening_blockers``.
     """
-    if poll.state in (PollState.DRAFT, PollState.ANNOUNCED):
+    if poll.state == PollState.DRAFT:
+        return [describe_blocker(code) for code in announcing_blockers(poll)]
+    if poll.state == PollState.ANNOUNCED:
         return [describe_blocker(code) for code in opening_blockers(poll)]
     if poll.state == PollState.OPEN:
         return [describe_blocker(code) for code in closing_blockers(poll)]

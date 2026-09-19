@@ -22,9 +22,9 @@ from django.utils import timezone
 from apps.audit.models import Action, AuditEvent
 from apps.core.models import Commune, PollRole, Role, User
 from apps.elections.models import Poll
-from apps.elections.transitions import open_poll
 from apps.registrations import mail, services
 from apps.registrations.models import Channel, Registration, RegistrationState
+from tests.conftest import force_open
 
 FORM = {
     "last_name": "Dupont",
@@ -37,7 +37,7 @@ FORM = {
 
 @pytest.fixture
 def live_poll(open_window_poll: Poll) -> Poll:
-    open_poll(open_window_poll)
+    force_open(open_window_poll)
     return Poll.objects.get(pk=open_window_poll.pk)
 
 
@@ -208,7 +208,6 @@ def test_t61_an_ineligible_list_type_is_told_so_plainly(
 ) -> None:
     """R-4.7: found on the roll, but on a list that confers no standing here."""
     from apps.elections.models import WorkingRollEntry
-    from apps.elections.transitions import open_poll
 
     WorkingRollEntry.objects.all().delete()
     WorkingRollEntry.objects.create(
@@ -218,7 +217,7 @@ def test_t61_an_ineligible_list_type_is_told_so_plainly(
         date_of_birth_parsed="1983-01-08",
         list_types=["complementaire_europeenne"],
     )
-    open_poll(open_window_poll)
+    force_open(open_window_poll)
 
     response = client.post(
         f"/fr/inscription/{open_window_poll.pk}/",

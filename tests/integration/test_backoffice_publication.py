@@ -30,7 +30,8 @@ from apps.core.codes import new_tracking_code
 from apps.core.models import PollRole, Role, User
 from apps.elections.closure import live_ballots
 from apps.elections.models import Poll, PollOption, PollState, TiebreakRule, WorkingRollEntry
-from apps.elections.transitions import close_poll, open_poll
+from apps.elections.transitions import close_poll
+from tests.conftest import force_open
 
 CYCLE = (
     [["a"], ["b"], ["c"]],
@@ -91,7 +92,7 @@ def _cast(poll: Poll, rankings: object) -> None:
 def closed_poll(admin_user: User) -> Poll:
     """A closed Schulze poll with a clear winner: two ballots, both a > b > c."""
     poll = _make_poll()
-    open_poll(poll)
+    force_open(poll)
     _cast(poll, ([["a"], ["b"], ["c"]], [["a"], ["b"], ["c"]]))
     close_poll(poll)
     _grant(poll, admin_user)
@@ -102,7 +103,7 @@ def closed_poll(admin_user: User) -> Poll:
 def tied_poll(admin_user: User) -> Poll:
     """A closed ``physical`` poll whose tally is a three-way Schulze tie."""
     poll = _make_poll(tiebreak=TiebreakRule.PHYSICAL)
-    open_poll(poll)
+    force_open(poll)
     _cast(poll, CYCLE)
     close_poll(poll)
     _grant(poll, admin_user)
@@ -168,7 +169,7 @@ def test_the_dashboard_links_to_the_screen(
 
 def test_an_open_poll_shows_no_derivation(client: Client, admin_user: User) -> None:
     poll = _make_poll()
-    open_poll(poll)
+    force_open(poll)
     _grant(poll, admin_user)
     client.force_login(admin_user)
 
@@ -298,7 +299,7 @@ def test_the_override_reason_from_closure_is_shown(client: Client, admin_user: U
     from apps.ballots.models import BallotStatus
 
     poll = _make_poll()
-    open_poll(poll)
+    force_open(poll)
     _cast(poll, ([["a"], ["b"], ["c"]],))
     Ballot.objects.create(
         poll=poll,
@@ -343,7 +344,7 @@ def reconciliation_poll(admin_user: User) -> Poll:
         date_of_birth_parsed="1990-03-03",
         list_types=["principale"],
     )
-    open_poll(poll)
+    force_open(poll)
     _grant(poll, admin_user)
     return Poll.objects.get(pk=poll.pk)
 

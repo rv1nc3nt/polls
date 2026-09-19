@@ -19,8 +19,8 @@ from apps.ballots import services as ballots
 from apps.ballots.models import Ballot, BallotStatus, PaperBallotLink
 from apps.core.models import PollRole, Role, User
 from apps.elections.models import Poll, PollOption, RollEntry, WorkingRollEntry
-from apps.elections.transitions import open_poll
 from apps.registrations.models import Channel, Registration, RegistrationState
+from tests.conftest import force_open
 
 STRICT = {"order": "a,b,c", "rank_a": "1", "rank_b": "2", "rank_c": "3"}
 
@@ -75,7 +75,7 @@ def bilingual_paper_poll(db: None) -> Poll:
         date_of_birth_parsed="1970-05-12",
         list_types=["principale"],
     )
-    open_poll(poll)
+    force_open(poll)
     return Poll.objects.get(pk=poll.pk)
 
 

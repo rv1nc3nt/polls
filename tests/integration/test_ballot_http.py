@@ -29,9 +29,9 @@ from apps.core.logging import REDACTED, RedactBallotTokenPath
 from apps.core.models import User
 from apps.core.types import Token, TrackingCode
 from apps.elections.models import Poll, PollOption, RollEntry, WorkingRollEntry
-from apps.elections.transitions import open_poll
 from apps.registrations import services
 from apps.registrations.models import Channel, Registration, RegistrationState
+from tests.conftest import force_open
 
 FORM = {
     "last_name": "Dupont",
@@ -45,7 +45,7 @@ STRICT = {"order": "a,b,c", "rank_a": "1", "rank_b": "2", "rank_c": "3"}
 
 @pytest.fixture
 def live_poll(open_window_poll: Poll) -> Poll:
-    open_poll(open_window_poll)
+    force_open(open_window_poll)
     return Poll.objects.get(pk=open_window_poll.pk)
 
 
@@ -74,7 +74,7 @@ def no_modify_poll(db: None) -> Poll:
         date_of_birth_parsed="1970-05-12",
         list_types=["principale"],
     )
-    open_poll(poll)
+    force_open(poll)
     return Poll.objects.get(pk=poll.pk)
 
 

@@ -70,15 +70,20 @@ def test_t52_ballot_before_opens_at_is_refused_even_with_state_forced_to_open(
 ) -> None:
     """The window check never consults ``state`` (§4, INV-2).
 
-    Here the poll's opening instant is moved into the future by raw SQL — the
-    state field says nothing that would save the write.
+    Here the poll's opening instant is moved into the future by raw SQL,
+    while still ``draft`` — ``opens_at`` freezes the moment it leaves that
+    state (R-3.3) — and only then forced on to ``open`` (through the two
+    legal trigger edges): the state field says nothing that would save the
+    write.
     """
     # Still inside closes_at, so only the opening instant moves.
     future = timezone.now() + timedelta(hours=12)
     raw(
-        "UPDATE elections_poll SET opens_at = %s, state = 'open' WHERE id = %s",
+        "UPDATE elections_poll SET opens_at = %s WHERE id = %s",
         [sql_time(future), pk(open_window_poll)],
     )
+    raw("UPDATE elections_poll SET state = 'announced' WHERE id = %s", [pk(open_window_poll)])
+    raw("UPDATE elections_poll SET state = 'open' WHERE id = %s", [pk(open_window_poll)])
 
     with pytest.raises(Exception, match="INV-2"), transaction.atomic():
         Ballot.objects.create(
@@ -190,6 +195,7 @@ def test_paper_channel_registration_moves_in_the_keying_window(open_window_poll:
 def test_t4_poll_configuration_is_frozen_outside_draft(open_window_poll: Poll) -> None:
     """INV-6 / R-3.3, at the database, since ``save()`` is bypassed by
     ``update()`` and raw SQL."""
+    raw("UPDATE elections_poll SET state = 'announced' WHERE id = %s", [pk(open_window_poll)])
     raw("UPDATE elections_poll SET state = 'open' WHERE id = %s", [pk(open_window_poll)])
     with pytest.raises(Exception, match="INV-6"), transaction.atomic():
         raw(
@@ -223,6 +229,7 @@ def test_t80_option_image_frozen_outside_draft(open_window_poll: Poll) -> None:
     image = OptionImage.objects.create(
         option=option, content_type="image/png", content_hash="a" * 64
     )
+    raw("UPDATE elections_poll SET state = 'announced' WHERE id = %s", [pk(open_window_poll)])
     raw("UPDATE elections_poll SET state = 'open' WHERE id = %s", [pk(open_window_poll)])
 
     with pytest.raises(Exception, match="INV-6"), transaction.atomic():
@@ -240,7 +247,11 @@ def test_t80_option_image_frozen_outside_draft(open_window_poll: Poll) -> None:
 
 
 def test_state_machine_is_irreversible(open_window_poll: Poll) -> None:
-    """R-3.2. ``draft → open → closed → published``, one step at a time."""
+    """R-3.2. ``draft → announced → open → closed → published``, one step at
+    a time; ``draft → open`` direct is no longer a legal edge (R-3.10)."""
+    with pytest.raises(Exception, match="R-3.2"), transaction.atomic():
+        raw("UPDATE elections_poll SET state = 'open' WHERE id = %s", [pk(open_window_poll)])
+    raw("UPDATE elections_poll SET state = 'announced' WHERE id = %s", [pk(open_window_poll)])
     raw("UPDATE elections_poll SET state = 'open' WHERE id = %s", [pk(open_window_poll)])
     with pytest.raises(Exception, match="R-3.2"), transaction.atomic():
         raw("UPDATE elections_poll SET state = 'draft' WHERE id = %s", [pk(open_window_poll)])
@@ -251,12 +262,12 @@ def test_state_machine_is_irreversible(open_window_poll: Poll) -> None:
         )
 
 
-def test_t71_the_optional_announced_waypoint_is_legal_but_no_detour_from_it(
+def test_t71_the_mandatory_announced_waypoint_has_no_detour_from_it(
     open_window_poll: Poll,
 ) -> None:
-    """T-71, R-3.10: ``draft → announced`` and ``announced → open`` are legal
-    additions to the table above; ``announced`` is still a strict waypoint —
-    no path leads back out of it except forward to ``open``."""
+    """T-71, R-3.10: ``draft → announced`` and ``announced → open`` are the
+    only edges out of ``announced`` — no path leads back out of it except
+    forward to ``open``."""
     raw("UPDATE elections_poll SET state = 'announced' WHERE id = %s", [pk(open_window_poll)])
     with pytest.raises(Exception, match="R-3.2"), transaction.atomic():
         raw("UPDATE elections_poll SET state = 'draft' WHERE id = %s", [pk(open_window_poll)])
@@ -291,6 +302,7 @@ def test_inv7_roll_snapshot_is_immutable_and_purgeable_only_after_closure(
     with pytest.raises(Exception, match="INV-7"), transaction.atomic():
         raw("DELETE FROM elections_rollentry WHERE id = %s", [pk(entry)])
 
+    raw("UPDATE elections_poll SET state = 'announced' WHERE id = %s", [pk(open_window_poll)])
     raw("UPDATE elections_poll SET state = 'open' WHERE id = %s", [pk(open_window_poll)])
     raw("UPDATE elections_poll SET state = 'closed' WHERE id = %s", [pk(open_window_poll)])
     raw("DELETE FROM elections_rollentry WHERE id = %s", [pk(entry)])
@@ -313,6 +325,7 @@ def test_t74_the_withdrawn_branches_are_legal_but_withdrawn_itself_is_a_dead_end
             [pk(open_window_poll)],
         )
 
+    raw("UPDATE elections_poll SET state = 'announced' WHERE id = %s", [pk(open_window_poll)])
     raw("UPDATE elections_poll SET state = 'open' WHERE id = %s", [pk(open_window_poll)])
     raw("UPDATE elections_poll SET state = 'withdrawn' WHERE id = %s", [pk(open_window_poll)])
     with pytest.raises(Exception, match="R-3.2"), transaction.atomic():
@@ -342,6 +355,7 @@ def test_t77_the_delete_carveout_opens_only_once_withdrawn_not_before(
     with pytest.raises(Exception, match="INV-7"), transaction.atomic():
         raw("DELETE FROM elections_rollentry WHERE id = %s", [pk(entry)])
 
+    raw("UPDATE elections_poll SET state = 'announced' WHERE id = %s", [pk(open_window_poll)])
     raw("UPDATE elections_poll SET state = 'open' WHERE id = %s", [pk(open_window_poll)])
     raw("UPDATE elections_poll SET state = 'withdrawn' WHERE id = %s", [pk(open_window_poll)])
     raw("DELETE FROM elections_rollentry WHERE id = %s", [pk(entry)])
@@ -356,11 +370,11 @@ def test_t78_withdrawn_refuses_ballots_and_registrations_even_inside_the_window(
     below. Withdrawal refuses them anyway, application check and trigger
     alike, because it is never a delayed scheduled transition (§5.1)."""
     from apps.elections.models import RollEntry
-    from apps.elections.transitions import open_poll
     from apps.elections.windows import WindowClosed, check_ballot_window, check_registration_window
     from apps.registrations.models import Channel, Registration, RegistrationState
+    from tests.conftest import force_open
 
-    poll = open_poll(open_window_poll)
+    poll = force_open(open_window_poll)
     entry = RollEntry.objects.get(poll=poll)
     raw("UPDATE elections_poll SET state = 'withdrawn' WHERE id = %s", [pk(poll)])
     poll.refresh_from_db()

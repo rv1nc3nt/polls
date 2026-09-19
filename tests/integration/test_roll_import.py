@@ -24,7 +24,7 @@ from apps.audit.models import Action, AuditEvent
 from apps.core.models import PollRole, Role, User
 from apps.elections import rollimport
 from apps.elections.models import Poll, RollEntry, WorkingRollEntry
-from apps.elections.transitions import open_poll
+from tests.conftest import force_open
 
 HEADER = "Nom de naissance;Nom d'usage;Prénoms;Date de naissance;Type de liste"
 CLEAN_CSV = (
@@ -82,7 +82,7 @@ def test_apply_import_replaces_the_working_roll(operator: User) -> None:
 def test_t26_a_reimport_does_not_touch_an_open_polls_snapshot(
     operator: User, open_window_poll: Poll
 ) -> None:
-    open_poll(open_window_poll)
+    force_open(open_window_poll)
     before = list(
         RollEntry.objects.filter(poll=open_window_poll).values_list("birth_name", flat=True)
     )
@@ -406,7 +406,7 @@ def test_t65_poll_admin_and_auditor_browse_the_frozen_copy_once_open(
 ) -> None:
     """From ``open`` onward ``roll_status`` browses this poll's own frozen
     copy, not the working roll — open to poll_admin and, per R-4.4, auditor."""
-    open_poll(open_window_poll)
+    force_open(open_window_poll)
     poll = Poll.objects.get(pk=open_window_poll.pk)
     url = f"/fr/mairie/scrutin/{poll.pk}/liste-electorale/"
 
@@ -424,7 +424,7 @@ def test_t65_entry_operator_is_refused_roll_status_even_though_open(
     client: Client, open_window_poll: Poll, operator: User
 ) -> None:
     """R-4.4 names ``poll_admin`` and ``auditor``, not every per-poll role."""
-    open_poll(open_window_poll)
+    force_open(open_window_poll)
     poll = Poll.objects.get(pk=open_window_poll.pk)
     PollRole.objects.create(poll=poll, user=operator, role=Role.ENTRY_OPERATOR)
     client.force_login(operator)
@@ -441,7 +441,7 @@ def test_roll_status_search_narrows_the_frozen_copy(
         date_of_birth_parsed="1990-11-21",
         list_types=["principale"],
     )
-    open_poll(open_window_poll)
+    force_open(open_window_poll)
     poll = Poll.objects.get(pk=open_window_poll.pk)
     PollRole.objects.create(poll=poll, user=operator, role=Role.POLL_ADMIN)
     client.force_login(operator)

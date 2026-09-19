@@ -13,7 +13,7 @@ from apps.audit.models import Action, AuditEvent
 from apps.core.models import PollRole, Role, User
 from apps.elections import config, optioncontent, optionimages
 from apps.elections.models import OptionImage, Poll
-from apps.elections.transitions import open_poll
+from tests.conftest import force_open
 
 _PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 32
 _OTHER_PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 33
@@ -244,7 +244,7 @@ def test_add_and_remove_option_image_refused_outside_draft(
         option, SimpleUploadedFile("a.png", _PNG), alt_text="", actor=admin_user
     )
 
-    open_poll(open_window_poll)
+    force_open(open_window_poll)
     option.refresh_from_db()
 
     with pytest.raises(config.ConfigurationLocked):
@@ -365,7 +365,7 @@ def test_the_public_page_renders_the_extended_description(
     # (§3.1 bis), so it has to be written before open_poll freezes it.
     option.details_i18n = {"fr": "**Détails** de A."}
     option.save(update_fields=["details_i18n"])
-    open_poll(open_window_poll)
+    force_open(open_window_poll)
 
     body = client.get(f"/fr/scrutin/{open_window_poll.pk}/").content.decode()
     assert "<strong>Détails</strong>" in body

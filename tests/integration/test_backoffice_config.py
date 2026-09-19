@@ -30,6 +30,7 @@ from apps.elections.transitions import (
     opening_blockers,
     publish_poll,
 )
+from tests.conftest import force_open
 
 
 @pytest.fixture
@@ -134,7 +135,7 @@ def test_the_draft_screen_carries_the_add_remove_proposition_enhancement(
     assert 'name="opt-__prefix__-option_id"' in body
 
     # The frozen, read-only view past draft carries none of it.
-    open_poll(open_window_poll)
+    force_open(open_window_poll)
     frozen = client.get(_url(open_window_poll)).content.decode()
     assert "js/option-editor.js" not in frozen
     assert "data-option-editor" not in frozen
@@ -356,7 +357,7 @@ def test_the_read_only_view_still_carries_the_warning(
     open_window_poll.tally_method = TallyMethod.PLURALITY
     open_window_poll.allow_ties_in_ballot = True
     open_window_poll.save()
-    open_poll(open_window_poll)
+    force_open(open_window_poll)
     _grant(open_window_poll, admin_user, Role.POLL_ADMIN)
     client.force_login(admin_user)
 
@@ -368,7 +369,7 @@ def test_the_read_only_view_still_carries_the_warning(
 def test_a_non_draft_poll_is_read_only(
     client: Client, open_window_poll: Poll, admin_user: User
 ) -> None:
-    open_poll(open_window_poll)
+    force_open(open_window_poll)
     _grant(open_window_poll, admin_user, Role.POLL_ADMIN)
     client.force_login(admin_user)
 
@@ -385,7 +386,7 @@ def test_the_service_refuses_a_write_once_the_poll_has_left_draft(
     """R-3.3 / INV-6, checked before any write so nothing is half-applied.
     ``Poll.save()`` and the trigger back this; the service message is the one
     a council member can act on."""
-    open_poll(open_window_poll)
+    force_open(open_window_poll)
     draft = config.ConfigDraft(
         scalars={"tally_method": TallyMethod.APPROVAL},
         languages=["fr"],
@@ -405,7 +406,7 @@ def test_the_service_refuses_a_write_once_the_poll_has_left_draft(
 def test_the_closing_date_can_be_extended_on_an_open_poll(
     client: Client, open_window_poll: Poll, admin_user: User
 ) -> None:
-    open_poll(open_window_poll)
+    force_open(open_window_poll)
     window = open_window_poll.paper_entry_deadline - open_window_poll.closes_at
     new_closes_at = open_window_poll.closes_at + timedelta(days=3)
     _grant(open_window_poll, admin_user, Role.POLL_ADMIN)
@@ -432,7 +433,7 @@ def test_the_closing_date_can_be_extended_on_an_open_poll(
 def test_an_extension_to_an_earlier_instant_is_refused(
     client: Client, open_window_poll: Poll, admin_user: User
 ) -> None:
-    open_poll(open_window_poll)
+    force_open(open_window_poll)
     original = Poll.objects.get(pk=open_window_poll.pk).closes_at
     _grant(open_window_poll, admin_user, Role.POLL_ADMIN)
     client.force_login(admin_user)
@@ -458,7 +459,7 @@ def test_the_extension_form_disappears_once_online_voting_has_actually_closed(
     already stopped, not postpone one still running. The screen must say so
     (the same "Le vote en ligne est clos." notice as the dashboard and the
     public page) instead of still offering the report form."""
-    open_poll(open_window_poll)
+    force_open(open_window_poll)
     poll = Poll.objects.get(pk=open_window_poll.pk)
     poll.closes_at = timezone.now() - timedelta(hours=1)
     poll.paper_entry_deadline = timezone.now() + timedelta(days=1)
@@ -490,7 +491,7 @@ def test_extend_closes_at_refuses_once_online_voting_has_actually_closed(
 ) -> None:
     """The backstop behind the screen 2 fix above: even called directly,
     bypassing the view entirely, the service itself refuses (§5.1)."""
-    open_poll(open_window_poll)
+    force_open(open_window_poll)
     poll = Poll.objects.get(pk=open_window_poll.pk)
     original_closes_at = timezone.now() - timedelta(hours=1)
     poll.closes_at = original_closes_at
@@ -517,7 +518,7 @@ def test_an_auditor_reads_the_configuration_screen_but_cannot_post_to_it(
     """R-2.1 names the poll configuration among the auditor's read-only
     access, alongside the ballot list and the audit log — not the poll
     admin's alone (§3.7). Reading succeeds; any POST is a forged request."""
-    open_poll(open_window_poll)
+    force_open(open_window_poll)
     _grant(open_window_poll, admin_user, Role.AUDITOR)
     client.force_login(admin_user)
     response = client.get(_url(open_window_poll))
@@ -561,15 +562,17 @@ def test_the_dashboard_links_to_the_configuration_screen(
 def test_t67_open_now_succeeds_early_and_refuses_an_unready_poll(
     client: Client, open_window_poll: Poll, admin_user: User
 ) -> None:
-    """T-67: *ouvrir maintenant* works at any time, including well before
-    ``opens_at`` — nothing on the vote/registration write paths depends on
-    ``state`` — and refuses, with the same blockers ``open_poll`` itself would
-    report, on a poll that is not ready."""
+    """T-67: *ouvrir maintenant* works at any time once announced — announcing
+    is now mandatory first (R-3.10) — including well before ``opens_at``,
+    since nothing on the vote/registration write paths depends on ``state``;
+    and refuses, with the same blockers ``open_poll`` itself would report, on
+    an announced poll that is not ready."""
     open_window_poll.opens_at = timezone.now() + timedelta(hours=6)
     open_window_poll.save(update_fields=["opens_at"])
     _grant(open_window_poll, admin_user, Role.POLL_ADMIN)
     client.force_login(admin_user)
 
+    assert client.post(_url(open_window_poll), {"action": "announce_poll"}).status_code == 302
     response = client.post(_url(open_window_poll), {"action": "open_poll"})
     assert response.status_code == 302
     open_window_poll.refresh_from_db()
@@ -590,11 +593,12 @@ def test_t67_open_now_succeeds_early_and_refuses_an_unready_poll(
     PollOption.objects.create(poll=unready, option_id="a", label_i18n={"fr": "A"}, position=0)
     PollOption.objects.create(poll=unready, option_id="b", label_i18n={"fr": "B"}, position=1)
     _grant(unready, admin_user, Role.POLL_ADMIN)
+    assert client.post(_url(unready), {"action": "announce_poll"}).status_code == 302
     WorkingRollEntry.objects.all().delete()
 
     body = client.post(_url(unready), {"action": "open_poll"}).content.decode()
     unready.refresh_from_db()
-    assert unready.state == PollState.DRAFT
+    assert unready.state == PollState.ANNOUNCED
     assert "Ouverture refusée" in body
 
 
@@ -607,7 +611,7 @@ def test_t68_close_now_is_gated_on_the_deadline_and_needs_a_reason_when_blocked(
     the override reason ``close_poll`` cannot get from a scheduled command."""
     open_window_poll.paper_requires_countersign = True
     open_window_poll.save(update_fields=["paper_requires_countersign"])
-    poll = open_poll(open_window_poll)
+    poll = force_open(open_window_poll)
     Ballot.objects.create(
         poll=poll,
         tracking_code=new_tracking_code(),
@@ -656,7 +660,7 @@ def test_close_now_succeeds_without_a_reason_once_due_and_nothing_is_blocked(
     open_window_poll.closes_at = now - timedelta(minutes=2)
     open_window_poll.paper_entry_deadline = now - timedelta(minutes=1)
     open_window_poll.save(update_fields=["closes_at", "paper_entry_deadline"])
-    poll = open_poll(open_window_poll)
+    poll = force_open(open_window_poll)
     _grant(poll, admin_user, Role.POLL_ADMIN)
     client.force_login(admin_user)
 
@@ -672,7 +676,9 @@ def test_announce_now_shows_the_poll_publicly_and_freezes_configuration(
 ) -> None:
     """R-3.10: ``draft → announced``, config frozen the instant it runs —
     same trigger as opening (INV-6: ``state != draft``) — and ``open_poll``
-    still works from ``announced`` afterwards, exactly as from ``draft``."""
+    works from ``announced`` afterwards, the only source it now accepts."""
+    open_window_poll.opens_at = timezone.now() + timedelta(hours=6)
+    open_window_poll.save(update_fields=["opens_at"])
     _grant(open_window_poll, admin_user, Role.POLL_ADMIN)
     client.force_login(admin_user)
 
@@ -720,7 +726,7 @@ def test_announce_now_refuses_fewer_than_two_propositions(
 def test_announce_now_is_refused_once_the_poll_has_left_draft(
     client: Client, open_window_poll: Poll, admin_user: User
 ) -> None:
-    poll = open_poll(open_window_poll)
+    poll = force_open(open_window_poll)
     _grant(poll, admin_user, Role.POLL_ADMIN)
     client.force_login(admin_user)
 
@@ -736,7 +742,7 @@ def test_announce_now_is_refused_once_the_poll_has_left_draft(
 def test_withdraw_now_pulls_an_open_poll_and_the_screen_becomes_the_readonly_view(
     client: Client, open_window_poll: Poll, admin_user: User
 ) -> None:
-    poll = open_poll(open_window_poll)
+    poll = force_open(open_window_poll)
     _grant(poll, admin_user, Role.POLL_ADMIN)
     client.force_login(admin_user)
 
@@ -764,7 +770,7 @@ def test_withdraw_now_pulls_an_open_poll_and_the_screen_becomes_the_readonly_vie
 def test_withdraw_now_requires_a_reason(
     client: Client, open_window_poll: Poll, admin_user: User
 ) -> None:
-    poll = open_poll(open_window_poll)
+    poll = force_open(open_window_poll)
     _grant(poll, admin_user, Role.POLL_ADMIN)
     client.force_login(admin_user)
 
@@ -779,7 +785,7 @@ def test_withdraw_now_is_offered_from_closed_and_published_too(
 ) -> None:
     """R-3.11: unlike opening and closing, withdrawal is not restricted to one
     state — it follows the poll all the way to ``published``."""
-    poll = open_poll(open_window_poll)
+    poll = force_open(open_window_poll)
     poll = close_poll(poll)
     _grant(poll, admin_user, Role.POLL_ADMIN)
     client.force_login(admin_user)

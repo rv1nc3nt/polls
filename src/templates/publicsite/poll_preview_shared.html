@@ -1,0 +1,23 @@
+{% extends "publicsite/poll_detail.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD #}
+{% comment %}
+  Unguessable share-link preview (R-3.10 bis, §6.6). Extends the public
+  template itself, not a copy of it, for the same reason
+  backoffice/poll_preview.html does — what a link-holder sees here is
+  exactly what the real public page will later show, from the same read of
+  the poll. Unlike that internal screen, this visitor has no account: no
+  backoffice chrome, no "internal" framing, and the notice below says the
+  link itself is the secret, not just the content.
+{% endcomment %}
+
+{% block content %}
+  <div class="notice" role="note">
+    <p>{% translate "Aperçu partagé par l'administrateur du scrutin : ce lien est confidentiel — ne le transmettez qu'aux personnes que vous souhaitez voir consulter cette page. Le scrutin est encore en brouillon et sa configuration peut changer avant l'annonce." %}</p>
+  </div>
+  {{ block.super }}
+{% endblock %}
+
+{% block status %}
+  <p class="status status--preview"><svg class="ic" aria-hidden="true"><use href="#pub-ico-flag"/></svg><span>{% translate "Brouillon — pas encore annoncé ni visible du public." %}</span></p>
+{% endblock %}

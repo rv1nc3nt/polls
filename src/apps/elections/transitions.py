@@ -6,11 +6,11 @@ greps the tree to assert that (``tests/integration/test_single_transition.py``).
 The transition table is here, the guards are here, and the audit event is
 written in the same transaction as the state write.
 
-``draft → [announced] → open → closed → published``, irreversible (R-3.2).
-``announced`` is an optional waypoint (R-3.10): ``open_poll`` accepts either
-``draft`` or ``announced`` as its source, so a poll that never announces
-itself still goes straight ``draft → open`` as before. A fifth, terminal
-state, ``withdrawn``, branches off ``announced``, ``open``, ``closed`` or
+``draft → announced → open → closed → published``, irreversible (R-3.2).
+``announced`` is a mandatory waypoint (R-3.10): ``open_poll`` only ever
+accepts ``announced`` as its source, so a poll nobody has reviewed by
+announcing it can never open, scheduled or by hand. A fifth, terminal state,
+``withdrawn``, branches off ``announced``, ``open``, ``closed`` or
 ``published`` through ``withdraw_poll`` (R-3.11) and joins nothing.
 """
 
@@ -32,7 +32,7 @@ from .models import Poll, PollState, RollEntry, WorkingRollEntry
 from .windows import online_voting_closed
 
 TRANSITIONS: dict[str, tuple[str, ...]] = {
-    PollState.DRAFT: (PollState.ANNOUNCED, PollState.OPEN),
+    PollState.DRAFT: (PollState.ANNOUNCED,),
     PollState.ANNOUNCED: (PollState.OPEN, PollState.WITHDRAWN),
     PollState.OPEN: (PollState.CLOSED, PollState.WITHDRAWN),
     PollState.CLOSED: (PollState.PUBLISHED, PollState.WITHDRAWN),
@@ -49,7 +49,7 @@ class TransitionRefused(Exception):
         self.blockers = blockers or []
 
 
-def announcing_blockers(poll: Poll) -> list[str]:
+def announcing_blockers(poll: Poll, now: datetime | None = None) -> list[str]:
     """Why ``announce_poll`` would refuse (R-3.10).
 
     Lighter than ``opening_blockers`` in one respect only: a preview needs no
@@ -60,10 +60,19 @@ def announcing_blockers(poll: Poll) -> list[str]:
     that would fall back silently for a viewer who never sees ``draft``.
     Fewer than two propositions would not be a preview of anything either, so
     that alone still blocks it too.
+
+    ``opens_at`` must still be in the future: since ``announced`` is now the
+    only door to ``open`` (R-3.2), announcing a poll whose opening hour has
+    already passed would freeze a public preview only to open immediately
+    behind it, defeating the review this step exists to provide. The recovery
+    is an ordinary draft edit — push ``opens_at`` forward (R-3.3) — not an
+    override, since R-3.3 already grants one.
     """
     blockers: list[str] = []
     if poll.state != PollState.DRAFT:
         blockers.append("not_draft")
+    if poll.opens_at <= (now or timezone.now()):
+        blockers.append("opens_at_not_in_future")
     if poll.options.count() < 2:
         blockers.append("fewer_than_two_options")
     blockers += [f"missing_translation:{gap}" for gap in poll.missing_translations()]
@@ -73,13 +82,17 @@ def announcing_blockers(poll: Poll) -> list[str]:
 def opening_blockers(poll: Poll) -> list[str]:
     """Why ``open_poll`` would refuse (§4, T-53).
 
-    Named on the dashboard while the poll is still ``draft`` or ``announced``,
-    so a gap is visible before the opening hour rather than at it. A silent
-    non-opening is the worst outcome available here.
+    Named on the dashboard while the poll is still ``announced``, so a gap is
+    visible before the opening hour rather than at it. A silent non-opening is
+    the worst outcome available here. The translation and option checks below
+    are in practice redundant once a poll has actually been announced —
+    ``announcing_blockers`` already required them, and config is frozen from
+    that point on (R-3.3) — but stay, defensively, in case a poll somehow
+    reaches here without having passed through ``announce_poll``.
     """
     blockers: list[str] = []
-    if poll.state not in (PollState.DRAFT, PollState.ANNOUNCED):
-        blockers.append("not_draft_or_announced")
+    if poll.state != PollState.ANNOUNCED:
+        blockers.append("not_announced")
     if poll.options.count() < 2:
         blockers.append("fewer_than_two_options")
     blockers += [f"missing_translation:{gap}" for gap in poll.missing_translations()]
@@ -118,19 +131,20 @@ def closing_blockers(poll: Poll) -> list[str]:
     return blockers
 
 
-def announce_poll(poll: Poll, actor: User | None = None) -> Poll:
+def announce_poll(poll: Poll, actor: User | None = None, now: datetime | None = None) -> Poll:
     """``draft → announced`` (R-3.10).
 
     Manual only, from screen 2 (R-2.1) — nothing schedules it, since nothing
     about *when* a poll should become an early preview follows from a
-    configured instant the way opening and closing do. Optional: a poll admin
-    who does not want one never calls this, and ``open_poll`` still accepts
-    ``draft`` directly. Config freezes the moment this runs, same as opening
-    does — ``Poll.save()`` and the INV-6 trigger both key off ``state !=
-    draft``, so a poll past this point cannot change under a viewer's eyes.
+    configured instant the way opening and closing do. Mandatory, though:
+    ``open_poll`` only ever accepts ``announced`` as its source, so a poll
+    admin who wants their poll to open at all must call this first. Config
+    freezes the moment this runs, same as opening does — ``Poll.save()`` and
+    the INV-6 trigger both key off ``state != draft``, so a poll past this
+    point cannot change under a viewer's eyes.
     """
     try:
-        return _announce_poll_locked(poll, actor)
+        return _announce_poll_locked(poll, actor, now)
     except TransitionRefused as refusal:
         # As in open_poll/close_poll: logged after the rollback (§4).
         audit.record(
@@ -144,9 +158,9 @@ def announce_poll(poll: Poll, actor: User | None = None) -> Poll:
 
 
 @transaction.atomic
-def _announce_poll_locked(poll: Poll, actor: User | None) -> Poll:
+def _announce_poll_locked(poll: Poll, actor: User | None, now: datetime | None) -> Poll:
     poll = Poll.objects.select_for_update().get(pk=poll.pk)
-    blockers = announcing_blockers(poll)
+    blockers = announcing_blockers(poll, now)
     if blockers:
         raise TransitionRefused(_("Annonce refusée : configuration incomplète."), blockers)
 
@@ -164,18 +178,18 @@ def _announce_poll_locked(poll: Poll, actor: User | None) -> Poll:
 
 
 def open_poll(poll: Poll, actor: User | None = None, now: datetime | None = None) -> Poll:
-    """``draft → open``.
+    """``announced → open``.
 
     The transition with side effects: the roll snapshot (§6.1) and
     ``opening_seed`` are written in the same transaction as the state, so two
     concurrent runs cannot produce two snapshots or two seeds (T-51). Source
-    state is ``draft`` **or** ``announced`` (R-3.10) — whichever the poll is
-    in, the effects are identical. Two callers: the scheduled ``open_poll``
-    command, selecting on ``state IN (draft, announced) AND opens_at ≤ now``
-    so a host that was down opens the poll late rather than never; and the
-    poll admin, by hand, from screen 2 (R-2.1), at any time — including ahead
-    of ``opens_at``, which is harmless since the window checks of §5.1 gate
-    voting on the clock and never on ``state`` (T-67).
+    state is always ``announced`` (R-3.2, R-3.10) — a poll nobody has
+    reviewed by announcing it cannot open, scheduled or by hand. Two callers:
+    the scheduled ``open_poll`` command, selecting on ``state = announced AND
+    opens_at ≤ now`` so a host that was down opens the poll late rather than
+    never; and the poll admin, by hand, from screen 2 (R-2.1), at any time —
+    including ahead of ``opens_at``, which is harmless since the window
+    checks of §5.1 gate voting on the clock and never on ``state`` (T-67).
     """
     try:
         return _open_poll_locked(poll, actor, now)
@@ -200,7 +214,7 @@ def _open_poll_locked(poll: Poll, actor: User | None, now: datetime | None) -> P
     if blockers:
         raise TransitionRefused(_("Ouverture refusée : configuration incomplète."), blockers)
 
-    previous_state = poll.state  # draft or announced (R-3.10) — kept for the audit event below
+    previous_state = poll.state  # always announced (R-3.2, R-3.10) — kept for the audit event below
     RollEntry.objects.bulk_create(
         RollEntry(
             poll=poll,

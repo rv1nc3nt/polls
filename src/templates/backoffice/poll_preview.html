@@ -12,6 +12,42 @@
   <div class="notice" role="note">
     <p>{% translate "Aperçu interne : cette page n'est pas publique. Le scrutin est en brouillon et sa configuration peut encore changer avant l'annonce." %}</p>
   </div>
+
+  {% comment %}
+    R-3.10 bis: independent of announcing. generate_preview_link/
+    revoke_preview_link are POLL_ADMIN-only (views.poll_preview checks this
+    itself, PermissionDenied on a forged POST from an auditor); an auditor
+    still sees the link read-only if one exists, since they already have
+    read access to this whole screen (§3.7).
+  {% endcomment %}
+  <section aria-labelledby="share-preview">
+    <h2 id="share-preview">{% translate "Partager cet aperçu" %}</h2>
+    <p class="help">{% translate "Génère un lien impossible à deviner qui permet à quiconque le détient de consulter cet aperçu sans compte espace mairie. Contrairement à l'annonce, ce lien ne fige pas la configuration : la page peut changer d'une consultation à l'autre, tout comme le projet lui-même." %}</p>
+    {% if preview_link_url %}
+      <p><input type="text" readonly value="{{ preview_link_url }}" onclick="this.select()" aria-label="{% translate 'Lien de partage' %}"></p>
+      {% if has_admin_role %}
+        <form method="post" class="inline">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="generate_preview_link">
+          <button type="submit">{% translate "Régénérer le lien" %}</button>
+        </form>
+        <form method="post" class="inline">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="revoke_preview_link">
+          <button type="submit" class="danger">{% translate "Révoquer le lien" %}</button>
+        </form>
+      {% endif %}
+    {% elif has_admin_role %}
+      <form method="post" class="inline">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="generate_preview_link">
+        <button type="submit">{% translate "Générer un lien de partage" %}</button>
+      </form>
+    {% else %}
+      <p class="help">{% translate "Aucun lien de partage n'est actif." %}</p>
+    {% endif %}
+  </section>
+
   {{ block.super }}
 {% endblock %}
 

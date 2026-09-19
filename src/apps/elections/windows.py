@@ -76,7 +76,7 @@ def check_registration_window(
 
     INV-2 names only the closing bound. The opening one is here because
     matching is against the frozen snapshot (R-5.3), and the snapshot does not
-    exist until ``draft → open`` writes it (§4): registering earlier would not
+    exist until the poll opens (§4): registering earlier would not
     fail, it would route every applicant to ``pending_review`` for want of a
     roll to match against, which is worse. Like the ballot window this consults
     the clock and not ``Poll.state``, since the scheduled transition may run

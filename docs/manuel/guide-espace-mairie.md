@@ -148,9 +148,9 @@ valeur, ni le mot de passe (§10).
 ## 3. Cycle de vie d'un scrutin
 
 ```
-brouillon  ──►  [annoncé]  ──►  ouvert  ──►  clos  ──►  publié
-                    │              │           │          │
-                    └──────────────┴───────────┴──────────┴──►  retiré
+brouillon  ──►  annoncé  ──►  ouvert  ──►  clos  ──►  publié
+                    │            │           │          │
+                    └────────────┴───────────┴──────────┴──►  retiré
 ```
 
 **Aucune transition n'est réversible** (R-3.2). `Poll.state` n'est écrit que
@@ -169,8 +169,8 @@ a deux origines possibles :
   seul un humain peut motiver. Le retrait n'a, lui, aucune tâche planifiée
   équivalente : c'est une action manuelle et volontaire, ou rien.
 
-- **brouillon → annoncé** (R-3.10, optionnelle) : rend le scrutin visible sur
-  le site public — propositions et calendrier, sans inscription ni vote
+- **brouillon → annoncé** (R-3.10, **obligatoire**) : rend le scrutin visible
+  sur le site public — propositions et calendrier, sans inscription ni vote
   possibles — avant même son ouverture. Fige la configuration au même instant
   que l'ouverture l'aurait fait (même déclencheur INV-6), pour qu'elle ne
   change pas sous les yeux de qui la consulte déjà. **Refusée, comme
@@ -178,14 +178,21 @@ a deux origines possibles :
   description, libellés) : l'annonce fige la page publique, elle ne peut donc
   ni figer ni montrer une configuration qui manque encore d'une traduction.
   Elle ne demande en revanche pas la liste électorale figée, celle-ci n'étant
-  tirée qu'à l'ouverture (§5). Un administrateur qui n'a pas l'usage de cette
-  étape passe directement de brouillon à ouvert, comme avant qu'elle existe.
-- **brouillon ou annoncé → ouvert** : fige une **copie immuable de la liste
-  électorale** (R-4.3) et tire la **graine d'ouverture** (pour un éventuel
-  départage, R-10.5). *Ouvrir maintenant* est permis à tout moment, y compris
-  avant l'heure d'ouverture configurée : cela ne fait rien voter en avance,
-  puisque les contrôles de fenêtre (§5.1) portent sur l'horloge, jamais sur
-  l'état.
+  tirée qu'à l'ouverture (§5). **Également refusée si la date d'ouverture est
+  déjà atteinte** : un scrutin ne peut plus s'ouvrir tout seul s'il n'a jamais
+  été annoncé (la tâche planifiée ne sélectionne que les scrutins déjà
+  `announced`, voir le guide de l'administrateur système, §6), donc annoncer un
+  scrutin déjà en retard ne ferait que le figer pour l'ouvrir aussitôt — sans
+  la relecture que cette étape est censée offrir. L'administrateur reporte
+  d'abord la date d'ouverture (modification libre en brouillon, R-3.3), puis
+  annonce.
+- **annoncé → ouvert** : fige une **copie immuable de la liste électorale**
+  (R-4.3) et tire la **graine d'ouverture** (pour un éventuel départage,
+  R-10.5). C'est désormais la seule porte vers l'ouverture — un scrutin resté
+  en brouillon ne s'ouvre jamais, ni tout seul ni à la main. *Ouvrir
+  maintenant* est permis à tout moment une fois annoncé, y compris avant
+  l'heure d'ouverture configurée : cela ne fait rien voter en avance, puisque
+  les contrôles de fenêtre (§5.1) portent sur l'horloge, jamais sur l'état.
 - **ouvert → clos** : calcule l'**empreinte de clôture** sur l'ensemble des
   bulletins retenus et **fige les compteurs de participation**. Ne dépouille
   pas. *Clôturer maintenant* n'est proposé qu'une fois l'échéance de saisie
@@ -253,13 +260,12 @@ ou non de la participation en cours de scrutin ; types de listes conférant
 l'éligibilité ; langues activées ; exigences formelles du canal papier ;
 indicateur « scrutin test ».
 
-### La configuration se fige à l'annonce ou à l'ouverture
+### La configuration se fige à l'annonce
 
 Elle est **librement modifiable en brouillon**, **immuable dès que le scrutin
-quitte le brouillon** — que ce soit à l'annonce (§3) ou, pour un scrutin qui ne
-s'annonce pas, à l'ouverture directement (R-3.3, INV-6). La règle est tenue par
-un **déclencheur de base de données**, pas seulement par l'application : les
-deux transitions figent au même titre, `state != draft`.
+quitte le brouillon** — à l'annonce (§3), la seule porte de sortie du
+brouillon (R-3.3, INV-6). La règle est tenue par un **déclencheur de base de
+données**, pas seulement par l'application : `state != draft`.
 
 **Seule exception** : la **date de clôture** peut être **reportée** pendant que
 le scrutin est ouvert (R-3.4), par une action séparée et motivée. Le report est
@@ -337,9 +343,9 @@ langue par défaut du scrutin, jamais sur rien. Le français fait foi. La
 **description étendue** d'une proposition (ci-dessous) fait exception : elle
 n'est jamais exigée, dans aucune langue.
 
-**Figure 13 — Configuration modifiable (scrutin en brouillon), avec *Annoncer* et *Ouvrir maintenant* en bas de formulaire.**
+**Figure 13 — Configuration modifiable (scrutin en brouillon), avec *Annoncer maintenant* en bas de formulaire — la seule action de transition offerte tant que le scrutin est en brouillon (R-3.10).**
 
-![Configuration modifiable (scrutin en brouillon), avec Annoncer et Ouvrir maintenant en bas de formulaire](captures/img/13-mairie-configuration-brouillon.png)
+![Configuration modifiable (scrutin en brouillon), avec Annoncer maintenant en bas de formulaire](captures/img/13-mairie-configuration-brouillon.png)
 
 **Figure 12 — Configuration en lecture seule (scrutin ouvert), avec le report de clôture comme action distincte.**
 

@@ -23,9 +23,9 @@ from apps.ballots import services as ballots
 from apps.ballots.models import Ballot, PaperBallotLink
 from apps.core.models import User
 from apps.elections.models import Poll, PollOption, RollEntry, WorkingRollEntry
-from apps.elections.transitions import open_poll
 from apps.registrations import services as registrations
 from apps.registrations.models import Registration
+from tests.conftest import force_open
 
 SRC = Path(__file__).resolve().parents[2] / "src"
 
@@ -156,7 +156,7 @@ def dumped_online_poll(db: None) -> Poll:
             date_of_birth_parsed=parsed,
             list_types=["principale"],
         )
-    open_poll(poll)
+    force_open(poll)
     poll = Poll.objects.get(pk=poll.pk)
     for last, first, dob, _parsed, email, ranking in _VOTERS:
         registration, token = registrations.register(

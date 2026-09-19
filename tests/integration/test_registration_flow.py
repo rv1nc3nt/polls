@@ -19,7 +19,6 @@ from apps.audit.models import Action, AuditEvent
 from apps.core.crypto import voter_hash
 from apps.core.types import Token, TokenSalt
 from apps.elections.models import Poll
-from apps.elections.transitions import open_poll
 from apps.elections.windows import WindowClosed
 from apps.registrations import services
 from apps.registrations.models import (
@@ -28,6 +27,7 @@ from apps.registrations.models import (
     Registration,
     RegistrationState,
 )
+from tests.conftest import force_open
 
 # The fixture snapshot holds Dupont Émile, born 12/05/1970, on the main list.
 FORM = {
@@ -42,7 +42,7 @@ FORM = {
 @pytest.fixture
 def live_poll(open_window_poll: Poll) -> Poll:
     """An open poll whose snapshot holds Dupont Émile, born 12/05/1970."""
-    open_poll(open_window_poll)
+    force_open(open_window_poll)
     return Poll.objects.get(pk=open_window_poll.pk)
 
 
@@ -131,7 +131,7 @@ def test_the_name_in_use_is_accepted_in_place_of_the_birth_surname(
         list_types=["principale"],
     )
     poll = Poll.objects.get(pk=open_window_poll.pk)
-    open_poll(poll)
+    force_open(poll)
 
     registration, token = services.register(
         Poll.objects.get(pk=poll.pk),
@@ -161,7 +161,7 @@ def test_t61_a_match_on_an_ineligible_list_type_is_rejected(open_window_poll: Po
         date_of_birth_parsed="1983-01-08",
         list_types=["complementaire_europeenne"],
     )
-    open_poll(open_window_poll)
+    force_open(open_window_poll)
     poll = Poll.objects.get(pk=open_window_poll.pk)
 
     registration, token = services.register(
@@ -198,7 +198,7 @@ def test_t62_a_match_only_against_a_date_uncertain_entry_is_reviewed(
         date_uncertain=True,
         list_types=["principale"],
     )
-    open_poll(open_window_poll)
+    force_open(open_window_poll)
 
     registration, token = services.register(
         Poll.objects.get(pk=open_window_poll.pk),
@@ -531,7 +531,7 @@ def test_blank_email_paper_registrations_coexist(open_window_poll: Poll) -> None
         date_of_birth_parsed="1975-07-03",
         list_types=["principale"],
     )
-    open_poll(open_window_poll)
+    force_open(open_window_poll)
     poll = Poll.objects.get(pk=open_window_poll.pk)
 
     entries = list(RollEntry.objects.filter(poll=poll))
