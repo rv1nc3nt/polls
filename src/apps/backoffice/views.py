@@ -56,7 +56,7 @@ Here so far, additionally: screen 14 (paramètres de la commune, §6.5.14),
 whose read model and write path are both ``communesettings.py`` — the screen
 that edits, after first-run, what screen 11 only creates, plus the optional
 logo and favicon, each its own POST-only upload/remove pair outside the main
-form, the same shape as ``option_image_upload``/``option_image_delete``
+form, the same shape as ``poll_image_upload``/``poll_image_delete``
 (R-3.12). Commune-level like 10, 12 and 13.
 """
 
@@ -96,15 +96,15 @@ from apps.core.types import TrackingCode
 from apps.elections import (
     closure,
     config,
-    optionimages,
+    pollimages,
     polltemplates,
     results_view,
+    richtext,
     rollimport,
 )
 from apps.elections.models import (
-    OptionImage,
     Poll,
-    PollOption,
+    PollImage,
     PollState,
     PollTemplate,
     RollEntry,
@@ -594,6 +594,7 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
         {
             "poll": poll,
             "editable": False,
+            "description_html": richtext.render_poll_description(poll, request.LANGUAGE_CODE),
             "options": poll.options.all(),
             "can_open_now": has_admin_role and poll.state == PollState.ANNOUNCED,
             "online_voting_closed": voting_closed,
@@ -706,30 +707,29 @@ def poll_preview(request: HttpRequest, poll: Poll) -> HttpResponse:
 
 
 @require_poll_role(Role.POLL_ADMIN)
-def option_image_upload(request: HttpRequest, poll: Poll, option_id: str) -> HttpResponse:
+def poll_image_upload(request: HttpRequest, poll: Poll) -> HttpResponse:
     """Screen 2's image attachment (R-3.12, §3.1 bis).
 
     A separate POST target from the configuration form: HTML forms do not
-    nest, so a proposition's images are managed in their own section of
+    nest, so the poll's shared image library is managed in its own section of
     poll_config.html, below the form that saves the rest of the
-    configuration, one per already-saved option. ``draft`` only, like every
-    other write this screen makes — ``optionimages.add_option_image`` is what
-    actually enforces that, and the INV-6 trigger of migration 0008 under it.
+    configuration. ``draft`` only, like every other write this screen makes —
+    ``pollimages.add_poll_image`` is what actually enforces that, and the
+    INV-6 trigger of migration 0011 under it.
     """
-    option = get_object_or_404(PollOption, pk=option_id, poll=poll)
     if request.method == "POST":
         upload = request.FILES.get("image")
         if upload is None:
             messages.error(request, _("Choisissez une image."))
         else:
             try:
-                optionimages.add_option_image(
-                    option,
+                pollimages.add_poll_image(
+                    poll,
                     upload,
                     alt_text=request.POST.get("alt_text", "").strip(),
                     actor=current_operator(request),
                 )
-            except (config.ConfigurationLocked, optionimages.InvalidOptionImage) as refused:
+            except (config.ConfigurationLocked, pollimages.InvalidPollImage) as refused:
                 messages.error(request, str(refused))
             else:
                 messages.success(request, _("Image ajoutée."))
@@ -737,12 +737,12 @@ def option_image_upload(request: HttpRequest, poll: Poll, option_id: str) -> Htt
 
 
 @require_poll_role(Role.POLL_ADMIN)
-def option_image_delete(request: HttpRequest, poll: Poll, image_id: str) -> HttpResponse:
-    """The mirror of ``option_image_upload`` above."""
-    image = get_object_or_404(OptionImage, pk=image_id, option__poll=poll)
+def poll_image_delete(request: HttpRequest, poll: Poll, image_id: str) -> HttpResponse:
+    """The mirror of ``poll_image_upload`` above."""
+    image = get_object_or_404(PollImage, pk=image_id, poll=poll)
     if request.method == "POST":
         try:
-            optionimages.remove_option_image(image, actor=current_operator(request))
+            pollimages.remove_poll_image(image, actor=current_operator(request))
         except config.ConfigurationLocked as refused:
             messages.error(request, str(refused))
         else:
@@ -1812,7 +1812,7 @@ def commune_settings(request: HttpRequest) -> HttpResponse:
 
 
 # Logo and favicon (§6.5.14, both optional): POST-only targets outside the
-# form above, like ``option_image_upload``/``option_image_delete`` (R-3.12) —
+# form above, like ``poll_image_upload``/``poll_image_delete`` (R-3.12) —
 # a blank file input does not mean "keep the current one" the way a blank
 # password does on screen 12, so upload always replaces and removal is its
 # own action, not a value the settings form could carry.

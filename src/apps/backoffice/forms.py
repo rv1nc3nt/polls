@@ -235,6 +235,13 @@ class PollConfigForm(forms.Form):
             )
             self.fields[f"description_{code}"] = forms.CharField(
                 label=_("Description (%(lang)s)") % {"lang": name},
+                help_text=_(
+                    "Mise en forme Markdown : titres avec ##, listes avec -, emphase avec "
+                    "*…* ou **…**, liens en [texte](url). Pour une image de la bibliothèque "
+                    "du scrutin (onglet « Images ») : ![texte alternatif](image:NUMÉRO). Pour "
+                    "une vidéo YouTube, un bloc à part sur ses propres lignes : "
+                    "```youtube puis l'identifiant à onze caractères de la vidéo, puis ``` ."
+                ),
                 widget=forms.Textarea(attrs={"rows": 4}),
                 required=False,
             )
@@ -342,8 +349,9 @@ class OptionForm(forms.Form):
                 label=_("Description étendue (%(lang)s)") % {"lang": _language_name(code)},
                 help_text=_(
                     "Facultatif. Mise en forme Markdown : titres avec ##, listes avec -, "
-                    "emphase avec *…* ou **…**, liens en [texte](url). Pour une image déjà "
-                    "déposée ci-dessous : ![texte alternatif](image:IDENTIFIANT). Pour une "
+                    "emphase avec *…* ou **…**, liens en [texte](url). Pour une image de la "
+                    "bibliothèque du scrutin (onglet « Images ») : "
+                    "![texte alternatif](image:NUMÉRO). Pour une "
                     "vidéo YouTube, un bloc à part sur ses propres lignes : "
                     "```youtube puis l'identifiant à onze caractères de la vidéo, puis ``` ."
                 ),

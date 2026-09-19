@@ -18,7 +18,7 @@ The logo and favicon are optional and sit outside that form (``set_logo``,
 ``set_favicon`` and their ``remove_*`` mirrors): a blank file input does not
 mean "keep the current one" the way a blank password does on screen 12, so
 there is no value to diff against and an upload always replaces, exactly like
-a proposition's image (R-3.12, ``apps.elections.optionimages``), whose
+a poll's own image (R-3.12, ``apps.elections.pollimages``), whose
 content-sniffing (``apps.core.images``) this reuses.
 """
 

@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 """Content-sniffed image validation, shared by every upload that accepts one:
-the option-image attachment of R-3.12 (``apps.elections.optionimages``) and
+the poll-image attachment of R-3.12 (``apps.elections.pollimages``) and
 the commune branding — logo and favicon — of §6.5.14
 (``apps.backoffice.communesettings``).
 

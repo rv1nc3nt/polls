@@ -7,7 +7,7 @@
 {% block content %}
   <h1>{% blocktranslate with title=poll.title %}Bulletin : « {{ title }} »{% endblocktranslate %}</h1>
 
-  {% if poll.description %}<p>{{ poll.description }}</p>{% endif %}
+  {% if description_html %}{{ description_html }}{% endif %}
 
   {% if not poll.allow_ballot_modification %}
     {% comment %}

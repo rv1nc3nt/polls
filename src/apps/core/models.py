@@ -29,8 +29,8 @@ from . import images, secretstore
 
 
 def commune_logo_path(instance: Commune, filename: str) -> str:
-    """Content-addressed, like an option's image (R-3.12,
-    ``apps.elections.models.option_image_path``): a changed logo gets a new
+    """Content-addressed, like a poll's own image (R-3.12,
+    ``apps.elections.models.poll_image_path``): a changed logo gets a new
     URL, so a browser that already cached the old one under its old name is
     never left showing it. ``instance.logo_content_hash`` and
     ``.logo_content_type`` are set by ``apps.backoffice.communesettings.set_logo``

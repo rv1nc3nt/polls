@@ -39,7 +39,7 @@
   {% endif %}
   {% endblock %}
 
-  {% if description %}{{ description|linebreaks }}{% endif %}
+  {% if description_html %}{{ description_html }}{% endif %}
 
   <div class="poll-layout">
   <div class="poll-layout__main">
@@ -67,7 +67,7 @@
           <h3>{{ option.label }}</h3>
           {% comment %}
             R-3.12, §3.1 bis: optional, so often empty — rendered HTML,
-            already sanitised by apps.elections.optioncontent at view time,
+            already sanitised by apps.elections.richtext at view time,
             never at save time.
           {% endcomment %}
           {% if option.details_html %}

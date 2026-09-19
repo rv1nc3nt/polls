@@ -128,7 +128,7 @@
   <dl class="facts">
     <dt>{% translate "État" %}</dt><dd>{{ poll.get_state_display }}</dd>
     <dt>{% translate "Titre" %}</dt><dd>{{ poll.title }}</dd>
-    <dt>{% translate "Description" %}</dt><dd>{{ poll.description }}</dd>
+    <dt>{% translate "Description" %}</dt><dd>{{ description_html }}</dd>
     <dt>{% translate "Langues" %}</dt><dd>{{ poll.languages|join:", " }}</dd>
     <dt>{% translate "Ouverture" %}</dt><dd>{{ poll.opens_at }}</dd>
     <dt>{% translate "Clôture du vote en ligne" %}</dt><dd>{{ poll.closes_at }}</dd>

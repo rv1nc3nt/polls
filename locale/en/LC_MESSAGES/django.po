@@ -14,7 +14,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: commune-polls\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-19 08:26+0200\n"
+"POT-Creation-Date: 2026-09-19 08:57+0200\n"
 "Language: en\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -30,12 +30,12 @@ msgid "configuration modifiée"
 msgstr "configuration changed"
 
 #: src/apps/audit/models.py:37
-msgid "image de proposition ajoutée"
-msgstr "proposition image added"
+msgid "image du scrutin ajoutée"
+msgstr "poll image added"
 
 #: src/apps/audit/models.py:38
-msgid "image de proposition supprimée"
-msgstr "proposition image removed"
+msgid "image du scrutin supprimée"
+msgstr "poll image removed"
 
 #: src/apps/audit/models.py:39
 msgid "transition d'état"
@@ -264,7 +264,7 @@ msgstr "Image too large (2 MB maximum)."
 
 #: src/apps/backoffice/communesettings.py:183
 #: src/apps/backoffice/communesettings.py:206
-#: src/apps/elections/optionimages.py:61
+#: src/apps/elections/pollimages.py:63
 msgid "Format d'image non reconnu (PNG, JPEG, GIF ou WebP attendus)."
 msgstr "Unrecognised image format (PNG, JPEG, GIF or WebP expected)."
 
@@ -620,23 +620,36 @@ msgstr "Title (%(lang)s)"
 msgid "Description (%(lang)s)"
 msgstr "Description (%(lang)s)"
 
-#: src/apps/backoffice/forms.py:247
+#: src/apps/backoffice/forms.py:239
+msgid ""
+"Mise en forme Markdown : titres avec ##, listes avec -, emphase avec *…* ou "
+"**…**, liens en [texte](url). Pour une image de la bibliothèque du scrutin "
+"(onglet « Images ») : ![texte alternatif](image:NUMÉRO). Pour une vidéo "
+"YouTube, un bloc à part sur ses propres lignes : ```youtube puis "
+"l'identifiant à onze caractères de la vidéo, puis ``` ."
+msgstr ""
+"Markdown formatting: headings with ##, lists with -, emphasis with *…* or "
+"**…**, links as [text](url). For an image from the poll's library (“Images” "
+"tab): ![alt text](image:NUMBER). For a YouTube video, a fenced block on its "
+"own lines: ```youtube then the video's eleven-character id, then ``` ."
+
+#: src/apps/backoffice/forms.py:254
 msgid "Fuseau horaire inconnu."
 msgstr "Unknown timezone."
 
-#: src/apps/backoffice/forms.py:257
+#: src/apps/backoffice/forms.py:264
 msgid "La clôture doit suivre l'ouverture."
 msgstr "Closing must come after opening."
 
-#: src/apps/backoffice/forms.py:261
+#: src/apps/backoffice/forms.py:268
 msgid "La fin de saisie des bulletins papier ne peut précéder la clôture."
 msgstr "The paper-entry deadline cannot come before closing."
 
-#: src/apps/backoffice/forms.py:305
+#: src/apps/backoffice/forms.py:312
 msgid "Scrutin bac à sable"
 msgstr "Sandbox poll"
 
-#: src/apps/backoffice/forms.py:308
+#: src/apps/backoffice/forms.py:315
 msgid ""
 "Fixé pour toujours : un scrutin bac à sable n'apparaît sur aucune page "
 "publique, aucun résultat publié et aucune statistique."
@@ -644,13 +657,13 @@ msgstr ""
 "Fixed for good: a sandbox poll appears on no public page, no published "
 "result and no statistic."
 
-#: src/apps/backoffice/forms.py:319 src/apps/backoffice/forms.py:697
+#: src/apps/backoffice/forms.py:326 src/apps/backoffice/forms.py:705
 #: src/templates/backoffice/account_admin.html:39
 #: src/templates/backoffice/login.html:19
 msgid "Identifiant"
 msgstr "Username"
 
-#: src/apps/backoffice/forms.py:323
+#: src/apps/backoffice/forms.py:330
 msgid ""
 "Court, sans espace ni accent. Porté par les bulletins et le résultat "
 "publié : ne le modifiez pas après l'ouverture."
@@ -658,66 +671,67 @@ msgstr ""
 "Short, no spaces or accents. Carried by the ballots and the published "
 "result: do not change it after opening."
 
-#: src/apps/backoffice/forms.py:333
+#: src/apps/backoffice/forms.py:340
 #, python-format
 msgid "Intitulé (%(lang)s)"
 msgstr "Label (%(lang)s)"
 
-#: src/apps/backoffice/forms.py:342
+#: src/apps/backoffice/forms.py:349
 #, python-format
 msgid "Description étendue (%(lang)s)"
 msgstr "Extended description (%(lang)s)"
 
-#: src/apps/backoffice/forms.py:344
+#: src/apps/backoffice/forms.py:351
 msgid ""
 "Facultatif. Mise en forme Markdown : titres avec ##, listes avec -, emphase "
-"avec *…* ou **…**, liens en [texte](url). Pour une image déjà déposée ci-"
-"dessous : ![texte alternatif](image:IDENTIFIANT). Pour une vidéo YouTube, un "
-"bloc à part sur ses propres lignes : ```youtube puis l'identifiant à onze "
-"caractères de la vidéo, puis ``` ."
+"avec *…* ou **…**, liens en [texte](url). Pour une image de la bibliothèque "
+"du scrutin (onglet « Images ») : ![texte alternatif](image:NUMÉRO). Pour une "
+"vidéo YouTube, un bloc à part sur ses propres lignes : ```youtube puis "
+"l'identifiant à onze caractères de la vidéo, puis ``` ."
 msgstr ""
 "Optional. Markdown formatting: headings with ##, lists with -, emphasis with "
-"*…* or **…**, links as [text](url). For an image already uploaded below: !"
-"[alt text](image:IDENTIFIER). For a YouTube video, a fenced block on its own "
-"lines: ```youtube then the video's eleven-character id, then ``` ."
+"*…* or **…**, links as [text](url). For an image from the poll's library "
+"(“Images” tab): ![alt text](image:NUMBER). For a YouTube video, a fenced "
+"block on its own lines: ```youtube then the video's eleven-character id, "
+"then ``` ."
 
-#: src/apps/backoffice/forms.py:364
+#: src/apps/backoffice/forms.py:372
 msgid "Donnez un identifiant à cette proposition."
 msgstr "Give this proposition an identifier."
 
-#: src/apps/backoffice/forms.py:397
+#: src/apps/backoffice/forms.py:405
 msgid "Deux propositions portent le même identifiant."
 msgstr "Two propositions carry the same identifier."
 
-#: src/apps/backoffice/forms.py:399
+#: src/apps/backoffice/forms.py:407
 msgid "Un scrutin comporte au moins deux propositions."
 msgstr "A poll has at least two propositions."
 
-#: src/apps/backoffice/forms.py:420
+#: src/apps/backoffice/forms.py:428
 msgid "Nouvelle date de clôture"
 msgstr "New closing date"
 
-#: src/apps/backoffice/forms.py:422
+#: src/apps/backoffice/forms.py:430
 msgid "Motif (obligatoire)"
 msgstr "Reason (required)"
 
-#: src/apps/backoffice/forms.py:449
+#: src/apps/backoffice/forms.py:457
 msgid "Motif de clôture forcée (si des bulletins attendent un contreseing)"
 msgstr "Reason for forced closure (if any ballots await countersignature)"
 
-#: src/apps/backoffice/forms.py:465
+#: src/apps/backoffice/forms.py:473
 msgid "Formulaires papier conservés par la commune"
 msgstr "Paper forms retained by the commune"
 
-#: src/apps/backoffice/forms.py:468
+#: src/apps/backoffice/forms.py:476
 msgid "Remarques (écart constaté, etc.)"
 msgstr "Remarks (discrepancy noted, etc.)"
 
-#: src/apps/backoffice/forms.py:493
+#: src/apps/backoffice/forms.py:501
 msgid "Motif du retrait (obligatoire)"
 msgstr "Reason for withdrawal (mandatory)"
 
-#: src/apps/backoffice/forms.py:532
+#: src/apps/backoffice/forms.py:540
 msgid ""
 "Méthode majoritaire avec ex æquo autorisés sur le bulletin : un bulletin qui "
 "place plusieurs propositions en tête donne une voix à chacune. C'est "
@@ -728,29 +742,29 @@ msgstr ""
 "several options first gives one vote to each of them. This is rarely "
 "intended for a single-choice question — check one setting or the other."
 
-#: src/apps/backoffice/forms.py:566
+#: src/apps/backoffice/forms.py:574
 msgid "Mot de passe initial"
 msgstr "Initial password"
 
-#: src/apps/backoffice/forms.py:568
+#: src/apps/backoffice/forms.py:576
 msgid "À remettre à la personne, qui le changera à la première connexion."
 msgstr "Hand it to the person, who will change it on first sign-in."
 
-#: src/apps/backoffice/forms.py:575
+#: src/apps/backoffice/forms.py:583
 msgid "Identifiant de connexion"
 msgstr "Sign-in username"
 
-#: src/apps/backoffice/forms.py:576
+#: src/apps/backoffice/forms.py:584
 #: src/templates/backoffice/account_admin.html:40
 msgid "Nom complet"
 msgstr "Full name"
 
-#: src/apps/backoffice/forms.py:577
+#: src/apps/backoffice/forms.py:585
 #: src/templates/backoffice/account_admin.html:41
 msgid "Administrateur de la commune"
 msgstr "Commune administrator"
 
-#: src/apps/backoffice/forms.py:581
+#: src/apps/backoffice/forms.py:589
 msgid ""
 "Gère les comptes et crée les scrutins. Ne donne accès à aucun écran d'un "
 "scrutin : cela demande un rôle sur ce scrutin."
@@ -758,19 +772,19 @@ msgstr ""
 "Manages accounts and creates polls. Grants no access to any poll's own "
 "screens: that needs a role on that poll."
 
-#: src/apps/backoffice/forms.py:613 src/apps/backoffice/forms.py:755
+#: src/apps/backoffice/forms.py:621 src/apps/backoffice/forms.py:763
 msgid "Nom de la commune"
 msgstr "Commune name"
 
-#: src/apps/backoffice/forms.py:615
+#: src/apps/backoffice/forms.py:623
 msgid "Tel qu'il apparaîtra sur les pages publiques et dans la notice."
 msgstr "As it will appear on the public pages and in the notice."
 
-#: src/apps/backoffice/forms.py:618 src/apps/backoffice/forms.py:756
+#: src/apps/backoffice/forms.py:626 src/apps/backoffice/forms.py:764
 msgid "Référent données personnelles"
 msgstr "Data-protection referent"
 
-#: src/apps/backoffice/forms.py:621
+#: src/apps/backoffice/forms.py:629
 msgid ""
 "Personne ou service qui répond aux demandes d'accès, de rectification et "
 "d'effacement des électeurs."
@@ -778,19 +792,19 @@ msgstr ""
 "Person or office that answers electors' access, rectification and erasure "
 "requests."
 
-#: src/apps/backoffice/forms.py:626 src/apps/backoffice/forms.py:757
+#: src/apps/backoffice/forms.py:634 src/apps/backoffice/forms.py:765
 msgid "Contact du référent"
 msgstr "Referent's contact"
 
-#: src/apps/backoffice/forms.py:628 src/apps/core/models.py:90
+#: src/apps/backoffice/forms.py:636 src/apps/core/models.py:90
 msgid "Adresse électronique ou postale, publiée dans la notice d'information."
 msgstr "Email or postal address, published in the information notice."
 
-#: src/apps/backoffice/forms.py:631 src/apps/backoffice/forms.py:758
+#: src/apps/backoffice/forms.py:639 src/apps/backoffice/forms.py:766
 msgid "Adresse du site"
 msgstr "Site address"
 
-#: src/apps/backoffice/forms.py:635
+#: src/apps/backoffice/forms.py:643
 msgid ""
 "Ex. : https://votecommune.fr — sans barre oblique finale. Laissez vide pour "
 "utiliser l'adresse configurée au déploiement ; modifiable ensuite depuis "
@@ -800,52 +814,52 @@ msgstr ""
 "address configured at deployment; changeable afterwards from the “Commune "
 "settings” screen."
 
-#: src/apps/backoffice/forms.py:642
+#: src/apps/backoffice/forms.py:650
 msgid "Identifiant de connexion de l'administrateur"
 msgstr "Administrator's sign-in username"
 
-#: src/apps/backoffice/forms.py:647
+#: src/apps/backoffice/forms.py:655
 msgid "Nom complet de l'administrateur"
 msgstr "Administrator's full name"
 
-#: src/apps/backoffice/forms.py:649
+#: src/apps/backoffice/forms.py:657
 msgid "Le journal d'audit nomme une personne, pas une fonction."
 msgstr "The audit log names a person, not an office."
 
-#: src/apps/backoffice/forms.py:651 src/apps/backoffice/forms.py:684
+#: src/apps/backoffice/forms.py:659 src/apps/backoffice/forms.py:692
 #: src/templates/backoffice/login.html:23
 msgid "Mot de passe"
 msgstr "Password"
 
-#: src/apps/backoffice/forms.py:653
+#: src/apps/backoffice/forms.py:661
 msgid "Confirmer le mot de passe"
 msgstr "Confirm the password"
 
-#: src/apps/backoffice/forms.py:670
+#: src/apps/backoffice/forms.py:678
 msgid "Les deux mots de passe diffèrent."
 msgstr "The two passwords differ."
 
-#: src/apps/backoffice/forms.py:687
+#: src/apps/backoffice/forms.py:695
 msgid "Laissez vide pour conserver le mot de passe déjà enregistré."
 msgstr "Leave blank to keep the password already stored."
 
-#: src/apps/backoffice/forms.py:694
+#: src/apps/backoffice/forms.py:702
 msgid "Serveur SMTP"
 msgstr "SMTP server"
 
-#: src/apps/backoffice/forms.py:695
+#: src/apps/backoffice/forms.py:703
 msgid "Port"
 msgstr "Port"
 
-#: src/apps/backoffice/forms.py:696
+#: src/apps/backoffice/forms.py:704
 msgid "Chiffrement"
 msgstr "Encryption"
 
-#: src/apps/backoffice/forms.py:698
+#: src/apps/backoffice/forms.py:706
 msgid "Adresse d'expédition"
 msgstr "Sending address"
 
-#: src/apps/backoffice/forms.py:703
+#: src/apps/backoffice/forms.py:711
 msgid ""
 "Le port dépend du chiffrement choisi ci-dessous : 587 pour STARTTLS, 465 "
 "pour SSL/TLS implicite, 25 sans chiffrement — à vérifier auprès de "
@@ -854,7 +868,7 @@ msgstr ""
 "The port depends on the encryption chosen below: 587 for STARTTLS, 465 for "
 "implicit SSL/TLS, 25 with no encryption — check with your mail host."
 
-#: src/apps/backoffice/forms.py:708
+#: src/apps/backoffice/forms.py:716
 msgid ""
 "STARTTLS : connexion normale puis passage en chiffré (le plus courant). SSL/"
 "TLS implicite : chiffré dès la connexion. Aucun : à réserver à un relais "
@@ -865,24 +879,24 @@ msgstr ""
 "reserve this for a trusted internal relay, never for sending over the "
 "internet."
 
-#: src/apps/backoffice/forms.py:717
+#: src/apps/backoffice/forms.py:725
 msgid "Le port doit être compris entre 1 et 65535."
 msgstr "The port must be between 1 and 65535."
 
-#: src/apps/backoffice/forms.py:724
+#: src/apps/backoffice/forms.py:732
 msgid "Adresse de test"
 msgstr "Test address"
 
-#: src/apps/backoffice/forms.py:734
+#: src/apps/backoffice/forms.py:742
 #: src/templates/backoffice/template_admin.html:23
 msgid "Nom du modèle"
 msgstr "Template name"
 
-#: src/apps/backoffice/forms.py:759 src/templates/base.html:141
+#: src/apps/backoffice/forms.py:767 src/templates/base.html:141
 msgid "Mentions légales"
 msgstr "Legal notice"
 
-#: src/apps/backoffice/forms.py:760
+#: src/apps/backoffice/forms.py:768
 msgid "Afficher le nom de la commune à côté du logo"
 msgstr "Show the commune name next to the logo"
 
@@ -1068,15 +1082,15 @@ msgstr "Configuration saved."
 msgid "Date de clôture repoussée."
 msgstr "Closing date extended."
 
-#: src/apps/backoffice/views.py:647
+#: src/apps/backoffice/views.py:648
 msgid "Action réservée à l'administrateur du scrutin."
 msgstr "Action reserved to the poll administrator."
 
-#: src/apps/backoffice/views.py:661
+#: src/apps/backoffice/views.py:662
 msgid "Lien de partage généré."
 msgstr "Share link generated."
 
-#: src/apps/backoffice/views.py:671
+#: src/apps/backoffice/views.py:672
 msgid "Lien de partage révoqué."
 msgstr "Share link revoked."
 
@@ -1409,11 +1423,11 @@ msgstr ""
 msgid "Le rapprochement a déjà été enregistré pour ce scrutin."
 msgstr "Reconciliation has already been recorded for this poll."
 
-#: src/apps/ballots/views.py:112 src/apps/ballots/views.py:266
+#: src/apps/ballots/views.py:113 src/apps/ballots/views.py:272
 msgid "Lien non valide"
 msgstr "Invalid link"
 
-#: src/apps/ballots/views.py:114
+#: src/apps/ballots/views.py:115
 msgid ""
 "Ce lien n'est pas valide. Vérifiez que vous l'avez copié en entier ; en cas "
 "de doute, adressez-vous à la mairie."
@@ -1421,11 +1435,11 @@ msgstr ""
 "This link is not valid. Check that you copied it in full; if in doubt, "
 "contact the town hall."
 
-#: src/apps/ballots/views.py:245
+#: src/apps/ballots/views.py:251
 msgid "Rendez-vous en mairie"
 msgstr "Visit the town hall"
 
-#: src/apps/ballots/views.py:247
+#: src/apps/ballots/views.py:253
 msgid ""
 "Vous avez un bulletin papier pour cette consultation. Le vote en ligne n'est "
 "donc pas possible ; toute modification se fait en mairie."
@@ -1433,11 +1447,11 @@ msgstr ""
 "You have a paper ballot for this consultation. Online voting is therefore "
 "not possible; any change is made at the town hall."
 
-#: src/apps/ballots/views.py:252
+#: src/apps/ballots/views.py:258
 msgid "Bulletin déjà enregistré"
 msgstr "Ballot already recorded"
 
-#: src/apps/ballots/views.py:254
+#: src/apps/ballots/views.py:260
 msgid ""
 "Votre bulletin a été enregistré. Ce scrutin n'autorise pas sa modification, "
 "et le lien reçu par courriel ne peut plus servir."
@@ -1445,11 +1459,11 @@ msgstr ""
 "Your ballot has been recorded. This poll does not permit modifying it, and "
 "the link you received by email can no longer be used."
 
-#: src/apps/ballots/views.py:259
+#: src/apps/ballots/views.py:265
 msgid "Vote indisponible"
 msgstr "Voting unavailable"
 
-#: src/apps/ballots/views.py:261
+#: src/apps/ballots/views.py:267
 msgid ""
 "Ce lien ne donne pas accès à un bulletin : l'inscription n'est pas active, "
 "ou le scrutin n'est pas ouvert au vote en ligne."
@@ -1457,7 +1471,7 @@ msgstr ""
 "This link does not give access to a ballot: the registration is not active, "
 "or the poll is not open for online voting."
 
-#: src/apps/ballots/views.py:267
+#: src/apps/ballots/views.py:273
 msgid "Ce lien n'est pas valide. En cas de doute, adressez-vous à la mairie."
 msgstr "This link is not valid. If in doubt, contact the town hall."
 
@@ -1638,8 +1652,8 @@ msgstr "The tally reports no tie to break."
 msgid "L'ordre saisi doit reprendre chaque proposition à égalité, une fois."
 msgstr "The order entered must list each tied proposition exactly once."
 
-#: src/apps/elections/config.py:169 src/apps/elections/optionimages.py:52
-#: src/apps/elections/optionimages.py:93
+#: src/apps/elections/config.py:169 src/apps/elections/pollimages.py:54
+#: src/apps/elections/pollimages.py:99
 msgid "La configuration est figée : le scrutin n'est plus en brouillon."
 msgstr "The configuration is frozen: the poll is no longer in draft."
 
@@ -1740,47 +1754,47 @@ msgstr "Configuration is frozen outside draft: %(fields)s"
 msgid "(scrutin sans titre)"
 msgstr "(untitled poll)"
 
-#: src/apps/elections/models.py:342
+#: src/apps/elections/models.py:355
 msgid "texte alternatif"
 msgstr "alt text"
 
-#: src/apps/elections/models.py:377
+#: src/apps/elections/models.py:391
 msgid "nom"
 msgstr "name"
 
-#: src/apps/elections/models.py:405
+#: src/apps/elections/models.py:419
 msgid "modèle de scrutin"
 msgstr "poll template"
 
-#: src/apps/elections/models.py:406
+#: src/apps/elections/models.py:420
 msgid "modèles de scrutin"
 msgstr "poll templates"
 
-#: src/apps/elections/models.py:421
+#: src/apps/elections/models.py:435
 msgid "nom de naissance"
 msgstr "birth surname"
 
-#: src/apps/elections/models.py:424
+#: src/apps/elections/models.py:438
 msgid "nom d'usage"
 msgstr "name in use"
 
-#: src/apps/elections/models.py:425
+#: src/apps/elections/models.py:439
 msgid "prénoms"
 msgstr "forenames"
 
-#: src/apps/elections/models.py:429
+#: src/apps/elections/models.py:443
 msgid "date de naissance"
 msgstr "date of birth"
 
-#: src/apps/elections/models.py:461
+#: src/apps/elections/models.py:475
 msgid "électeur inscrit"
 msgstr "registered elector"
 
-#: src/apps/elections/models.py:462
+#: src/apps/elections/models.py:476
 msgid "liste électorale figée"
 msgstr "frozen electoral roll"
 
-#: src/apps/elections/optionimages.py:55 src/apps/elections/optionimages.py:58
+#: src/apps/elections/pollimages.py:57 src/apps/elections/pollimages.py:60
 msgid "Image trop volumineuse (5 Mo maximum)."
 msgstr "Image too large (5 MB maximum)."
 
@@ -2146,38 +2160,38 @@ msgstr ""
 msgid "Annoncer le scrutin maintenant"
 msgstr "Announce the poll now"
 
-#: src/templates/backoffice/_poll_config_images_panel.html:21
-msgid "Images des propositions"
-msgstr "Proposition images"
+#: src/templates/backoffice/_poll_config_images_panel.html:23
+msgid "Images du scrutin"
+msgstr "Poll images"
 
-#: src/templates/backoffice/_poll_config_images_panel.html:28
+#: src/templates/backoffice/_poll_config_images_panel.html:24
 msgid ""
-"Enregistrez d'abord une proposition dans l'onglet « Propositions » pour lui "
-"ajouter des images ; elle apparaît ensuite ici. Recopiez le repère "
-"« image:… » affiché sous chaque image dans le texte de sa description "
-"étendue, entre parenthèses : ![texte alternatif](image:…)"
+"Une bibliothèque commune au scrutin : recopiez le repère « image:… » affiché "
+"sous chaque image dans le texte de la description du scrutin ou de la "
+"description étendue d'une proposition, entre parenthèses : ![texte "
+"alternatif](image:…)"
 msgstr ""
-"First save a proposition in the “Propositions” tab to add images to it; it "
-"then appears here. Copy the “image:…” tag shown under each image into its "
-"extended-description text, in parentheses: ![alt text](image:…)"
+"A library shared by the whole poll: copy the “image:…” tag shown under each "
+"image into the poll's own description or an option's extended-description "
+"text, in parentheses: ![alt text](image:…)"
 
-#: src/templates/backoffice/_poll_config_images_panel.html:38
-msgid "Repère à recopier dans la description"
-msgstr "Tag to copy into the description"
+#: src/templates/backoffice/_poll_config_images_panel.html:31
+msgid "Repère à recopier dans une description"
+msgstr "Tag to copy into a description"
 
-#: src/templates/backoffice/_poll_config_images_panel.html:43
+#: src/templates/backoffice/_poll_config_images_panel.html:36
 msgid "Supprimer cette image"
 msgstr "Delete this image"
 
-#: src/templates/backoffice/_poll_config_images_panel.html:54
+#: src/templates/backoffice/_poll_config_images_panel.html:47
 msgid "Ajouter une image"
 msgstr "Add an image"
 
-#: src/templates/backoffice/_poll_config_images_panel.html:59
+#: src/templates/backoffice/_poll_config_images_panel.html:52
 msgid "Texte alternatif"
 msgstr "Alt text"
 
-#: src/templates/backoffice/_poll_config_images_panel.html:62
+#: src/templates/backoffice/_poll_config_images_panel.html:55
 msgid "Ajouter"
 msgstr "Add"
 
@@ -3408,9 +3422,9 @@ msgid ""
 "consultation à l'autre, tout comme le projet lui-même."
 msgstr ""
 "Generates a link impossible to guess that lets anyone holding it view this "
-"preview without an espace mairie account. Unlike announcing, this link "
-"does not freeze the configuration: the page may change between two "
-"visits, exactly as the draft itself may."
+"preview without an espace mairie account. Unlike announcing, this link does "
+"not freeze the configuration: the page may change between two visits, "
+"exactly as the draft itself may."
 
 #: src/templates/backoffice/poll_preview.html:28
 msgid "Lien de partage"
@@ -4621,9 +4635,9 @@ msgid ""
 "page. Le scrutin est encore en brouillon et sa configuration peut changer "
 "avant l'annonce."
 msgstr ""
-"Preview shared by the poll administrator: this link is confidential — "
-"only pass it on to people you want to see this page. The poll is still a "
-"draft and its configuration may change before it is announced."
+"Preview shared by the poll administrator: this link is confidential — only "
+"pass it on to people you want to see this page. The poll is still a draft "
+"and its configuration may change before it is announced."
 
 #: src/templates/publicsite/results.html:10
 #, python-format
@@ -4949,6 +4963,9 @@ msgstr ""
 #: src/templates/registrations/submitted.html:31
 msgid "Aucune démarche supplémentaire n'est nécessaire de votre part."
 msgstr "Nothing further is required of you."
+
+#~ msgid "Images des propositions"
+#~ msgstr "Proposition images"
 
 #~ msgid ""
 #~ "Le scrutin s'ouvre normalement tout seul à la date d'ouverture "

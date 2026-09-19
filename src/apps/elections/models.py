@@ -274,11 +274,11 @@ class PollOption(models.Model):
     # a translation gate the way title/description/label are (§3.8) — a
     # language missing this shows the poll's default-language text instead,
     # or nothing where that is absent too (Poll.translate). Raw Markdown;
-    # apps.elections.optioncontent renders it to sanitised HTML at *display*
+    # apps.elections.richtext renders it to sanitised HTML at *display*
     # time, never at save time, so a fix to that pipeline reaches every poll's
     # content immediately, past and present. Sits on this same row, so it is
     # already covered by the ``inv6_option_*_frozen`` triggers below — no
-    # trigger change needed for this field, only for ``OptionImage``.
+    # trigger change needed for this field, only for ``PollImage``.
     details_i18n = models.JSONField(default=dict, blank=True)
     position = models.PositiveIntegerField(default=0)
 
@@ -298,42 +298,55 @@ class PollOption(models.Model):
         return self.poll.translate(self.details_i18n, language)
 
 
-def _option_image_extension(content_type: str) -> str:
+def option_image_path(instance: models.Model, filename: str) -> str:
+    """Frozen for migration 0008's ``upload_to`` reference only (superseded by
+    ``poll_image_path`` below, migration 0011, R-3.12) — Django resolves a
+    historical migration's ``upload_to`` by importing this exact attribute
+    every time the migration graph is built from zero, so it must keep
+    existing rather than move or disappear with the model it used to serve.
+    """
+    ext = images.EXTENSIONS[instance.content_type]  # type: ignore[attr-defined]
+    return f"option-images/{instance.option_id}/{instance.content_hash}{ext}"  # type: ignore[attr-defined]
+
+
+def _poll_image_extension(content_type: str) -> str:
     return images.EXTENSIONS[content_type]
 
 
-def option_image_path(instance: OptionImage, filename: str) -> str:
+def poll_image_path(instance: PollImage, filename: str) -> str:
     """Content-addressed (R-3.12, §3.1 bis): named after the SHA-256 digest of
     the bytes themselves, not the upload's own filename, so a re-upload of
-    edited content can never land at the path a frozen ``details_i18n``
-    reference already points to — it gets a new digest, a new path and a new
-    row instead (apps.elections.optionimages).
-
-    ``instance.option_id`` here is the ``option`` foreign key's own
-    Django-generated attribute — the referenced ``PollOption``'s primary key
-    — not that unrelated model's own ``option_id`` slug field, which is
-    unique only within its poll and would collide across polls.
+    edited content can never land at the path a frozen ``description_i18n``
+    or ``details_i18n`` reference already points to — it gets a new digest, a
+    new path and a new row instead (apps.elections.pollimages).
     """
-    ext = _option_image_extension(instance.content_type)
-    return f"option-images/{instance.option_id}/{instance.content_hash}{ext}"
+    ext = _poll_image_extension(instance.content_type)
+    return f"poll-images/{instance.poll_id}/{instance.content_hash}{ext}"
 
 
-class OptionImage(models.Model):
-    """An image usable from one option's extended description (R-3.12).
+class PollImage(models.Model):
+    """One image in a poll's shared library (R-3.12, §3.1 bis).
 
-    Frozen alongside its option once the poll leaves ``draft``, for the same
-    reason as the option itself (INV-6, §5.1): the ``inv6_optionimage_*_frozen``
-    triggers of migration 0008 refuse every write once the owning poll is not
-    ``draft``, since a new or changed image after freeze would let a public
-    page change under a viewer's eyes exactly as an edited label would (R-3.3,
-    R-3.10). Re-uploading identical bytes is a no-op at the service layer
-    (``apps.elections.optionimages.add_option_image``), and the unique
-    constraint below is the layer under that.
+    Uploaded once at the poll level, not per option: the poll's own
+    description and every option's extended description draw on the same
+    library, each image referenced by its ``short_id`` — sequential per poll,
+    assigned by ``apps.elections.pollimages.add_poll_image`` rather than a
+    database ``AUTOINCREMENT``, so it can be computed under the same
+    transaction as the hash-dedupe check below.
+
+    Frozen alongside the rest of the configuration once the poll leaves
+    ``draft`` (INV-6, §5.1): the ``inv6_pollimage_*_frozen`` triggers refuse
+    every write once the owning poll is not ``draft``, since a new or changed
+    image after freeze would let a public page change under a viewer's eyes
+    exactly as an edited label would (R-3.3, R-3.10). Re-uploading identical
+    bytes is a no-op at the service layer, and the unique constraint below is
+    the layer under that.
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    option = models.ForeignKey(PollOption, on_delete=models.CASCADE, related_name="images")
-    file = models.FileField(upload_to=option_image_path)
+    poll = models.ForeignKey(Poll, on_delete=models.CASCADE, related_name="images")
+    short_id = models.PositiveIntegerField()
+    file = models.FileField(upload_to=poll_image_path)
     #: A sniffed MIME type — ``image/png`` and friends — never the upload's own
     #: claim, checked before this row exists (§14, the same reasoning §6.1
     #: gives for not trusting a CSV's declared encoding).
@@ -343,15 +356,16 @@ class OptionImage(models.Model):
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ["uploaded_at"]
+        ordering = ["short_id"]
         constraints = [
+            models.UniqueConstraint(fields=["poll", "short_id"], name="uniq_poll_image_short_id"),
             models.UniqueConstraint(
-                fields=["option", "content_hash"], name="uniq_option_image_content"
-            )
+                fields=["poll", "content_hash"], name="uniq_poll_image_content"
+            ),
         ]
 
     def __str__(self) -> str:
-        return f"{self.option_id}:{self.content_hash[:8]}"
+        return f"{self.poll_id}:{self.short_id}"
 
 
 class PollTemplate(models.Model):

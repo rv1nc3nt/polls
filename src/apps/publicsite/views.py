@@ -30,7 +30,7 @@ from django.utils.dateparse import parse_datetime
 from django.utils.translation import gettext as _
 
 from apps.audit.models import Action, AuditEvent, Reason
-from apps.elections import closure, optioncontent, results_view, windows
+from apps.elections import closure, results_view, richtext, windows
 from apps.elections.models import Poll, PollState
 from apps.registrations.models import Channel, Registration, RegistrationState
 
@@ -218,14 +218,14 @@ def _draft_preview_context(poll: Poll, language: str) -> dict[str, object]:
     return {
         "title": title,
         "breadcrumbs": [{"label": title}],
-        "description": poll.description(language),
+        "description_html": richtext.render_poll_description(poll, language),
         "options": [
             {
                 "option_id": option.option_id,
                 "label": option.label(language),
                 # R-3.12, §3.1 bis: optional, so this is often empty — never
                 # a reason not to show the proposition itself.
-                "details_html": optioncontent.render_option_details(option, language),
+                "details_html": richtext.render_option_details(option, language),
             }
             for option in poll.options.all()
         ],

@@ -1158,11 +1158,11 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 .youtube-embed { position: relative; width: 100%; max-width: var(--measure); aspect-ratio: 16 / 9; margin: 0.5rem 0; }
 .youtube-embed iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 
-/* ---- screen 2's per-proposition image manager (§6.5.2, R-3.12) ----- */
+/* ---- screen 2's poll image library (§6.5.2, R-3.12) ---------------- */
 
-.option-images { list-style: none; padding: 0; margin: 0 0 0.75rem; display: flex; flex-wrap: wrap; gap: 0.75rem; }
-.option-images li { display: flex; flex-direction: column; gap: 0.3rem; }
-.option-images__thumb { width: 8rem; height: 8rem; object-fit: cover; border-radius: 4px; border: 1px solid var(--rule-soft); }
+.poll-images { list-style: none; padding: 0; margin: 0 0 0.75rem; display: flex; flex-wrap: wrap; gap: 0.75rem; }
+.poll-images li { display: flex; flex-direction: column; gap: 0.3rem; }
+.poll-images__thumb { width: 8rem; height: 8rem; object-fit: cover; border-radius: 4px; border: 1px solid var(--rule-soft); }
 
 /* ---- screen 14's logo and favicon (§6.5.14) ------------------------ */
 

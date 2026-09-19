@@ -34,6 +34,7 @@ from django.utils.translation import gettext as _
 from apps.core import tokensession
 from apps.core.codes import format_tracking_code
 from apps.core.types import BallotHash, Token, TrackingCode
+from apps.elections import richtext
 from apps.elections.models import Poll
 from apps.elections.windows import WindowClosed, check_ballot_window
 from apps.registrations import services as registrations
@@ -166,7 +167,12 @@ def access(request: HttpRequest, poll_id: str, token: str) -> HttpResponse:
             )
             return tokensession.protect(redirect("ballots:receipt", poll_id=str(poll.pk)))
 
-    return tokensession.protect(render(request, "ballots/cast.html", {"poll": poll, "form": form}))
+    context = {
+        "poll": poll,
+        "form": form,
+        "description_html": richtext.render_poll_description(poll, request.LANGUAGE_CODE),
+    }
+    return tokensession.protect(render(request, "ballots/cast.html", context))
 
 
 @_protect_404

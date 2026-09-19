@@ -750,4 +750,36 @@ mutability item 13 objected to is accepted here, not engineered around,
 because unlike that rejected design this one is never publicly listed: only
 someone the admin deliberately handed the link to can see it change.
 
+## 21. R-3.12's images moved from per-option to a shared per-poll library
+
+**Specification, R-3.12 (as first written).** Each option could carry an
+extended description with images, one `OptionImage` row per option
+(`option-images/<option_id>/<hash>`), addressed in Markdown by the image's
+UUID.
+
+**What changed and why.** Two gaps this design left: the poll's own
+description (R-3.1) had no equivalent formatting at all, and the same
+photograph reused across two options — a common case for a municipal
+consultation illustrating one proposed layout from two angles, say — had to
+be uploaded twice, as two unrelated rows with two different ids. Both are
+requirements gaps, not implementation ones, so R-3.12 itself was rewritten
+(cahier-des-charges.md/requirements-en.md, same commit) rather than patched
+around: a poll now holds one small image library, uploaded once at the poll
+level, and both the poll's own description and every option's extended
+description draw on it by a short `image:<n>` reference — sequential per
+poll, not the image's UUID, since an operator retyping it while drafting
+never has the row open to copy a UUID from.
+
+**What the code does.** `OptionImage` (migration 0008) is replaced outright by
+`PollImage` (migration 0011, `elections.PollImage`, FK to `Poll` rather than
+`PollOption`, `short_id` assigned sequentially by
+`apps.elections.pollimages.add_poll_image`). No migration path for existing
+rows: pre-1.0, no deployment had data to carry through. `apps.elections.richtext`
+(renamed from `optioncontent`) gained `render_poll_description` alongside the
+existing `render_option_details`, both delegating to one private renderer so
+the image-resolution/YouTube/Markdown/sanitiser pipeline of §3.1 bis is
+defined once.
+
+**Settled (2026-09-19).**
+
 **Settled (2026-09-19).**

@@ -1,18 +1,21 @@
 # SPDX-License-Identifier: 0BSD
-"""Renders an option's extended description (R-3.12, §3.1 bis).
+"""Renders a poll's own description and each option's extended description
+(R-3.12, §3.1 bis).
 
-``PollOption.details_i18n`` stores raw Markdown. It is rendered to sanitised
-HTML here, at *display* time, never at save time: a fix to the allowed-tag
-set or the YouTube pattern below then reaches every poll's content
-immediately, past and present, with no backfill migration.
+``Poll.description_i18n`` and ``PollOption.details_i18n`` both store raw
+Markdown. It is rendered to sanitised HTML here, at *display* time, never at
+save time: a fix to the allowed-tag set or the YouTube pattern below then
+reaches every poll's content immediately, past and present, with no backfill
+migration.
 
 Three pieces of untrusted input, handled in a fixed order so each is closed
 off before the next could reopen it:
 
-1. An ``image:<uuid>`` reference is resolved to a real media URL before the
-   text ever reaches the Markdown parser, and only to an image that belongs
-   to *this* option — a reference to another option's or another poll's
-   image id is silently dropped rather than followed.
+1. An ``image:<short_id>`` reference is resolved to a real media URL before
+   the text ever reaches the Markdown parser, and only to an image that
+   belongs to *this* poll's shared library — a reference to another poll's
+   image id, or to one that does not exist, is silently dropped rather than
+   followed.
 2. A YouTube embed is never markup the operator wrote. It is recognised in
    one of two forms — a fenced ``youtube`` block carrying a bare video id, or
    a ``youtube.com``/``youtu.be`` URL standing alone on its own line — by a
@@ -38,7 +41,7 @@ import markdown as _markdown
 import nh3
 from django.utils.safestring import SafeString, mark_safe
 
-from .models import OptionImage, PollOption
+from .models import Poll, PollImage, PollOption
 
 #: YouTube video ids are exactly eleven characters of this alphabet. Anything
 #: else — in the fenced block or captured from a URL — is not a video id, and
@@ -56,12 +59,10 @@ _YOUTUBE_URL_LINE = re.compile(
     r"[ \t]*$",
     re.MULTILINE,
 )
-#: Only the image syntax §3.1 bis names, ``![alt](image:<uuid>)`` — not a bare
-#: ``(image:<uuid>)`` inside an ordinary link like ``[text](image:<uuid>)``,
-#: which the unanchored form used to match too. Harmless in practice (the
-#: resolved target is always this option's own self-hosted file), but wider
-#: than the syntax the spec and T-79 describe.
-_IMAGE_REF = re.compile(r"!\[([^\]]*)\]\(image:([0-9a-fA-F-]{36})\)")
+#: Only the image syntax §3.1 bis names, ``![alt](image:<short_id>)`` — not a
+#: bare ``(image:<short_id>)`` inside an ordinary link like
+#: ``[text](image:<short_id>)``, which the unanchored form used to match too.
+_IMAGE_REF = re.compile(r"!\[([^\]]*)\]\(image:(\d+)\)")
 
 _ALLOWED_TAGS = {
     "p",
@@ -81,6 +82,11 @@ _ALLOWED_TAGS = {
 _ALLOWED_ATTRIBUTES = {"a": {"href", "title"}, "img": {"src", "alt", "title"}}
 
 
+def render_poll_description(poll: Poll, language: str | None = None) -> SafeString:
+    """The sanitised HTML for a poll's own description (R-3.1, R-3.12)."""
+    return _render(poll, poll.description(language))
+
+
 def render_option_details(option: PollOption, language: str | None = None) -> SafeString:
     """The sanitised HTML for one option's extended description.
 
@@ -88,7 +94,10 @@ def render_option_details(option: PollOption, language: str | None = None) -> Sa
     never an error and never, per R-3.12, a reason to block anything: absent
     content here is a normal outcome, not a gap the dashboard names.
     """
-    raw = option.details(language)
+    return _render(option.poll, option.details(language))
+
+
+def _render(poll: Poll, raw: str) -> SafeString:
     if not raw:
         return mark_safe("")
 
@@ -117,7 +126,7 @@ def render_option_details(option: PollOption, language: str | None = None) -> Sa
     # can never itself satisfy `_YOUTUBE_URL_LINE`'s "alone on its own line"
     # test — but a future change to either pattern should not have to
     # rediscover that the order was supposed to matter.
-    text = _IMAGE_REF.sub(lambda m: _resolve_image(option, m), raw)
+    text = _IMAGE_REF.sub(lambda m: _resolve_image(poll, m), raw)
     text = _YOUTUBE_BLOCK.sub(_extract_embed, text)
     text = _YOUTUBE_URL_LINE.sub(_extract_url_embed, text)
 
@@ -137,13 +146,10 @@ def render_option_details(option: PollOption, language: str | None = None) -> Sa
     return mark_safe(clean)  # noqa: S308 — `clean` is nh3's own output, sanitised just above
 
 
-def _resolve_image(option: PollOption, match: re.Match[str]) -> str:
+def _resolve_image(poll: Poll, match: re.Match[str]) -> str:
     alt = match.group(1)
-    try:
-        image_id = uuid.UUID(match.group(2))
-    except ValueError:
-        return ""
-    image = OptionImage.objects.filter(pk=image_id, option=option).first()
+    short_id = int(match.group(2))
+    image = PollImage.objects.filter(poll=poll, short_id=short_id).first()
     if image is None:
         return ""
     return f"![{alt}]({image.file.url})"
