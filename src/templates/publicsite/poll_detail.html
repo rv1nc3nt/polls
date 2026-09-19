@@ -68,10 +68,19 @@
           {% comment %}
             R-3.12, §3.1 bis: optional, so often empty — rendered HTML,
             already sanitised by apps.elections.richtext at view time,
-            never at save time.
+            never at save time. The full text always renders here — the
+            data-details-preview-length attribute only tells
+            static/js/option-details-dialog.js how long is too long for the
+            tab panel; without that script the whole text stays exactly as
+            rendered, nothing hidden (R-14.1).
           {% endcomment %}
           {% if option.details_html %}
-            <div class="option-details">{{ option.details_html }}</div>
+            <div class="option-details"
+                 data-details-preview
+                 data-details-preview-length="{{ option_details_preview_length }}"
+                 data-details-title="{{ option.label }}"
+                 data-details-more-label="{% translate 'Lire la suite' %}"
+                 data-details-close-label="{% translate 'Fermer' %}">{{ option.details_html }}</div>
           {% else %}
             <p class="help">{% translate "Aucune description complémentaire pour cette proposition." %}</p>
           {% endif %}
@@ -163,5 +172,6 @@
 
 {% block body_end %}
   <script src="{% static 'js/tabs.js' %}" defer></script>
+  <script src="{% static 'js/option-details-dialog.js' %}" defer></script>
   <script src="{% static 'js/backtotop.js' %}" defer></script>
 {% endblock %}

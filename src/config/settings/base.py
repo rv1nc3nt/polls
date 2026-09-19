@@ -191,3 +191,10 @@ APP_VERSION = os.environ.get("APP_VERSION", "0.1.0-dev")
 
 # Directory holding job lock files (§14, self-locking commands).
 JOB_LOCK_DIR = Path(os.environ.get("DJANGO_JOB_LOCK_DIR", BASE_DIR / "var" / "locks"))
+
+# Plain-text length past which a proposition's own description (R-3.12, §3.1
+# bis) is clipped with a "Lire la suite" popup instead of stretching its tab
+# panel indefinitely. Configuration, not a constant, same reasoning as
+# RATE_LIMIT_REGISTRATION above: how much text still reads comfortably on one
+# screen is a per-deployment call.
+OPTION_DETAILS_PREVIEW_LENGTH = int(os.environ.get("DJANGO_OPTION_DETAILS_PREVIEW_LENGTH", "1000"))

@@ -230,6 +230,11 @@ def _draft_preview_context(poll: Poll, language: str) -> dict[str, object]:
             for option in poll.options.all()
         ],
         "has_paper_window": poll.paper_entry_deadline > poll.closes_at,
+        # A long proposition description is clipped client-side with a
+        # "Lire la suite" popup (static/js/option-details-dialog.js) rather
+        # than truncated here: the full HTML always renders, so a visitor
+        # with JavaScript off sees exactly the same text, unclipped.
+        "option_details_preview_length": settings.OPTION_DETAILS_PREVIEW_LENGTH,
     }
 
 
