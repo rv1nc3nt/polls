@@ -240,8 +240,10 @@ class PollConfigForm(forms.Form):
                     "*…* ou **…**, liens en [texte](url). Pour une image de la bibliothèque "
                     "du scrutin (onglet « Images ») : ![texte alternatif](image:NUMÉRO), ou "
                     "![](image:NUMÉRO) pour reprendre le texte alternatif saisi à l'ajout de "
-                    "l'image. Pour une vidéo YouTube, un bloc à part sur ses propres lignes : "
-                    "```youtube puis l'identifiant à onze caractères de la vidéo, puis ``` ."
+                    "l'image ; ajoutez :small, :medium ou :large après le numéro pour choisir "
+                    "une taille d'affichage. Pour une vidéo YouTube, un bloc à part sur ses "
+                    "propres lignes : ```youtube puis l'identifiant à onze caractères de la "
+                    "vidéo, puis ``` ."
                 ),
                 widget=forms.Textarea(attrs={"rows": 4}),
                 required=False,
@@ -353,7 +355,8 @@ class OptionForm(forms.Form):
                     "emphase avec *…* ou **…**, liens en [texte](url). Pour une image de la "
                     "bibliothèque du scrutin (onglet « Images ») : "
                     "![texte alternatif](image:NUMÉRO), ou ![](image:NUMÉRO) pour reprendre "
-                    "le texte alternatif saisi à l'ajout de l'image. Pour une "
+                    "le texte alternatif saisi à l'ajout de l'image ; ajoutez :small, :medium "
+                    "ou :large après le numéro pour choisir une taille d'affichage. Pour une "
                     "vidéo YouTube, un bloc à part sur ses propres lignes : "
                     "```youtube puis l'identifiant à onze caractères de la vidéo, puis ``` ."
                 ),

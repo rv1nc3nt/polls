@@ -205,6 +205,67 @@ def test_image_reference_with_empty_alt_falls_back_to_the_library_alt_text(
     assert "Vue depuis la mairie" not in html
 
 
+def test_image_reference_size_suffix_selects_a_css_class(
+    open_window_poll: Poll, admin_user: User
+) -> None:
+    """The optional ``:small``/``:medium``/``:large`` suffix on an
+    ``image:<n>`` reference (docs/specification-decision-log.md #23) picks a
+    display-size class; omitted, the image renders exactly as it always has,
+    with no class attribute at all."""
+    option = open_window_poll.options.first()
+    assert option is not None
+    image = pollimages.add_poll_image(
+        open_window_poll, SimpleUploadedFile("a.png", _PNG), alt_text="Vue", actor=admin_user
+    )
+
+    option.details_i18n = {"fr": f"![](image:{image.short_id}:large)"}
+    option.save(update_fields=["details_i18n"])
+    html = richtext.render_option_details(option)
+    assert 'class="poll-image--large"' in html
+    assert 'alt="Vue"' in html
+    assert image.file.url in html
+
+    option.details_i18n = {"fr": f"![](image:{image.short_id})"}
+    option.save(update_fields=["details_i18n"])
+    assert "class=" not in richtext.render_option_details(option)
+
+
+def test_image_reference_size_suffix_alt_text_is_escaped(
+    open_window_poll: Poll, admin_user: User
+) -> None:
+    """The sized path builds a raw ``<img>`` tag itself (§3.1 bis point 3),
+    so an override alt text carrying a quote must not break out of the
+    attribute it sits in."""
+    option = open_window_poll.options.first()
+    assert option is not None
+    image = pollimages.add_poll_image(
+        open_window_poll, SimpleUploadedFile("a.png", _PNG), alt_text="", actor=admin_user
+    )
+
+    option.details_i18n = {"fr": f'![Une "citation"](image:{image.short_id}:small)'}
+    option.save(update_fields=["details_i18n"])
+    html = richtext.render_option_details(option)
+    assert 'alt="Une &quot;citation&quot;"' in html
+    assert 'class="poll-image--small"' in html
+
+
+def test_image_reference_bad_size_suffix_is_not_recognised(
+    open_window_poll: Poll, admin_user: User
+) -> None:
+    """Only the three named sizes are a size suffix at all — anything else
+    after the colon is just part of an unresolved reference, dropped like any
+    other malformed ``image:`` syntax rather than guessed at."""
+    option = open_window_poll.options.first()
+    assert option is not None
+    image = pollimages.add_poll_image(
+        open_window_poll, SimpleUploadedFile("a.png", _PNG), alt_text="", actor=admin_user
+    )
+
+    option.details_i18n = {"fr": f"![alt](image:{image.short_id}:huge)"}
+    option.save(update_fields=["details_i18n"])
+    assert image.file.url not in richtext.render_option_details(option)
+
+
 def test_a_plain_link_to_an_image_id_is_never_resolved(
     open_window_poll: Poll, admin_user: User
 ) -> None:

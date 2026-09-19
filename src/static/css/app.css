@@ -1152,6 +1152,14 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 .option-details { margin: 0.5rem 0 0.75rem; max-width: var(--measure); }
 .option-details img { border-radius: 4px; }
 
+/* The `:small`/`:medium`/`:large` suffix on an `image:<n>` reference
+   (decision log #23) — applies wherever richtext.py renders one, poll
+   description or option details alike, not just inside .option-details. */
+.poll-image--small, .poll-image--medium, .poll-image--large { display: block; height: auto; max-width: 100%; border-radius: 4px; }
+.poll-image--small { width: min(10rem, 100%); }
+.poll-image--medium { width: min(20rem, 100%); }
+.poll-image--large { width: min(32rem, 100%); }
+
 /* 16:9 responsive wrapper around the one iframe apps.elections.optioncontent
    ever emits — width comes from the surrounding text column, not from the
    iframe's own (fixed, sandboxed) attributes. */

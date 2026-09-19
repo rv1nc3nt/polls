@@ -19,7 +19,10 @@ off before the next could reopen it:
    takes the library's own ``PollImage.alt_text`` rather than emitting an
    image with no alt text: that field is the default, reused everywhere the
    image is embedded; writing something inside the brackets overrides it for
-   that one reference only.
+   that one reference only. An optional ``:small``/``:medium``/``:large``
+   suffix on the reference (``image:<short_id>:large``) picks a display size;
+   omitted, the image renders at its natural size, unchanged from before this
+   suffix existed (docs/specification-decision-log.md #23).
 2. A YouTube embed is never markup the operator wrote. It is recognised in
    one of two forms — a fenced ``youtube`` block carrying a bare video id, or
    a ``youtube.com``/``youtu.be`` URL standing alone on its own line — by a
@@ -40,6 +43,7 @@ from __future__ import annotations
 
 import re
 import uuid
+from html import escape as _escape_attr
 
 import markdown as _markdown
 import nh3
@@ -63,10 +67,20 @@ _YOUTUBE_URL_LINE = re.compile(
     r"[ \t]*$",
     re.MULTILINE,
 )
-#: Only the image syntax §3.1 bis names, ``![alt](image:<short_id>)`` — not a
-#: bare ``(image:<short_id>)`` inside an ordinary link like
+#: Only the image syntax §3.1 bis names, ``![alt](image:<short_id>)``, plus
+#: the optional ``:small``/``:medium``/``:large`` size suffix (decision log
+#: #23) — not a bare ``(image:<short_id>)`` inside an ordinary link like
 #: ``[text](image:<short_id>)``, which the unanchored form used to match too.
-_IMAGE_REF = re.compile(r"!\[([^\]]*)\]\(image:(\d+)\)")
+_IMAGE_REF = re.compile(r"!\[([^\]]*)\]\(image:(\d+)(?::(small|medium|large))?\)")
+
+#: CSS classes the size suffix selects between (static/css/app.css). Not part
+#: of the sanitiser's general allow-list — ``class`` is only ever emitted here,
+#: from this fixed table, never from operator-supplied text.
+_IMAGE_SIZE_CLASSES = {
+    "small": "poll-image--small",
+    "medium": "poll-image--medium",
+    "large": "poll-image--large",
+}
 
 _ALLOWED_TAGS = {
     "p",
@@ -83,7 +97,7 @@ _ALLOWED_TAGS = {
     "blockquote",
     "img",
 }
-_ALLOWED_ATTRIBUTES = {"a": {"href", "title"}, "img": {"src", "alt", "title"}}
+_ALLOWED_ATTRIBUTES = {"a": {"href", "title"}, "img": {"src", "alt", "title", "class"}}
 
 
 def render_poll_description(poll: Poll, language: str | None = None) -> SafeString:
@@ -153,12 +167,20 @@ def _render(poll: Poll, raw: str) -> SafeString:
 def _resolve_image(poll: Poll, match: re.Match[str]) -> str:
     alt = match.group(1)
     short_id = int(match.group(2))
+    size = match.group(3)
     image = PollImage.objects.filter(poll=poll, short_id=short_id).first()
     if image is None:
         return ""
     if not alt:
         alt = image.alt_text
-    return f"![{alt}]({image.file.url})"
+    if size is None:
+        return f"![{alt}]({image.file.url})"
+    # A raw <img> rather than Markdown image syntax: the size suffix needs a
+    # `class`, which Markdown's own `![]()` form has no way to carry. Safe to
+    # emit unparsed — nh3.clean() sanitises the whole document afterwards
+    # regardless of how a tag reached it (§3.1 bis point 3).
+    css_class = _IMAGE_SIZE_CLASSES[size]
+    return f'<img src="{image.file.url}" alt="{_escape_attr(alt, quote=True)}" class="{css_class}">'
 
 
 def _youtube_iframe(video_id: str) -> str:

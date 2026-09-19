@@ -807,3 +807,35 @@ upload form are unchanged. The back-office help text (poll/option
 description fields and the images panel) documents the empty-brackets form.
 
 **Settled (2026-09-19).**
+
+## 23. `image:<n>` gained an optional display-size suffix
+
+Not a divergence — a gap neither R-3.12 nor §3.1 bis addressed at all: the
+Markdown image reference had no way to influence how large the image renders,
+so every embedded image showed at whatever size the uploaded file happened to
+be, however that compared to the surrounding text column.
+
+**What the code does.** `image:<n>` now accepts an optional `:small`,
+`:medium` or `:large` suffix — `image:<n>:large` — read by
+`apps.elections.richtext._IMAGE_REF`/`_resolve_image`. A sized reference is
+rendered as a raw `<img class="poll-image--<size>">` rather than through
+Markdown's own `![]()` image syntax, since that syntax has no way to carry a
+`class`; the three classes (`static/css/app.css`) fix the widths. An
+unsuffixed reference is completely unaffected — same output as before this
+existed — and a suffix outside the fixed three-value set is not recognised as
+a suffix at all, so the whole reference is dropped exactly like a foreign or
+nonexistent `short_id`, rather than guessed at or passed through raw.
+
+**Why a fixed three-value enum and not a free-form width/percentage.** The
+same reasoning R-3.12's other constraints already follow (§3.1 bis point 3):
+an operator with no design background is choosing between "small", "medium"
+and "large", not picking pixels, and a fixed, sanitiser-independent set means
+the `class` attribute this feature adds to the `img` allow-list can only ever
+hold one of three server-chosen strings — never operator-supplied text — so
+allowing `class` at all costs nothing security-wise.
+
+**Settled (2026-09-19).** §3.1 bis, the sanitiser's `img` attribute list and
+T-79's neighbouring row (new T-86) were updated to describe the suffix; the
+back-office help text next to the description/details fields and the images
+panel documents it for the operator. No requirements change — display size is
+an implementation detail R-3.12 leaves unspecified, not a rule it states.

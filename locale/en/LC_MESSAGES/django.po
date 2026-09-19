@@ -14,7 +14,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: commune-polls\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-19 09:17+0200\n"
+"POT-Creation-Date: 2026-09-19 09:29+0200\n"
 "Language: en\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -626,32 +626,35 @@ msgid ""
 "**…**, liens en [texte](url). Pour une image de la bibliothèque du scrutin "
 "(onglet « Images ») : ![texte alternatif](image:NUMÉRO), ou ![]"
 "(image:NUMÉRO) pour reprendre le texte alternatif saisi à l'ajout de "
-"l'image. Pour une vidéo YouTube, un bloc à part sur ses propres lignes : "
-"```youtube puis l'identifiant à onze caractères de la vidéo, puis ``` ."
+"l'image ; ajoutez :small, :medium ou :large après le numéro pour choisir une "
+"taille d'affichage. Pour une vidéo YouTube, un bloc à part sur ses propres "
+"lignes : ```youtube puis l'identifiant à onze caractères de la vidéo, puis "
+"``` ."
 msgstr ""
 "Markdown formatting: headings with ##, lists with -, emphasis with *…* or **…"
 "**, links as [text](url). For an image from the poll's library (“Images” "
 "tab): ![alt text](image:NUMBER), or ![](image:NUMBER) to reuse the alt text "
-"entered when the image was added. For a YouTube video, a fenced block on "
-"its own lines: ```youtube then the video's eleven-character id, then ``` ."
+"entered when the image was added; add :small, :medium or :large after the "
+"number to pick a display size. For a YouTube video, a fenced block on its "
+"own lines: ```youtube then the video's eleven-character id, then ``` ."
 
-#: src/apps/backoffice/forms.py:255
+#: src/apps/backoffice/forms.py:257
 msgid "Fuseau horaire inconnu."
 msgstr "Unknown timezone."
 
-#: src/apps/backoffice/forms.py:265
+#: src/apps/backoffice/forms.py:267
 msgid "La clôture doit suivre l'ouverture."
 msgstr "Closing must come after opening."
 
-#: src/apps/backoffice/forms.py:269
+#: src/apps/backoffice/forms.py:271
 msgid "La fin de saisie des bulletins papier ne peut précéder la clôture."
 msgstr "The paper-entry deadline cannot come before closing."
 
-#: src/apps/backoffice/forms.py:313
+#: src/apps/backoffice/forms.py:315
 msgid "Scrutin bac à sable"
 msgstr "Sandbox poll"
 
-#: src/apps/backoffice/forms.py:316
+#: src/apps/backoffice/forms.py:318
 msgid ""
 "Fixé pour toujours : un scrutin bac à sable n'apparaît sur aucune page "
 "publique, aucun résultat publié et aucune statistique."
@@ -659,13 +662,13 @@ msgstr ""
 "Fixed for good: a sandbox poll appears on no public page, no published "
 "result and no statistic."
 
-#: src/apps/backoffice/forms.py:327 src/apps/backoffice/forms.py:707
+#: src/apps/backoffice/forms.py:329 src/apps/backoffice/forms.py:710
 #: src/templates/backoffice/account_admin.html:39
 #: src/templates/backoffice/login.html:19
 msgid "Identifiant"
 msgstr "Username"
 
-#: src/apps/backoffice/forms.py:331
+#: src/apps/backoffice/forms.py:333
 msgid ""
 "Court, sans espace ni accent. Porté par les bulletins et le résultat "
 "publié : ne le modifiez pas après l'ouverture."
@@ -673,69 +676,72 @@ msgstr ""
 "Short, no spaces or accents. Carried by the ballots and the published "
 "result: do not change it after opening."
 
-#: src/apps/backoffice/forms.py:341
+#: src/apps/backoffice/forms.py:343
 #, python-format
 msgid "Intitulé (%(lang)s)"
 msgstr "Label (%(lang)s)"
 
-#: src/apps/backoffice/forms.py:350
+#: src/apps/backoffice/forms.py:352
 #, python-format
 msgid "Description étendue (%(lang)s)"
 msgstr "Extended description (%(lang)s)"
 
-#: src/apps/backoffice/forms.py:352
+#: src/apps/backoffice/forms.py:354
 msgid ""
 "Facultatif. Mise en forme Markdown : titres avec ##, listes avec -, emphase "
 "avec *…* ou **…**, liens en [texte](url). Pour une image de la bibliothèque "
 "du scrutin (onglet « Images ») : ![texte alternatif](image:NUMÉRO), ou ![]"
 "(image:NUMÉRO) pour reprendre le texte alternatif saisi à l'ajout de "
-"l'image. Pour une vidéo YouTube, un bloc à part sur ses propres lignes : "
-"```youtube puis l'identifiant à onze caractères de la vidéo, puis ``` ."
+"l'image ; ajoutez :small, :medium ou :large après le numéro pour choisir une "
+"taille d'affichage. Pour une vidéo YouTube, un bloc à part sur ses propres "
+"lignes : ```youtube puis l'identifiant à onze caractères de la vidéo, puis "
+"``` ."
 msgstr ""
 "Optional. Markdown formatting: headings with ##, lists with -, emphasis with "
 "*…* or **…**, links as [text](url). For an image from the poll's library "
-"(“Images” tab): ![alt text](image:NUMBER), or ![](image:NUMBER) to reuse "
-"the alt text entered when the image was added. For a YouTube video, a "
-"fenced block on its own lines: ```youtube then the video's eleven-character "
-"id, then ``` ."
+"(“Images” tab): ![alt text](image:NUMBER), or ![](image:NUMBER) to reuse the "
+"alt text entered when the image was added; add :small, :medium or :large "
+"after the number to pick a display size. For a YouTube video, a fenced "
+"block on its own lines: ```youtube then the video's eleven-character id, "
+"then ``` ."
 
-#: src/apps/backoffice/forms.py:374
+#: src/apps/backoffice/forms.py:377
 msgid "Donnez un identifiant à cette proposition."
 msgstr "Give this proposition an identifier."
 
-#: src/apps/backoffice/forms.py:407
+#: src/apps/backoffice/forms.py:410
 msgid "Deux propositions portent le même identifiant."
 msgstr "Two propositions carry the same identifier."
 
-#: src/apps/backoffice/forms.py:409
+#: src/apps/backoffice/forms.py:412
 msgid "Un scrutin comporte au moins deux propositions."
 msgstr "A poll has at least two propositions."
 
-#: src/apps/backoffice/forms.py:430
+#: src/apps/backoffice/forms.py:433
 msgid "Nouvelle date de clôture"
 msgstr "New closing date"
 
-#: src/apps/backoffice/forms.py:432
+#: src/apps/backoffice/forms.py:435
 msgid "Motif (obligatoire)"
 msgstr "Reason (required)"
 
-#: src/apps/backoffice/forms.py:459
+#: src/apps/backoffice/forms.py:462
 msgid "Motif de clôture forcée (si des bulletins attendent un contreseing)"
 msgstr "Reason for forced closure (if any ballots await countersignature)"
 
-#: src/apps/backoffice/forms.py:475
+#: src/apps/backoffice/forms.py:478
 msgid "Formulaires papier conservés par la commune"
 msgstr "Paper forms retained by the commune"
 
-#: src/apps/backoffice/forms.py:478
+#: src/apps/backoffice/forms.py:481
 msgid "Remarques (écart constaté, etc.)"
 msgstr "Remarks (discrepancy noted, etc.)"
 
-#: src/apps/backoffice/forms.py:503
+#: src/apps/backoffice/forms.py:506
 msgid "Motif du retrait (obligatoire)"
 msgstr "Reason for withdrawal (mandatory)"
 
-#: src/apps/backoffice/forms.py:542
+#: src/apps/backoffice/forms.py:545
 msgid ""
 "Méthode majoritaire avec ex æquo autorisés sur le bulletin : un bulletin qui "
 "place plusieurs propositions en tête donne une voix à chacune. C'est "
@@ -746,29 +752,29 @@ msgstr ""
 "several options first gives one vote to each of them. This is rarely "
 "intended for a single-choice question — check one setting or the other."
 
-#: src/apps/backoffice/forms.py:576
+#: src/apps/backoffice/forms.py:579
 msgid "Mot de passe initial"
 msgstr "Initial password"
 
-#: src/apps/backoffice/forms.py:578
+#: src/apps/backoffice/forms.py:581
 msgid "À remettre à la personne, qui le changera à la première connexion."
 msgstr "Hand it to the person, who will change it on first sign-in."
 
-#: src/apps/backoffice/forms.py:585
+#: src/apps/backoffice/forms.py:588
 msgid "Identifiant de connexion"
 msgstr "Sign-in username"
 
-#: src/apps/backoffice/forms.py:586
+#: src/apps/backoffice/forms.py:589
 #: src/templates/backoffice/account_admin.html:40
 msgid "Nom complet"
 msgstr "Full name"
 
-#: src/apps/backoffice/forms.py:587
+#: src/apps/backoffice/forms.py:590
 #: src/templates/backoffice/account_admin.html:41
 msgid "Administrateur de la commune"
 msgstr "Commune administrator"
 
-#: src/apps/backoffice/forms.py:591
+#: src/apps/backoffice/forms.py:594
 msgid ""
 "Gère les comptes et crée les scrutins. Ne donne accès à aucun écran d'un "
 "scrutin : cela demande un rôle sur ce scrutin."
@@ -776,19 +782,19 @@ msgstr ""
 "Manages accounts and creates polls. Grants no access to any poll's own "
 "screens: that needs a role on that poll."
 
-#: src/apps/backoffice/forms.py:623 src/apps/backoffice/forms.py:765
+#: src/apps/backoffice/forms.py:626 src/apps/backoffice/forms.py:768
 msgid "Nom de la commune"
 msgstr "Commune name"
 
-#: src/apps/backoffice/forms.py:625
+#: src/apps/backoffice/forms.py:628
 msgid "Tel qu'il apparaîtra sur les pages publiques et dans la notice."
 msgstr "As it will appear on the public pages and in the notice."
 
-#: src/apps/backoffice/forms.py:628 src/apps/backoffice/forms.py:766
+#: src/apps/backoffice/forms.py:631 src/apps/backoffice/forms.py:769
 msgid "Référent données personnelles"
 msgstr "Data-protection referent"
 
-#: src/apps/backoffice/forms.py:631
+#: src/apps/backoffice/forms.py:634
 msgid ""
 "Personne ou service qui répond aux demandes d'accès, de rectification et "
 "d'effacement des électeurs."
@@ -796,19 +802,19 @@ msgstr ""
 "Person or office that answers electors' access, rectification and erasure "
 "requests."
 
-#: src/apps/backoffice/forms.py:636 src/apps/backoffice/forms.py:767
+#: src/apps/backoffice/forms.py:639 src/apps/backoffice/forms.py:770
 msgid "Contact du référent"
 msgstr "Referent's contact"
 
-#: src/apps/backoffice/forms.py:638 src/apps/core/models.py:90
+#: src/apps/backoffice/forms.py:641 src/apps/core/models.py:90
 msgid "Adresse électronique ou postale, publiée dans la notice d'information."
 msgstr "Email or postal address, published in the information notice."
 
-#: src/apps/backoffice/forms.py:641 src/apps/backoffice/forms.py:768
+#: src/apps/backoffice/forms.py:644 src/apps/backoffice/forms.py:771
 msgid "Adresse du site"
 msgstr "Site address"
 
-#: src/apps/backoffice/forms.py:645
+#: src/apps/backoffice/forms.py:648
 msgid ""
 "Ex. : https://votecommune.fr — sans barre oblique finale. Laissez vide pour "
 "utiliser l'adresse configurée au déploiement ; modifiable ensuite depuis "
@@ -818,52 +824,52 @@ msgstr ""
 "address configured at deployment; changeable afterwards from the “Commune "
 "settings” screen."
 
-#: src/apps/backoffice/forms.py:652
+#: src/apps/backoffice/forms.py:655
 msgid "Identifiant de connexion de l'administrateur"
 msgstr "Administrator's sign-in username"
 
-#: src/apps/backoffice/forms.py:657
+#: src/apps/backoffice/forms.py:660
 msgid "Nom complet de l'administrateur"
 msgstr "Administrator's full name"
 
-#: src/apps/backoffice/forms.py:659
+#: src/apps/backoffice/forms.py:662
 msgid "Le journal d'audit nomme une personne, pas une fonction."
 msgstr "The audit log names a person, not an office."
 
-#: src/apps/backoffice/forms.py:661 src/apps/backoffice/forms.py:694
+#: src/apps/backoffice/forms.py:664 src/apps/backoffice/forms.py:697
 #: src/templates/backoffice/login.html:23
 msgid "Mot de passe"
 msgstr "Password"
 
-#: src/apps/backoffice/forms.py:663
+#: src/apps/backoffice/forms.py:666
 msgid "Confirmer le mot de passe"
 msgstr "Confirm the password"
 
-#: src/apps/backoffice/forms.py:680
+#: src/apps/backoffice/forms.py:683
 msgid "Les deux mots de passe diffèrent."
 msgstr "The two passwords differ."
 
-#: src/apps/backoffice/forms.py:697
+#: src/apps/backoffice/forms.py:700
 msgid "Laissez vide pour conserver le mot de passe déjà enregistré."
 msgstr "Leave blank to keep the password already stored."
 
-#: src/apps/backoffice/forms.py:704
+#: src/apps/backoffice/forms.py:707
 msgid "Serveur SMTP"
 msgstr "SMTP server"
 
-#: src/apps/backoffice/forms.py:705
+#: src/apps/backoffice/forms.py:708
 msgid "Port"
 msgstr "Port"
 
-#: src/apps/backoffice/forms.py:706
+#: src/apps/backoffice/forms.py:709
 msgid "Chiffrement"
 msgstr "Encryption"
 
-#: src/apps/backoffice/forms.py:708
+#: src/apps/backoffice/forms.py:711
 msgid "Adresse d'expédition"
 msgstr "Sending address"
 
-#: src/apps/backoffice/forms.py:713
+#: src/apps/backoffice/forms.py:716
 msgid ""
 "Le port dépend du chiffrement choisi ci-dessous : 587 pour STARTTLS, 465 "
 "pour SSL/TLS implicite, 25 sans chiffrement — à vérifier auprès de "
@@ -872,7 +878,7 @@ msgstr ""
 "The port depends on the encryption chosen below: 587 for STARTTLS, 465 for "
 "implicit SSL/TLS, 25 with no encryption — check with your mail host."
 
-#: src/apps/backoffice/forms.py:718
+#: src/apps/backoffice/forms.py:721
 msgid ""
 "STARTTLS : connexion normale puis passage en chiffré (le plus courant). SSL/"
 "TLS implicite : chiffré dès la connexion. Aucun : à réserver à un relais "
@@ -883,24 +889,24 @@ msgstr ""
 "reserve this for a trusted internal relay, never for sending over the "
 "internet."
 
-#: src/apps/backoffice/forms.py:727
+#: src/apps/backoffice/forms.py:730
 msgid "Le port doit être compris entre 1 et 65535."
 msgstr "The port must be between 1 and 65535."
 
-#: src/apps/backoffice/forms.py:734
+#: src/apps/backoffice/forms.py:737
 msgid "Adresse de test"
 msgstr "Test address"
 
-#: src/apps/backoffice/forms.py:744
+#: src/apps/backoffice/forms.py:747
 #: src/templates/backoffice/template_admin.html:23
 msgid "Nom du modèle"
 msgstr "Template name"
 
-#: src/apps/backoffice/forms.py:769 src/templates/base.html:141
+#: src/apps/backoffice/forms.py:772 src/templates/base.html:141
 msgid "Mentions légales"
 msgstr "Legal notice"
 
-#: src/apps/backoffice/forms.py:770
+#: src/apps/backoffice/forms.py:773
 msgid "Afficher le nom de la commune à côté du logo"
 msgstr "Show the commune name next to the logo"
 
@@ -2182,23 +2188,33 @@ msgstr ""
 "(image:…) — the alt text entered below, when the image was added, is used "
 "instead."
 
-#: src/templates/backoffice/_poll_config_images_panel.html:31
+#: src/templates/backoffice/_poll_config_images_panel.html:25
+msgid ""
+"Pour choisir une taille d'affichage, ajoutez « :small », « :medium » ou "
+"« :large » après le repère, par exemple ![](image:1:large). Sans cette "
+"précision, l'image s'affiche à sa taille naturelle."
+msgstr ""
+"To choose a display size, add “:small”, “:medium” or “:large” after the "
+"tag, for example ![](image:1:large). Without it, the image shows at its "
+"natural size."
+
+#: src/templates/backoffice/_poll_config_images_panel.html:32
 msgid "Repère à recopier dans une description"
 msgstr "Tag to copy into a description"
 
-#: src/templates/backoffice/_poll_config_images_panel.html:36
+#: src/templates/backoffice/_poll_config_images_panel.html:37
 msgid "Supprimer cette image"
 msgstr "Delete this image"
 
-#: src/templates/backoffice/_poll_config_images_panel.html:47
+#: src/templates/backoffice/_poll_config_images_panel.html:48
 msgid "Ajouter une image"
 msgstr "Add an image"
 
-#: src/templates/backoffice/_poll_config_images_panel.html:52
+#: src/templates/backoffice/_poll_config_images_panel.html:53
 msgid "Texte alternatif"
 msgstr "Alt text"
 
-#: src/templates/backoffice/_poll_config_images_panel.html:55
+#: src/templates/backoffice/_poll_config_images_panel.html:56
 msgid "Ajouter"
 msgstr "Add"
 

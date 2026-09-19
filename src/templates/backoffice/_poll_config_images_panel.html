@@ -22,6 +22,7 @@
   <section aria-labelledby="poll-images">
     <h2 id="poll-images">{% translate "Images du scrutin" %}</h2>
     <p class="help">{% translate "Une bibliothèque commune au scrutin : recopiez le repère « image:… » affiché sous chaque image dans le texte de la description du scrutin ou de la description étendue d'une proposition, entre parenthèses : ![texte alternatif](image:…). Avec des crochets vides — ![](image:…) — c'est le texte alternatif saisi ci-dessous, à l'ajout de l'image, qui est repris." %}</p>
+    <p class="help">{% translate "Pour choisir une taille d'affichage, ajoutez « :small », « :medium » ou « :large » après le repère, par exemple ![](image:1:large). Sans cette précision, l'image s'affiche à sa taille naturelle." %}</p>
     {% if poll.images.all %}
       <ul class="poll-images">
         {% for image in poll.images.all %}
