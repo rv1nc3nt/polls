@@ -238,8 +238,9 @@ class PollConfigForm(forms.Form):
                 help_text=_(
                     "Mise en forme Markdown : titres avec ##, listes avec -, emphase avec "
                     "*…* ou **…**, liens en [texte](url). Pour une image de la bibliothèque "
-                    "du scrutin (onglet « Images ») : ![texte alternatif](image:NUMÉRO). Pour "
-                    "une vidéo YouTube, un bloc à part sur ses propres lignes : "
+                    "du scrutin (onglet « Images ») : ![texte alternatif](image:NUMÉRO), ou "
+                    "![](image:NUMÉRO) pour reprendre le texte alternatif saisi à l'ajout de "
+                    "l'image. Pour une vidéo YouTube, un bloc à part sur ses propres lignes : "
                     "```youtube puis l'identifiant à onze caractères de la vidéo, puis ``` ."
                 ),
                 widget=forms.Textarea(attrs={"rows": 4}),
@@ -351,7 +352,8 @@ class OptionForm(forms.Form):
                     "Facultatif. Mise en forme Markdown : titres avec ##, listes avec -, "
                     "emphase avec *…* ou **…**, liens en [texte](url). Pour une image de la "
                     "bibliothèque du scrutin (onglet « Images ») : "
-                    "![texte alternatif](image:NUMÉRO). Pour une "
+                    "![texte alternatif](image:NUMÉRO), ou ![](image:NUMÉRO) pour reprendre "
+                    "le texte alternatif saisi à l'ajout de l'image. Pour une "
                     "vidéo YouTube, un bloc à part sur ses propres lignes : "
                     "```youtube puis l'identifiant à onze caractères de la vidéo, puis ``` ."
                 ),

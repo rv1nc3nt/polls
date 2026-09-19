@@ -15,7 +15,11 @@ off before the next could reopen it:
    the text ever reaches the Markdown parser, and only to an image that
    belongs to *this* poll's shared library — a reference to another poll's
    image id, or to one that does not exist, is silently dropped rather than
-   followed.
+   followed. ``![](image:<short_id>)``, with nothing between the brackets,
+   takes the library's own ``PollImage.alt_text`` rather than emitting an
+   image with no alt text: that field is the default, reused everywhere the
+   image is embedded; writing something inside the brackets overrides it for
+   that one reference only.
 2. A YouTube embed is never markup the operator wrote. It is recognised in
    one of two forms — a fenced ``youtube`` block carrying a bare video id, or
    a ``youtube.com``/``youtu.be`` URL standing alone on its own line — by a
@@ -152,6 +156,8 @@ def _resolve_image(poll: Poll, match: re.Match[str]) -> str:
     image = PollImage.objects.filter(poll=poll, short_id=short_id).first()
     if image is None:
         return ""
+    if not alt:
+        alt = image.alt_text
     return f"![{alt}]({image.file.url})"
 
 

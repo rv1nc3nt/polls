@@ -782,4 +782,28 @@ defined once.
 
 **Settled (2026-09-19).**
 
+## 22. `PollImage.alt_text` is a default, overridable per reference
+
+**Specification, R-3.12 / §3.1 bis (as first implemented).** `PollImage`
+carries an `alt_text` collected at upload, alongside the `![alt](image:<n>)`
+Markdown syntax that already names its own alt text inline. Nothing in
+`apps.elections.richtext._resolve_image` read the model field: it was used
+only to caption the image's own thumbnail in the back-office library panel,
+never in a rendered description.
+
+**What changed and why.** As built, the field was write-only for anything
+public-facing — an operator had to retype the same wording into every
+`![...]()` reference to an image, with no indication the two could drift.
+Neither R-3.12 nor §3.1 bis says the field should feed rendering, but
+collecting it and then never using it outside the editor screen serves no
+purpose either, so this is a gap the specification left implicit rather than
+a conflict — closed here rather than left to be rediscovered.
+
+**What the code does.** `![](image:<n>)` — empty brackets — now resolves to
+`image.alt_text`; `![texte](image:<n>)` still overrides it for that one
+reference, e.g. when the same photograph illustrates two different options
+and needs different wording in each. `apps.elections.pollimages` and the
+upload form are unchanged. The back-office help text (poll/option
+description fields and the images panel) documents the empty-brackets form.
+
 **Settled (2026-09-19).**

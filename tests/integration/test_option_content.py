@@ -179,6 +179,32 @@ def test_image_reference_resolves_across_the_poll_but_not_a_foreign_poll(
     assert image.file.url not in richtext.render_poll_description(other_poll)
 
 
+def test_image_reference_with_empty_alt_falls_back_to_the_library_alt_text(
+    open_window_poll: Poll, admin_user: User
+) -> None:
+    """``![](image:n)`` takes ``PollImage.alt_text`` as its default — the
+    field would otherwise be write-only, since nothing else reads it — while
+    ``![texte](image:n)`` still overrides it for that one reference."""
+    option = open_window_poll.options.first()
+    assert option is not None
+    image = pollimages.add_poll_image(
+        open_window_poll,
+        SimpleUploadedFile("a.png", _PNG),
+        alt_text="Vue depuis la mairie",
+        actor=admin_user,
+    )
+
+    option.details_i18n = {"fr": f"![](image:{image.short_id})"}
+    option.save(update_fields=["details_i18n"])
+    assert 'alt="Vue depuis la mairie"' in richtext.render_option_details(option)
+
+    option.details_i18n = {"fr": f"![Autre texte](image:{image.short_id})"}
+    option.save(update_fields=["details_i18n"])
+    html = richtext.render_option_details(option)
+    assert 'alt="Autre texte"' in html
+    assert "Vue depuis la mairie" not in html
+
+
 def test_a_plain_link_to_an_image_id_is_never_resolved(
     open_window_poll: Poll, admin_user: User
 ) -> None:
