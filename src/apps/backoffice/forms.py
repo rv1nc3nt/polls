@@ -334,6 +334,19 @@ class OptionForm(forms.Form):
             "ne le modifiez pas après l'ouverture."
         ),
     )
+    # R-6.2: this ordering is never what a ballot shows — the ballot draws its
+    # own order per elector regardless of what is saved here. It governs this
+    # editor, the read-only recap and the results tables only.
+    position = forms.IntegerField(
+        label=_("Position"),
+        min_value=1,
+        required=False,
+        widget=forms.NumberInput(attrs={"min": 1, "class": "option-row__position"}),
+        help_text=_(
+            "Ordre d'affichage de cette proposition dans cette page et dans les résultats. "
+            "Le bulletin de vote, lui, tire un ordre différent pour chaque électeur."
+        ),
+    )
 
     def __init__(self, *args: Any, content_languages: list[str], **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -418,8 +431,21 @@ OptionFormSet = forms.formset_factory(
 
 
 def option_drafts(formset: forms.BaseFormSet[OptionForm]) -> list[config.OptionDraft]:
-    """The non-blank, non-deleted proposition rows, in row order."""
-    return [draft for form in formset.forms if (draft := form.to_draft()) is not None]
+    """The non-blank, non-deleted proposition rows, ordered by each row's
+    ``position`` field.
+
+    A blank ``position`` — an added row nobody has renumbered — sorts after
+    every explicit value; two rows sharing a value fall back to row order.
+    Neither is an error: a council member typing positions by hand will not
+    always end up with a dense, gap-free sequence, and none is required.
+    """
+    rows = [
+        (form.cleaned_data.get("position"), index, draft)
+        for index, form in enumerate(formset.forms)
+        if (draft := form.to_draft()) is not None
+    ]
+    rows.sort(key=lambda row: (row[0] is None, row[0], row[1]))
+    return [draft for _, _, draft in rows]
 
 
 class ExtensionForm(forms.Form):
@@ -527,8 +553,12 @@ def config_initial(poll: Poll) -> dict[str, Any]:
 def option_initial(poll: Poll) -> list[dict[str, Any]]:
     """One ``OptionForm`` initial per stored proposition, in order."""
     rows: list[dict[str, Any]] = []
-    for option in poll.options.all():
-        row: dict[str, Any] = {"pk": str(option.pk), "option_id": option.option_id}
+    for index, option in enumerate(poll.options.all()):
+        row: dict[str, Any] = {
+            "pk": str(option.pk),
+            "option_id": option.option_id,
+            "position": index + 1,
+        }
         for code, text in option.label_i18n.items():
             row[f"label_{code}"] = text
         for code, text in option.details_i18n.items():

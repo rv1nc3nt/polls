@@ -212,7 +212,9 @@ def _apply(poll: Poll, draft: ConfigDraft) -> set[str]:
 def _apply_options(poll: Poll, options: list[OptionDraft]) -> bool:
     """Reconcile the poll's propositions with the editor's rows (§3.1).
 
-    Row order is the option order: ``position`` follows the list index.
+    List order is the option order: ``position`` follows the list index,
+    whatever ordering the caller — ``backoffice.forms.option_drafts``, which
+    sorts by each row's typed ``position`` rather than row order — put it in.
     A stored option whose id no longer appears is deleted — in ``draft`` no
     ballot references it yet, so the deletion is clean.
     """

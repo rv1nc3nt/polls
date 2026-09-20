@@ -7,8 +7,10 @@
   static/js/option-editor.js clones when an operator adds a proposition.
 
   No-JS path: the `extra` blank rows at the end are how a proposition is added,
-  and the DELETE checkbox is how one is dropped. The script only layers an
-  « Ajouter » control and a per-row « Retirer » button on top of that.
+  the DELETE checkbox is how one is dropped, and the `position` field is how
+  the set is reordered — retyping a number needs no script, unlike moving a
+  row. The script only layers an « Ajouter » control and a per-row « Retirer »
+  button on top of that.
 {% endcomment %}
 <fieldset class="option-row" data-option-row>
   <legend>{% translate "Proposition" %} <span data-option-number>{{ number }}</span></legend>

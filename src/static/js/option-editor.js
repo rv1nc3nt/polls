@@ -142,6 +142,12 @@
       }
       rowsBox.appendChild(row);
       wireRow(row);
+      // Default a freshly-added row to the end of the order; an operator who
+      // wants it elsewhere retypes the number, same as for any other row.
+      var positionField = row.querySelector('[name$="-position"]');
+      if (positionField && !positionField.value) {
+        positionField.value = String(rows().length);
+      }
       sync();
       var first = row.querySelector("input, select, textarea");
       if (first) {

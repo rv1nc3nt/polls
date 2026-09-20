@@ -183,6 +183,26 @@ def test_option_extended_description_is_saved_and_is_optional(
     assert open_window_poll.missing_translations() == []
 
 
+def test_propositions_are_reordered_by_retyping_position(
+    client: Client, open_window_poll: Poll, admin_user: User
+) -> None:
+    """A council member reorders by editing ``position``, not by moving rows —
+    the no-JS path forms.OptionForm.position exists for (§3.1)."""
+    _grant(open_window_poll, admin_user, Role.POLL_ADMIN)
+    client.force_login(admin_user)
+
+    data = _payload(open_window_poll)
+    data["opt-0-position"] = "3"  # "a", stored first
+    data["opt-1-position"] = "2"  # "b", unchanged
+    data["opt-2-position"] = "1"  # "c", stored last
+    assert client.post(_url(open_window_poll), data).status_code == 302
+
+    ids = [o.option_id for o in open_window_poll.options.order_by("position")]
+    assert ids == ["c", "b", "a"]
+    # Reindexed to a dense 0-based sequence, not left holding the typed values.
+    assert [o.position for o in open_window_poll.options.order_by("position")] == [0, 1, 2]
+
+
 def test_options_can_be_relabelled_and_added(
     client: Client, open_window_poll: Poll, admin_user: User
 ) -> None:

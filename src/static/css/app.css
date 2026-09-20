@@ -827,6 +827,7 @@ tbody tr.selected th, tbody tr.selected td { background: var(--accent-soft); }
 /* A stored row awaiting removal on save: kept in place, struck through, undoable. */
 .option-row--removed { opacity: 0.55; }
 .option-row--removed legend { text-decoration: line-through; }
+.option-row__position { width: 5rem; }
 
 /* ---- tables ---------------------------------------------------------- */
 

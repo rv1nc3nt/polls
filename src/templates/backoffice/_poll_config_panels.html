@@ -109,14 +109,18 @@
   <fieldset data-option-editor>
     <legend>{% translate "Propositions" %}</legend>
     {% comment %}
-      §3.1: an ordered list of at least two options. Row order is the
-      proposition order. Clear a row or tick « Supprimer » to drop it; the
-      blank rows at the end are there to add more. static/js/option-editor.js
-      adds an « Ajouter une proposition » control and a per-row « Retirer »
-      button over this — progressive enhancement, so the blank rows and the
-      checkbox stay the whole story without JavaScript.
+      §3.1: an ordered list of at least two options, ordered by each row's
+      `position` field (forms.OptionForm, sorted by backoffice.forms.
+      option_drafts) rather than by row order — a plain number an operator can
+      retype stays reorderable without JavaScript, unlike moving rows around
+      (R-6.2: this order is never what a ballot shows). Clear a row or tick
+      « Supprimer » to drop it; the blank rows at the end are there to add
+      more. static/js/option-editor.js adds an « Ajouter une proposition »
+      control and a per-row « Retirer » button over this — progressive
+      enhancement, so the blank rows and the checkbox stay the whole story
+      without JavaScript.
     {% endcomment %}
-    <p class="help">{% translate "Au moins deux propositions. L'ordre des lignes est l'ordre des propositions. L'identifiant est porté par les bulletins et le résultat publié : ne le changez plus après l'ouverture." %}</p>
+    <p class="help">{% translate "Au moins deux propositions. La position détermine leur ordre dans cette page et dans les résultats ; le bulletin de vote tire un ordre différent pour chaque électeur. L'identifiant est porté par les bulletins et le résultat publié : ne le changez plus après l'ouverture." %}</p>
 
     {% for message in formset.non_form_errors %}<p class="error" role="alert">{{ message }}</p>{% endfor %}
 
