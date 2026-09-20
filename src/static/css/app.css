@@ -758,7 +758,7 @@ legend { font-weight: 700; padding: 0 0.4rem; }
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1rem 1.1rem;
+  padding: 1rem 2rem;
   border-bottom: 1px solid var(--rule-soft);
 }
 .details-dialog__header h3 { margin: 0; }
@@ -774,7 +774,7 @@ legend { font-weight: 700; padding: 0 0.4rem; }
 .details-dialog__body {
   max-height: calc(min(80vh, 40rem) - 3.5rem);
   overflow-y: auto;
-  padding: 1.1rem 1.6rem;
+  padding: 1.1rem 2rem;
   /* Styled rather than left to the platform default: an overlay-scrollbar
      OS (GNOME, macOS) draws nothing here until the pointer is over the
      track, which reads as "this popup has no scrollbar" at a glance. */
@@ -784,12 +784,15 @@ legend { font-weight: 700; padding: 0 0.4rem; }
 .details-dialog__body::-webkit-scrollbar { width: 10px; }
 .details-dialog__body::-webkit-scrollbar-track { background: transparent; }
 .details-dialog__body::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 999px; }
-/* .option-details (line ~1235) and .youtube-embed both cap at
-   var(--measure) for readability in the page's running text column, but the
-   dialog is already width-clamped on its own terms — left uncapped here,
-   the cloned content stops short of the dialog's edge and the scrollbar
-   reads as belonging to the text rather than the popup. */
-.details-dialog__body.option-details, .details-dialog__body .youtube-embed { max-width: none; }
+/* .option-details (line ~1235) caps at var(--measure) for readability in
+   the page's running text column, but the dialog is already
+   width-clamped on its own terms — left uncapped here, the cloned text
+   stops short of the dialog's edge and the scrollbar reads as belonging
+   to the text rather than the popup. A .youtube-embed keeps a cap of its
+   own: unlike text, a video only gets harder to watch as it grows, so it
+   stays bounded and centred instead of stretching to the dialog's width. */
+.details-dialog__body.option-details { max-width: none; }
+.details-dialog__body .youtube-embed { max-width: 28rem; margin-inline: auto; }
 
 /* The account-management disclosure stacks three small forms; space them and
    let each lay its label, field and button out in a row. */
