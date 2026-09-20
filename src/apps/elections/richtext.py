@@ -119,6 +119,14 @@ def _render(poll: Poll, raw: str) -> SafeString:
     if not raw:
         return mark_safe("")
 
+    # A `<textarea>` POST carries `\r\n` line breaks per the HTML forms spec,
+    # regardless of what the operator's own OS uses. Both YouTube patterns
+    # below anchor on a bare `\n`, so a stray `\r` between the URL and the
+    # line end makes "alone on its own line" fail silently and the link falls
+    # through as inert text. Normalised here, not in the form, so already-
+    # saved content is fixed on the next render too (module docstring).
+    raw = raw.replace("\r\n", "\n").replace("\r", "\n")
+
     embeds: dict[str, str] = {}
 
     def _embed_token(video_id: str) -> str:

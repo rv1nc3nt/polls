@@ -111,6 +111,25 @@ def test_youtube_url_alone_on_its_line_becomes_an_iframe_too(open_window_poll: P
     assert "Texte après." in html
 
 
+def test_youtube_url_alone_on_its_line_embeds_with_crlf_line_endings(
+    open_window_poll: Poll,
+) -> None:
+    """A `<textarea>` POST carries `\\r\\n` line breaks per the HTML forms
+    spec no matter the operator's own OS, and nothing normalises it before
+    the JSONField write — so the "alone on its own line" test must tolerate
+    a stray `\\r` or a pasted link silently stops embedding."""
+    option = open_window_poll.options.first()
+    assert option is not None
+    option.details_i18n = {
+        "fr": "Texte avant.\r\n\r\nhttps://youtu.be/dQw4w9WgXcQ?si=abc123DEF45\r\n\r\nTexte après."
+    }
+    option.save(update_fields=["details_i18n"])
+
+    html = richtext.render_option_details(option)
+    assert "youtube-nocookie.com/embed/dQw4w9WgXcQ" in html
+    assert html.count("<iframe") == 1
+
+
 def test_youtube_watch_url_with_extra_query_params_embeds(open_window_poll: Poll) -> None:
     option = open_window_poll.options.first()
     assert option is not None
