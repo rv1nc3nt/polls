@@ -82,7 +82,7 @@ server {
     # page's own images before the leaky bucket refills. Matches both
     # /<lang>/aide/… (public) and /<lang>/mairie/aide/… (espace mairie), the
     # same language-prefix shape $polls_loggable matches above.
-    location ~ ^/[a-z]{2}/(mairie/)?aide/ {
+    location ~ "^/[a-z]{2}/(mairie/)?aide/" {
         proxy_pass http://{{ polls_bind }};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
