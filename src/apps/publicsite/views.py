@@ -76,7 +76,7 @@ def _status_key(poll: Poll, now: datetime) -> str:
     """
     if poll.state == PollState.ANNOUNCED or now < poll.opens_at:
         return "preview"
-    if poll.state == PollState.OPEN and now < poll.closes_at:
+    if poll.state == PollState.OPEN and not windows.online_voting_closed(poll, now):
         return "open"
     if poll.state == PollState.PUBLISHED:
         return "published"
