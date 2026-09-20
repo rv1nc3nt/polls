@@ -16,6 +16,7 @@ announcing it can never open, scheduled or by hand. A fifth, terminal state,
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import datetime
 
 from django.db import transaction
@@ -131,6 +132,30 @@ def closing_blockers(poll: Poll) -> list[str]:
     return blockers
 
 
+def _run_transition(
+    command: str, locked: Callable[..., Poll], poll: Poll, actor: User | None, *rest: object
+) -> Poll:
+    """Call one ``_x_poll_locked``, logging a refusal after its rollback.
+
+    An audit event written inside a transaction that then raises is rolled
+    back with it, so §4's "the refusal is loud" cannot be satisfied from
+    inside ``locked`` itself — every one of the four callers below needed
+    this exact shape, differing only in ``command`` and the extra positional
+    arguments ``locked`` takes.
+    """
+    try:
+        return locked(poll, actor, *rest)
+    except TransitionRefused as refusal:
+        audit.record(
+            action=Action.JOB_REFUSED,
+            poll=poll,
+            actor=actor,
+            object_ref=audit.ref(poll),
+            after={"command": command, "blockers": refusal.blockers},
+        )
+        raise
+
+
 def announce_poll(poll: Poll, actor: User | None = None, now: datetime | None = None) -> Poll:
     """``draft → announced`` (R-3.10).
 
@@ -143,18 +168,7 @@ def announce_poll(poll: Poll, actor: User | None = None, now: datetime | None = 
     the INV-6 trigger both key off ``state != draft``, so a poll past this
     point cannot change under a viewer's eyes.
     """
-    try:
-        return _announce_poll_locked(poll, actor, now)
-    except TransitionRefused as refusal:
-        # As in open_poll/close_poll: logged after the rollback (§4).
-        audit.record(
-            action=Action.JOB_REFUSED,
-            poll=poll,
-            actor=actor,
-            object_ref=audit.ref(poll),
-            after={"command": "announce_poll", "blockers": refusal.blockers},
-        )
-        raise
+    return _run_transition("announce_poll", _announce_poll_locked, poll, actor, now)
 
 
 @transaction.atomic
@@ -191,20 +205,7 @@ def open_poll(poll: Poll, actor: User | None = None, now: datetime | None = None
     including ahead of ``opens_at``, which is harmless since the window
     checks of §5.1 gate voting on the clock and never on ``state`` (T-67).
     """
-    try:
-        return _open_poll_locked(poll, actor, now)
-    except TransitionRefused as refusal:
-        # Recorded *outside* the transaction that just rolled back: an event
-        # written inside it would vanish with the rollback, and §4 requires the
-        # refusal to be loud — logged, and named on the dashboard (T-53).
-        audit.record(
-            action=Action.JOB_REFUSED,
-            poll=poll,
-            actor=actor,
-            object_ref=audit.ref(poll),
-            after={"command": "open_poll", "blockers": refusal.blockers},
-        )
-        raise
+    return _run_transition("open_poll", _open_poll_locked, poll, actor, now)
 
 
 @transaction.atomic
@@ -276,19 +277,7 @@ def close_poll(
     window checks of §5.1 would still legitimately go on accepting, since they
     read the clock and not ``state`` (T-68).
     """
-    try:
-        return _close_poll_locked(poll, actor, override_reason, now)
-    except TransitionRefused as refusal:
-        # As in open_poll: the refusal is logged after the rollback, or it is
-        # not logged at all (§4).
-        audit.record(
-            action=Action.JOB_REFUSED,
-            poll=poll,
-            actor=actor,
-            object_ref=audit.ref(poll),
-            after={"command": "close_poll", "blockers": refusal.blockers},
-        )
-        raise
+    return _run_transition("close_poll", _close_poll_locked, poll, actor, override_reason, now)
 
 
 @transaction.atomic
@@ -489,19 +478,7 @@ def withdraw_poll(
     poll pulled before ever reaching ``closed`` (§11) — and the audit event
     the mandatory reason is attached to.
     """
-    try:
-        return _withdraw_poll_locked(poll, actor, reason, now)
-    except TransitionRefused as refusal:
-        # As in announce_poll/open_poll/close_poll: logged after the rollback,
-        # or not at all (§4).
-        audit.record(
-            action=Action.JOB_REFUSED,
-            poll=poll,
-            actor=actor,
-            object_ref=audit.ref(poll),
-            after={"command": "withdraw_poll", "blockers": refusal.blockers},
-        )
-        raise
+    return _run_transition("withdraw_poll", _withdraw_poll_locked, poll, actor, reason, now)
 
 
 @transaction.atomic
