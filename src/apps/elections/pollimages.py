@@ -10,8 +10,6 @@ an operator can act on, before anything is read into memory.
 
 from __future__ import annotations
 
-import hashlib
-
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import UploadedFile
 from django.db import transaction
@@ -53,15 +51,16 @@ def add_poll_image(
         raise ConfigurationLocked(
             _("La configuration est figée : le scrutin n'est plus en brouillon.")
         )
-    if upload.size is not None and upload.size > MAX_IMAGE_SIZE:
-        raise InvalidPollImage(_("Image trop volumineuse (5 Mo maximum)."))
-    data = upload.read()
-    if len(data) > MAX_IMAGE_SIZE:
-        raise InvalidPollImage(_("Image trop volumineuse (5 Mo maximum)."))
-    content_type = images.sniff_raster(data)
-    if content_type is None:
-        raise InvalidPollImage(_("Format d'image non reconnu (PNG, JPEG, GIF ou WebP attendus)."))
-    digest = hashlib.sha256(data).hexdigest()
+    try:
+        data, content_type, digest = images.read_validated(
+            upload, sniff=images.sniff_raster, max_size=MAX_IMAGE_SIZE
+        )
+    except images.UploadTooLarge:
+        raise InvalidPollImage(_("Image trop volumineuse (5 Mo maximum).")) from None
+    except images.UploadFormatUnrecognised:
+        raise InvalidPollImage(
+            _("Format d'image non reconnu (PNG, JPEG, GIF ou WebP attendus).")
+        ) from None
 
     existing = PollImage.objects.filter(poll=poll, content_hash=digest).first()
     if existing is not None:

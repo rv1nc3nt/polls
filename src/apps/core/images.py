@@ -12,6 +12,11 @@ claimed encoding).
 
 from __future__ import annotations
 
+import hashlib
+from collections.abc import Callable
+
+from django.core.files.uploadedfile import UploadedFile
+
 _RASTER_SIGNATURES: tuple[tuple[bytes, str], ...] = (
     (b"\x89PNG\r\n\x1a\n", "image/png"),
     (b"\xff\xd8\xff", "image/jpeg"),
@@ -54,3 +59,35 @@ def sniff_favicon(data: bytes) -> str | None:
     if data.startswith(_ICO_SIGNATURE):
         return "image/x-icon"
     return sniff_raster(data)
+
+
+class UploadTooLarge(Exception):
+    """The declared or actual size exceeds the caller's ``max_size``."""
+
+
+class UploadFormatUnrecognised(Exception):
+    """The bytes did not sniff as any format the caller's ``sniff`` accepts."""
+
+
+def read_validated(
+    upload: UploadedFile[bytes], *, sniff: Callable[[bytes], str | None], max_size: int
+) -> tuple[bytes, str, str]:
+    """Read, size-check, sniff and content-address an upload.
+
+    The sequence every image upload needs before it is stored, shared by poll
+    images (R-3.12, ``elections.pollimages``) and commune branding (§6.5.14,
+    ``backoffice.communesettings``) — previously duplicated between the two.
+    Size is checked twice: the declared size is the caller's word for it, an
+    attacker's word too, so the bytes actually read are checked again. Raises
+    ``UploadTooLarge`` or ``UploadFormatUnrecognised``, untranslated: each
+    caller has its own French wording for "too big" and "wrong format".
+    """
+    if upload.size is not None and upload.size > max_size:
+        raise UploadTooLarge
+    data = upload.read()
+    if len(data) > max_size:
+        raise UploadTooLarge
+    content_type = sniff(data)
+    if content_type is None:
+        raise UploadFormatUnrecognised
+    return data, content_type, hashlib.sha256(data).hexdigest()

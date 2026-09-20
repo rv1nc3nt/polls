@@ -26,7 +26,6 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from hashlib import sha256
 
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import UploadedFile
@@ -119,15 +118,12 @@ def _set_branding(
     content-addressed (``commune_logo_path``/``commune_favicon_path`` read the
     ``*_content_type``/``*_content_hash`` fields set here before the field
     file itself is saved), and delete whatever the field held before."""
-    if upload.size is not None and upload.size > max_size:
-        raise InvalidBrandingImage(size_error)
-    data = upload.read()
-    if len(data) > max_size:
-        raise InvalidBrandingImage(size_error)
-    content_type = sniff(data)
-    if content_type is None:
-        raise InvalidBrandingImage(format_error)
-    digest = sha256(data).hexdigest()
+    try:
+        data, content_type, digest = images.read_validated(upload, sniff=sniff, max_size=max_size)
+    except images.UploadTooLarge:
+        raise InvalidBrandingImage(size_error) from None
+    except images.UploadFormatUnrecognised:
+        raise InvalidBrandingImage(format_error) from None
 
     old_name = getattr(commune, field).name
     setattr(commune, f"{field}_content_type", content_type)
