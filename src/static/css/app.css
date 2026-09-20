@@ -491,7 +491,12 @@ body.bo main { padding: 0; }
   border: 1px solid var(--rule);
 }
 .bo-side__lang button:hover { opacity: 1; background: var(--paper-quiet); }
-.bo-side__tools .themeswitch { flex-direction: column; align-items: stretch; gap: 0.35rem; }
+.bo-side__tools .themeswitch { flex-direction: column; align-items: stretch; gap: 0.5rem; }
+/* `.themeswitch > span` below (generic, public-site row layout) sets
+   align-self: center for its own context; same specificity, later in the
+   file, so it would otherwise win here too and centre "Thème" while
+   "Langue" stays left-aligned (§6.5's two controls read as one pair). */
+.bo-side__tools .themeswitch > span { align-self: start; }
 .bo-side__tools .themeswitch [role="group"] { display: flex; }
 .bo-side__tools .themeswitch button { flex: 1; min-height: 2rem; padding: 0.3rem 0.3rem; font-size: 0.82rem; }
 
