@@ -129,7 +129,13 @@ def record_physical_tiebreak(poll: Poll, order: Sequence[str], actor: User) -> P
     data, like every audit event (§10).
     """
     poll = Poll.objects.select_for_update().get(pk=poll.pk)
-    if poll.state not in (PollState.CLOSED, PollState.PUBLISHED):
+    if poll.state != PollState.CLOSED:
+        # Not ``(CLOSED, PUBLISHED)``: once published, ``physical_tiebreak_order``
+        # is read live into the public document (§9) on every request, so
+        # admitting a rewrite here would let a later draw silently change a
+        # winner already announced, with nothing but an ordinary
+        # ``TIEBREAK_ENTERED`` event marking it. §8.3 enters the draw before
+        # publication, never after.
         raise TiebreakRefused(_("Le départage ne se saisit que sur un scrutin clos."))
     if poll.tiebreak_rule != TiebreakRule.PHYSICAL:
         raise TiebreakRefused(_("Ce scrutin n'utilise pas le tirage au sort physique."))

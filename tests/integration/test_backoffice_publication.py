@@ -280,6 +280,27 @@ def test_recording_the_draw_lets_publication_proceed(
     }
 
 
+def test_the_draw_cannot_be_rewritten_once_published(
+    client: Client, tied_poll: Poll, admin_user: User
+) -> None:
+    """§8.3: the draw is entered before publication, never after — once the
+    winner it names is public, a second draw must not silently replace it."""
+    client.force_login(admin_user)
+    client.post(_url(tied_poll), {"action": "record_tiebreak", "order": ["b", "c", "a"]})
+    client.post(_url(tied_poll), {"action": "publish"})
+
+    response = client.post(_url(tied_poll), {"action": "record_tiebreak", "order": ["c", "a", "b"]})
+    assert response.status_code == 200
+    assert "scrutin clos" in response.content.decode()
+
+    tied_poll.refresh_from_db()
+    assert tied_poll.physical_tiebreak_order == ["b", "c", "a"]
+    assert AuditEvent.objects.filter(action=Action.TIEBREAK_ENTERED, poll=tied_poll).count() == 1
+
+    document = json.loads(client.get(_url(tied_poll) + "?format=json").content)
+    assert document["winner"] == "b"
+
+
 def test_a_draw_that_is_not_a_permutation_of_the_tie_is_refused(
     client: Client, tied_poll: Poll, admin_user: User
 ) -> None:
