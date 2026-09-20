@@ -89,6 +89,7 @@ from apps.ballots import services as ballots
 from apps.ballots.forms import RankingForm
 from apps.ballots.models import Ballot, BallotSource, BallotStatus, PaperBallotLink
 from apps.ballots.ranking import BallotRefused
+from apps.core import manual
 from apps.core.codes import format_tracking_code
 from apps.core.crypto import new_token
 from apps.core.models import Role, User
@@ -145,6 +146,7 @@ from .access import (
     poll_roles,
     require_commune_admin,
     require_first_run,
+    require_operator,
     require_poll_role,
 )
 from .forms import (
@@ -1901,3 +1903,69 @@ def commune_favicon_remove(request: HttpRequest) -> HttpResponse:
         communesettings.remove_favicon(commune, actor=current_operator(request))
         messages.success(request, _("Favicon supprimé."))
     return redirect("backoffice:commune_settings")
+
+
+# --- Documentation (mairie-area guide, mairie-audience FAQ) ----------------
+#
+# Not one of the eleven numbered screens: reading the manual is not itself an
+# access to any poll's data, so it goes through ``require_operator`` — any
+# signed-in, active account — rather than ``require_poll_role`` or
+# ``require_commune_admin``. Kept in sync with ``docs/manuel/`` the same way
+# as the public site's own manual pages (``apps.publicsite.views``): read and
+# rendered from disk at request time, never copied into a template.
+
+#: Keyed by the URL slug. ``faq`` here is the mairie-area third of the same
+#: ``faq.md`` the public site splits its own électeur third out of
+#: (`apps.publicsite.views._PUBLIC_DOCS`) — the instance-administrator third
+#: is served nowhere, matching ``guide-administrateur.md`` itself, which this
+#: area has no more business showing than the public site does.
+_BACKOFFICE_DOCS: dict[str, manual.ManualDoc] = {
+    "espace-mairie": manual.ManualDoc(stem="guide-espace-mairie"),
+    "faq": manual.ManualDoc(stem="faq", section="B"),
+}
+
+
+def _backoffice_image_base_url() -> str:
+    """The prefix `manual_image` serves screenshots under, derived from the
+    URL pattern itself (see the public site's identical helper)."""
+    sentinel = "SENTINEL.png"
+    full = reverse("backoffice:manual_image", args=[sentinel])
+    return full[: -len(sentinel)]
+
+
+@require_operator
+def manual_index(request: HttpRequest) -> HttpResponse:
+    """Landing page for the mairie-area documentation: links to the
+    espace-mairie guide and the mairie-audience FAQ, titled from each
+    document's own heading."""
+    language = request.LANGUAGE_CODE
+    rows = [
+        {"slug": slug, "title": manual.read(doc, language)[0]}
+        for slug, doc in _BACKOFFICE_DOCS.items()
+    ]
+    return render(request, "backoffice/manual_index.html", {"rows": rows})
+
+
+@require_operator
+def manual_page(request: HttpRequest, slug: str) -> HttpResponse:
+    """One rendered page of the mairie-area manual."""
+    doc = _BACKOFFICE_DOCS.get(slug)
+    if doc is None:
+        raise Http404
+    page = manual.render(doc, request.LANGUAGE_CODE, image_base_url=_backoffice_image_base_url())
+    return render(request, "backoffice/manual_page.html", {"page": page})
+
+
+@require_operator
+def manual_image(request: HttpRequest, name: str) -> HttpResponse:
+    """One screenshot from the espace-mairie guide, served straight off
+    disk and behind the same gate as the guide itself — these screenshots
+    show the mairie-area interface, not something meant for a public
+    audience even though the underlying image files carry only synthetic
+    demonstration data (docs/manuel/README.md). A handful of small PNGs,
+    read whole rather than streamed."""
+    try:
+        path = manual.image_path(name)
+    except LookupError:
+        raise Http404 from None
+    return HttpResponse(path.read_bytes(), content_type="image/png")

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD — page.html is nh3-sanitised by apps.core.manual before it ever reaches this template (§6.6); rendered with the |safe it already carries as a SafeString, not Django's autoescape. #}
+
+{% block title %}{{ page.title }}{% endblock %}
+
+{% block content %}
+  {% include "publicsite/_crumb.html" %}
+
+  <h1>{{ page.title }}</h1>
+
+  <div class="manual-page">{{ page.html }}</div>
+{% endblock %}

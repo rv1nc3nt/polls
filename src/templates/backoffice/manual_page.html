@@ -1,0 +1,10 @@
+{% extends "backoffice/base.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD — page.html is nh3-sanitised by apps.core.manual before it ever reaches this template (§6.5); rendered as the SafeString it already is, not through Django's autoescape. #}
+
+{% block screen_title %}{{ page.title }}{% endblock %}
+{% block heading %}{{ page.title }}{% endblock %}
+
+{% block screen %}
+  <div class="manual-page">{{ page.html }}</div>
+{% endblock %}

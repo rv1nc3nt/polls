@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD — one row per docs/manuel/ document served publicly (apps.publicsite.views._PUBLIC_DOCS); titles come from each document's own heading, never retyped here. #}
+
+{% block title %}{% translate "Aide" %}{% endblock %}
+
+{% block content %}
+  {% include "publicsite/_crumb.html" %}
+
+  <h1>{% translate "Aide" %}</h1>
+
+  <ul class="manual-index">
+    {% for row in rows %}
+      <li><a href="{% url 'publicsite:manual_page' row.slug %}">{{ row.title }}</a></li>
+    {% endfor %}
+  </ul>
+{% endblock %}

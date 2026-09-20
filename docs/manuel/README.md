@@ -17,6 +17,29 @@ Il se lit selon le rôle que l'on tient :
 | n'importe qui, électeur ou non, souhaitant recalculer un résultat publié par ses propres moyens | **[Vérifier un résultat par vous-même](verifier.md)** — télécharger et utiliser le vérificateur indépendant, sans compétence technique préalable |
 | n'importe lequel des rôles ci-dessus, avec une question précise | **[Foire aux questions](faq.md)** — une sous-partie par rôle |
 
+## Servi par l'application elle-même
+
+`guide-electeur.md`, `verifier.md` et la sous-partie « Électeur » de `faq.md`
+sont servis sur le site public, sous `/aide/` ; `guide-espace-mairie.md` et la
+sous-partie « Espace mairie » de `faq.md` sont servis dans l'espace mairie,
+sous `/mairie/aide/`, ouvert à tout compte opérateur connecté, quel que soit
+son rôle (`apps.backoffice.access.require_operator`) — lire la documentation
+n'est pas en soi un accès aux données d'un scrutin. Les deux le sont par
+`apps.core.manual`, qui lit et rend ces fichiers depuis le disque à chaque
+requête : le fichier source **est** la page servie, il n'existe jamais de
+copie à tenir à jour à la main. `guide-administrateur.md` et la sous-partie
+« Administrateur d'instance » de `faq.md` ne sont servis nulle part : ce
+public n'a par construction pas encore de compte espace mairie, et il lit ce
+guide dans le dépôt.
+
+Chacun des quatre documents servis existe aussi en anglais, dans un fichier
+jumeau suffixé `-en` (`guide-electeur-en.md`, etc.) — même convention que
+`requirements-en.md` à côté de `cahier-des-charges.md` à la racine du dépôt.
+Le français reste la seule langue de référence (ci-dessus) : la version
+anglaise est une traduction, à corriger pour suivre le français plutôt que
+l'inverse. La langue servie suit celle de la page (le sélecteur de langue
+déjà présent sur le site), pas un réglage séparé.
+
 ## À propos des captures d'écran
 
 Les images du manuel sont dans [`captures/img/`](captures/img/). Ce sont des

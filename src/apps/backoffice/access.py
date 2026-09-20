@@ -149,6 +149,24 @@ def require_commune_admin(view: DispatchedView) -> DispatchedView:
     return wrapper
 
 
+def require_operator(view: DispatchedView) -> DispatchedView:
+    """Gate a screen that carries no poll data and needs no particular role —
+    just a working account. The manual pages under ``/mairie/aide/`` are the
+    only screens this guards: unlike every screen ``require_poll_role`` and
+    `require_commune_admin` cover, reading documentation is not itself an
+    access to any poll's configuration, roll or ballots, so it asks only for
+    what "connected user" literally means, and no more.
+    """
+
+    @wraps(view)
+    def wrapper(request: HttpRequest, *args: object, **kwargs: object) -> HttpResponse:
+        if _operator(request.user) is None:
+            return redirect_to_login(request.get_full_path())
+        return view(request, *args, **kwargs)
+
+    return wrapper
+
+
 def require_first_run(view: DispatchedView) -> DispatchedView:
     """Gate the first-run wizard (§6.5.11).
 

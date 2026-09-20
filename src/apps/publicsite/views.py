@@ -30,9 +30,21 @@ from django.utils.dateparse import parse_datetime
 from django.utils.translation import gettext as _
 
 from apps.audit.models import Action, AuditEvent, Reason
+from apps.core import manual
 from apps.elections import closure, results_view, richtext, windows
 from apps.elections.models import Poll, PollState
 from apps.registrations.models import Channel, Registration, RegistrationState
+
+#: The manual documents served publicly (docs/manuel/README.md's own table):
+#: the voter's guide and the independent-verifier walkthrough in full, and
+#: only the électeur-facing third of the FAQ — the other two audiences
+#: (instance administrator, mairie area) answer questions a visitor here
+#: never asked. Keyed by the URL slug.
+_PUBLIC_DOCS: dict[str, manual.ManualDoc] = {
+    "electeur": manual.ManualDoc(stem="guide-electeur"),
+    "verifier": manual.ManualDoc(stem="verifier"),
+    "faq": manual.ManualDoc(stem="faq", section="C"),
+}
 
 #: The states a poll is visible to the public in at all. ``draft`` is
 #: deliberately absent — a poll not yet even ``announced`` is not one anyone
@@ -84,13 +96,75 @@ def health(request: HttpRequest) -> JsonResponse:
 
 
 def help_page(request: HttpRequest) -> HttpResponse:
-    """The public FAQ (linked from every voter-facing page's footer, §6.6).
-
-    Plain-language answers to how registration, paper voting, ballot
-    modification and result verification work — none of it poll-specific, so
-    no queryset here, unlike every other view in this module.
+    """The manual's public landing page (linked from every voter-facing
+    page's footer, §6.6): links to the voter's guide, the independent
+    verifier and the voter FAQ, each rendered straight from
+    ``docs/manuel/`` by `manual_page` below — one source of prose for the
+    repository and the site, never two to keep in step by hand.
     """
-    return render(request, "publicsite/help.html", {"breadcrumbs": [{"label": _("Aide")}]})
+    language = request.LANGUAGE_CODE
+    rows = [
+        {"slug": slug, "title": manual.read(doc, language)[0]} for slug, doc in _PUBLIC_DOCS.items()
+    ]
+    return render(
+        request,
+        "publicsite/manual_index.html",
+        {"rows": rows, "breadcrumbs": [{"label": _("Aide")}]},
+    )
+
+
+def _public_image_base_url() -> str:
+    """The prefix under which `manual_image` serves
+    ``docs/manuel/captures/img/`` — derived from the URL pattern itself with
+    a throwaway name, so it always matches whatever `reverse` would build for
+    a real one, i18n prefix included (§3.8).
+    """
+    sentinel = "SENTINEL.png"
+    full = reverse("publicsite:manual_image", args=[sentinel])
+    return full[: -len(sentinel)]
+
+
+def manual_image(request: HttpRequest, name: str) -> HttpResponse:
+    """One screenshot from the voter's guide (`_PUBLIC_DOCS["electeur"]`),
+    served straight off disk — the manual's images live under version
+    control next to the prose they illustrate, not in `MEDIA_ROOT` (§6.6). A
+    handful of small PNGs, read whole rather than streamed.
+    """
+    try:
+        path = manual.image_path(name)
+    except LookupError:
+        raise Http404 from None
+    return HttpResponse(path.read_bytes(), content_type="image/png")
+
+
+def manual_page(request: HttpRequest, slug: str) -> HttpResponse:
+    """One rendered page of the public manual (`help_page` above lists all
+    three). §6.6's public-facing prose is never typed twice: this reads and
+    sanitises the same ``docs/manuel/*.md`` a repository maintainer edits.
+    """
+    doc = _PUBLIC_DOCS.get(slug)
+    if doc is None:
+        raise Http404
+    page = manual.render(
+        doc,
+        request.LANGUAGE_CODE,
+        doc_links={
+            "guide-electeur": reverse("publicsite:manual_page", args=["electeur"]),
+            "verifier": reverse("publicsite:manual_page", args=["verifier"]),
+        },
+        image_base_url=_public_image_base_url(),
+    )
+    return render(
+        request,
+        "publicsite/manual_page.html",
+        {
+            "page": page,
+            "breadcrumbs": [
+                {"label": _("Aide"), "url": reverse("publicsite:help")},
+                {"label": page.title},
+            ],
+        },
+    )
 
 
 #: The ``?statut=`` values the template's filter tags may send back, matching

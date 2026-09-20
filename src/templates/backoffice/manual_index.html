@@ -1,0 +1,14 @@
+{% extends "backoffice/base.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD — one row per docs/manuel/ document served in the mairie area (apps.backoffice.views._BACKOFFICE_DOCS); titles come from each document's own heading, never retyped here. #}
+
+{% block screen_title %}{% translate "Aide" %}{% endblock %}
+{% block heading %}{% translate "Aide" %}{% endblock %}
+
+{% block screen %}
+  <ul class="manual-index">
+    {% for row in rows %}
+      <li><a href="{% url 'backoffice:manual_page' row.slug %}">{{ row.title }}</a></li>
+    {% endfor %}
+  </ul>
+{% endblock %}

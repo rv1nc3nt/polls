@@ -33,6 +33,11 @@ urlpatterns = [
     ),
     path("commune/favicon/", views.commune_favicon_upload, name="commune_favicon_upload"),
     path("commune/favicon/supprimer/", views.commune_favicon_remove, name="commune_favicon_remove"),
+    # Documentation: not poll-scoped, gated by require_operator rather than
+    # require_poll_role or require_commune_admin (views.py).
+    path("aide/", views.manual_index, name="manual_index"),
+    path("aide/images/<str:name>", views.manual_image, name="manual_image"),
+    path("aide/<slug:slug>/", views.manual_page, name="manual_page"),
     # Commune-level (R-2.1: the commune administrator imports the roll, not a
     # poll admin), like comptes/ and messagerie/ above — never
     # scrutin/<poll_id>/…, so no poll submenu can reach it (§3.2,
