@@ -3865,14 +3865,18 @@ msgstr "List pages"
 #: src/templates/backoffice/role_admin.html:99
 msgid ""
 "Administrateur du scrutin : configuration, tableau de bord, inscriptions, "
-"saisie et rectification des bulletins papier, clôture et publication."
+"clôture et publication."
 msgstr ""
-"Poll administrator: configuration, dashboard, registrations, entry and "
-"correction of paper ballots, closure and publication."
+"Poll administrator: configuration, dashboard, registrations, closure and "
+"publication."
 
 #: src/templates/backoffice/role_admin.html:100
-msgid "Opérateur de saisie : saisie des bulletins papier et contreseing."
-msgstr "Entry operator: entering paper ballots and countersigning."
+msgid ""
+"Opérateur de saisie : saisie, rectification et suppression des bulletins "
+"papier, et contreseing."
+msgstr ""
+"Entry operator: entering, correcting and deleting paper ballots, and "
+"countersigning."
 
 #: src/templates/backoffice/role_admin.html:101
 msgid ""
@@ -4340,13 +4344,11 @@ msgstr "Can I vote another way than online?"
 
 #: src/templates/publicsite/help.html:33
 msgid ""
-"Lorsque la consultation le permet, un bulletin papier peut être déposé en "
-"mairie ; un agent le saisit alors dans la même consultation. La page de "
-"chaque consultation ouverte indique si ce mode de vote est proposé."
+"Un bulletin papier peut être déposé en mairie ; il est saisi par un membre "
+"du conseil municipal dans la même consultation."
 msgstr ""
-"Where the consultation allows it, a paper ballot may be handed in at the "
-"mairie; a staff member then enters it into the same consultation. Each open "
-"consultation's page states whether this way of voting is offered."
+"A paper ballot may be handed in at the mairie; it is entered by a member "
+"of the municipal council into the same consultation."
 
 #: src/templates/publicsite/help.html:37
 msgid "Puis-je modifier mon vote après l'avoir envoyé ?"

@@ -103,8 +103,9 @@ ids and tracking codes alone.
 
 ## Build status
 
-Implemented and tested — the four CI gates (`ruff`, `ruff format`,
-`mypy --strict`, `pytest`) and the Rust `cargo test` are green:
+Implemented and tested — the CI gates (`compilemessages`, `makemigrations
+--check`, `ruff`, `ruff format`, `mypy --strict`, `pytest`) and the Rust
+`cargo test` are green:
 
 - the domain model and its migrations, and the database triggers enforcing
   INV-2, INV-3, INV-6 and INV-7;

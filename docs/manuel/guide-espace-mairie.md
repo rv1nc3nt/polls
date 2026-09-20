@@ -696,7 +696,8 @@ rouvre le vote en ligne (R-9.4).
 
 ![Journal d'audit](captures/img/21-mairie-journal-audit.png)
 
-Lecture seule, filtrable par auteur, date et objet. Visible des **auditeurs**.
+Lecture seule, filtrable par auteur, date et objet. Visible de
+l'**administrateur du scrutin** et de l'**auditeur**.
 **Aucun événement ne peut être modifié ni supprimé**, dans l'application comme
 dans la base (INV-3).
 

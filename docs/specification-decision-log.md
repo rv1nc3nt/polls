@@ -675,18 +675,25 @@ at R-8.4."
 
 **Specification.** `paper_requires_signed_form` defaults to `false` (§3.1,
 §13 item 5), so by default the receipt is the *only* document that can carry
-R-8.2 bis's statement. But every place the receipt is described —
-`PaperBallotLink` (§3.5), the keying flow (§6.4), and screen 5 (§6.5, "a
-printable receipt (R-8.4) rendered as an HTML page with a print stylesheet") —
-says only that it bears the tracking code. Nothing says it must also carry the
-ranking, the honour declaration, the elector's identity, or R-8.2 bis's
-traceability/deletion statement when no signed form exists.
+R-8.2 bis's statement. At the time this entry was written, every place the
+receipt was described — `PaperBallotLink` (§3.5), the keying flow (§6.4), and
+screen 5 (§6.5, "a printable receipt (R-8.4) rendered as an HTML page with a
+print stylesheet") — said only that it bears the tracking code, with nothing
+requiring the ranking or R-8.2 bis's traceability/deletion statement when no
+signed form exists.
 
-**Not settled.** Likely a straightforward addition — extend screen 5's receipt
-template, and acceptance coverage, to include the four elements R-8.2 bis
-lists whenever `paper_requires_signed_form` is off — but recorded here rather
-than assumed, since the signed-form path itself also needs the same content
-and nothing currently specifies its layout either.
+**Settled (2026-09-20), receipt side.** `paper_receipt.html` now renders the
+recorded ranking unconditionally and, whenever `show_identity_notice` is true
+— `paper_receipt` (`apps/backoffice/views.py`) sets it to exactly
+`not poll.paper_requires_signed_form`, i.e. "in the absence of a form" — the
+R-8.2 bis traceability/deletion statement. R-8.2 bis's "cette information" is
+read as the singular *mention* it immediately follows, not the form's full
+contents, so neither the elector's identity nor the honour declaration is
+expected on the receipt: an unsigned slip handed back to the elector is not
+the place for either. **Not settled**: the signed-form path still has no
+described layout, so nothing yet specifies where on that form its four
+elements — ranking, honour declaration, identity, traceability mention —
+must appear.
 
 ## 19. `announced` became mandatory, reversing item 13's "optional waypoint"
 
