@@ -730,7 +730,7 @@ legend { font-weight: 700; padding: 0 0.4rem; }
 }
 
 .details-dialog {
-  width: min(40rem, 100%);
+  width: clamp(20rem, 66vw, 60rem);
   max-height: min(80vh, 40rem);
   padding: 0;
   border: 0;
@@ -739,7 +739,10 @@ legend { font-weight: 700; padding: 0 0.4rem; }
   color: var(--ink);
   box-shadow: var(--shadow);
 }
-.details-dialog::backdrop { background: rgba(17, 17, 26, 0.5); }
+.details-dialog::backdrop {
+  background: rgba(17, 17, 26, 0.5);
+  backdrop-filter: blur(4px);
+}
 .details-dialog__header {
   display: flex;
   align-items: center;
@@ -771,6 +774,12 @@ legend { font-weight: 700; padding: 0 0.4rem; }
 .details-dialog__body::-webkit-scrollbar { width: 10px; }
 .details-dialog__body::-webkit-scrollbar-track { background: transparent; }
 .details-dialog__body::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 999px; }
+/* .option-details (line ~1235) and .youtube-embed both cap at
+   var(--measure) for readability in the page's running text column, but the
+   dialog is already width-clamped on its own terms — left uncapped here,
+   the cloned content stops short of the dialog's edge and the scrollbar
+   reads as belonging to the text rather than the popup. */
+.details-dialog__body.option-details, .details-dialog__body .youtube-embed { max-width: none; }
 
 /* The account-management disclosure stacks three small forms; space them and
    let each lay its label, field and button out in a row. */
