@@ -74,6 +74,26 @@ server {
         expires 30d;
     }
 
+    # The manual (docs/manuel/, apps.core.manual): plain reads, not a write
+    # endpoint, but a page under it can hold two dozen screenshots — the
+    # espace-mairie guide does — each its own request under aide/images/.
+    # `polls_write` below is sized for the routes its name says (ballot
+    # casting, registration, roll import) and a burst of 10 starves that
+    # page's own images before the leaky bucket refills. Matches both
+    # /<lang>/aide/… (public) and /<lang>/mairie/aide/… (espace mairie), the
+    # same language-prefix shape $polls_loggable matches above.
+    location ~ ^/[a-z]{2}/(mairie/)?aide/ {
+        proxy_pass http://{{ polls_bind }};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto {% if tls_live %}https{% else %}$scheme{% endif %};
+
+        proxy_redirect off;
+        proxy_connect_timeout 5s;
+        proxy_read_timeout 30s;
+    }
+
     location / {
         limit_req zone=polls_write burst=10 nodelay;
         proxy_pass http://{{ polls_bind }};
