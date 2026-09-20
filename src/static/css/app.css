@@ -18,7 +18,7 @@
      `data-theme` on the root — set by static/js/theme.js from the viewer's
      choice — wins over it in either direction. */
 
-/* Libre Franklin (headings and body text) and IBM Plex Mono (tracking codes,
+/* Source Serif 4 (headings and body text) and IBM Plex Mono (tracking codes,
    the ballot's rank selects) — vendored under static/fonts/ rather than
    linked from fonts.googleapis.com: §14's self-hosting posture rules out a
    third party seeing every visitor's IP on every page load, which a live
@@ -26,39 +26,39 @@
    is why seven small files cover both families in full. Each is SIL Open
    Font License 1.1, redistributable; see static/fonts/README.md. */
 @font-face {
-  font-family: "Libre Franklin";
+  font-family: "Source Serif 4";
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url("../fonts/librefranklin-400.woff2") format("woff2");
+  src: url("../fonts/sourceserif4-400.woff2") format("woff2");
 }
 @font-face {
-  font-family: "Libre Franklin";
+  font-family: "Source Serif 4";
   font-style: italic;
   font-weight: 400;
   font-display: swap;
-  src: url("../fonts/librefranklin-400italic.woff2") format("woff2");
+  src: url("../fonts/sourceserif4-400italic.woff2") format("woff2");
 }
 @font-face {
-  font-family: "Libre Franklin";
+  font-family: "Source Serif 4";
   font-style: normal;
   font-weight: 500;
   font-display: swap;
-  src: url("../fonts/librefranklin-500.woff2") format("woff2");
+  src: url("../fonts/sourceserif4-500.woff2") format("woff2");
 }
 @font-face {
-  font-family: "Libre Franklin";
+  font-family: "Source Serif 4";
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url("../fonts/librefranklin-600.woff2") format("woff2");
+  src: url("../fonts/sourceserif4-600.woff2") format("woff2");
 }
 @font-face {
-  font-family: "Libre Franklin";
+  font-family: "Source Serif 4";
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url("../fonts/librefranklin-700.woff2") format("woff2");
+  src: url("../fonts/sourceserif4-700.woff2") format("woff2");
 }
 @font-face {
   font-family: "IBM Plex Mono";
@@ -153,7 +153,7 @@ body {
   margin: 0;
   color: var(--ink);
   background: var(--paper);
-  font: 1rem/1.6 "Libre Franklin", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font: 1rem/1.6 "Source Serif 4", Georgia, "Times New Roman", serif;
   -webkit-font-smoothing: antialiased;
   /* The one piece of civic identity the platform allows itself: a bleu France
      rule across the top of every page. Decorative, removed for print. */
@@ -206,7 +206,10 @@ h1, h2, h3 { line-height: 1.2; text-wrap: balance; }
 h1 {
   font-size: clamp(1.75rem, 1.3rem + 1.9vw, 2.35rem);
   font-weight: 700;
-  letter-spacing: -0.02em;
+  /* A serif's own letterforms already carry the texture a tight sans-serif
+     heading needs tracking to fake — the -0.02em Libre Franklin used here
+     over-tightens Source Serif 4 into colliding kerns at the h1 size. */
+  letter-spacing: -0.01em;
   margin: 0 0 1.25rem;
 }
 
@@ -226,7 +229,7 @@ h1 {
 }
 .title-row h1 { margin: 0; }
 
-h2 { font-size: clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem); font-weight: 600; margin: 2.1rem 0 0.7rem; letter-spacing: -0.01em; }
+h2 { font-size: clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem); font-weight: 600; margin: 2.1rem 0 0.7rem; letter-spacing: -0.005em; }
 h3 { font-size: 1.05rem; font-weight: 600; margin: 1.5rem 0 0.5rem; }
 /* Justified body copy, front and back office alike — `hyphens` softens the
    wider word-gaps a narrow column (R-14.2's phone width included) otherwise
@@ -234,6 +237,13 @@ h3 { font-size: 1.05rem; font-weight: 600; margin: 1.5rem 0 0.5rem; }
    lets the browser pick the right hyphenation dictionary for it. */
 p, li, blockquote { text-align: justify; hyphens: auto; }
 p { margin: 0 0 0.8rem; }
+/* A plain, unclassed list (a tiebreak order, a download list) keeps its
+   native marker — screen-reader list semantics stay untouched — but the
+   marker itself takes the accent, the same quiet sorting-not-meaning role
+   colour plays everywhere else in this file (R-14.1: the number or the word
+   already carries the information; the colour only picks it out). */
+ul:not([class]) > li::marker { color: var(--accent); }
+ol:not([class]) > li::marker { color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; }
 main > p, .paper-form p, .receipt p { max-width: var(--measure); }
 section { margin-bottom: 2rem; }
 section:last-child { margin-bottom: 0; }
