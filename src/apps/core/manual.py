@@ -139,9 +139,11 @@ def read(doc: ManualDoc, language: str) -> tuple[str, str]:
     a second, redundant ``<h1>`` in the body would misorder the page for a
     screen reader (RGAA, cited throughout the manual itself).
 
-    A lettered section (``doc.section``) keeps its own ``##`` heading in the
-    body instead: nesting a page ``<h1>`` under a distinct ``<h2>`` is a
-    correct hierarchy, unlike repeating the same title twice.
+    A lettered section (``doc.section``) has its own ``##`` heading stripped
+    too, the same way and for the same reason: a page ever shows one such
+    section on its own, never alongside a sibling it needs distinguishing
+    from, so repeating "C. Électeur" as a lone ``<h2>`` right under an
+    ``<h1>`` that already ends in "— Électeur" said the same thing twice.
     """
     text = _source_path(doc.stem, language).read_text(encoding="utf-8")
     document_title_match = _H1.search(text)
@@ -157,7 +159,8 @@ def read(doc: ManualDoc, language: str) -> tuple[str, str]:
     section_title = re.sub(
         rf"^{re.escape(doc.section)}\.[ \t]*", "", section_heading_match.group(1)
     )
-    return f"{document_title} — {section_title}", section
+    body = _H2.sub("", section, count=1).lstrip("\n")
+    return f"{document_title} — {section_title}", body
 
 
 def image_path(name: str) -> Path:
