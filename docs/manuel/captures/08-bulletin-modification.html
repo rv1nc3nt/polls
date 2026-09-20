@@ -29,7 +29,7 @@
      `data-theme` on the root — set by static/js/theme.js from the viewer's
      choice — wins over it in either direction. */
 
-/* Libre Franklin (headings and body text) and IBM Plex Mono (tracking codes,
+/* Source Serif 4 (headings and body text) and IBM Plex Mono (tracking codes,
    the ballot's rank selects) — vendored under static/fonts/ rather than
    linked from fonts.googleapis.com: §14's self-hosting posture rules out a
    third party seeing every visitor's IP on every page load, which a live
@@ -37,39 +37,39 @@
    is why seven small files cover both families in full. Each is SIL Open
    Font License 1.1, redistributable; see static/fonts/README.md. */
 @font-face {
-  font-family: "Libre Franklin";
+  font-family: "Source Serif 4";
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url("../fonts/librefranklin-400.woff2") format("woff2");
+  src: url("../fonts/sourceserif4-400.woff2") format("woff2");
 }
 @font-face {
-  font-family: "Libre Franklin";
+  font-family: "Source Serif 4";
   font-style: italic;
   font-weight: 400;
   font-display: swap;
-  src: url("../fonts/librefranklin-400italic.woff2") format("woff2");
+  src: url("../fonts/sourceserif4-400italic.woff2") format("woff2");
 }
 @font-face {
-  font-family: "Libre Franklin";
+  font-family: "Source Serif 4";
   font-style: normal;
   font-weight: 500;
   font-display: swap;
-  src: url("../fonts/librefranklin-500.woff2") format("woff2");
+  src: url("../fonts/sourceserif4-500.woff2") format("woff2");
 }
 @font-face {
-  font-family: "Libre Franklin";
+  font-family: "Source Serif 4";
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url("../fonts/librefranklin-600.woff2") format("woff2");
+  src: url("../fonts/sourceserif4-600.woff2") format("woff2");
 }
 @font-face {
-  font-family: "Libre Franklin";
+  font-family: "Source Serif 4";
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url("../fonts/librefranklin-700.woff2") format("woff2");
+  src: url("../fonts/sourceserif4-700.woff2") format("woff2");
 }
 @font-face {
   font-family: "IBM Plex Mono";
@@ -164,7 +164,7 @@ body {
   margin: 0;
   color: var(--ink);
   background: var(--paper);
-  font: 1rem/1.6 "Libre Franklin", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font: 1rem/1.6 "Source Serif 4", Georgia, "Times New Roman", serif;
   -webkit-font-smoothing: antialiased;
   /* The one piece of civic identity the platform allows itself: a bleu France
      rule across the top of every page. Decorative, removed for print. */
@@ -217,7 +217,10 @@ h1, h2, h3 { line-height: 1.2; text-wrap: balance; }
 h1 {
   font-size: clamp(1.75rem, 1.3rem + 1.9vw, 2.35rem);
   font-weight: 700;
-  letter-spacing: -0.02em;
+  /* A serif's own letterforms already carry the texture a tight sans-serif
+     heading needs tracking to fake — the -0.02em Libre Franklin used here
+     over-tightens Source Serif 4 into colliding kerns at the h1 size. */
+  letter-spacing: -0.01em;
   margin: 0 0 1.25rem;
 }
 
@@ -237,9 +240,21 @@ h1 {
 }
 .title-row h1 { margin: 0; }
 
-h2 { font-size: clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem); font-weight: 600; margin: 2.1rem 0 0.7rem; letter-spacing: -0.01em; }
+h2 { font-size: clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem); font-weight: 600; margin: 2.1rem 0 0.7rem; letter-spacing: -0.005em; }
 h3 { font-size: 1.05rem; font-weight: 600; margin: 1.5rem 0 0.5rem; }
+/* Justified body copy, front and back office alike — `hyphens` softens the
+   wider word-gaps a narrow column (R-14.2's phone width included) otherwise
+   forces on a fully-justified line. `lang` on <html> (base.html) is what
+   lets the browser pick the right hyphenation dictionary for it. */
+p, li, blockquote { text-align: justify; hyphens: auto; }
 p { margin: 0 0 0.8rem; }
+/* A plain, unclassed list (a tiebreak order, a download list) keeps its
+   native marker — screen-reader list semantics stay untouched — but the
+   marker itself takes the accent, the same quiet sorting-not-meaning role
+   colour plays everywhere else in this file (R-14.1: the number or the word
+   already carries the information; the colour only picks it out). */
+ul:not([class]) > li::marker { color: var(--accent); }
+ol:not([class]) > li::marker { color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; }
 main > p, .paper-form p, .receipt p { max-width: var(--measure); }
 section { margin-bottom: 2rem; }
 section:last-child { margin-bottom: 0; }
@@ -264,13 +279,48 @@ section:last-child { margin-bottom: 0; }
   border-bottom: 1px solid var(--rule);
 }
 .site-name { font-weight: 700; margin: 0; font-size: 1.15rem; letter-spacing: -0.01em; }
-.site-name a { color: var(--ink); text-decoration: none; }
+.site-name a { color: var(--ink); text-decoration: none; display: flex; align-items: center; gap: 0.6rem; }
 .site-name a:hover { color: var(--accent); }
 .site-logo { display: block; max-height: 2.25rem; width: auto; }
+/* §6.5.14: `logo_dark` swaps in for `logo` under the same rule the top-of-file
+   colour tokens use — both the OS `prefers-color-scheme` and theme.js's
+   explicit `data-theme` override — so the two never show at once. */
+.site-logo--dark { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .site-logo--light { display: none; }
+  :root:not([data-theme="light"]) .site-logo--dark { display: block; }
+}
+:root[data-theme="dark"] .site-logo--light { display: none; }
+:root[data-theme="dark"] .site-logo--dark { display: block; }
 .account { display: flex; gap: 0.75rem; align-items: center; }
 .account__name { font-weight: 600; }
 
 .account__public { white-space: nowrap; }
+
+/* Language and theme controls, in the banner (base.html `header_tools`). The
+   base `.langswitch`/`.themeswitch` rules size their select, submit and toggle
+   buttons for a full-width footer row and bottom-align them (`align-items:
+   end`) against labels of two different weights — inline with the site name
+   that reads as three controls at three heights. Here both groups share one
+   compact control height and are centre-aligned against each other instead. */
+.header-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 1.25rem; }
+.header-tools .langswitch,
+.header-tools .themeswitch { margin-top: 0; align-items: center; gap: 0.4rem; }
+.header-tools .langswitch label,
+.header-tools .themeswitch > span {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink-quiet);
+}
+.header-tools select,
+.header-tools .langswitch button,
+.header-tools .themeswitch button {
+  min-height: 2rem;
+  font-size: 0.82rem;
+}
+.header-tools select { padding: 0.2rem 0.5rem; }
+.header-tools .langswitch button { padding: 0.3rem 0.7rem; }
+.header-tools .themeswitch button { padding: 0.3rem 0.6rem; }
 
 .contentinfo { border-top: 1px solid var(--rule); color: var(--ink-quiet); font-size: 0.9rem; margin-top: 1rem; }
 
@@ -622,7 +672,13 @@ form.danger button {
   border-color: var(--focus);
 }
 
+/* `min-width: 0` (R-14.2): browsers give `<fieldset>` an intrinsic minimum
+   width from its content — a legacy quirk of how the legend is positioned —
+   that a plain `width: auto` does not override, so a config screen's
+   fieldset would hold itself wider than the phone viewport regardless of how
+   narrow its own fields are willing to go. */
 fieldset {
+  min-width: 0;
   border: 1px solid var(--rule);
   border-radius: var(--radius);
   padding: 1rem 1.1rem;
@@ -672,6 +728,83 @@ legend { font-weight: 700; padding: 0 0.4rem; }
   font-size: 0.85em;
 }
 
+/* static/js/option-details-dialog.js only: `.option-details--clipped` and
+   `.option-details-more` are added by the script, never rendered server
+   side, so a description stays unclipped for anyone who never gets a
+   "Lire la suite" button to reveal it (R-14.1). The fade masks the hard cut
+   rather than the clipped text just stopping mid-sentence. */
+.option-details--clipped {
+  max-height: 12rem;
+  overflow: hidden;
+  position: relative;
+}
+.option-details--clipped::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 3rem;
+  background: linear-gradient(to bottom, transparent, var(--surface));
+}
+.option-details-more {
+  display: block;
+  margin-top: 0.6rem;
+}
+
+.details-dialog {
+  width: clamp(20rem, 66vw, 60rem);
+  max-height: min(80vh, 40rem);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+}
+.details-dialog::backdrop {
+  background: rgba(17, 17, 26, 0.5);
+  backdrop-filter: blur(4px);
+}
+.details-dialog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 2rem;
+  border-bottom: 1px solid var(--rule-soft);
+}
+.details-dialog__header h3 { margin: 0; }
+.details-dialog__close {
+  padding: 0.2rem 0.6rem;
+  font-size: 1.3rem;
+  line-height: 1;
+  background: none;
+  color: var(--ink-quiet);
+  border: 0;
+}
+.details-dialog__close:hover { opacity: 1; color: var(--ink); background: none; }
+.details-dialog__body {
+  max-height: calc(min(80vh, 40rem) - 3.5rem);
+  overflow-y: auto;
+  padding: 1.1rem 2rem;
+  /* Styled rather than left to the platform default: an overlay-scrollbar
+     OS (GNOME, macOS) draws nothing here until the pointer is over the
+     track, which reads as "this popup has no scrollbar" at a glance. */
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule) transparent;
+}
+.details-dialog__body::-webkit-scrollbar { width: 10px; }
+.details-dialog__body::-webkit-scrollbar-track { background: transparent; }
+.details-dialog__body::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 999px; }
+/* .option-details (line ~1235) caps at var(--measure) for readability in
+   the page's running text column, but the dialog is already
+   width-clamped on its own terms — left uncapped here, the cloned text
+   stops short of the dialog's edge and the scrollbar reads as belonging
+   to the text rather than the popup. A .youtube-embed keeps a cap of its
+   own: unlike text, a video only gets harder to watch as it grows, so it
+   stays bounded and centred instead of stretching to the dialog's width. */
+.details-dialog__body.option-details { max-width: none; }
+.details-dialog__body .youtube-embed { max-width: 28rem; margin-inline: auto; }
+
 /* The account-management disclosure stacks three small forms; space them and
    let each lay its label, field and button out in a row. */
 details form.inline {
@@ -705,8 +838,18 @@ tbody tr.selected th, tbody tr.selected td { background: var(--accent-soft); }
 /* A stored row awaiting removal on save: kept in place, struck through, undoable. */
 .option-row--removed { opacity: 0.55; }
 .option-row--removed legend { text-decoration: line-through; }
+.option-row__position { width: 5rem; }
 
 /* ---- tables ---------------------------------------------------------- */
+
+/* R-14.2: a table whose column count tracks something the commune controls
+   (propositions in the pairwise matrix, R-11.3) has no upper bound the CSS
+   can plan around. Past a handful of columns it cannot fit a phone screen
+   whatever the type scale does, so it scrolls in its own box — same
+   principle as `td code` below, applied to the table as a whole rather than
+   forcing the surrounding page to scroll sideways with it. */
+.table-scroll { overflow-x: auto; margin: 0.5rem 0 2rem; }
+.table-scroll table { margin: 0; }
 
 table { border-collapse: collapse; width: 100%; margin: 0.5rem 0 2rem; }
 caption { text-align: left; font-weight: 600; padding-bottom: 0.6rem; }
@@ -748,7 +891,13 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
    read-only configuration. */
 .facts {
   display: grid;
-  grid-template-columns: max-content 1fr;
+  /* `minmax(0, …)` rather than bare `max-content 1fr` (R-14.2): a grid track's
+     automatic minimum is its content's unwrapped width, so a long label
+     ("Fin de la saisie des bulletins papier") or value would otherwise hold
+     the column — and everything alongside it in the ancestor grid, up
+     through .poll-layout — to that width even on a phone screen, forcing the
+     whole page to scroll sideways instead of the text wrapping. */
+  grid-template-columns: minmax(0, max-content) minmax(0, 1fr);
   gap: 0.5rem 1.5rem;
   margin: 0.5rem 0 1.5rem;
   padding: 1.1rem 1.3rem;
@@ -757,8 +906,23 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
 }
-.facts dt { font-weight: 600; color: var(--ink-quiet); }
-.facts dd { margin: 0; }
+.facts dt { font-weight: 600; color: var(--ink-quiet); min-width: 0; }
+.facts dd { margin: 0; min-width: 0; }
+/* A hash or seed (§9's verification section) is one unbroken run of
+   characters, unlike the sentences and dates .facts otherwise holds — scoped
+   to `code` so an ordinary value still wraps at word boundaries rather than
+   splitting mid-word the moment the column narrows. */
+.facts dd code { overflow-wrap: anywhere; }
+/* Below phone width, `minmax(0, …)` above stops the page scrolling sideways,
+   but a label like "Fin de la saisie des bulletins papier" still claims most
+   of the row, leaving the value a handful of pixels to wrap into — legible
+   in principle, unreadable in practice. Stacking the pair — label, then
+   value, each at the row's full width — is what an elector on a phone
+   actually needs (R-14.2), not just the absence of a scrollbar. */
+@media (max-width: 34rem) {
+  .facts { grid-template-columns: 1fr; }
+  .facts dt:not(:first-child) { margin-top: 0.5rem; }
+}
 /* Nested inside another boxed block (a review article), the card treatment
    would be a box in a box — drop it back to a plain grid. */
 .review .facts, .paper-elector .facts { box-shadow: none; border: 0; background: none; padding: 0; }
@@ -927,6 +1091,24 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
    above), the consultative-status statement set apart without colour
    carrying it. */
 
+/* Fil d'Ariane (R-14.1): same list/separator shape as .bo-crumb above, but not
+   sticky — the public pages have no fixed side column for it to sit clear of. */
+.pub-crumb { margin-bottom: 1.1rem; }
+.pub-crumb ol {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  font-size: 0.85rem;
+}
+.pub-crumb li { display: flex; gap: 0.35rem; align-items: baseline; }
+.pub-crumb li + li::before { content: "A"; color: var(--ink-quiet); }
+.pub-crumb a { color: var(--link); text-decoration: none; }
+.pub-crumb a:hover { text-decoration: underline; }
+.pub-crumb [aria-current="page"] { color: var(--ink-quiet); font-weight: 600; }
+
 /* The poll's own state, called out the same way as a .message: a coloured
    left border on a tinted box, word-first (the sentence itself already says
    "ouverte"/"close"/…, R-14.1) so the colour only sorts what the words
@@ -960,10 +1142,14 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 /* The poll page's main content and its "Participer" card (§6.6): a sticky
    aside rather than the button repeated top and bottom of the page, so it
    stays in view as the reader scrolls the propositions and the calendar. */
-.poll-layout { display: grid; grid-template-columns: 1.6fr 1fr; gap: 2rem; align-items: start; margin-top: 0.5rem; }
+/* `minmax(0, …)` on both tracks (R-14.2): without it a track's automatic
+   minimum is its content's unwrapped width, so unwrappable content anywhere
+   in .poll-layout__main or __aside would hold this grid — not just the
+   .facts columns nested inside it — wider than the viewport. */
+.poll-layout { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 2rem; align-items: start; margin-top: 0.5rem; }
 .poll-layout__aside { position: sticky; top: 1.25rem; }
 @media (max-width: 58rem) {
-  .poll-layout { grid-template-columns: 1fr; }
+  .poll-layout { grid-template-columns: minmax(0, 1fr); }
   .poll-layout__aside { position: static; }
 }
 .cta-card {
@@ -1070,22 +1256,34 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 .option-details { margin: 0.5rem 0 0.75rem; max-width: var(--measure); }
 .option-details img { border-radius: 4px; }
 
+/* The `:small`/`:medium`/`:large` suffix on an `image:<n>` reference
+   (decision log #23) — applies wherever richtext.py renders one, poll
+   description or option details alike, not just inside .option-details. */
+.poll-image--small, .poll-image--medium, .poll-image--large { display: block; height: auto; max-width: 100%; border-radius: 4px; }
+.poll-image--small { width: min(10rem, 100%); }
+.poll-image--medium { width: min(20rem, 100%); }
+.poll-image--large { width: min(32rem, 100%); }
+
 /* 16:9 responsive wrapper around the one iframe apps.elections.optioncontent
    ever emits — width comes from the surrounding text column, not from the
    iframe's own (fixed, sandboxed) attributes. */
 .youtube-embed { position: relative; width: 100%; max-width: var(--measure); aspect-ratio: 16 / 9; margin: 0.5rem 0; }
 .youtube-embed iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 
-/* ---- screen 2's per-proposition image manager (§6.5.2, R-3.12) ----- */
+/* ---- screen 2's poll image library (§6.5.2, R-3.12) ---------------- */
 
-.option-images { list-style: none; padding: 0; margin: 0 0 0.75rem; display: flex; flex-wrap: wrap; gap: 0.75rem; }
-.option-images li { display: flex; flex-direction: column; gap: 0.3rem; }
-.option-images__thumb { width: 8rem; height: 8rem; object-fit: cover; border-radius: 4px; border: 1px solid var(--rule-soft); }
+.poll-images { list-style: none; padding: 0; margin: 0 0 0.75rem; display: flex; flex-wrap: wrap; gap: 0.75rem; }
+.poll-images li { display: flex; flex-direction: column; gap: 0.3rem; }
+.poll-images__thumb { width: 8rem; height: 8rem; object-fit: cover; border-radius: 4px; border: 1px solid var(--rule-soft); }
 
 /* ---- screen 14's logo and favicon (§6.5.14) ------------------------ */
 
 .commune-branding__preview { max-width: 12rem; max-height: 6rem; width: auto; height: auto; border-radius: 4px; border: 1px solid var(--rule-soft); }
 .commune-branding__preview--favicon { max-width: 4rem; max-height: 4rem; }
+/* A dark-theme logo is typically light-coloured artwork meant for a dark
+   background — previewed on one here regardless of the operator's own
+   theme, or it would often look blank. */
+.commune-branding__preview--dark { background: #17181b; padding: 0.5rem; }
 
 /* ---- back-to-top shortcut (poll_detail.html) ------------------------
    Fixed and visible by default — a harmless permanent fixture — so a visitor
@@ -1136,7 +1334,38 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 
   <header class="banner">
     
+    
     <p class="site-name"><a href="/">Commune de Saint-Aubin-des-Bois</a></p>
+    
+
+    
+    
+      <div class="header-tools">
+        <form action="/i18n/setlang/" method="post" class="langswitch">
+          <input type="hidden" name="csrfmiddlewaretoken" value="icgPXn2krF2QcQ4rWeNqn2hKi5KIfGBxADQyZ4gHQwqkzx5Kyn6by6fKvRJl7CJi">
+          <input type="hidden" name="next" value="/fr/bulletin/b59c7bbb-b2ca-4306-9085-0525cb8d9654/modifier/">
+          <label for="langswitch-select">Langue</label>
+          <select id="langswitch-select" name="language">
+            
+            
+              <option value="fr" lang="fr" selected>Français</option>
+            
+              <option value="en" lang="en">Anglais</option>
+            
+          </select>
+          <button type="submit" class="secondary">Changer</button>
+        </form>
+
+        
+        <div class="themeswitch" data-theme-control hidden>
+          <span id="themeswitch-label">Thème</span>
+          <div role="group" aria-labelledby="themeswitch-label">
+            <button type="button" value="light">Clair</button>
+            <button type="button" value="dark">Sombre</button>
+            <button type="button" value="auto">Système</button>
+          </div>
+        </div>
+      </div>
     
   </header>
 
@@ -1150,11 +1379,11 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
   <p>Le classement ci-dessous est celui de votre bulletin actuel. En validant, vous le remplacez ; la version précédente est conservée mais n'est plus comptée.</p>
 
   <form method="post">
-    <input type="hidden" name="csrfmiddlewaretoken" value="reLsRN8CbrNdGfzuQD0opnpUIKBCrUn6ySjJl2aSMXQBNewYk8GT5m55s2aX9joi">
+    <input type="hidden" name="csrfmiddlewaretoken" value="icgPXn2krF2QcQ4rWeNqn2hKi5KIfGBxADQyZ4gHQwqkzx5Kyn6by6fKvRJl7CJi">
     
 
 
-<input type="hidden" name="order" value="mineral,mixte,jardin" id="id_order">
+<input type="hidden" name="order" value="jardin,mixte,mineral" id="id_order">
 
 <p class="help">
   
@@ -1165,15 +1394,15 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 <ol class="ranking">
   
     <li class="ranking__row">
-      <label for="id_rank_mineral">Scénario A — place minérale et ombrières</label>
-      <select name="rank_mineral" id="id_rank_mineral">
+      <label for="id_rank_jardin">Scénario B — jardin planté et noue paysagère</label>
+      <select name="rank_jardin" id="id_rank_jardin">
   <option value="">Non classé</option>
 
-  <option value="1">1</option>
+  <option value="1" selected>1</option>
 
   <option value="2">2</option>
 
-  <option value="3" selected>3</option>
+  <option value="3">3</option>
 
 </select>
       
@@ -1195,15 +1424,15 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
     </li>
   
     <li class="ranking__row">
-      <label for="id_rank_jardin">Scénario B — jardin planté et noue paysagère</label>
-      <select name="rank_jardin" id="id_rank_jardin">
+      <label for="id_rank_mineral">Scénario A — place minérale et ombrières</label>
+      <select name="rank_mineral" id="id_rank_mineral">
   <option value="">Non classé</option>
 
-  <option value="1" selected>1</option>
+  <option value="1">1</option>
 
   <option value="2">2</option>
 
-  <option value="3">3</option>
+  <option value="3" selected>3</option>
 
 </select>
       
@@ -1228,33 +1457,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
     
 
     
-    
       <p><a href="/fr/aide/">Aide</a></p>
-
-      <form action="/i18n/setlang/" method="post" class="langswitch">
-        <input type="hidden" name="csrfmiddlewaretoken" value="reLsRN8CbrNdGfzuQD0opnpUIKBCrUn6ySjJl2aSMXQBNewYk8GT5m55s2aX9joi">
-        <input type="hidden" name="next" value="/fr/bulletin/579189a0-f7b1-42a1-ad39-09a5c8b5a3c7/modifier/">
-        <label for="langswitch-select">Langue</label>
-        <select id="langswitch-select" name="language">
-          
-          
-            <option value="fr" lang="fr" selected>Français</option>
-          
-            <option value="en" lang="en">Anglais</option>
-          
-        </select>
-        <button type="submit" class="secondary">Changer</button>
-      </form>
-
-      
-      <div class="themeswitch" data-theme-control hidden>
-        <span id="themeswitch-label">Thème</span>
-        <div role="group" aria-labelledby="themeswitch-label">
-          <button type="button" value="light">Clair</button>
-          <button type="button" value="dark">Sombre</button>
-          <button type="button" value="auto">Système</button>
-        </div>
-      </div>
     
   </footer>
 

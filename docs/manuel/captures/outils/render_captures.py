@@ -30,6 +30,7 @@ OUT.mkdir(parents=True, exist_ok=True)
 CSS = (ROOT / "src" / "static" / "css" / "app.css").read_text(encoding="utf-8")
 TABS_JS = (ROOT / "src" / "static" / "js" / "tabs.js").read_text(encoding="utf-8")
 OPTION_EDITOR_JS = (ROOT / "src" / "static" / "js" / "option-editor.js").read_text(encoding="utf-8")
+BACKTOTOP_JS = (ROOT / "src" / "static" / "js" / "backtotop.js").read_text(encoding="utf-8")
 
 poll = Poll.objects.get(title_i18n__fr__startswith="Réaménagement")
 draft = Poll.objects.get(state=PollState.DRAFT)
@@ -80,11 +81,38 @@ def save(name: str, html: str) -> None:
         lambda _: f"<script>\n{OPTION_EDITOR_JS}\n</script>",
         html,
     )
+    # backtotop.js is on every page (base.html) but a no-op absent its link
+    # (poll_detail.html only); left as an unloadable root-relative `src` under
+    # `file://`, its button never gets `.is-hidden` and sits fixed over
+    # whatever whitespace the tall --window-size leaves below the real
+    # content — the same "two solid columns reaching the bottom" trim can't
+    # crop that the .bo-side fix above exists for, just on the public site.
+    html = re.sub(
+        r'<script src="[^"]*\bbacktotop\.js[^"]*" defer></script>',
+        lambda _: f"<script>\n{BACKTOTOP_JS}\n</script>",
+        html,
+    )
     # Drop `autofocus` (login username, paper-entry search): the headless render
     # would freeze that field focused, drawing a :focus-visible ring on one
     # control and making the form look lopsided. A capture shows the resting
     # state.
     html = re.sub(r"\s+autofocus(?=[\s/>])", "", html)
+    # Screen 2's tabs default to whichever panel opens first (tabs.js) — fine
+    # everywhere except this one capture, whose whole point (its caption) is
+    # « Annoncer maintenant », which lives on the Actions tab. Click it after
+    # tabs.js's own DOMContentLoaded has wired the tablist up.
+    if name == "13-mairie-configuration-brouillon.html":
+        html = html.replace(
+            "</body>",
+            "<script>\n"
+            "document.addEventListener(\"DOMContentLoaded\", function () {\n"
+            "  var tabs = document.querySelectorAll(\".tabs__tab\");\n"
+            "  for (var i = 0; i < tabs.length; i++) {\n"
+            "    if (tabs[i].textContent.trim() === \"Actions\") { tabs[i].click(); break; }\n"
+            "  }\n"
+            "});\n"
+            "</script>\n</body>",
+        )
     (OUT / name).write_text(html, encoding="utf-8")
     print("  ", name, len(html))
 

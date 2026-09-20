@@ -118,6 +118,9 @@ if poll is None:
         PollOption.objects.create(
             poll=poll, option_id=oid, label_i18n={"fr": label}, position=pos
         )
+    # announce_poll refuses on opens_at already past (R-3.10); back-date `now`
+    # to when opens_at (3 days ago) was still ahead of it, as it genuinely was.
+    announce_poll(poll, actor=poll_admin, now=now - timedelta(days=4))
     open_poll(poll)
     poll.refresh_from_db()
 
@@ -207,6 +210,7 @@ if not Poll.objects.filter(title_i18n__fr__startswith="Aire de jeux du parc").ex
         ]
     ):
         PollOption.objects.create(poll=late, option_id=oid, label_i18n={"fr": label}, position=pos)
+    announce_poll(late, actor=poll_admin, now=now - timedelta(days=16))
     open_poll(late)
     late.refresh_from_db()
     late.closes_at = now - timedelta(hours=2)
@@ -303,6 +307,7 @@ if pub is None:
     pub.closes_at = now + timedelta(days=1)
     pub.paper_entry_deadline = now + timedelta(days=1)
     pub.save()
+    announce_poll(pub, actor=poll_admin, now=now - timedelta(days=31))
     open_poll(pub)
     pub.refresh_from_db()
     PollRole.objects.get_or_create(poll=pub, user=poll_admin, role=Role.POLL_ADMIN, defaults={"granted_by": admin})

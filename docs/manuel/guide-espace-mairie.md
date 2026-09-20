@@ -299,8 +299,13 @@ Chaque proposition porte un **identifiant** (`option_id`, ex. `jardin`) et un
 libellés et de leurs traductions (R-10.7). **Ne changez pas un identifiant après
 coup** : les bulletins et le résultat publié le portent.
 
-Le nombre de propositions n'est pas limité (**au moins deux**, R-3.1). Le bouton
-**« Ajouter une proposition »** insère une ligne ; le bouton **« Retirer »** de
+Le nombre de propositions n'est pas limité (**au moins deux**, R-3.1). Chaque
+ligne porte un champ **« Position »** : c'est ce numéro, et non l'ordre des
+lignes à l'écran, qui fixe l'ordre des propositions sur cette page et dans les
+résultats — retaper un numéro suffit pour réordonner, sans glisser-déposer. Le
+bulletin de vote tire son propre ordre pour chaque électeur (R-6.2),
+indépendant de cette position. Le bouton **« Ajouter une proposition »** insère
+une ligne, placée par défaut en fin de liste ; le bouton **« Retirer »** de
 chaque ligne la supprime — sur une proposition déjà enregistrée, le retrait est
 réversible tant que la configuration n'est pas enregistrée. Sans JavaScript, les
 deux lignes vierges en fin de formulaire servent à ajouter, et la case
