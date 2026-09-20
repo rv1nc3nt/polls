@@ -241,6 +241,21 @@ def test_two_rows_identical_including_list_type_do_not_collapse() -> None:
     assert result.collapsed == []
 
 
+def test_two_rows_with_unresolved_list_types_are_not_silently_merged() -> None:
+    """Same name and date of birth, both list-type texts unrecognised: this
+    could be one elector on two garbled lists, or two homonyms — the merge
+    branch cannot tell, so it must not fold them into one entry (§6.1)."""
+    result = rollimport.collapse(
+        [
+            _row(2, list_type="Liste consulaire"),
+            _row(3, list_type="Autre liste inconnue"),
+        ]
+    )
+    assert len(result.entries) == 2
+    assert result.indistinguishable == result.entries
+    assert result.collapsed == []
+
+
 def test_a_certain_date_parses_onto_the_entry() -> None:
     (entry,) = rollimport.collapse([_row(2)]).entries
     assert entry.date_of_birth_parsed == date(1962, 3, 14)

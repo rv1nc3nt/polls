@@ -324,7 +324,13 @@ def collapse(rows: Iterable[MappedRow]) -> CollapseResult:
         uncertain = parsed is None
         types = [list_type_of(r.list_type) for r in group]
         named = [t for t in types if t]
-        homonyms = len(named) != len(set(named))
+        # A repeated *resolved* type is a direct signal (one elector cannot be
+        # on the same list twice). An unresolved type is not itself a signal —
+        # but once more than one row shares this name and date of birth, an
+        # unresolved type could just as easily be masking that very repeat, and
+        # filtering it out of ``named`` would hide the ambiguity rather than
+        # resolve it. Either way only a human can tell (§6.2).
+        homonyms = len(named) != len(set(named)) or (len(group) > 1 and len(named) != len(types))
 
         if uncertain or homonyms:
             group_entries = [
