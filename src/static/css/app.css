@@ -1253,6 +1253,22 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 .poll-image--medium { width: min(20rem, 100%); }
 .poll-image--large { width: min(32rem, 100%); }
 
+/* ---- the manual, public and mairie-area alike (apps.core.manual) ---- */
+
+/* Full-screen captures (docs/manuel/captures/img/, ~1400px wide) would
+   otherwise render at their native size and blow past the content column;
+   capped so they stay legible without dominating the page, with a light
+   frame since a screenshot's own edges rarely line up with the page
+   background. */
+.manual-page img {
+  display: block;
+  height: auto;
+  max-width: min(100%, 55rem);
+  margin: 0.5rem 0;
+  border: 1px solid var(--rule-soft);
+  border-radius: 4px;
+}
+
 /* 16:9 responsive wrapper around the one iframe apps.elections.optioncontent
    ever emits — width comes from the surrounding text column, not from the
    iframe's own (fixed, sandboxed) attributes. */
