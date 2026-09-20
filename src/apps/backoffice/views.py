@@ -62,6 +62,7 @@ form, the same shape as ``poll_image_upload``/``poll_image_delete``
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
@@ -72,6 +73,7 @@ from django.contrib.auth import login, password_validation
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, LogoutView
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.files.uploadedfile import UploadedFile
 from django.core.paginator import Page, Paginator
 from django.db import transaction
 from django.db.models import Case, IntegerField, QuerySet, Value, When
@@ -92,7 +94,7 @@ from apps.ballots.ranking import BallotRefused
 from apps.core import manual
 from apps.core.codes import format_tracking_code
 from apps.core.crypto import new_token
-from apps.core.models import Role, User
+from apps.core.models import Commune, Role, User
 from apps.core.types import TrackingCode
 from apps.elections import (
     closure,
@@ -1821,89 +1823,110 @@ def commune_settings(request: HttpRequest) -> HttpResponse:
 # own action, not a value the settings form could carry.
 
 
-@require_commune_admin
-def commune_logo_upload(request: HttpRequest) -> HttpResponse:
-    """Screen 14's logo upload."""
+@dataclass(frozen=True)
+class _BrandingField:
+    """One of the three branding images, and the service functions behind it —
+    the shape ``_commune_branding_upload``/``_commune_branding_remove`` need to
+    treat the three identically."""
+
+    file_key: str
+    setter: Callable[[Commune, UploadedFile[bytes]], Commune]
+    remover: Callable[[Commune], Commune]
+    #: Resolved per call inside the two functions below, not here: a module
+    #: constant would call ``gettext`` once at import time, in whatever
+    #: language happened to be active then, the same reasoning
+    #: ``dashboard._actions_for_state`` gives for the back office (§3.8).
+    uploaded_label: Callable[[], str]
+    removed_label: Callable[[], str]
+
+
+def _branding_fields(actor: User) -> dict[str, _BrandingField]:
+    return {
+        "logo": _BrandingField(
+            "logo",
+            lambda commune, upload: communesettings.set_logo(commune, upload, actor=actor),
+            lambda commune: communesettings.remove_logo(commune, actor=actor),
+            lambda: _("Logo mis à jour."),
+            lambda: _("Logo supprimé."),
+        ),
+        "logo_dark": _BrandingField(
+            "logo_dark",
+            lambda commune, upload: communesettings.set_logo_dark(commune, upload, actor=actor),
+            lambda commune: communesettings.remove_logo_dark(commune, actor=actor),
+            lambda: _("Logo (thème sombre) mis à jour."),
+            lambda: _("Logo (thème sombre) supprimé."),
+        ),
+        "favicon": _BrandingField(
+            "favicon",
+            lambda commune, upload: communesettings.set_favicon(commune, upload, actor=actor),
+            lambda commune: communesettings.remove_favicon(commune, actor=actor),
+            lambda: _("Favicon mis à jour."),
+            lambda: _("Favicon supprimé."),
+        ),
+    }
+
+
+def _commune_branding_upload(request: HttpRequest, field_name: str) -> HttpResponse:
     commune = communesettings.current()
+    field = _branding_fields(current_operator(request))[field_name]
     if request.method == "POST" and commune is not None:
-        upload = request.FILES.get("logo")
+        upload = request.FILES.get(field.file_key)
         if upload is None:
             messages.error(request, _("Choisissez une image."))
         else:
             try:
-                communesettings.set_logo(commune, upload, actor=current_operator(request))
+                field.setter(commune, upload)
             except communesettings.InvalidBrandingImage as refused:
                 messages.error(request, str(refused))
             else:
-                messages.success(request, _("Logo mis à jour."))
+                messages.success(request, field.uploaded_label())
     return redirect("backoffice:commune_settings")
+
+
+def _commune_branding_remove(request: HttpRequest, field_name: str) -> HttpResponse:
+    commune = communesettings.current()
+    field = _branding_fields(current_operator(request))[field_name]
+    if request.method == "POST" and commune is not None:
+        field.remover(commune)
+        messages.success(request, field.removed_label())
+    return redirect("backoffice:commune_settings")
+
+
+@require_commune_admin
+def commune_logo_upload(request: HttpRequest) -> HttpResponse:
+    """Screen 14's logo upload."""
+    return _commune_branding_upload(request, "logo")
 
 
 @require_commune_admin
 def commune_logo_remove(request: HttpRequest) -> HttpResponse:
     """The mirror of ``commune_logo_upload`` above."""
-    commune = communesettings.current()
-    if request.method == "POST" and commune is not None:
-        communesettings.remove_logo(commune, actor=current_operator(request))
-        messages.success(request, _("Logo supprimé."))
-    return redirect("backoffice:commune_settings")
+    return _commune_branding_remove(request, "logo")
 
 
 @require_commune_admin
 def commune_logo_dark_upload(request: HttpRequest) -> HttpResponse:
     """Screen 14's dark-theme logo upload, shown instead of ``logo`` once
     the visitor's theme is dark."""
-    commune = communesettings.current()
-    if request.method == "POST" and commune is not None:
-        upload = request.FILES.get("logo_dark")
-        if upload is None:
-            messages.error(request, _("Choisissez une image."))
-        else:
-            try:
-                communesettings.set_logo_dark(commune, upload, actor=current_operator(request))
-            except communesettings.InvalidBrandingImage as refused:
-                messages.error(request, str(refused))
-            else:
-                messages.success(request, _("Logo (thème sombre) mis à jour."))
-    return redirect("backoffice:commune_settings")
+    return _commune_branding_upload(request, "logo_dark")
 
 
 @require_commune_admin
 def commune_logo_dark_remove(request: HttpRequest) -> HttpResponse:
     """The mirror of ``commune_logo_dark_upload`` above."""
-    commune = communesettings.current()
-    if request.method == "POST" and commune is not None:
-        communesettings.remove_logo_dark(commune, actor=current_operator(request))
-        messages.success(request, _("Logo (thème sombre) supprimé."))
-    return redirect("backoffice:commune_settings")
+    return _commune_branding_remove(request, "logo_dark")
 
 
 @require_commune_admin
 def commune_favicon_upload(request: HttpRequest) -> HttpResponse:
     """Screen 14's favicon upload."""
-    commune = communesettings.current()
-    if request.method == "POST" and commune is not None:
-        upload = request.FILES.get("favicon")
-        if upload is None:
-            messages.error(request, _("Choisissez une image."))
-        else:
-            try:
-                communesettings.set_favicon(commune, upload, actor=current_operator(request))
-            except communesettings.InvalidBrandingImage as refused:
-                messages.error(request, str(refused))
-            else:
-                messages.success(request, _("Favicon mis à jour."))
-    return redirect("backoffice:commune_settings")
+    return _commune_branding_upload(request, "favicon")
 
 
 @require_commune_admin
 def commune_favicon_remove(request: HttpRequest) -> HttpResponse:
     """The mirror of ``commune_favicon_upload`` above."""
-    commune = communesettings.current()
-    if request.method == "POST" and commune is not None:
-        communesettings.remove_favicon(commune, actor=current_operator(request))
-        messages.success(request, _("Favicon supprimé."))
-    return redirect("backoffice:commune_settings")
+    return _commune_branding_remove(request, "favicon")
 
 
 # --- Documentation (mairie-area guide, mairie-audience FAQ) ----------------
