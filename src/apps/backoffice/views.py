@@ -1953,7 +1953,7 @@ def manual_page(request: HttpRequest, slug: str) -> HttpResponse:
     if doc is None:
         raise Http404
     page = manual.render(doc, request.LANGUAGE_CODE, image_base_url=_backoffice_image_base_url())
-    return render(request, "backoffice/manual_page.html", {"page": page})
+    return render(request, "backoffice/manual_page.html", {"page": page, "crumb_extra": page.title})
 
 
 @require_operator

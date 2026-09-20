@@ -178,21 +178,25 @@ _POLL_MENU: tuple[_Group, ...] = (
     ),
 )
 
-_Resolved = tuple[list[dict[str, object]], list[dict[str, object]], "Promise | str"]
+_Resolved = tuple[list[dict[str, object]], list[dict[str, object]], "Promise | str", str]
 
 
 def _resolve(context: template.Context) -> _Resolved:
-    """``(global_items, poll_groups, current_label)`` for the current request.
+    """``(global_items, poll_groups, current_label, current_url)`` for the
+    current request.
 
     Returns empties for anyone not signed in, so the tag renders the wordmark
     alone on the login and first-run screens. The active screen comes from
     ``request.resolver_match``; ``poll_index`` deliberately yields no breadcrumb
-    leaf — the root crumb is already "Scrutins".
+    leaf — the root crumb is already "Scrutins". ``current_url`` is the active
+    entry's own link, for a screen that is itself a sub-page of that entry
+    (``owns``, e.g. a manual document under "Aide") to turn the breadcrumb leaf
+    into a link back up rather than repeat a bare, misleadingly-current label.
     """
     request = context["request"]
     user = request.user
     if not (user.is_authenticated and user.is_active):
-        return [], [], ""
+        return [], [], "", ""
 
     match = getattr(request, "resolver_match", None)
     url_name = match.url_name if match is not None else ""
@@ -200,6 +204,7 @@ def _resolve(context: template.Context) -> _Resolved:
     poll = poll if isinstance(poll, Poll) else None
 
     current_label: Promise | str = ""
+    current_url = ""
 
     commune_admin = is_commune_admin(user)
     global_items: list[dict[str, object]] = []
@@ -207,12 +212,14 @@ def _resolve(context: template.Context) -> _Resolved:
         if _COMMUNE in item.roles and not commune_admin:
             continue
         active = item.lit_by(url_name)
+        item_url = reverse(f"backoffice:{item.url_name}")
         if active and item.url_name != "poll_index":
             current_label = item.label
+            current_url = item_url
         global_items.append(
             {
                 "label": item.label,
-                "url": reverse(f"backoffice:{item.url_name}"),
+                "url": item_url,
                 "current": active,
                 "icon": item.icon,
             }
@@ -238,14 +245,16 @@ def _resolve(context: template.Context) -> _Resolved:
                 if not held and not commune_admin:
                     continue
                 active = item.lit_by(url_name)
+                item_url = (
+                    reverse(f"backoffice:{item.url_name}", args=[poll.pk]) if held else grant_url
+                )
                 if active:
                     current_label = item.label
+                    current_url = item_url
                 entries.append(
                     {
                         "label": item.label,
-                        "url": reverse(f"backoffice:{item.url_name}", args=[poll.pk])
-                        if held
-                        else grant_url,
+                        "url": item_url,
                         "current": active,
                         "needs_grant": not held,
                         "icon": item.icon,
@@ -254,7 +263,7 @@ def _resolve(context: template.Context) -> _Resolved:
             if entries:
                 poll_groups.append({"label": group.label, "items": entries})
 
-    return global_items, poll_groups, current_label
+    return global_items, poll_groups, current_label, current_url
 
 
 @register.inclusion_tag("backoffice/_nav.html", takes_context=True)
@@ -262,7 +271,7 @@ def bo_nav(context: template.Context) -> dict[str, object]:
     """The left-column menu: the global links always, the poll groups when a
     poll is in scope, and — at the foot of the panel — the language and theme
     controls the public pages keep in their footer (§6.5)."""
-    global_items, poll_groups, _label = _resolve(context)
+    global_items, poll_groups, _label, _url = _resolve(context)
     poll = context.get("poll")
     request = context["request"]
     return {
@@ -281,5 +290,15 @@ def bo_nav(context: template.Context) -> dict[str, object]:
 def bo_current_label(context: template.Context) -> Promise | str:
     """The active menu entry's label, for the breadcrumb leaf. Empty on the poll
     index and anywhere the current screen is not in the menu at all."""
-    _global, _poll, label = _resolve(context)
+    _global, _poll, label, _url = _resolve(context)
     return label
+
+
+@register.simple_tag(takes_context=True)
+def bo_current_url(context: template.Context) -> str:
+    """The active menu entry's own link — used only where the screen passes
+    ``crumb_extra`` (backoffice/base.html), turning what would otherwise be a
+    bare, wrongly-``aria-current`` breadcrumb leaf into a link back up to that
+    entry, with ``crumb_extra`` itself as the true leaf."""
+    _global, _poll, _label, url = _resolve(context)
+    return url

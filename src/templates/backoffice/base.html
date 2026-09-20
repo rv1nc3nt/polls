@@ -54,7 +54,20 @@
             <a href="{% url 'backoffice:dashboard' poll.pk %}">{{ poll.display_title }}</a>
           </li>
         {% endif %}
-        {% if crumb_leaf %}<li aria-current="page">{{ crumb_leaf }}</li>{% endif %}
+        {% if crumb_leaf %}
+          {% comment %} A screen a menu entry ``owns`` (e.g. one manual document
+             under "Aide") passes ``crumb_extra``: the entry stops being the leaf
+             and becomes a link back to it, with ``crumb_extra`` the true leaf —
+             otherwise the entry sat here marked current while the screen showing
+             was really one level below it. {% endcomment %}
+          {% if crumb_extra %}
+            {% bo_current_url as crumb_leaf_url %}
+            <li><a href="{{ crumb_leaf_url }}">{{ crumb_leaf }}</a></li>
+          {% else %}
+            <li aria-current="page">{{ crumb_leaf }}</li>
+          {% endif %}
+        {% endif %}
+        {% if crumb_extra %}<li aria-current="page">{{ crumb_extra }}</li>{% endif %}
       </ol>
     </nav>
   {% endif %}
