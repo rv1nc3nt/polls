@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from django.db.models import Count, Q
 from django.utils.translation import gettext as _
 
 from apps.core.models import Role
@@ -63,19 +64,25 @@ def participation(poll: Poll) -> Participation:
             not_voted=counts.get("non_voters", 0),
         )
 
-    registrations = Registration.objects.filter(poll=poll)
-    active = registrations.filter(state=RegistrationState.ACTIVE)
-    online = active.filter(channel=Channel.ONLINE).count()
-    paper = active.filter(channel=Channel.PAPER).count()
-    confirmed = active.count()
+    # One aggregate query with conditional counts rather than five sequential
+    # ones against the same table — this is the screen operators keep open
+    # and reload continuously while a poll is live.
+    active = Q(state=RegistrationState.ACTIVE)
+    counts = Registration.objects.filter(poll=poll).aggregate(
+        registered=Count("pk"),
+        confirmed=Count("pk", filter=active),
+        voted_online=Count("pk", filter=active & Q(channel=Channel.ONLINE)),
+        voted_paper=Count("pk", filter=active & Q(channel=Channel.PAPER)),
+        pending_review=Count("pk", filter=Q(state=RegistrationState.PENDING_REVIEW)),
+    )
     return Participation(
         as_at_closure=False,
-        registered=registrations.count(),
-        confirmed=confirmed,
-        voted_online=online,
-        voted_paper=paper,
-        not_voted=confirmed - online - paper,
-        pending_review=registrations.filter(state=RegistrationState.PENDING_REVIEW).count(),
+        registered=counts["registered"],
+        confirmed=counts["confirmed"],
+        voted_online=counts["voted_online"],
+        voted_paper=counts["voted_paper"],
+        not_voted=counts["confirmed"] - counts["voted_online"] - counts["voted_paper"],
+        pending_review=counts["pending_review"],
     )
 
 
