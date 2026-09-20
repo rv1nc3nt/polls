@@ -79,10 +79,14 @@ def names_match(
     """Whether a self-declared name is consistent with the roll entry (R-5.3).
 
     The surname must agree as a set with the birth surname or the name in use
-    (``surname_matches``). First names agree if either side's tokens are a
-    subset of the other's: a roll holding every given name ("Marie Claire
-    Josèphe") and a person writing one of them ("Marie") is the common case, and
-    it is a match; a person writing a name absent from the roll is not.
+    (``surname_matches``). First names agree when the declared tokens are a
+    subset of the roll's: a roll holding every given name ("Marie Claire
+    Josèphe") and a person writing one of them ("Marie") is the common case,
+    and it is a match. The reverse is not: a person writing a name *absent*
+    from the roll ("Marie Sophie" against a roll of "Marie" alone) is not a
+    match — ``names_match`` is the strict side of the trade
+    (``registrations.services``): a false positive here lets someone vote
+    as somebody else.
     """
     if not surname_matches(declared_last, roll_birth_name, roll_usual_name):
         return False
@@ -90,7 +94,7 @@ def names_match(
     roll = name_tokens(roll_first)
     if not declared or not roll:
         return declared == roll
-    return declared <= roll or roll <= declared
+    return declared <= roll
 
 
 def canonical_email(address: str) -> str:

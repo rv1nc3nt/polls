@@ -49,6 +49,7 @@ def test_t40_normalisation_matches_the_same_person(
         ("Lafontaine", "Jean", "de La Fontaine", "", "Jean"),
         ("Martin", "", "Martin", "", "Jean"),  # nothing declared is not a match
         ("Ravanel", "Apolline", "Delavigne", "SOUBEYRAN", "Apolline"),  # neither surname
+        ("Martin", "Marie Sophie", "Martin", "", "Marie"),  # declared name absent from the roll
     ],
 )
 def test_t40_genuinely_different_names_do_not_collide(
