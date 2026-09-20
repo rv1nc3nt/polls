@@ -774,7 +774,7 @@ legend { font-weight: 700; padding: 0 0.4rem; }
 .details-dialog__body {
   max-height: calc(min(80vh, 40rem) - 3.5rem);
   overflow-y: auto;
-  padding: 1.1rem;
+  padding: 1.1rem 1.6rem;
   /* Styled rather than left to the platform default: an overlay-scrollbar
      OS (GNOME, macOS) draws nothing here until the pointer is over the
      track, which reads as "this popup has no scrollbar" at a glance. */
