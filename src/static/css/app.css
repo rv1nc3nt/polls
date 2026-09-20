@@ -1255,6 +1255,12 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 
 /* ---- the manual, public and mairie-area alike (apps.core.manual) ---- */
 
+/* On the public site `main` already caps prose at `--page`; `.bo-main` does
+   not (it holds tables and forms that want the room), so the manual reads
+   full-width there unless capped here to the same measure. */
+body.bo .manual-page,
+body.bo .manual-index { max-width: var(--page); }
+
 /* Full-screen captures (docs/manuel/captures/img/, ~1400px wide) would
    otherwise render at their native size and blow past the content column;
    capped so they stay legible without dominating the page, with a light
