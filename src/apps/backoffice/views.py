@@ -847,13 +847,14 @@ def registration_queue(request: HttpRequest, poll: Poll) -> HttpResponse:
     administrative one.
     """
     queue = review.pending(poll)
+    roll = review.poll_roll(poll)
     return render(
         request,
         "backoffice/registration_queue.html",
         {
             "poll": poll,
             "rows": [
-                {"registration": registration, "matches": review.near_matches(registration)}
+                {"registration": registration, "matches": review.near_matches(registration, roll)}
                 for registration in queue
             ],
             "approval_reasons": review.choices(review.APPROVAL_REASONS),

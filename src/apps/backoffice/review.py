@@ -16,6 +16,7 @@ forename — turns the decision into a comparison.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 
 from apps.audit.models import Reason
@@ -72,7 +73,19 @@ def pending(poll: Poll) -> list[Registration]:
     )
 
 
-def near_matches(registration: Registration) -> list[NearMatch]:
+def poll_roll(poll: Poll) -> list[RollEntry]:
+    """This poll's whole roll, fetched once for the queue screen (§6.5.4).
+
+    One commune's roll, not the country's: cheaper as the single query a
+    caller iterating every pending registration makes once than as up to
+    three narrowing queries ``near_matches`` would otherwise repeat per row.
+    """
+    return list(RollEntry.objects.filter(poll=poll))
+
+
+def near_matches(
+    registration: Registration, roll: Iterable[RollEntry] | None = None
+) -> list[NearMatch]:
     """Roll entries worth comparing against this applicant (R-8.3's idea, here
     serving R-5.4).
 
@@ -80,33 +93,19 @@ def near_matches(registration: Registration) -> list[NearMatch]:
     matches, either surname matches after normalisation, or a forename is
     shared. Ranked, not filtered — an agent who sees nothing cannot tell "no
     candidate" from "the search was too narrow".
+
+    ``roll`` is this poll's entries, queried once by ``poll_roll`` and shared
+    across every registration on the queue screen; a caller scoring a single
+    registration on its own may leave it out.
     """
-    poll = registration.poll
+    if roll is None:
+        roll = RollEntry.objects.filter(poll=registration.poll)
     declared_dob = parse_dob(registration.declared_dob)
     declared_surname = name_tokens(registration.declared_last_name)
     declared_first = name_tokens(registration.declared_first_names)
 
-    candidates: dict[str, RollEntry] = {}
-    if declared_dob is not None:
-        for entry in RollEntry.objects.filter(poll=poll, date_of_birth_parsed=declared_dob):
-            candidates[str(entry.pk)] = entry
-    # Surname candidates are narrowed in the database by first letter of the
-    # birth name, then compared properly in Python: normalisation strips
-    # diacritics, particles and hyphens, none of which SQL can do (§6.2 step 2),
-    # and the comparison tries the name in use as well.
-    if registration.declared_last_name:
-        first_letter = registration.declared_last_name[:1]
-        for entry in RollEntry.objects.filter(poll=poll, birth_name__istartswith=first_letter)[
-            :200
-        ]:
-            candidates.setdefault(str(entry.pk), entry)
-        for entry in RollEntry.objects.filter(poll=poll, usual_name__istartswith=first_letter)[
-            :200
-        ]:
-            candidates.setdefault(str(entry.pk), entry)
-
     scored = []
-    for entry in candidates.values():
+    for entry in roll:
         entry_first = name_tokens(entry.first_names)
         match = NearMatch(
             entry=entry,
