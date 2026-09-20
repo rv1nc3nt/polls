@@ -111,10 +111,13 @@ the good error message; the triggers are what hold.
 
 ## Releases
 
-A release is a GitHub Release named `vX.Y.Z`, tagged on `main`. The tag must
-always match `version` in `pyproject.toml` — bump `pyproject.toml` in the same
-commit that gets tagged and released, not before and not after, so the two
-never drift apart.
+Versions follow PEP 440: `X.Y.Z` for a final release, `X.Y.ZbN` for a beta,
+`X.Y.ZrcN` for a release candidate — the canonical PEP 440 spellings, not the
+SemVer `-beta.N`/`-rc.N` hyphenated form. A release is a GitHub Release tagged
+on `main`, named `v` followed by that version exactly (`v1.0.0`, `v1.0.0b1`).
+The tag must always match `version` in `pyproject.toml` — bump
+`pyproject.toml` in the same commit that gets tagged and released, not before
+and not after, so the two never drift apart.
 
 ## Pushing back
 
