@@ -269,7 +269,9 @@ def test_consulting_the_log_is_itself_logged(
 
     event = AuditEvent.objects.get(action=Action.AUDIT_LOG_ACCESSED)
     assert event.actor == admin_user
-    assert event.after["filters"]["object_ref"] == "bulletin"
+    # Whether the search narrowed by object, never the text typed into the box
+    # (§10): that box is unconstrained free text and must not ride the event.
+    assert event.after["filters"]["object_filtered"] is True
 
 
 def test_the_log_filters_by_actor_object_and_date(

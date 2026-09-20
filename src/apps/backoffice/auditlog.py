@@ -44,16 +44,21 @@ class Filters:
     date_from: datetime | None = None
     date_to: datetime | None = None
 
-    def as_audit_payload(self) -> dict[str, str]:
+    def as_audit_payload(self) -> dict[str, str | bool]:
         """What the access event records about this consultation (§10).
 
-        Nested under one key, and holding an actor id and an object reference —
-        both non-identifying. An operator account id is staff identity, retained
-        legitimately, and is not elector data (§10).
+        Nested under one key, and holding an actor id, whether an object filter
+        narrowed the search, and the date bounds — all non-identifying. An
+        operator account id is staff identity, retained legitimately, and is
+        not elector data (§10). ``object_ref`` itself is unconstrained free
+        text the operator typed into the search box (templates/backoffice/
+        audit_log.html): it is never carried verbatim, only whether it was
+        used, since the box places no limit on what an auditor might type into
+        it and a name typed there must not outlive the request that typed it.
         """
         return {
             "actor_id": self.actor_id,
-            "object_ref": self.object_ref,
+            "object_filtered": bool(self.object_ref),
             "date_from": self.date_from.isoformat() if self.date_from else "",
             "date_to": self.date_to.isoformat() if self.date_to else "",
         }
