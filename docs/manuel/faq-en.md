@@ -116,9 +116,17 @@ action, mandatory reason, shown publicly). For anything else, a new poll is
 needed. No transition is reversible.
 
 ### Can a poll go back from "closed" to "open"?
-No. `draft → [announced] → open → closed → published`, with no way back
-(R-3.2). "Announced" is an optional step: a poll can also go straight from
-draft to open.
+No. `draft → announced → open → closed → published`, with no way back
+(R-3.2). "Announced" is a **mandatory** step (R-3.10): *open now* only ever
+accepts an already-announced poll as its starting point, there is no longer a
+direct path from draft to open.
+
+### Can I withdraw a poll that is already announced, open, closed or published?
+Yes (R-3.11), from the configuration screen: an irreversible action, mandatory
+reason. The poll disappears from every public page — including an already-
+published result — but its detail URL does not just 404: it shows "this poll
+has been withdrawn" and nothing else. A poll still in draft is **deleted**
+instead of withdrawn.
 
 ### Can a poll be opened or closed without waiting for the scheduled task?
 Yes, from the configuration screen (screen 2): *Announce now*, *Open now*
@@ -128,10 +136,20 @@ now* only appears once the paper-ballot keying deadline has been reached.
 
 ### What is the "announced" state for?
 To make a poll visible on the public site — propositions and schedule —
-before it opens, with no registration or vote possible yet (R-3.10).
-Particularly useful if the poll will not allow changing an already-cast
-ballot: voters can think over the propositions before voting. Configuration
-freezes at the moment of announcing, exactly as it would have at opening.
+before it opens, with no registration or vote possible yet (R-3.10). It is
+now a mandatory step for every poll, not just a useful option on ones that
+will not allow changing an already-cast ballot — though the benefit stays the
+same for those: voters can think over the propositions before voting.
+Configuration freezes at the moment of announcing, exactly as it would have
+at opening.
+
+### Announcing makes the poll public. How do I get it reviewed privately first?
+From the configuration screen, while the poll is still a draft: *share this
+preview* (R-3.10 bis) generates an unguessable link, referenced nowhere, that
+shows the public page as it will look. Unlike announcing, this link **freezes
+nothing**: the page keeps changing along with the draft. Regenerating it
+invalidates the old one immediately; revoking it disables it without creating
+a new one. It has no effect once the poll leaves draft.
 
 ### The electoral-roll import reports duplicates and doubtful dates. Do I need to fix the file?
 No. The report **informs, it does not block**. Only an unmapped required

@@ -114,9 +114,17 @@ de base qui le tient. **Seule** la **date de clôture** peut être reportée
 faut un nouveau scrutin. Aucune transition n'est réversible.
 
 ### Peut-on revenir de « clos » à « ouvert » ?
-Non. `brouillon → [annoncé] → ouvert → clos → publié`, sans retour (R-3.2).
-« Annoncé » est une étape facultative : un scrutin peut aussi passer directement
-de brouillon à ouvert.
+Non. `brouillon → annoncé → ouvert → clos → publié`, sans retour (R-3.2).
+« Annoncé » est une étape **obligatoire** (R-3.10) : *ouvrir maintenant*
+n'accepte plus qu'un scrutin déjà annoncé comme point de départ, il n'y a plus
+de passage direct de brouillon à ouvert.
+
+### Puis-je retirer un scrutin déjà annoncé, ouvert, clos ou publié ?
+Oui (R-3.11), depuis l'écran de configuration : action irréversible, motif
+obligatoire. Le scrutin disparaît de toute page publique — y compris d'un
+résultat déjà publié — mais son URL de détail ne renvoie pas une simple erreur
+404 : elle affiche « ce scrutin a été retiré » et rien d'autre. Un scrutin
+encore en brouillon, lui, se **supprime** plutôt que de se retirer.
 
 ### Peut-on ouvrir ou clore un scrutin sans attendre la tâche planifiée ?
 Oui, depuis l'écran de configuration (écran 2) : *Annoncer maintenant*, *Ouvrir
@@ -127,11 +135,21 @@ des bulletins papier atteinte.
 
 ### À quoi sert l'état « annoncé » ?
 À rendre un scrutin visible sur le site public — propositions et calendrier —
-avant son ouverture, sans inscription ni vote possibles (R-3.10). Utile
-notamment si le scrutin n'autorisera pas la modification d'un bulletin déjà
-voté : les électeurs peuvent réfléchir aux propositions avant de voter. La
-configuration se fige au moment de l'annonce, comme elle l'aurait fait à
-l'ouverture.
+avant son ouverture, sans inscription ni vote possibles (R-3.10). C'est
+désormais un passage obligé pour tout scrutin, pas seulement une option utile
+sur ceux qui n'autoriseront pas la modification d'un bulletin déjà voté — mais
+le bénéfice reste le même pour ceux-là : les électeurs peuvent réfléchir aux
+propositions avant de voter. La configuration se fige au moment de l'annonce,
+comme elle l'aurait fait à l'ouverture.
+
+### L'annonce rend le scrutin public. Comment le faire relire avant, en privé ?
+Depuis l'écran de configuration, tant que le scrutin est en brouillon :
+*partager cet aperçu* (R-3.10 bis) génère un lien imprévisible, non référencé
+nulle part, montrant la page publique telle qu'elle sera. Contrairement à
+l'annonce, ce lien **ne fige rien** : la page continue de changer avec le
+brouillon. Le régénérer invalide l'ancien sur-le-champ ; le révoquer le
+désactive sans en recréer un. Il n'a plus d'effet dès que le scrutin quitte le
+brouillon.
 
 ### L'import de la liste électorale signale des doublons et des dates douteuses. Dois-je corriger le fichier ?
 Non. Le rapport **informe, il ne bloque pas**. Seuls une colonne obligatoire non
