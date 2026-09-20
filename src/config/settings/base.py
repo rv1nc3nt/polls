@@ -102,6 +102,9 @@ PASSWORD_HASHERS = [
 LANGUAGE_CODE = "fr"
 LANGUAGES = [("fr", "Français"), ("en", "English")]
 LOCALE_PATHS = [BASE_DIR / "locale"]
+# config/formats/en/formats.py pins English to a 24-hour clock, matching
+# French's own built-in format module — see that file for why.
+FORMAT_MODULE_PATH = ["config.formats"]
 TIME_ZONE = "Europe/Paris"
 USE_I18N = True
 USE_TZ = True
