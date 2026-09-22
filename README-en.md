@@ -85,19 +85,27 @@ for.
 ## Screenshots
 
 <p align="center">
-  <img src="docs/manuel/captures/img/02a-site-public-scrutin.png" width="49%" alt="Public page of an open poll, in French, showing the three submitted options and a Participer button">
-  <img src="docs/manuel/captures/img/07-bulletin-vote.png" width="49%" alt="Online ballot ranking three options by preference">
-</p>
-<p align="center">
-  <img src="docs/manuel/captures/img/11-mairie-tableau-de-bord.png" width="49%" alt="Espace mairie dashboard for one poll, showing turnout and pending actions">
-  <img src="docs/manuel/captures/img/20-site-public-resultats.png" width="49%" alt="Public results page with the Schulze pairwise matrix and closure fingerprints">
+  <img src="docs/manuel/captures/img/02a-site-public-scrutin.png" width="700" alt="Public page of an open poll, in French, showing the three submitted options and a Participer button"><br>
+  <sub>The public page of an open poll.</sub>
 </p>
 
-From left to right, top to bottom: the public page of an open poll, an
-elector's online ballot, the espace mairie dashboard for that poll, and the
-public results page with the Schulze reasoning and the closure hash anyone can
-verify. More screens — the registration flow, paper-ballot entry, the roll
-import, roles and the audit log — are captured for every role in
+<p align="center">
+  <img src="docs/manuel/captures/img/07-bulletin-vote.png" width="700" alt="Online ballot ranking three options by preference"><br>
+  <sub>An elector's online ballot.</sub>
+</p>
+
+<p align="center">
+  <img src="docs/manuel/captures/img/11-mairie-tableau-de-bord.png" width="700" alt="Espace mairie dashboard for one poll, showing turnout and pending actions"><br>
+  <sub>The espace mairie dashboard for that poll.</sub>
+</p>
+
+<p align="center">
+  <img src="docs/manuel/captures/img/20-site-public-resultats.png" width="700" alt="Public results page with the Schulze pairwise matrix and closure fingerprints"><br>
+  <sub>The public results page, with the Schulze reasoning and the closure hash anyone can verify.</sub>
+</p>
+
+More screens — the registration flow, paper-ballot entry, the roll import,
+roles and the audit log — are captured for every role in
 [`docs/manuel/`](docs/manuel/captures/README.md) (French), which also
 documents how to regenerate them from a throwaway demo database.
 

@@ -96,22 +96,30 @@ couvre pas.
 ## Captures d'écran
 
 <p align="center">
-  <img src="docs/manuel/captures/img/02a-site-public-scrutin.png" width="49%" alt="Page publique d'un scrutin ouvert, montrant les trois propositions soumises et un bouton Participer">
-  <img src="docs/manuel/captures/img/07-bulletin-vote.png" width="49%" alt="Bulletin en ligne classant trois propositions par préférence">
-</p>
-<p align="center">
-  <img src="docs/manuel/captures/img/11-mairie-tableau-de-bord.png" width="49%" alt="Tableau de bord de l'espace mairie pour un scrutin, montrant la participation et les actions en attente">
-  <img src="docs/manuel/captures/img/20-site-public-resultats.png" width="49%" alt="Page publique de résultats avec la matrice de préférences Schulze et les empreintes de clôture">
+  <img src="docs/manuel/captures/img/02a-site-public-scrutin.png" width="700" alt="Page publique d'un scrutin ouvert, montrant les trois propositions soumises et un bouton Participer"><br>
+  <sub>La page publique d'un scrutin ouvert.</sub>
 </p>
 
-De gauche à droite, de haut en bas : la page publique d'un scrutin ouvert, le
-bulletin en ligne d'un électeur, le tableau de bord de l'espace mairie pour ce
-scrutin, et la page publique de résultats avec le raisonnement Schulze et
-l'empreinte de clôture que chacun peut vérifier. D'autres écrans — le parcours
-d'inscription, la saisie des bulletins papier, l'import de la liste
-électorale, les rôles et le journal d'audit — sont capturés pour chaque rôle
-dans [`docs/manuel/`](docs/manuel/captures/README.md), qui explique aussi
-comment les régénérer à partir d'une base de démonstration jetable.
+<p align="center">
+  <img src="docs/manuel/captures/img/07-bulletin-vote.png" width="700" alt="Bulletin en ligne classant trois propositions par préférence"><br>
+  <sub>Le bulletin en ligne d'un électeur.</sub>
+</p>
+
+<p align="center">
+  <img src="docs/manuel/captures/img/11-mairie-tableau-de-bord.png" width="700" alt="Tableau de bord de l'espace mairie pour un scrutin, montrant la participation et les actions en attente"><br>
+  <sub>Le tableau de bord de l'espace mairie pour ce scrutin.</sub>
+</p>
+
+<p align="center">
+  <img src="docs/manuel/captures/img/20-site-public-resultats.png" width="700" alt="Page publique de résultats avec la matrice de préférences Schulze et les empreintes de clôture"><br>
+  <sub>La page publique de résultats, avec le raisonnement Schulze et l'empreinte de clôture que chacun peut vérifier.</sub>
+</p>
+
+D'autres écrans — le parcours d'inscription, la saisie des bulletins papier,
+l'import de la liste électorale, les rôles et le journal d'audit — sont
+capturés pour chaque rôle dans
+[`docs/manuel/`](docs/manuel/captures/README.md), qui explique aussi comment
+les régénérer à partir d'une base de démonstration jetable.
 
 ## Ce à quoi ce logiciel n'est pas destiné
 
