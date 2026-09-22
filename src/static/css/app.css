@@ -491,7 +491,12 @@ body.bo main { padding: 0; }
   border: 1px solid var(--rule);
 }
 .bo-side__lang button:hover { opacity: 1; background: var(--paper-quiet); }
-.bo-side__tools .themeswitch { flex-direction: column; align-items: stretch; gap: 0.5rem; }
+/* `flex-wrap: nowrap` undoes the base `.themeswitch` rule's `wrap`: with it
+   left as `wrap`, the label's `flex-basis: 100%` below (set for the row
+   layout `.bo-side__lang` still uses) reads as "claim the whole column" in
+   this column-direction box, and the button group wraps into a second
+   *column* beside it instead of a row below it. */
+.bo-side__tools .themeswitch { flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 0.5rem; }
 /* `.themeswitch > span` below (generic, public-site row layout) sets
    align-self: center for its own context; same specificity, later in the
    file, so it would otherwise win here too and centre "Thème" while
