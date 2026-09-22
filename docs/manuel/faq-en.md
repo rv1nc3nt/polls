@@ -83,7 +83,7 @@ suppresses URI logging for this prefix.
 Probably not. It is designed for the CNIL's **risk level 1** (a low-stakes
 consultation). It is not designed for levels 2 or 3. The commune's DPO must
 decide before any poll that would not clearly be level 1 (see the root
-`README.md`).
+`README-en.md`).
 
 ### Where is personal data kept, and when does it disappear?
 Registrations, the frozen roll snapshot, the paper-ballot ↔ voter
