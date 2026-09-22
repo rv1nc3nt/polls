@@ -24,14 +24,15 @@ def operator(db: None) -> User:
 # --- Public site -------------------------------------------------------
 
 
-def test_the_help_index_lists_the_three_public_documents(client: Client, db: None) -> None:
+def test_the_help_index_lists_the_four_public_documents(client: Client, db: None) -> None:
     body = client.get("/fr/aide/").content.decode()
     assert escape("Guide de l'électeur") in body
     assert "Vérifier un résultat par vous-même" in body
+    assert escape("Les méthodes de dépouillement, expliquées") in body
     assert "Foire aux questions" in body
 
 
-@pytest.mark.parametrize("slug", ["electeur", "verifier", "faq"])
+@pytest.mark.parametrize("slug", ["electeur", "verifier", "depouillement", "faq"])
 def test_each_public_document_renders_in_french(client: Client, db: None, slug: str) -> None:
     response = client.get(f"/fr/aide/{slug}/")
     assert response.status_code == 200
@@ -39,7 +40,7 @@ def test_each_public_document_renders_in_french(client: Client, db: None, slug: 
     assert "<h2 id=" in body or "<h3 id=" in body
 
 
-@pytest.mark.parametrize("slug", ["electeur", "verifier", "faq"])
+@pytest.mark.parametrize("slug", ["electeur", "verifier", "depouillement", "faq"])
 def test_each_public_document_renders_in_english(client: Client, db: None, slug: str) -> None:
     response = client.get(f"/en/aide/{slug}/")
     assert response.status_code == 200
@@ -57,6 +58,20 @@ def test_a_link_from_verifier_to_the_voter_guide_resolves_to_a_real_url(
 ) -> None:
     body = client.get("/fr/aide/verifier/").content.decode()
     assert 'href="/fr/aide/electeur/#8-v' in body
+
+
+def test_a_link_from_verifier_to_the_tally_methods_doc_resolves_to_a_real_url(
+    client: Client, db: None
+) -> None:
+    body = client.get("/fr/aide/verifier/").content.decode()
+    assert 'href="/fr/aide/depouillement/' in body
+
+
+def test_a_link_from_the_tally_methods_doc_to_verifier_resolves_to_a_real_url(
+    client: Client, db: None
+) -> None:
+    body = client.get("/fr/aide/depouillement/").content.decode()
+    assert 'href="/fr/aide/verifier/"' in body
 
 
 def test_an_unknown_public_slug_is_a_404(client: Client, db: None) -> None:
@@ -114,6 +129,14 @@ def test_a_mairie_area_screenshot_is_served_once_signed_in(client: Client, opera
     response = client.get("/fr/mairie/aide/images/06-mairie-connexion.png")
     assert response.status_code == 200
     assert response["Content-Type"] == "image/png"
+
+
+def test_a_link_from_the_mairie_guide_to_the_public_tally_methods_doc_resolves(
+    client: Client, operator: User
+) -> None:
+    client.force_login(operator)
+    body = client.get("/fr/mairie/aide/espace-mairie/").content.decode()
+    assert 'href="/fr/aide/depouillement/"' in body
 
 
 def test_a_mairie_area_screenshot_requires_sign_in(client: Client, db: None) -> None:

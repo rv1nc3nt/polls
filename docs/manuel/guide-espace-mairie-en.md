@@ -362,6 +362,10 @@ an exception: it is never required, in any language.
 If a complete ranking is not required, Schulze treats unranked propositions
 as tied for last place.
 
+For a detailed explanation of each method — with a worked example and, for
+whoever wants it, the exact source code behind the computation — see [Tally
+methods, explained](methodes-de-depouillement.md).
+
 ### Tie-break
 
 In case of a genuine tie, the default rule is a **computed drawing of

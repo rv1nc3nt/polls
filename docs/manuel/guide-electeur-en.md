@@ -212,6 +212,9 @@ more briefly, also appears directly on the public list of consultations
 - the **opening seed**, the detail of any tie-break, and the **closure
   hash**.
 
+To understand what this matrix and reasoning concretely mean for the poll's
+particular method, see [Tally methods, explained](methodes-de-depouillement.md).
+
 You can:
 
 1. **find your tracking code** in the list and check that the ranking shown

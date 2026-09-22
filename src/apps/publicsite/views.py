@@ -36,13 +36,14 @@ from apps.elections.models import Poll, PollState
 from apps.registrations.models import Channel, Registration, RegistrationState
 
 #: The manual documents served publicly (docs/manuel/README.md's own table):
-#: the voter's guide and the independent-verifier walkthrough in full, and
-#: only the électeur-facing third of the FAQ — the other two audiences
-#: (instance administrator, mairie area) answer questions a visitor here
-#: never asked. Keyed by the URL slug.
+#: the voter's guide, the independent-verifier walkthrough and the tally
+#: methods explainer in full, and only the électeur-facing third of the FAQ —
+#: the other two audiences (instance administrator, mairie area) answer
+#: questions a visitor here never asked. Keyed by the URL slug.
 _PUBLIC_DOCS: dict[str, manual.ManualDoc] = {
     "electeur": manual.ManualDoc(stem="guide-electeur"),
     "verifier": manual.ManualDoc(stem="verifier"),
+    "depouillement": manual.ManualDoc(stem="methodes-de-depouillement"),
     "faq": manual.ManualDoc(stem="faq", section="C"),
 }
 
@@ -98,9 +99,10 @@ def health(request: HttpRequest) -> JsonResponse:
 def help_page(request: HttpRequest) -> HttpResponse:
     """The manual's public landing page (linked from every voter-facing
     page's footer, §6.6): links to the voter's guide, the independent
-    verifier and the voter FAQ, each rendered straight from
-    ``docs/manuel/`` by `manual_page` below — one source of prose for the
-    repository and the site, never two to keep in step by hand.
+    verifier, the tally methods explainer and the voter FAQ, each rendered
+    straight from ``docs/manuel/`` by `manual_page` below — one source of
+    prose for the repository and the site, never two to keep in step by
+    hand.
     """
     language = request.LANGUAGE_CODE
     rows = [
@@ -139,7 +141,7 @@ def manual_image(request: HttpRequest, name: str) -> HttpResponse:
 
 def manual_page(request: HttpRequest, slug: str) -> HttpResponse:
     """One rendered page of the public manual (`help_page` above lists all
-    three). §6.6's public-facing prose is never typed twice: this reads and
+    four). §6.6's public-facing prose is never typed twice: this reads and
     sanitises the same ``docs/manuel/*.md`` a repository maintainer edits.
     """
     doc = _PUBLIC_DOCS.get(slug)
@@ -151,6 +153,7 @@ def manual_page(request: HttpRequest, slug: str) -> HttpResponse:
         doc_links={
             "guide-electeur": reverse("publicsite:manual_page", args=["electeur"]),
             "verifier": reverse("publicsite:manual_page", args=["verifier"]),
+            "methodes-de-depouillement": reverse("publicsite:manual_page", args=["depouillement"]),
         },
         image_base_url=_public_image_base_url(),
     )

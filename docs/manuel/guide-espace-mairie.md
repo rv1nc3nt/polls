@@ -371,6 +371,10 @@ n'est jamais exigée, dans aucune langue.
 Si le classement complet n'est pas exigé, Schulze traite les propositions non
 classées comme ex æquo en dernière position.
 
+Pour une explication en détail de chaque méthode — avec un exemple chiffré
+et, pour qui le souhaite, le code source exact du calcul — voir [Les
+méthodes de dépouillement, expliquées](methodes-de-depouillement.md).
+
 ### Départage
 
 En cas d'égalité réelle, la règle par défaut est un **tirage au sort calculé** :

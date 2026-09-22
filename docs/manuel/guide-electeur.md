@@ -217,6 +217,10 @@ des consultations (figure 1). La page de résultats porte ensuite :
 - la **graine d'ouverture**, le détail d'un éventuel départage, et
   l'**empreinte de clôture**.
 
+Pour comprendre ce que cette matrice et ce raisonnement signifient concrètement
+selon la méthode du scrutin, voir [Les méthodes de dépouillement,
+expliquées](methodes-de-depouillement.md).
+
 Vous pouvez :
 
 1. **retrouver votre code de suivi** dans la liste et vérifier que votre

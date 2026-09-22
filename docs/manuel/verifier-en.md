@@ -221,7 +221,9 @@ tie-break itself:
 
 The tie-break uses no drawing of lots and no programming-language function:
 it is entirely determined by the closure hash and the opening seed, which is
-exactly what this command checks.
+exactly what this command checks. See [Tally methods,
+explained](methodes-de-depouillement.md#ties-and-the-tie-break) for the
+detail of this computation.
 
 ## What to do in case of disagreement
 
@@ -241,4 +243,7 @@ If a line shows `DIFFERS`:
 The verifier's source code (`verifier/`) and the exact format of the CSV
 file it reads (`docs/canonical-serialisation.md`) are public: anyone can
 read exactly what this program does, or write their own version in another
-language to verify things even more independently.
+language to verify things even more independently. To understand exactly
+what the verifier recomputes — the Schulze, plurality or approval method,
+and the tie-break — see [Tally methods,
+explained](methodes-de-depouillement.md).

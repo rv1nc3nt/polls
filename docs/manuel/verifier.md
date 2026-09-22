@@ -239,6 +239,8 @@ vérificateur rejoue le départage lui-même :
 Le départage n'utilise ni tirage au sort, ni fonction du langage de
 programmation : il est entièrement déterminé par l'empreinte de clôture et
 la graine d'ouverture, ce qui est précisément ce que cette commande vérifie.
+Voir [Les méthodes de dépouillement, expliquées](methodes-de-depouillement.md#égalités-et-départage)
+pour le détail de ce calcul.
 
 ## Que faire en cas de désaccord
 
@@ -259,4 +261,6 @@ Le code source du vérificateur (`verifier/`) et le format exact du fichier
 CSV qu'il lit (`docs/canonical-serialisation.md`) sont publics : n'importe
 qui peut relire ce que fait exactement ce programme, ou écrire sa propre
 version dans un autre langage pour vérifier de manière encore plus
-indépendante.
+indépendante. Pour comprendre ce que le vérificateur recalcule au juste — la
+méthode de Schulze, majoritaire ou par assentiment, et le départage — voir
+[Les méthodes de dépouillement, expliquées](methodes-de-depouillement.md).

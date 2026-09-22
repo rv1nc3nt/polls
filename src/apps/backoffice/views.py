@@ -1972,11 +1972,24 @@ def manual_index(request: HttpRequest) -> HttpResponse:
 
 @require_operator
 def manual_page(request: HttpRequest, slug: str) -> HttpResponse:
-    """One rendered page of the mairie-area manual."""
+    """One rendered page of the mairie-area manual.
+
+    ``doc_links`` resolves one cross-reference beyond this area's own two
+    documents: the tally methods explainer, which is public-facing prose
+    (`apps.publicsite.views._PUBLIC_DOCS`) linked from the espace-mairie
+    guide's own tally-method section rather than duplicated here.
+    """
     doc = _BACKOFFICE_DOCS.get(slug)
     if doc is None:
         raise Http404
-    page = manual.render(doc, request.LANGUAGE_CODE, image_base_url=_backoffice_image_base_url())
+    page = manual.render(
+        doc,
+        request.LANGUAGE_CODE,
+        doc_links={
+            "methodes-de-depouillement": reverse("publicsite:manual_page", args=["depouillement"]),
+        },
+        image_base_url=_backoffice_image_base_url(),
+    )
     return render(request, "backoffice/manual_page.html", {"page": page, "crumb_extra": page.title})
 
 
