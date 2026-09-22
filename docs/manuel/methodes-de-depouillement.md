@@ -90,7 +90,7 @@ batte les deux autres directement. C'est dans ce cas que Schulze compare la
 seulement le duel direct : si *A* ne bat pas *C* directement mais bat *B* par
 une marge plus large que celle par laquelle *C* bat *A*, alors la chaîne
 *A → B → C* peut l'emporter sur le duel direct *C → A*. C'est précisément le
-calcul du [code source](#schulze-81) ci-dessous. Un cercle parfaitement
+calcul du [code source](#schulze) ci-dessous. Un cercle parfaitement
 symétrique — le même nombre de bulletins pour *A > B > C*, pour *B > C > A*
 et pour *C > A > B* — ne laisse subsister aucune chaîne plus forte qu'une
 autre : Schulze rapporte alors une véritable égalité, tranchée par le
@@ -193,15 +193,15 @@ la clôture et consigné dans la publication au même titre que le reste.
 
 Cette partie montre le code source exact qui calcule chacun des résultats
 ci-dessus — `src/apps/tally/methods.py` et `src/apps/tally/tiebreak.py`. Le
-dépouillement est une fonction pure (§8, R-10.1) : aucune donnée en base,
+dépouillement est une fonction pure : aucune donnée en base,
 aucune horloge, aucun aléa hors le tirage au sort décrit ci-dessus ; on peut
 donc le lire, comme ce qui suit, sans connaître le reste de l'application.
 
-### Schulze (§8.1)
+### Schulze
 
 La matrice des duels — `d[i][j]`, le nombre de bulletins classant `i`
 strictement avant `j` — se construit ainsi (les options non classées d'un
-bulletin comptent ex æquo en dernier, règle R-10.4) :
+bulletin comptent ex æquo en dernier) :
 
 ```python
 def pairwise_matrix(
@@ -273,7 +273,7 @@ symétrique décrit plus haut en est l'exemple. `winners[0] if len(winners) ==
 1 else None` est alors ce que le résultat publié appelle `winner` ; les
 options restées à égalité passent au [départage](#égalités-et-départage).
 
-### Majoritaire et par assentiment (§8.2)
+### Majoritaire et par assentiment
 
 Les deux méthodes de comptage partagent une seule fonction, qui ne diffère
 que sur ce qu'elle retient de chaque bulletin :
@@ -304,7 +304,7 @@ traduit « approuver plusieurs propositions à la fois » en interne — le
 bulletin place toutes les options approuvées ensemble, sans les distinguer
 par un rang.
 
-### Départage (§8.3)
+### Départage
 
 ```python
 def tiebreak_seed(opening_seed: bytes, closure_hash: bytes) -> bytes:
@@ -342,6 +342,4 @@ pour Schulze, forces de chemin — est publié en clair avec chaque résultat, �
 côté de la liste anonymisée des bulletins : voir la section « Vérifier, après
 la clôture » du [guide de l'électeur](guide-electeur.md#8-vérifier-après-la-clôture).
 Pour recalculer un résultat par vous-même, sans lire une ligne de code, voir
-[Vérifier un résultat par vous-même](verifier.md). La spécification complète
-de ces méthodes — algorithmes en pseudo-code, invariants, tests d'acceptation
-— est à la section 8 de `spec-plateforme-vote.md`, dans le dépôt du projet.
+[Vérifier un résultat par vous-même](verifier.md).

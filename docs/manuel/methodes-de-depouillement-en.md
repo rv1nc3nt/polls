@@ -86,7 +86,7 @@ option's **strongest chain of victories** to every other, not just the
 direct duel: if *A* does not beat *C* directly but beats *B* by a wider
 margin than the one by which *C* beats *A*, the chain *A → B → C* can
 outweigh the direct duel *C → A*. This is exactly what the [source
-code](#schulze-81) below computes. A perfectly symmetric circle — the same
+code](#schulze) below computes. A perfectly symmetric circle — the same
 number of ballots for *A > B > C*, for *B > C > A* and for *C > A > B* —
 leaves no chain stronger than any other: Schulze then reports a genuine tie,
 settled by the [tie-break](#ties-and-the-tie-break).
@@ -185,15 +185,15 @@ recorded in the publication like everything else.
 
 This part shows the exact source code that computes each of the results
 above — `src/apps/tally/methods.py` and `src/apps/tally/tiebreak.py`. The
-tally is a pure function (§8, R-10.1): no database read, no clock, no
+tally is a pure function: no database read, no clock, no
 randomness beyond the drawing of lots described above; it can be read, like
 what follows, with no knowledge of the rest of the application.
 
-### Schulze (§8.1)
+### Schulze
 
 The duel matrix — `d[i][j]`, the number of ballots ranking `i` strictly
 above `j` — is built like this (a ballot's unranked options count as tied in
-last place, R-10.4):
+last place):
 
 ```python
 def pairwise_matrix(
@@ -266,7 +266,7 @@ described above is an example. `winners[0] if len(winners) == 1 else None`
 is then what the published result calls `winner`; the options left tied
 move on to the [tie-break](#ties-and-the-tie-break).
 
-### Plurality and approval (§8.2)
+### Plurality and approval
 
 The two counting methods share a single function, which differs only in
 what it keeps from each ballot:
@@ -296,7 +296,7 @@ the ballot into a single list: this is how "approving several propositions
 at once" is represented internally — the ballot places every approved
 option together, with no rank distinguishing them.
 
-### The tie-break (§8.3)
+### The tie-break
 
 ```python
 def tiebreak_seed(opening_seed: bytes, closure_hash: bytes) -> bytes:
@@ -333,6 +333,4 @@ the path strengths — is published in the clear with every result, next to
 the anonymised ballot list: see the "Verify, after closure" section of the
 [voter's guide](guide-electeur.md#8-verify-after-closure). To recompute a
 result yourself without reading a line of code, see [Verify a result
-yourself](verifier.md). The full specification of these methods — algorithms
-in pseudo-code, invariants, acceptance tests — is in section 8 of
-`spec-plateforme-vote.md`, in the project's repository.
+yourself](verifier.md).

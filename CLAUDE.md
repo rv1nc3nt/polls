@@ -108,6 +108,14 @@ the good error message; the triggers are what hold.
   0BSD` in every source file.
 - Where the code departs from the specification, record it in
   `docs/specification-decision-log.md` rather than leaving it to be discovered.
+- **`docs/manuel/` is self-sufficient.** It is user-facing prose, read by
+  someone with no reason to know the internal rule scheme, so it never cites
+  `R-x.y`, `§n`, `INV-n` or `T-n`, and never names or links to
+  `cahier-des-charges.md`, `requirements-en.md` or `spec-plateforme-vote.md`.
+  Explain the *substance* a rule captures in plain terms instead of pointing
+  at its number. This applies even to a document that only exists in the
+  repository (`guide-administrateur.md`) — the whole tree is held to it, not
+  only what a browser serves.
 
 ## Releases
 
