@@ -671,7 +671,7 @@ ballots, never the voter register, and only runs after closing. The method
 and its version are recorded with the poll, so a published result stays
 reproducible despite later code changes.
 
-## 9. The two channels competing (R-9 summary)
+## 9. The two channels competing
 
 | Voter's state | Online vote | Paper entry |
 |---|---|---|

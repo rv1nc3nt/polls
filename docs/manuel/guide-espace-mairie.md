@@ -688,7 +688,7 @@ qu'après la clôture. La méthode et sa version sont enregistrées avec le scru
 donc un résultat publié reste reproductible malgré des changements de code
 ultérieurs.
 
-## 9. Concurrence des deux canaux (récapitulatif R-9)
+## 9. Concurrence des deux canaux
 
 | État de l'électeur | Vote en ligne | Saisie papier |
 |---|---|---|
