@@ -13,7 +13,7 @@ your vote was recorded correctly.
 - **Two ways to vote**: online, or on paper at the mairie if you have no
   internet access. You cannot do both.
 - **Your online ballot is never linked back to your identity by any stored
-  data**: the platform knows that you voted, never how (R-7.4).
+  data**: the platform knows that you voted, never how.
 - **The link sent by email is precious.** Depending on the poll, it is the
   only way to change your vote, and no one — not even the mairie — can
   retrieve it or send you another one.
@@ -29,7 +29,7 @@ The public page lists upcoming, open and closed consultations.
 Each row shows its status — **upcoming** (with the opening date), **open**
 (with the closing date), or **closed** — and, once results are published, the
 result itself (proposition retained, tie, or no ballot retained), with a link
-to its full detail (§8).
+to its full detail.
 
 An **upcoming** consultation is one the mairie has chosen to make public
 before it opens: you can already read the propositions and the schedule, but
@@ -92,7 +92,7 @@ Tips:
 
 | Situation | Message | Next step |
 |---|---|---|
-| Exactly one roll entry matches, and it gives eligibility | "A confirmation email has just been sent to you" | open the link received (§3) |
+| Exactly one roll entry matches, and it gives eligibility | "A confirmation email has just been sent to you" | open the link received |
 | No match, or several — or an uncertain date of birth | "Your registration is under review" | the mairie decides; you are contacted again |
 | Exactly one entry matches but its electoral-list type does not give a vote on this poll | "You are not eligible for this consultation" | — |
 | The roll entry or the address is already registered | "We cannot record this request online. Please contact the mairie." | contact the mairie |

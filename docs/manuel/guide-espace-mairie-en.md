@@ -6,20 +6,20 @@ The mairie area (`/mairie/`) is the administration interface: council
 members and staff use it to create polls, import the electoral roll, process
 registrations, key in paper ballots, close and publish. It is in French,
 complies with RGAA, is usable on a phone, and **never places a destructive
-action next to a routine one** (R-2.4).
+action next to a routine one**.
 
 > **What the mairie area does not allow.** Linking a voter who voted
-> **online** to the ballot they cast. No role allows this (R-2.3, R-7.4). An
+> **online** to the ballot they cast. No role allows this. An
 > administrator only ever has two irreconcilable lists: names with a
 > "voted / did not vote" flag, and anonymous rankings identified by their
-> tracking code (R-7.5). The one deliberate exception is the **paper**
+> tracking code. The one deliberate exception is the **paper**
 > ballot-entry screen, where the association is intentional, logged, and
 > erased at the retention deadline.
 
 ## 1. Roles and access
 
 Roles are assigned **poll by poll**, except for the commune administrator
-role (R-2.1).
+role.
 
 | Role | Scope | Permissions |
 |---|---|---|
@@ -40,7 +40,7 @@ Checks applied to **every** screen of a poll (`apps/backoffice/access.py`):
 
 ### Signing in
 
-Every operator has a **named account** (R-2.2). Shared accounts are
+Every operator has a **named account**. Shared accounts are
 forbidden by construction. The signed-in person's name is shown at the top
 of every screen: at a glance, you should be able to see under whose name the
 audit log will record the actions taken.
@@ -56,17 +56,17 @@ audit log will record the actions taken.
    transaction, it creates:
    - the **commune's record**: name shown on the public pages, **data-
      protection referent** and **the referent's contact details** (to whom
-     voters address access, rectification and erasure requests — R-13.2);
+     voters address access, rectification and erasure requests);
    - the **first commune administrator account**.
 
    These three fields of the commune's record, along with the site's
    address and an optional logo/favicon, remain editable afterwards from the
-   **commune settings** (screen 14, §13).
+   **commune settings** (screen 14).
 2. **Accounts and roles** (screen 10) — create accounts for council members
    and staff, then, once a first poll has been created, assign them roles on
    that poll.
-3. **Electoral roll import** (screen 3) — see §5.
-4. **Create the first poll** (below) then **configure it** (§4).
+3. **Electoral roll import** (screen 3).
+4. **Create the first poll** (below) then **configure it**.
 
 **Figure 18 — Operator accounts.**
 
@@ -80,22 +80,22 @@ The screen is worked through in two steps. The **poll** is searched for and
 picked from a paginated list, searchable by title and filterable by state —
 not from a single drop-down, which would grow without limit as the commune's
 polls pile up. With the chosen poll shown, a **grid** puts every **active
-account** in a row and every §1 **role** in a column: a checked box grants,
+account** in a row and every **role** in a column: a checked box grants,
 an unchecked box removes, all sent in a single save — only the boxes
 actually changed write an event to the log, one grant or removal at a time
-(§10). A deactivated account no longer appears in the grid: it cannot
+. A deactivated account no longer appears in the grid: it cannot
 receive a new role, and removing a role it still holds requires reactivating
 it first, which makes it reappear, checked, so it can be removed from it.
 
-Every role assignment is logged (§10).
+Every role assignment is logged.
 
 ### Creating a poll (`/mairie/nouveau/`)
 
 Reserved to the **commune administrator** (like screens 10 and 12): a poll
 that does not exist yet has no poll administrator to reserve the screen to.
-Reuses screen 2's form and proposition editor (§4) — the initial
+Reuses screen 2's form and proposition editor — the initial
 configuration takes the same shape as a change — adding only one field
-screen 2 excludes: the **sandbox** flag (R-3.7), fixed once and for all at
+screen 2 excludes: the **sandbox** flag, fixed once and for all at
 creation.
 
 Two ways to start:
@@ -106,10 +106,10 @@ Two ways to start:
 - from a **template** (screen 13, below): the tally method and the ballot's
   constraints are carried over from the chosen template, but the title,
   description and propositions are always entered afresh — a template never
-  carries content (R-3.9, §3.9).
+  carries content.
 
 Creating a poll **grants no role** on it, not even to whoever just created
-it (§1): validation goes straight back to "Roles per poll" (screen 10) so
+it: validation goes straight back to "Roles per poll" (screen 10) so
 that the grant stays the separate, logged step it is everywhere else.
 
 ### Poll templates (screen 13)
@@ -118,9 +118,9 @@ Reserved to the commune administrator, like screens 10 and 12. A catalogue
 of named templates, shared across all of the commune's polls — name, tally
 method, creation date — each one renameable or deletable from this screen.
 Nothing else creates or changes a template: the only place that writes one
-is *save as template*, available on screen 2 (§4) **regardless of the
+is *save as template*, available on screen 2 **regardless of the
 poll's state**, since the fields it copies (method, ballot constraints) are
-already frozen as soon as the poll leaves draft (INV-6). Deleting a template
+already frozen as soon as the poll leaves draft. Deleting a template
 here has no effect on a poll already created from it: the fields were copied
 at creation, not referenced.
 
@@ -129,8 +129,8 @@ at creation, not referenced.
 Reserved to the commune administrator. The SMTP relay (host, port,
 encryption, credentials, sending address) used by **every** poll of the
 commune, since a single relay serves them all. Left blank, a poll keeps
-using the deployment's configuration (§14 on the instance administrator's
-side): filling in this screen is therefore risk-free, a commune that leaves
+using the deployment's configuration: filling in this screen is therefore
+risk-free, a commune that leaves
 it untouched is not affected. The password is never shown again once saved
 — a field left blank on the next visit means "keep the current password",
 never "clear it".
@@ -138,7 +138,7 @@ never "clear it".
 A **"send a test message"** action exercises the settings already saved
 against a chosen address, before any real poll depends on them; the SMTP or
 network error, if any, is shown as-is. Every save logs which fields changed
-— never their value, nor the password (§10).
+— never their value, nor the password.
 
 ## 3. A poll's life cycle
 
@@ -148,7 +148,7 @@ draft      ──►  announced  ──►  open  ──►  closed  ──►  
                     └──────────────┴──────────┴────────────┴──►  withdrawn
 ```
 
-**No transition is reversible** (R-3.2). `Poll.state` is written by exactly
+**No transition is reversible**. `Poll.state` is written by exactly
 one module (`apps/elections/transitions.py`). Every state change has one of
 two origins:
 
@@ -156,51 +156,51 @@ two origins:
   twice, or not at all — hence the dashboard that names in advance whatever
   would block the next transition (below);
 - the poll administrator, **by hand**, from the **configuration** screen
-  (screen 2, §4): *Announce now*, *Open now*, *Close now* and *Withdraw the
-  poll* (R-2.1). All four go through the same guarded functions as the
+  (screen 2): *Announce now*, *Open now*, *Close now* and *Withdraw the
+  poll*. All four go through the same guarded functions as the
   scheduled tasks, so a poll that could not open or close on its own cannot
   be forced from the screen either — except for overriding the
-  countersignature requirement (§8), which only a human can justify.
+  countersignature requirement, which only a human can justify.
   Withdrawal, for its part, has no equivalent scheduled task: it is a
   manual, deliberate action, or nothing.
 
-- **draft → announced** (R-3.10, **mandatory**): makes the poll visible on
+- **draft → announced** (**mandatory**): makes the poll visible on
   the public site — propositions and schedule, with no registration or vote
   possible — even before it opens. Freezes the configuration at the same
-  moment opening would have (the same INV-6 trigger), so that it does not
+  moment opening would have (the same trigger), so that it does not
   change under the eyes of someone already viewing it. **Refused, like
   opening, if an enabled language lacks a complete translation** (title,
   description, labels): announcing freezes the public page, so it can
   neither freeze nor show a configuration still missing a translation. It
   does not, however, require the electoral roll to be frozen yet, since that
-  is only drawn at opening (§5). **Also refused if the opening date has
+  is only drawn at opening. **Also refused if the opening date has
   already passed**: a poll can no longer open on its own if it was never
   announced (the scheduled task only picks up polls already `announced`,
-  see the system administrator's guide, §6), so announcing a poll that is
+  see the system administrator's guide), so announcing a poll that is
   already overdue would only freeze it in order to open it right away —
   without the review this step is meant to offer. The administrator first
-  pushes back the opening date (freely editable while a draft, R-3.3), then
+  pushes back the opening date (freely editable while a draft), then
   announces.
 - **announced → open**: freezes an **immutable copy of the electoral roll**
-  (R-4.3) and draws the **opening seed** (for any tie-break, R-10.5). This
-  is now the only door into opening — a poll left in draft never opens,
+  and draws the **opening seed** (for any tie-break). This is now the only
+  door into opening — a poll left in draft never opens,
   neither on its own nor by hand. *Open now* is allowed at any time once
   announced, including before the configured opening time: this does not let
-  anyone vote early, since the window checks (§5.1) look at the clock, never
+  anyone vote early, since the window checks look at the clock, never
   at the state.
 - **open → closed**: computes the **closure hash** over the whole set of
   retained ballots and **freezes the turnout counters**. Does not tally.
   *Close now* only appears once the paper-ballot keying deadline has been
   reached — closing earlier would freeze the hash and the counters ahead of
   ballots the write window would still legitimately accept.
-- **closed → published**: the tally (a pure function) is run and §9's
+- **closed → published**: the tally (a pure function) is run and these
   artefacts become public.
-- **announced, open, closed or published → withdrawn** (R-3.11, at any
+- **announced, open, closed or published → withdrawn** (at any
   time, **mandatory** reason): nothing of the poll remains on the public
   site — no propositions, no schedule, no turnout, no result already
   published, if any. The page that carried its address now only states that
   it was withdrawn. Terminal: no transition leaves it, as with *published*.
-  The ballots and the audit log are untouched; on the retention side (§11),
+  The ballots and the audit log are untouched; on the retention side,
   a poll withdrawn before being closed gets, for lack of a closing date, a
   retention starting point on the withdrawal date itself.
 
@@ -232,7 +232,7 @@ actions allowed in the current state**.
 - While **open**, it names whatever would block closing — *closing
   blocked: n ballots awaiting countersignature*, or, if
   `paper_requires_reconciliation` is enabled and not yet recorded, *closing
-  blocked: paper-ballot reconciliation not recorded* (§8, R-8.6).
+  blocked: paper-ballot reconciliation not recorded*.
 - Turnout is **counted from registrations, never from ballots**; on a
   closed poll, the counters shown are the ones frozen at closing, not a
   fresh count (the registrations behind a fresh count are deleted two
@@ -244,7 +244,7 @@ actions allowed in the current state**.
 
 ## 4. Poll configuration (screen 2)
 
-A poll comprises (R-3.1): a title; a description; an **ordered list of at
+A poll comprises: a title; a description; an **ordered list of at
 least two propositions**; opening date and time; closing date and time; a
 time zone; a tally method and its version; ballot constraints (a complete
 ranking required or not, ties allowed or not); a tie-break rule; whether or
@@ -255,20 +255,19 @@ languages; the paper channel's formal requirements; a "test poll" flag.
 ### Configuration freezes at announcing
 
 It is **freely editable while a draft**, **immutable as soon as the poll
-leaves draft** — at announcing (§3), the only way out of draft (R-3.3,
-INV-6). The rule is held by a **database trigger**, not only by the
+leaves draft** — at announcing, the only way out of draft. The rule is held by a **database trigger**, not only by the
 application: `state != draft`.
 
 **Only exception**: the **closing date** can be **extended** while the poll
-is open (R-3.4), through a separate, justified action. The extension is
+is open, through a separate, justified action. The extension is
 logged (operator, timestamp, **mandatory reason**) and **shown on the
 poll's public page**. The paper-ballot keying deadline follows it.
 
 > A test poll (`is_sandbox`) is set at creation and **cannot be changed**;
 > it is excluded from public listings, published results and any statistics
-> (R-3.7).
+>.
 
-### Withdrawing the poll (R-3.11)
+### Withdrawing the poll
 
 From the **announced**, **open**, **closed** or **published** states, the
 bottom of the configuration screen offers **"Withdraw the poll"**, with a
@@ -288,14 +287,14 @@ took place.
 Each proposition carries an **identifier** (`option_id`, e.g. `garden`) and
 a **label** per language. The tally and the hash rest on the
 **identifiers**, never on the labels: the result is independent of the
-labels and their translations (R-10.7). **Do not change an identifier
+labels and their translations. **Do not change an identifier
 afterwards**: the ballots and the published result carry it.
 
-The number of propositions is not limited (**at least two**, R-3.1). Each
+The number of propositions is not limited (**at least two**). Each
 row carries a **"Position"** field: it is this number, not the order of the
 rows on screen, that fixes the order of the propositions on this page and
 in the results — retyping a number is enough to reorder, with no
-drag-and-drop needed. The ballot draws its own order for each voter (R-6.2),
+drag-and-drop needed. The ballot draws its own order for each voter,
 independent of this position. The **"Add a proposition"** button inserts a
 row, placed at the end of the list by default; each row's **"Remove"**
 button deletes it — for an already-saved proposition, removal is reversible
@@ -303,7 +302,7 @@ as long as the configuration has not been saved. With no JavaScript, the two
 blank rows at the end of the form serve to add, and each row's
 **"Delete"** checkbox to remove.
 
-### Extended description and images (R-3.12)
+### Extended description and images
 
 Beyond its label, each proposition can be given an **extended description**
 per language: formatted text, images hosted by the platform itself, a
@@ -312,7 +311,7 @@ informational: it **does not count toward the mandatory translation**
 below (an enabled language with no extended description falls back to the
 poll's default language's, or stays blank, never blocking announcing or
 opening), **nor toward the tally or the closure hash**, which rest only on
-the identifiers (R-10.7).
+the identifiers.
 
 The field only appears once the proposition itself has been saved: its
 label is entered first, the configuration is saved, and then the
@@ -324,7 +323,7 @@ accepts simple formatting (bold, italics, links, lists, headings); any other
 tag typed directly is stripped on display.
 
 Like the rest of the configuration, the description and images can only be
-changed **while the poll is a draft** (R-3.3) — replacing an image never
+changed **while the poll is a draft** — replacing an image never
 overwrites the old one, it takes a new address, for the same reason an
 identifier does not change afterwards: a reference already frozen must
 never later end up pointing to different content. 5 MB per image, in PNG,
@@ -335,12 +334,12 @@ declared extension.
 
 The interface is translated through a catalogue; the title, description and
 labels are translated for each enabled language. **A poll can be neither
-announced nor opened while a translation is missing** (R-3.10); a missing
+announced nor opened while a translation is missing**; a missing
 translation falls back to the poll's default language, never to nothing.
 French is authoritative. A proposition's **extended description** (above) is
 an exception: it is never required, in any language.
 
-**Figure 13 — Editable configuration (draft poll), with *Announce now* at the bottom of the form — the only transition action offered while the poll is a draft (R-3.10).**
+**Figure 13 — Editable configuration (draft poll), with *Announce now* at the bottom of the form — the only transition action offered while the poll is a draft.**
 
 ![Editable configuration (draft poll), with Announce now at the bottom of the form](captures/img/13-mairie-configuration-brouillon.png)
 
@@ -348,11 +347,11 @@ an exception: it is never required, in any language.
 
 ![Read-only configuration (open poll), with the closing-date extension as a separate action](captures/img/12-mairie-configuration-lecture.png)
 
-> Figures 12a, 12b and 02a (§3) show this same screen in the **announced**
+> Figures 12a, 12b and 02a show this same screen in the **announced**
 > and **open past its deadline** states, and what the second shows on the
 > public site.
 
-### Tally methods (R-10.3)
+### Tally methods
 
 | Method | Use |
 |---|---|
@@ -361,9 +360,9 @@ an exception: it is never required, in any language.
 | **Approval** (`approval`) | the voter approves as many propositions as they like. |
 
 If a complete ranking is not required, Schulze treats unranked propositions
-as tied for last place (R-10.4).
+as tied for last place.
 
-### Tie-break (R-10.5)
+### Tie-break
 
 In case of a genuine tie, the default rule is a **computed drawing of
 lots**: reproducible and verifiable by a third party, with no
@@ -378,14 +377,14 @@ Reserved to the **commune administrator**. A new import **entirely
 replaces** the working roll and **has no effect on a poll already open**
 (which works from its own frozen snapshot).
 
-**Fields imported, and only those** (R-4.2): birth surname, name in use,
+**Fields imported, and only those**: birth surname, name in use,
 first names, date of birth, electoral-list type. Not sex, nationality, place
 of birth, polling station or order number. (Nationality reveals national
 origin and is in any case implied by the list type. The order number is
-neither unique nor stable — R-4.8.) The address is only imported if postal
+neither unique nor stable.) The address is only imported if postal
 registration is configured.
 
-### Steps (R-4.5)
+### Steps
 
 1. **Choosing the file**, `.csv` or `.xlsx`.
 2. **Column matching**, a **preliminary validation report** and a
@@ -404,28 +403,28 @@ rows** and the operator's identity.
 The same screen shows, below the upload form, the roll currently in force —
 birth surname, name in use, first names, date of birth — paginated and
 searchable by substring. This is a simple alphabetical lookup, distinct
-from the resemblance-based confirmation of the paper-entry screen (§7): it
+from the resemblance-based confirmation of the paper-entry screen: it
 answers "who is on the roll right now", not "which entry matches the person
 present".
 
-### A poll's frozen snapshot stays viewable (R-4.4)
+### A poll's frozen snapshot stays viewable
 
 Once a poll is open, its own **"Electoral roll"** menu no longer shows the
 commune import's status but its **own frozen snapshot** (`RollEntry`), with
 the same paginated search — open to the **poll administrator** as well as
 the **auditor**, so that who was eligible stays verifiable afterwards. A
-roll whose two-month retention (R-13.3) has elapsed states this explicitly
+roll whose two-month retention has elapsed states this explicitly
 rather than looking like an empty list or a search with no results.
 
 **Figure 15a — Frozen electoral-roll snapshot of an open poll.**
 
 ![Frozen electoral-roll snapshot of an open poll](captures/img/15a-mairie-liste-electorale-scrutin.png)
 
-### Retention of an unused working roll (R-13.3 bis)
+### Retention of an unused working roll
 
 A roll that was imported but that no poll still in **draft or announced**
 consumes any longer is **deleted two months after its import** — the same
-scheduled job, the same lock, as the per-poll purge (§11); only the working
+scheduled job, the same lock, as the per-poll purge; only the working
 entries disappear, the import's provenance (`RollImport`: file name, hash,
 number of rows) and the log remain.
 
@@ -436,12 +435,12 @@ is written:
 
 - **Blocking**: an unmapped required column; a row with no name at all.
 - **Flagged and imported**: a date of birth that cannot be parsed (row
-  flagged "uncertain date", kept as-is — R-4.9); an incomplete row (no
+  flagged "uncertain date", kept as-is); an incomplete row (no
   list type); rows that merge; two entries with the same normalised name
   and the same date of birth that **do not** merge — a fact about the
   roll, not a defect in the file, left to human judgement.
 
-### Merging rows (R-4.6)
+### Merging rows
 
 The export carries **one row per voter and per list type**. The import
 merges rows with the same normalised identity (name + date of birth) into a
@@ -449,7 +448,7 @@ single entry carrying the **union of the list types**. Without this merge,
 the same person would have two entries and could register twice. A row
 flagged "uncertain date" is not merged.
 
-### Eligibility by list type (R-4.7)
+### Eligibility by list type
 
 Eligibility is filtered by list type, **configured for each poll**. A
 municipal question concerns the *main list* and the *supplementary
@@ -471,7 +470,7 @@ Reserved to the **poll administrator**. This is where decisions are made on
 registrations that could not be automatically matched against the frozen
 snapshot.
 
-A registration is **put under review** (R-5.4) when: no entry matches;
+A registration is **put under review** when: no entry matches;
 several entries match; the matching entry is flagged "uncertain date". (A
 single match whose list types do not grant eligibility is **not** put under
 review: it is **refused**, with a recorded reason.)
@@ -490,13 +489,13 @@ under review.
 
 ![Registration queue](captures/img/14-mairie-file-inscriptions.png)
 
-### Duplicate attempts (R-5.9)
+### Duplicate attempts
 
 An attempt to register against a roll entry that is **already registered**
 is refused, invites the person to contact the mairie, is logged and
 **flagged to the poll administrator**. No detail of the existing
 registration is disclosed. Likewise, a **single email address** can only be
-used once per poll (R-5.10): two people sharing a mailbox cannot both
+used once per poll: two people sharing a mailbox cannot both
 register online — their way in is **paper voting at the mairie**. The
 screen's help text recalls this.
 
@@ -505,17 +504,16 @@ screen's help text recalls this.
 For a voter with no internet access, an **entry operator** records a ballot
 on their behalf.
 
-### Formal requirements, per poll (R-8.2)
+### Formal requirements, per poll
 
 Chosen at configuration time, none enabled by default:
 
 - a **signed paper form** collected;
 - a **countersignature** by a second operator;
 - **formal reconciliation** at closing — the forms kept by the commune are
-  reconciled against the ballots recorded, in a signed and archived report
-  (§8, R-8.6).
+  reconciled against the ballots recorded, in a signed and archived report.
 
-In every case, the **minimal traceability core** (R-8.3 to R-8.5) applies.
+In every case, the **minimal traceability core** applies.
 
 ### Entry (screen 5)
 
@@ -527,7 +525,7 @@ In every case, the **minimal traceability core** (R-8.3 to R-8.5) applies.
    date of birth, or several at once). The screen shows **nearby entries**
    for confirmation. If two entries cannot be told apart from the data held,
    the operator decides **with the voter present**, not from the record
-   alone (R-8.3).
+   alone.
 
    **Figure 16a — Search results, with a match indicator.**
 
@@ -537,10 +535,10 @@ In every case, the **minimal traceability core** (R-8.3 to R-8.5) applies.
    - **paper already recorded** → this is a **correction** of the existing
      ballot (screen 6), not a new entry;
    - **online already recorded** → **entry refused**. A ballot voted online
-     is anonymous and cannot be located from the registration (R-7.4): it
+     is anonymous and cannot be located from the registration: it
      can be neither replaced nor deleted. If the poll allows changes, the
      screen points the voter to **their** online change link; otherwise, it
-     states that the online vote is final (R-9.3);
+     states that the online vote is final;
 
      **Figure 16d — Blocking interstitial: the voter has already voted online.**
 
@@ -554,7 +552,7 @@ In every case, the **minimal traceability core** (R-8.3 to R-8.5) applies.
 The receipt (and, failing that, the signed form) states that a ballot cast
 on paper **stays associated with the voter's identity** in the system —
 unlike a ballot voted online — for traceability purposes and possible
-deletion at their request (R-8.2 bis).
+deletion at their request.
 
 **Figure 16c — Paper vote receipt (printable).**
 
@@ -564,10 +562,10 @@ deletion at their request (R-8.2 bis).
 
 Available to the operator, each with a **mandatory reason** and an audit
 event recording the operator, the timestamp and the **before/after** state
-(R-8.5). **Correction** stays possible whether or not the poll allows
+. **Correction** stays possible whether or not the poll allows
 voters to change their vote: fixing a keying mistake is not the same act as
 a voter changing their mind. **Deletion** clears the channel flag and
-**reopens online voting** for the voter concerned (R-9.4).
+**reopens online voting** for the voter concerned.
 
 **Figure 16b — List of paper ballots entered.**
 
@@ -602,9 +600,9 @@ the retained ballots, serialised by tracking code and proposition
 identifiers), the **opening seed**, the **frozen counters**, then the
 **tally** (method, version, pairwise matrix, reasoning) and, where
 applicable, the **tie-break computation**. The **Publish** action makes
-§9's artefacts public.
+these artefacts public.
 
-### Closing refuses to drop ballots silently (R-8.7 bis)
+### Closing refuses to drop ballots silently
 
 Closing is **refused** while an entry awaits countersignature. The poll
 administrator either obtains the countersignatures, or **overrides it with
@@ -612,9 +610,9 @@ a mandatory reason**, which is recorded and **appears in the publication**.
 Uncountersigned entries are not counted, and silently dropping ballots at
 closing is not allowed.
 
-### Paper-ballot reconciliation (R-8.6)
+### Paper-ballot reconciliation
 
-Present **only** if `paper_requires_reconciliation` is enabled (§7). Once
+Present **only** if `paper_requires_reconciliation` is enabled. Once
 `paper_entry_deadline` has been reached — the same deadline that governs
 screen 2's manual closing — the poll administrator counts the **paper forms
 kept** by the commune and enters their number; it is checked against the
@@ -624,17 +622,17 @@ blocks nothing: it is an observed fact, not an error to fix before
 continuing. Figure 17 above shows the state once signed, between the
 closure hash and the frozen turnout.
 
-Unlike the countersignature (R-8.7 bis), **there is no override**: as long
+Unlike the countersignature, **there is no override**: as long
 as the poll carries `paper_requires_reconciliation` and no reconciliation
 is recorded, closing stays blocked, whether manual or scheduled. Once
 signed, a second recording is refused — reconciliation is not corrected, it
 is recorded once. The action is logged to the audit trail
 (`RECONCILIATION_RECORDED`) and the report stays viewable afterwards by the
 poll administrator and the auditor — **archived, never published**: unlike
-the countersignature override, R-8.6 asks that it be "signed and archived",
-not made available to the public.
+the countersignature override, it must be "signed and archived", not made
+available to the public.
 
-### What gets published (R-11.2)
+### What gets published
 
 - the **anonymised list of ballots** (tracking code + ranking) in CSV and
   JSON — **the retained ballots and nothing else**;
@@ -649,9 +647,9 @@ When the number of propositions is small, a **summary table** giving the
 number of ballots per distinct ordering is published as well (for three
 fully-ranked propositions: six rows, enough to recompute the result).
 
-The **result itself is put forward**, not merely available (R-11.2,
-R-11.4): on the results page, the winner (or the tie, or the absence of a
-retained ballot) opens the page in a separate panel, ahead of the method,
+The **result itself is put forward**, not merely available: on the results
+page, the winner (or the tie, or the absence of a retained ballot) opens the
+page in a separate panel, ahead of the method,
 the matrix and the verification data. The **public list of polls** carries
 this same result in one line for each published poll, with a direct link to
 the full derivation — a visitor no longer needs to open the poll's page
@@ -667,7 +665,7 @@ The tally is a **pure function**: the set of retained ballots + method +
 parameters → winner, intermediate results, reasoning. It reads **only** the
 ballots, never the voter register, and only runs after closing. The method
 and its version are recorded with the poll, so a published result stays
-reproducible despite later code changes (R-10.2).
+reproducible despite later code changes.
 
 ## 9. The two channels competing (R-9 summary)
 
@@ -678,7 +676,7 @@ reproducible despite later code changes (R-10.2).
 | **online** recorded | this is a change, if the poll allows it | **refused** — the online vote stands and can be neither moved nor deleted |
 
 An operator deleting a paper ballot clears the flag and reopens online
-voting (R-9.4).
+voting.
 
 ## 10. Audit log (screen 8)
 
@@ -688,13 +686,13 @@ voting (R-9.4).
 
 Read-only, filterable by author, date and object. Visible to the **poll
 administrator** and the **auditor**. **No event can be changed or deleted**,
-in the application as in the database (INV-3).
+in the application as in the database.
 
-The log records at least (R-12.1): configuration changes; state changes and
+The log records at least: configuration changes; state changes and
 closing-date extensions; imports and frozen roll snapshots; decisions made
 on registrations under review; refused registration attempts; creation,
 correction and deletion of paper ballots; countersignatures and overrides at
-closing; paper-ballot reconciliation (R-8.6, §8); overrides of the
+closing; paper-ballot reconciliation; overrides of the
 cross-channel warning; role assignments; and **accesses to the log itself**.
 
 Each entry shows the operator, the timestamp, the object, the
@@ -706,28 +704,28 @@ where the retention purge picks it up.
 
 ## 11. Data protection — what the mairie area needs to know
 
-- **The commune is the data controller** (R-13.1). The processing appears
+- **The commune is the data controller**. The processing appears
   in the record of processing activities.
 - An **information notice** is shown at registration (purpose, legal basis,
-  retention periods, recipients, rights, the referent's identity — R-13.2).
+  retention periods, recipients, rights, the referent's identity).
   The referent is the one entered at first-run setup, editable afterwards
-  from the commune settings (screen 14, §13).
-- **Retention periods** (R-13.3): identity data (registrations, the frozen
+  from the commune settings (screen 14).
+- **Retention periods**: identity data (registrations, the frozen
   roll snapshot, the paper-ballot ↔ voter association) is deleted **two
-  months after closing**, or after **withdrawal** (R-3.11) for a poll
+  months after closing**, or after **withdrawal** for a poll
   withdrawn before being closed; the "personal data" fields of the audit
   log are erased on the same term, **while keeping** the entry, its author,
   its date and its reason. Starting point: **closing**, or failing that
   **withdrawal**, never publication (a closed poll never published, or one
   withdrawn before being closed, would otherwise keep this data
   indefinitely). Anonymised ballots, the published result if any, and the
-  log are kept beyond that. The imported **working roll** (§5) follows a
-  related but distinct rule (R-13.3 bis): it is deleted **two months after
+  log are kept beyond that. The imported **working roll** follows a
+  related but distinct rule: it is deleted **two months after
   its import**, unless a poll still in **draft or announced** still needs
   to consume it at opening — a different starting point (the import, not
   the closing) since it belongs to no particular poll.
 - Access to **identity data** is restricted to the **poll administrator**
-  (residual risk R-13.4 bis, whose acceptance is for the commune to decide).
+  (a residual risk whose acceptance is for the commune to decide).
 
 ## 12. Starting screen: the poll index
 
@@ -744,9 +742,9 @@ screens**: that always requires a grant.
 
 Reserved to the **commune administrator**, like screens 10, 12 (mail relay)
 and 13 (poll templates). Carries, editable afterwards, the three fields
-screen 11 sets at installation (§2): the **commune's name** (shown on the
+screen 11 sets at installation: the **commune's name** (shown on the
 public pages and in the information notice), the **data-protection
-referent** and their **contact details** (R-13.1, R-13.2, §11).
+referent** and their **contact details**.
 
 Two elements specific to this screen are added:
 
@@ -759,7 +757,7 @@ Two elements specific to this screen are added:
   header in place of the commune's name, the second in the browser tab.
 
 Each image is uploaded and deleted **separately** from the main form, like a
-proposition's images (§4) — a file field left blank never means "keep the
+proposition's images — a file field left blank never means "keep the
 current image" — and is validated on its **actual content**, never on the
 declared extension (never SVG either, since no code in the application knows
 how to sanitise one before serving it again): 2 MB maximum for the logo, 256
@@ -767,7 +765,7 @@ KB for the favicon. A commune that has not yet filled in this screen is
 unaffected: a plain name in the header, the browser's default favicon.
 
 Every save is logged, naming only the **fields that changed** — never their
-value, the same restraint as for a poll's configuration (§4) or screen 12's
+value, the same restraint as for a poll's configuration or screen 12's
 mail relay.
 
 **Figure 22 — Commune settings.**

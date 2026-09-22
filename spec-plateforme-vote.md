@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: 0BSD -->
+
 # Implementation Specification — Commune Polling Platform
 
 **Client:** Commune de Sainte-Marie-du-Mont (Isère), France

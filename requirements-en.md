@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: 0BSD -->
+
 # Statement of Functional Requirements — Commune Polling Platform
 
 **A French commune**

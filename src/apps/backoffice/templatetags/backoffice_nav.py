@@ -180,6 +180,13 @@ _POLL_MENU: tuple[_Group, ...] = (
 
 _Resolved = tuple[list[dict[str, object]], list[dict[str, object]], "Promise | str", str]
 
+#: Name of the attribute _resolve's result is cached under on the request.
+#: bo_nav, bo_current_label and bo_current_url all resolve the same menu for
+#: the same request/poll while rendering one page (base.html calls all three)
+#: — without this, each one repeats the poll_roles() query and every
+#: reverse() call in _GLOBAL_ITEMS/_POLL_MENU from scratch.
+_CACHE_ATTR = "_bo_nav_resolved"
+
 
 def _resolve(context: template.Context) -> _Resolved:
     """``(global_items, poll_groups, current_label, current_url)`` for the
@@ -194,9 +201,15 @@ def _resolve(context: template.Context) -> _Resolved:
     into a link back up rather than repeat a bare, misleadingly-current label.
     """
     request = context["request"]
+    cached = getattr(request, _CACHE_ATTR, None)
+    if cached is not None:
+        return cached  # type: ignore[no-any-return]
+
     user = request.user
     if not (user.is_authenticated and user.is_active):
-        return [], [], "", ""
+        result: _Resolved = [], [], "", ""
+        setattr(request, _CACHE_ATTR, result)
+        return result
 
     match = getattr(request, "resolver_match", None)
     url_name = match.url_name if match is not None else ""
@@ -263,7 +276,9 @@ def _resolve(context: template.Context) -> _Resolved:
             if entries:
                 poll_groups.append({"label": group.label, "items": entries})
 
-    return global_items, poll_groups, current_label, current_url
+    result = global_items, poll_groups, current_label, current_url
+    setattr(request, _CACHE_ATTR, result)
+    return result
 
 
 @register.inclusion_tag("backoffice/_nav.html", takes_context=True)

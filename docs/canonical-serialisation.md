@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: 0BSD -->
+
 # Canonical serialisation and the closure hash
 
 This document is the contract between the application, the published CSV and the

@@ -12,8 +12,8 @@ rather than reshuffling under the voter. Admissibility is delegated to
 ``ranking.validate_ranking`` so the page and a direct POST are judged alike
 (T-29).
 
-Shared: the paper-entry screen (§6.5.5) uses it now; the online ballot page
-(§6.3) will use the same form and the same template partial.
+Shared: the paper-entry screen (§6.5.5) and the online ballot page (§6.3) use
+the same form and the same template partial.
 """
 
 from __future__ import annotations

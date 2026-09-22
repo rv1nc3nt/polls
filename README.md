@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: 0BSD -->
+
 # Plateforme de consultation citoyenne
 
 Self-hosted web application for a French commune to run **consultative** polls

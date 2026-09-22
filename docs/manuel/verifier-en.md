@@ -9,7 +9,7 @@ knowing how to download a file and follow instructions — this document
 explains every step, for mouse and keyboard alike.
 
 No registration is needed for this check: the data you need is **public**,
-on the consultation's results page (R-11.2, R-11.4).
+on the consultation's results page.
 
 ## Why this program exists
 
@@ -234,7 +234,7 @@ If a line shows `DIFFERS`:
 2. If the disagreement persists, **do not keep it to yourself**: contact the
    mairie, stating the consultation concerned, the exact command you ran and
    its full output. This is exactly the kind of anomaly this verifiability
-   (R-11.4) is meant to be able to catch.
+   is meant to be able to catch.
 
 ## Going further
 

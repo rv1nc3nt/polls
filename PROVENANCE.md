@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: 0BSD -->
+
 # Provenance
 
 This repository implements `spec-plateforme-vote.md`, itself an implementation

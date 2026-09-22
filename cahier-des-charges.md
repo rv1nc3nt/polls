@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: 0BSD -->
+
 # Cahier des charges fonctionnel — Plateforme de scrutins communaux
 
 **Une commune française**

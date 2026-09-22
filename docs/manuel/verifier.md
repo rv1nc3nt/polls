@@ -11,7 +11,7 @@ comme au clavier.
 
 Aucune inscription n'est requise pour cette vérification : les données dont
 vous avez besoin sont **publiques**, sur la page de résultats de la
-consultation (R-11.2, R-11.4).
+consultation.
 
 ## Pourquoi ce programme existe
 
@@ -251,7 +251,7 @@ Si une ligne affiche `DIFFERS` :
 2. Si le désaccord persiste, **ne le gardez pas pour vous** : contactez la
    mairie en indiquant la consultation concernée, la commande exacte que
    vous avez lancée et son résultat complet. C'est exactement le type
-   d'anomalie que cette vérifiabilité (R-11.4) est censée pouvoir détecter.
+   d'anomalie que cette vérifiabilité est censée pouvoir détecter.
 
 ## Pour aller plus loin
 

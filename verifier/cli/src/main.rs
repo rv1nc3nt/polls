@@ -13,8 +13,10 @@
 //!
 //! Usage:
 //!
-//!     polls-verifier ballots.csv \
-//!         [--closure-hash <hex>] [--opening-seed <hex>] [--winner <option_id>]
+//! ```text
+//! polls-verifier ballots.csv \
+//!     [--closure-hash <hex>] [--opening-seed <hex>] [--winner <option_id>]
+//! ```
 //!
 //! Exit codes: 0 agreement, 1 disagreement, 2 usage or input error.
 //!

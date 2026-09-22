@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: 0BSD -->
+
 # Specification decision log
 
 Per §0 of `spec-plateforme-vote.md`, a divergence between the implementation

@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: 0BSD -->
+
 # Contributing
 
 Contributions are welcome. Two rules keep the tree simple for the communes that

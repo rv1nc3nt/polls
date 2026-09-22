@@ -13,7 +13,7 @@ et vérifier que votre vote a bien été enregistré.
 - **Deux façons de voter** : en ligne, ou sur papier à la mairie si vous n'avez
   pas d'accès à internet. On ne peut pas faire les deux.
 - **Votre bulletin voté en ligne n'est relié à votre identité par aucune
-  donnée** : la plateforme sait que vous avez voté, jamais comment (R-7.4).
+  donnée** : la plateforme sait que vous avez voté, jamais comment.
 - **Le lien reçu par courriel est précieux.** Selon le scrutin, c'est le seul
   moyen de modifier votre vote, et personne — pas même la mairie — ne peut le
   retrouver ni vous en renvoyer un autre.
@@ -29,7 +29,7 @@ La page publique liste les consultations à venir, ouvertes et closes.
 Chaque ligne indique son état — **à venir** (avec la date d'ouverture),
 **ouverte** (avec la date de clôture), ou **close** — et, une fois les
 résultats publiés, le résultat lui-même (proposition retenue, égalité, ou
-aucun bulletin retenu), avec un lien vers son détail complet (§8).
+aucun bulletin retenu), avec un lien vers son détail complet.
 
 Une consultation **à venir** est une consultation que la mairie a choisi de
 rendre publique avant son ouverture : vous pouvez déjà lire les propositions et
@@ -94,7 +94,7 @@ Conseils :
 
 | Situation | Message | Suite |
 |---|---|---|
-| Une seule entrée de la liste correspond, et elle donne l'éligibilité | « Un courriel de confirmation vient de vous être envoyé » | ouvrez le lien reçu (§3) |
+| Une seule entrée de la liste correspond, et elle donne l'éligibilité | « Un courriel de confirmation vient de vous être envoyé » | ouvrez le lien reçu |
 | Aucune, ou plusieurs, correspondances — ou une date de naissance incertaine | « Votre inscription est mise à l'étude » | la mairie statue ; vous êtes recontacté·e |
 | Une seule entrée correspond mais son type de liste ne donne pas voix sur ce scrutin | « Vous n'êtes pas éligible à cette consultation » | — |
 | L'entrée de liste ou l'adresse est déjà inscrite | « Nous ne pouvons pas enregistrer cette demande en ligne. Adressez-vous à la mairie. » | contactez la mairie |

@@ -10,13 +10,13 @@ Trois sous-parties : [administrateur d'instance](#a-administrateur-dinstance),
 ## A. Administrateur d'instance
 
 ### Puis-je faire tourner plusieurs communes sur une même installation ?
-Non. Une instance = une commune (R-1.3, R-1.5). Il n'y a pas de colonne
+Non. Une instance = une commune. Il n'y a pas de colonne
 « locataire ». Une autre commune installe sa propre instance, avec sa propre
 base et ses propres clés.
 
 ### Le playbook refuse de tourner sur ma distribution.
 C'est voulu. La cible supportée est **Debian stable courante**, une seule
-(§15). Pour un autre système, `contrib/init/` fournit des fichiers de service à
+. Pour un autre système, `contrib/init/` fournit des fichiers de service à
 installer à la main, sans garantie de support.
 
 ### J'ai lancé un déploiement et tous les liens de modification de bulletin sont cassés.
@@ -75,7 +75,7 @@ absence de snapshot depuis > 24 h, certificat TLS proche de l'expiration.
 
 ### Puis-je activer la journalisation complète des URL dans nginx ?
 Non pour le préfixe `/bulletin/` : le jeton de vote y transite dans un lien et
-ne doit jamais atteindre un log (R-7.4 ter). Le gabarit nginx supprime
+ne doit jamais atteindre un log. Le gabarit nginx supprime
 délibérément la journalisation de l'URI pour ce préfixe.
 
 ### Ce logiciel convient-il à un budget participatif d'une grande ville ?
@@ -88,7 +88,7 @@ de niveau 1 (voir le `README.md` racine).
 Inscriptions, copie figée de la liste, association bulletin papier ↔ électeur :
 dans la base, **supprimées deux mois après la clôture** par `retention_purge`,
 qui efface aussi les champs « données personnelles » du journal d'audit **en
-conservant** l'entrée, son auteur, sa date et son motif (R-12.4, R-13.3). Les
+conservant** l'entrée, son auteur, sa date et son motif. Les
 adresses IP de limitation de débit ne sont pas conservées au-delà du nécessaire.
 
 ---
@@ -108,19 +108,19 @@ la fiche commune (dont le référent données personnelles) et le premier compte
 administrateur. Il se ferme dès qu'un compte existe.
 
 ### Je me suis trompé dans la configuration et le scrutin est déjà ouvert.
-La configuration se fige à l'ouverture (R-3.3, INV-6), et c'est un déclencheur
+La configuration se fige à l'ouverture, et c'est un déclencheur
 de base qui le tient. **Seule** la **date de clôture** peut être reportée
 (action séparée, motif obligatoire, affichée publiquement). Pour le reste, il
 faut un nouveau scrutin. Aucune transition n'est réversible.
 
 ### Peut-on revenir de « clos » à « ouvert » ?
-Non. `brouillon → annoncé → ouvert → clos → publié`, sans retour (R-3.2).
-« Annoncé » est une étape **obligatoire** (R-3.10) : *ouvrir maintenant*
+Non. `brouillon → annoncé → ouvert → clos → publié`, sans retour.
+« Annoncé » est une étape **obligatoire** : *ouvrir maintenant*
 n'accepte plus qu'un scrutin déjà annoncé comme point de départ, il n'y a plus
 de passage direct de brouillon à ouvert.
 
 ### Puis-je retirer un scrutin déjà annoncé, ouvert, clos ou publié ?
-Oui (R-3.11), depuis l'écran de configuration : action irréversible, motif
+Oui, depuis l'écran de configuration : action irréversible, motif
 obligatoire. Le scrutin disparaît de toute page publique — y compris d'un
 résultat déjà publié — mais son URL de détail ne renvoie pas une simple erreur
 404 : elle affiche « ce scrutin a été retiré » et rien d'autre. Un scrutin
@@ -128,14 +128,14 @@ encore en brouillon, lui, se **supprime** plutôt que de se retirer.
 
 ### Peut-on ouvrir ou clore un scrutin sans attendre la tâche planifiée ?
 Oui, depuis l'écran de configuration (écran 2) : *Annoncer maintenant*, *Ouvrir
-maintenant* et *Clôturer maintenant* (R-2.1). *Ouvrir maintenant* est permis à
+maintenant* et *Clôturer maintenant*. *Ouvrir maintenant* est permis à
 tout moment, y compris par avance — cela ne fait voter personne avant l'heure
 configurée. *Clôturer maintenant* n'apparaît qu'une fois l'échéance de saisie
 des bulletins papier atteinte.
 
 ### À quoi sert l'état « annoncé » ?
 À rendre un scrutin visible sur le site public — propositions et calendrier —
-avant son ouverture, sans inscription ni vote possibles (R-3.10). C'est
+avant son ouverture, sans inscription ni vote possibles. C'est
 désormais un passage obligé pour tout scrutin, pas seulement une option utile
 sur ceux qui n'autoriseront pas la modification d'un bulletin déjà voté — mais
 le bénéfice reste le même pour ceux-là : les électeurs peuvent réfléchir aux
@@ -144,7 +144,7 @@ comme elle l'aurait fait à l'ouverture.
 
 ### L'annonce rend le scrutin public. Comment le faire relire avant, en privé ?
 Depuis l'écran de configuration, tant que le scrutin est en brouillon :
-*partager cet aperçu* (R-3.10 bis) génère un lien imprévisible, non référencé
+*partager cet aperçu* génère un lien imprévisible, non référencé
 nulle part, montrant la page publique telle qu'elle sera. Contrairement à
 l'annonce, ce lien **ne fige rien** : la page continue de changer avec le
 brouillon. Le régénérer invalide l'ancien sur-le-champ ; le révoquer le
@@ -166,13 +166,13 @@ sa **copie figée** prise à l'ouverture.
 Oui, sur les deux écrans : le menu général « Liste électorale » (commune)
 montre la liste de travail en vigueur, paginée et cherchable ; le menu
 « Liste électorale » d'un scrutin déjà ouvert montre sa **propre copie figée**
-(R-4.4), accessible à l'administrateur du scrutin et à l'auditeur.
+, accessible à l'administrateur du scrutin et à l'auditeur.
 
 ### La liste de travail importée est-elle conservée indéfiniment si personne ne l'utilise ?
 Non. Une liste importée mais qu'aucun scrutin encore en brouillon (ou annoncé)
-ne consomme plus est supprimée deux mois après son import (R-13.3 bis) —
+ne consomme plus est supprimée deux mois après son import —
 distinct de la rétention de la copie figée d'un scrutin, qui part de sa
-clôture (R-13.3).
+clôture.
 
 ### Un électeur dit être inscrit mais le rapprochement échoue.
 Sa demande part en **file d'attente des inscriptions**. Comparez la déclaration
@@ -181,13 +181,13 @@ aux entrées proches ; **acceptez** (en choisissant l'entrée de liste) ou
 confirmation d'adresse, jamais directement à l'état actif.
 
 ### Un couple partage une seule adresse électronique.
-Une adresse ne sert qu'une fois par scrutin (R-5.10). L'un des deux vote **sur
+Une adresse ne sert qu'une fois par scrutin. L'un des deux vote **sur
 papier à la mairie**. Aucune normalisation d'alias n'est faite : toute règle sur
 les points ou suffixes fusionnerait des personnes distinctes ou donnerait une
 fausse assurance.
 
 ### Un électeur a voté en ligne et veut maintenant un bulletin papier.
-Refusé (R-9.3). Le bulletin en ligne est anonyme et introuvable depuis
+Refusé. Le bulletin en ligne est anonyme et introuvable depuis
 l'inscription : il ne peut être ni remplacé, ni supprimé. Si le scrutin autorise
 la modification, l'électeur modifie **lui-même** son bulletin en ligne ; sinon,
 le vote en ligne est définitif.
@@ -195,22 +195,22 @@ le vote en ligne est définitif.
 ### Un électeur a un bulletin papier et veut voter en ligne.
 Il doit se présenter en mairie pour faire **supprimer** le bulletin papier
 d'abord. La suppression (motif obligatoire, avant/après tracé) efface
-l'indicateur de canal et rouvre le vote en ligne (R-9.4).
+l'indicateur de canal et rouvre le vote en ligne.
 
 ### Différence entre « corriger » et « modifier » un bulletin papier ?
 La **correction** répare une erreur de saisie de l'opérateur ; elle reste
 possible même si le scrutin n'autorise pas les électeurs à modifier leur vote.
 Ce n'est pas le même acte qu'un électeur qui change d'avis. Motif obligatoire,
-avant/après au journal (R-8.5).
+avant/après au journal.
 
 ### La clôture est refusée : « n bulletins en attente de contreseing ».
 Soit vous obtenez les contreseings (écran 7), soit l'administrateur du scrutin
 **passe outre avec un motif obligatoire**, qui est enregistré et **apparaît dans
 la publication**. Les bulletins non contresignés ne sont pas comptés ; on
-n'abandonne pas de bulletins en silence (R-8.7 bis).
+n'abandonne pas de bulletins en silence.
 
 ### La clôture est refusée : « rapprochement des bulletins papier non enregistré ».
-Le scrutin exige le **rapprochement formel** (§7, R-8.6) : comptez les
+Le scrutin exige le **rapprochement formel** : comptez les
 formulaires papier conservés par la commune et saisissez leur nombre sur
 l'écran de clôture, une fois `paper_entry_deadline` atteinte. Contrairement au
 contreseing, **il n'y a pas de passage outre** — la clôture attend
@@ -223,17 +223,17 @@ désactivé, **aucune** page, API ou en-tête n'expose de compteur.
 
 ### Qui peut voir le journal d'audit ? Peut-on y corriger une erreur ?
 Les **auditeurs** y ont accès en lecture seule, ainsi que les administrateurs du
-scrutin. **Aucun** événement ne peut être modifié ni supprimé (INV-3), y compris
+scrutin. **Aucun** événement ne peut être modifié ni supprimé, y compris
 par un administrateur. Une précision se met sur la ligne référencée (inscription,
 lien de bulletin papier), pas sur l'événement, dont le motif est un code.
 
 ### Un scrutin « test » apparaîtra-t-il dans les résultats publics ?
 Non. L'indicateur est fixé à la création, non modifiable ; le scrutin est exclu
-des listes publiques, des résultats et de toute statistique (R-3.7).
+des listes publiques, des résultats et de toute statistique.
 
 ### Pourquoi ne puis-je pas changer l'identifiant d'une proposition ?
 Parce que les bulletins et le résultat publié le portent ; le dépouillement et
-l'empreinte reposent sur les identifiants, pas sur les libellés (R-10.7). Les
+l'empreinte reposent sur les identifiants, pas sur les libellés. Les
 libellés, eux, se corrigent librement — mais uniquement tant que le scrutin est
 en brouillon.
 
@@ -243,7 +243,7 @@ en brouillon.
 
 ### Mon vote est-il vraiment secret ?
 Un bulletin voté **en ligne** n'est relié à votre identité par aucune donnée de
-la base : la plateforme sait que vous avez voté, jamais comment (R-7.4). Un
+la base : la plateforme sait que vous avez voté, jamais comment. Un
 bulletin **papier** reste, lui, associé à votre identité (pour la traçabilité et
 une suppression à votre demande), jusqu'à son effacement deux mois après la
 clôture.
@@ -269,7 +269,7 @@ Les deux sont acceptés. La date de naissance porte l'essentiel de la
 vérification.
 
 ### Pourquoi les propositions ne sont-elles pas dans le même ordre que sur la page publique ?
-L'ordre du bulletin est **tiré au hasard pour chaque électeur** (R-6.2), pour
+L'ordre du bulletin est **tiré au hasard pour chaque électeur**, pour
 ne pas favoriser une proposition par sa position.
 
 ### Puis-je changer mon vote après l'avoir déposé ?
@@ -300,7 +300,7 @@ votre code de suivi.
 ### On m'a répondu que je ne suis pas éligible à cette consultation.
 Une seule entrée de la liste correspond à votre déclaration, mais son **type de
 liste** ne donne pas voix sur **ce** scrutin (par exemple, être inscrit sur la
-seule liste complémentaire européenne pour une question municipale — R-4.7). En
+seule liste complémentaire européenne pour une question municipale). En
 cas de doute sur votre inscription, adressez-vous à la mairie.
 
 ### Puis-je voter à la fois en ligne et sur papier ?

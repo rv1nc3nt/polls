@@ -10,13 +10,13 @@ Three sub-parts: [instance administrator](#a-instance-administrator),
 ## A. Instance administrator
 
 ### Can I run several communes on the same installation?
-No. One instance = one commune (R-1.3, R-1.5). There is no "tenant" column.
+No. One instance = one commune. There is no "tenant" column.
 Another commune installs its own instance, with its own database and its own
 keys.
 
 ### The playbook refuses to run on my distribution.
 That is intentional. The supported target is **current Debian stable**, and
-only that (§15). For another system, `contrib/init/` provides service files
+only that. For another system, `contrib/init/` provides service files
 to install by hand, with no support guarantee.
 
 ### I ran a deployment and every ballot-change link is now broken.
@@ -76,7 +76,7 @@ nearing expiry.
 
 ### Can I turn on full URL logging in nginx?
 Not for the `/bulletin/` prefix: the voting token travels there in a link
-and must never reach a log (R-7.4 ter). The nginx template deliberately
+and must never reach a log. The nginx template deliberately
 suppresses URI logging for this prefix.
 
 ### Is this software suitable for a big city's participatory budget?
@@ -90,7 +90,7 @@ Registrations, the frozen roll snapshot, the paper-ballot ↔ voter
 association: in the database, **deleted two months after closing** by
 `retention_purge`, which also erases the "personal data" fields of the audit
 log **while keeping** the entry, its author, its date and its reason
-(R-12.4, R-13.3). Rate-limiting IP addresses are not kept beyond what is
+. Rate-limiting IP addresses are not kept beyond what is
 necessary.
 
 ---
@@ -110,19 +110,19 @@ the commune's record (including the data-protection referent) and the first
 administrator account. It closes as soon as one account exists.
 
 ### I made a mistake in the configuration and the poll is already open.
-Configuration freezes on opening (R-3.3, INV-6), and a database trigger
+Configuration freezes on opening, and a database trigger
 enforces it. **Only** the **closing date** can be extended (a separate
 action, mandatory reason, shown publicly). For anything else, a new poll is
 needed. No transition is reversible.
 
 ### Can a poll go back from "closed" to "open"?
 No. `draft → announced → open → closed → published`, with no way back
-(R-3.2). "Announced" is a **mandatory** step (R-3.10): *open now* only ever
+. "Announced" is a **mandatory** step: *open now* only ever
 accepts an already-announced poll as its starting point, there is no longer a
 direct path from draft to open.
 
 ### Can I withdraw a poll that is already announced, open, closed or published?
-Yes (R-3.11), from the configuration screen: an irreversible action, mandatory
+Yes, from the configuration screen: an irreversible action, mandatory
 reason. The poll disappears from every public page — including an already-
 published result — but its detail URL does not just 404: it shows "this poll
 has been withdrawn" and nothing else. A poll still in draft is **deleted**
@@ -130,13 +130,13 @@ instead of withdrawn.
 
 ### Can a poll be opened or closed without waiting for the scheduled task?
 Yes, from the configuration screen (screen 2): *Announce now*, *Open now*
-and *Close now* (R-2.1). *Open now* is allowed at any time, including ahead
+and *Close now*. *Open now* is allowed at any time, including ahead
 of schedule — it does not let anyone vote before the configured time. *Close
 now* only appears once the paper-ballot keying deadline has been reached.
 
 ### What is the "announced" state for?
 To make a poll visible on the public site — propositions and schedule —
-before it opens, with no registration or vote possible yet (R-3.10). It is
+before it opens, with no registration or vote possible yet. It is
 now a mandatory step for every poll, not just a useful option on ones that
 will not allow changing an already-cast ballot — though the benefit stays the
 same for those: voters can think over the propositions before voting.
@@ -145,7 +145,7 @@ at opening.
 
 ### Announcing makes the poll public. How do I get it reviewed privately first?
 From the configuration screen, while the poll is still a draft: *share this
-preview* (R-3.10 bis) generates an unguessable link, referenced nowhere, that
+preview* generates an unguessable link, referenced nowhere, that
 shows the public page as it will look. Unlike announcing, this link **freezes
 nothing**: the page keeps changing along with the draft. Regenerating it
 invalidates the old one immediately; revoking it disables it without creating
@@ -166,13 +166,13 @@ own **frozen snapshot** taken at opening.
 Yes, on two screens: the general "Electoral roll" menu (commune level) shows
 the working roll currently in force, paginated and searchable; the
 "Electoral roll" menu of a poll that is already open shows its **own frozen
-snapshot** (R-4.4), accessible to the poll administrator and the auditor.
+snapshot**, accessible to the poll administrator and the auditor.
 
 ### Is an imported working roll kept forever if nothing uses it any more?
 No. A roll that was imported but that no poll still in draft (or announced)
-consumes any longer is deleted two months after its import (R-13.3 bis) —
+consumes any longer is deleted two months after its import —
 distinct from the retention of a poll's frozen snapshot, which starts from
-its closing (R-13.3).
+its closing.
 
 ### A voter says they are registered but the matching fails.
 Their request goes to the **registration queue**. Compare the declaration
@@ -181,12 +181,12 @@ against the nearby entries; **accept** it (choosing the roll entry) or
 address confirmation, never directly to the active state.
 
 ### A couple shares a single email address.
-An address can only be used once per poll (R-5.10). One of the two votes
+An address can only be used once per poll. One of the two votes
 **on paper at the mairie**. No alias normalisation is done: any rule on dots
 or suffixes would either merge distinct people or give a false assurance.
 
 ### A voter voted online and now wants a paper ballot.
-Refused (R-9.3). The online ballot is anonymous and cannot be traced back
+Refused. The online ballot is anonymous and cannot be traced back
 from the registration: it can be neither replaced nor deleted. If the poll
 allows changes, the voter changes their online ballot **themselves**;
 otherwise, the online vote is final.
@@ -194,22 +194,22 @@ otherwise, the online vote is final.
 ### A voter has a paper ballot and wants to vote online.
 They must come to the mairie to have the paper ballot **deleted** first.
 The deletion (mandatory reason, before/after logged) clears the channel flag
-and reopens online voting (R-9.4).
+and reopens online voting.
 
 ### What is the difference between "correcting" and "changing" a paper ballot?
 A **correction** fixes an operator's keying mistake; it stays possible even
 if the poll does not allow voters to change their vote. It is not the same
 act as a voter changing their mind. Mandatory reason, before/after logged
-(R-8.5).
+.
 
 ### Closing is refused: "n ballots awaiting countersignature."
 Either you obtain the countersignatures (screen 7), or the poll
 administrator **overrides it with a mandatory reason**, which is recorded
 and **appears in the publication**. Uncountersigned ballots are not counted;
-ballots are never silently dropped (R-8.7 bis).
+ballots are never silently dropped.
 
 ### Closing is refused: "paper-ballot reconciliation not recorded."
-The poll requires **formal reconciliation** (§7, R-8.6): count the paper
+The poll requires **formal reconciliation**: count the paper
 forms kept by the commune and enter their number on the closing screen, once
 `paper_entry_deadline` has been reached. Unlike the countersignature, **there
 is no override** — closing waits for this to be recorded, with no exception.
@@ -221,17 +221,17 @@ turnout while voting is under way could influence it. When this is off,
 
 ### Who can see the audit log? Can an error be corrected in it?
 **Auditors** have read-only access to it, as do the poll's administrators.
-**No** event can be changed or deleted (INV-3), not even by an
+**No** event can be changed or deleted, not even by an
 administrator. A clarification goes on the referenced row (registration,
 paper-ballot link), not on the event, whose reason is a code.
 
 ### Will a "test" poll appear in the public results?
 No. The flag is set at creation and cannot be changed; the poll is excluded
-from public listings, results and any statistics (R-3.7).
+from public listings, results and any statistics.
 
 ### Why can't I change a proposition's identifier?
 Because the ballots and the published result carry it; the tally and the
-hash rest on the identifiers, not the labels (R-10.7). Labels, on the other
+hash rest on the identifiers, not the labels. Labels, on the other
 hand, can be freely corrected — but only while the poll is still a draft.
 
 ---
@@ -240,7 +240,7 @@ hand, can be freely corrected — but only while the poll is still a draft.
 
 ### Is my vote really secret?
 A ballot voted **online** is never linked back to your identity by any data
-in the database: the platform knows that you voted, never how (R-7.4). A
+in the database: the platform knows that you voted, never how. A
 **paper** ballot, by contrast, stays associated with your identity (for
 traceability and deletion at your request), until it is erased two months
 after closing.
@@ -266,7 +266,7 @@ Both are accepted. The date of birth carries most of the weight of the
 check.
 
 ### Why aren't the propositions in the same order as on the public page?
-The ballot's order is **randomised for each voter** (R-6.2), so as not to
+The ballot's order is **randomised for each voter**, so as not to
 favour a proposition by its position.
 
 ### Can I change my vote after casting it?
@@ -295,7 +295,7 @@ indeed counted. You can check this after closing with your tracking code.
 ### I was told I am not eligible for this consultation.
 Exactly one roll entry matches your declaration, but its **electoral-list
 type** does not give a vote on **this** poll (for example, being registered
-only on the supplementary European list for a municipal question — R-4.7).
+only on the supplementary European list for a municipal question).
 If in doubt about your registration, contact the mairie.
 
 ### Can I vote both online and on paper?
