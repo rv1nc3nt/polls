@@ -44,7 +44,7 @@ service. Ne l'élargissez jamais.
 ### Comment je teste que mes sauvegardes sont restaurables ?
 `ansible-playbook -i inventory.ini restore.yml` : il provisionne un hôte,
 restaure le snapshot le plus récent et rejoue le smoke play. Une sauvegarde
-jamais restaurée n'est pas une sauvegarde (T-16). `restore.yml` vérifie
+jamais restaurée n'est pas une sauvegarde. `restore.yml` vérifie
 l'intégrité du snapshot **avant** de s'y fier et met l'ancienne base de côté en
 `db.sqlite3.pre-restore-*`.
 

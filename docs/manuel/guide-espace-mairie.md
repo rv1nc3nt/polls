@@ -211,21 +211,21 @@ a deux origines possibles :
   date de clôture, un point de départ de rétention sur la date du retrait
   elle-même.
 
-**Figure 12a — Configuration en lecture seule d'un scrutin annoncé, avec *Ouvrir maintenant*.**
+**Figure 12 — Configuration en lecture seule d'un scrutin annoncé, avec *Ouvrir maintenant*.**
 
-![Configuration en lecture seule d'un scrutin annoncé, avec Ouvrir maintenant](captures/img/12a-mairie-configuration-annoncee.png)
+![Configuration en lecture seule d'un scrutin annoncé, avec Ouvrir maintenant](captures/img/12-mairie-configuration-annoncee.png)
 
-**Figure 12b — Configuration d'un scrutin ouvert dont l'échéance est dépassée : *Clôturer maintenant* est proposé.**
+**Figure 12a — Configuration d'un scrutin ouvert dont l'échéance est dépassée : *Clôturer maintenant* est proposé.**
 
-![Configuration d'un scrutin ouvert dont l'échéance est dépassée : Clôturer maintenant est proposé](captures/img/12b-mairie-configuration-cloture-manuelle.png)
+![Configuration d'un scrutin ouvert dont l'échéance est dépassée : Clôturer maintenant est proposé](captures/img/12a-mairie-configuration-cloture-manuelle.png)
 
 > Un scrutin annoncé reste visible tel quel sur le site public jusqu'à son
 > ouverture : la page ne peut pas changer sous les yeux d'un électeur qui
 > l'aurait déjà consultée, puisque la configuration est figée dès l'annonce.
 >
-> **Figure 02a — Page publique d'un scrutin annoncé.**
+> **Figure 02 — Page publique d'un scrutin annoncé.**
 >
-> ![Page publique d'un scrutin annoncé](captures/img/02a-site-public-scrutin-annonce.png)
+> ![Page publique d'un scrutin annoncé](captures/img/02-site-public-scrutin-annonce.png)
 
 ### Tableau de bord (écran 1)
 
@@ -352,9 +352,9 @@ n'est jamais exigée, dans aucune langue.
 
 ![Configuration modifiable (scrutin en brouillon), avec Annoncer maintenant en bas de formulaire](captures/img/13-mairie-configuration-brouillon.png)
 
-**Figure 12 — Configuration en lecture seule (scrutin ouvert), avec le report de clôture comme action distincte.**
+**Figure 12b — Configuration en lecture seule (scrutin ouvert), avec le report de clôture comme action distincte.**
 
-![Configuration en lecture seule (scrutin ouvert), avec le report de clôture comme action distincte](captures/img/12-mairie-configuration-lecture.png)
+![Configuration en lecture seule (scrutin ouvert), avec le report de clôture comme action distincte](captures/img/12b-mairie-configuration-lecture.png)
 
 > Les figures 12a, 12b et 02a montrent ce même écran dans les états
 > **annoncé** et **ouvert au-delà de son échéance**, et ce que le second
@@ -553,9 +553,9 @@ s'applique.
      modification en ligne ; sinon, il indique que le vote en ligne est
      définitif ;
 
-     **Figure 16d — Interstitiel bloquant : l'électeur a déjà voté en ligne.**
+     **Figure 16b — Interstitiel bloquant : l'électeur a déjà voté en ligne.**
 
-     ![Interstitiel bloquant : l'électeur a déjà voté en ligne](captures/img/16d-mairie-bulletin-papier-collision.png)
+     ![Interstitiel bloquant : l'électeur a déjà voté en ligne](captures/img/16b-mairie-bulletin-papier-collision.png)
 
    - **aucun** → on continue.
 3. **Saisir le classement** selon les contraintes du scrutin.
@@ -580,9 +580,9 @@ modifier leur vote : réparer une erreur de saisie n'est pas le même acte qu'un
 électeur qui change d'avis. La **suppression** efface l'indicateur de canal et
 **rouvre le vote en ligne** pour l'électeur concerné.
 
-**Figure 16b — Liste des bulletins papier saisis.**
+**Figure 16d — Liste des bulletins papier saisis.**
 
-![Liste des bulletins papier saisis](captures/img/16b-mairie-bulletins-papier-liste.png)
+![Liste des bulletins papier saisis](captures/img/16d-mairie-bulletins-papier-liste.png)
 
 ### La fenêtre de saisie
 

@@ -62,4 +62,4 @@ Chaîne de production, entièrement reproductible (voir
 Ces outils ne servent qu'à la documentation et n'ont aucun rôle en production.
 Les noms (« Commune de Saint-Aubin-des-Bois », les électeurs, les adresses en
 `@example.fr`) sont fictifs : aucun export réel de liste électorale ne figure
-ici, conformément à R-13.6.
+ici.

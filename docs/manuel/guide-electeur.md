@@ -37,9 +37,9 @@ le calendrier, mais l'inscription et le vote n'ouvrent qu'à la date indiquée.
 La configuration affichée est déjà arrêtée et ne changera plus d'ici
 l'ouverture.
 
-**Figure 2a — Page publique d'une consultation à venir, pas encore ouverte.**
+**Figure 2 — Page publique d'une consultation à venir, pas encore ouverte.**
 
-![Page publique d'une consultation à venir, pas encore ouverte](captures/img/02a-site-public-scrutin-annonce.png)
+![Page publique d'une consultation à venir, pas encore ouverte](captures/img/02-site-public-scrutin-annonce.png)
 
 La page d'une consultation ouverte montre les propositions — certaines
 accompagnées, sous leur intitulé, d'une description plus détaillée avec des
@@ -47,9 +47,9 @@ images ou une vidéo —, la date et l'heure de **clôture**, l'échéance de sa
 des bulletins papier si elle diffère, tout **report de clôture** déjà décidé
 (avec son motif), et le rappel du caractère consultatif.
 
-**Figure 2 — Page publique d'une consultation ouverte.**
+**Figure 2a — Page publique d'une consultation ouverte.**
 
-![Page publique d'une consultation ouverte](captures/img/02-site-public-scrutin.png)
+![Page publique d'une consultation ouverte](captures/img/02a-site-public-scrutin.png)
 
 Le nombre de votants **n'est pas affiché** pendant le scrutin, sauf si la
 configuration le prévoit : publier la participation en cours de vote peut

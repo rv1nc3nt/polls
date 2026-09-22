@@ -204,21 +204,21 @@ two origins:
   a poll withdrawn before being closed gets, for lack of a closing date, a
   retention starting point on the withdrawal date itself.
 
-**Figure 12a — Read-only configuration of an announced poll, with *Open now*.**
+**Figure 12 — Read-only configuration of an announced poll, with *Open now*.**
 
-![Read-only configuration of an announced poll, with Open now](captures/img/12a-mairie-configuration-annoncee.png)
+![Read-only configuration of an announced poll, with Open now](captures/img/12-mairie-configuration-annoncee.png)
 
-**Figure 12b — Configuration of an open poll past its deadline: *Close now* is offered.**
+**Figure 12a — Configuration of an open poll past its deadline: *Close now* is offered.**
 
-![Configuration of an open poll past its deadline: Close now is offered](captures/img/12b-mairie-configuration-cloture-manuelle.png)
+![Configuration of an open poll past its deadline: Close now is offered](captures/img/12a-mairie-configuration-cloture-manuelle.png)
 
 > An announced poll stays visible as-is on the public site until it opens:
 > the page cannot change under the eyes of a voter who has already viewed
 > it, since the configuration is frozen from the moment it is announced.
 >
-> **Figure 02a — Public page of an announced poll.**
+> **Figure 02 — Public page of an announced poll.**
 >
-> ![Public page of an announced poll](captures/img/02a-site-public-scrutin-annonce.png)
+> ![Public page of an announced poll](captures/img/02-site-public-scrutin-annonce.png)
 
 ### Dashboard (screen 1)
 
@@ -343,9 +343,9 @@ an exception: it is never required, in any language.
 
 ![Editable configuration (draft poll), with Announce now at the bottom of the form](captures/img/13-mairie-configuration-brouillon.png)
 
-**Figure 12 — Read-only configuration (open poll), with the closing-date extension as a separate action.**
+**Figure 12b — Read-only configuration (open poll), with the closing-date extension as a separate action.**
 
-![Read-only configuration (open poll), with the closing-date extension as a separate action](captures/img/12-mairie-configuration-lecture.png)
+![Read-only configuration (open poll), with the closing-date extension as a separate action](captures/img/12b-mairie-configuration-lecture.png)
 
 > Figures 12a, 12b and 02a show this same screen in the **announced**
 > and **open past its deadline** states, and what the second shows on the
@@ -540,9 +540,9 @@ In every case, the **minimal traceability core** applies.
      screen points the voter to **their** online change link; otherwise, it
      states that the online vote is final;
 
-     **Figure 16d — Blocking interstitial: the voter has already voted online.**
+     **Figure 16b — Blocking interstitial: the voter has already voted online.**
 
-     ![Blocking interstitial: the voter has already voted online](captures/img/16d-mairie-bulletin-papier-collision.png)
+     ![Blocking interstitial: the voter has already voted online](captures/img/16b-mairie-bulletin-papier-collision.png)
 
    - **none** → proceed.
 3. **Enter the ranking** according to the poll's constraints.
@@ -567,9 +567,9 @@ voters to change their vote: fixing a keying mistake is not the same act as
 a voter changing their mind. **Deletion** clears the channel flag and
 **reopens online voting** for the voter concerned.
 
-**Figure 16b — List of paper ballots entered.**
+**Figure 16d — List of paper ballots entered.**
 
-![List of paper ballots entered](captures/img/16b-mairie-bulletins-papier-liste.png)
+![List of paper ballots entered](captures/img/16d-mairie-bulletins-papier-liste.png)
 
 ### The entry window
 

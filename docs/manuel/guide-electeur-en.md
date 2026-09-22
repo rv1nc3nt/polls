@@ -36,9 +36,9 @@ before it opens: you can already read the propositions and the schedule, but
 registration and voting only open on the date shown. The configuration shown
 is already frozen and will not change before opening.
 
-**Figure 2a — Public page of an upcoming consultation, not yet open.**
+**Figure 2 — Public page of an upcoming consultation, not yet open.**
 
-![Public page of an upcoming consultation, not yet open](captures/img/02a-site-public-scrutin-annonce.png)
+![Public page of an upcoming consultation, not yet open](captures/img/02-site-public-scrutin-annonce.png)
 
 The page of an open consultation shows the propositions — some accompanied,
 under their title, by a more detailed description with images or a video —
@@ -46,9 +46,9 @@ the closing date and time, the paper-ballot keying deadline where it differs,
 any **closing-date extension** already decided (with its reason), and the
 reminder of the consultation's advisory nature.
 
-**Figure 2 — Public page of an open consultation.**
+**Figure 2a — Public page of an open consultation.**
 
-![Public page of an open consultation](captures/img/02-site-public-scrutin.png)
+![Public page of an open consultation](captures/img/02a-site-public-scrutin.png)
 
 The number of voters **is not shown** while the poll is running, unless the
 configuration provides for it: publishing turnout while voting is under way

@@ -44,7 +44,7 @@ account. Never widen it.
 ### How do I test that my backups can be restored?
 `ansible-playbook -i inventory.ini restore.yml`: it provisions a host,
 restores the most recent snapshot and replays the smoke play. A backup never
-restored is not a backup (T-16). `restore.yml` checks the snapshot's
+restored is not a backup. `restore.yml` checks the snapshot's
 integrity **before** trusting it and sets the old database aside as
 `db.sqlite3.pre-restore-*`.
 
