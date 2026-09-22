@@ -2,18 +2,101 @@
 
 # Plateforme de consultation citoyenne
 
+Ask your residents a question, let them answer online or on paper, and publish
+a result that anyone — a resident, a local journalist, an opposition
+councillor — can recompute for themselves instead of taking the town hall's
+word for it. That is what this software is for.
+
 Self-hosted web application for a French commune to run **consultative** polls
-of its registered electors. Ballots are cast online, or on paper and keyed in by
-a council member. Preferential polls are tallied by the Schulze method;
-single-choice and approval polls are also supported.
+of its registered electors: a participatory-budget vote, a street-name choice,
+a planning consultation, a satisfaction survey. Ballots are cast online, or on
+paper and keyed in by a council member. Preferential polls are tallied by the
+Schulze method; single-choice and approval polls are also supported.
 
 One instance per commune. Adoption by another commune means another instance,
-never a tenant column.
+never a tenant column, and never a third party holding your electors' data.
 
 Written to [`spec-plateforme-vote.md`](spec-plateforme-vote.md), which restates
 the functional requirements — the `R-x.y` numbers cited throughout — in
 implementation terms. Departures of the code from the specification are recorded
 in [`docs/specification-decision-log.md`](docs/specification-decision-log.md).
+
+## Why a council would choose this
+
+- **Free, and yours.** 0BSD licence — no subscription, no per-poll fee, no
+  vendor. The commune runs its own instance and keeps its own data; see
+  [Licence](#licence) below.
+- **No one can see how a resident voted — not even the town hall.** A
+  registration proves who is entitled to vote; a ballot is anonymous from the
+  moment it is cast. The two are never joined, in the application or in the
+  database (`INV-1`, enforced by a database trigger, not just application
+  code).
+- **The count is public, not just announced.** Closing a poll publishes the
+  anonymised ballots and a fingerprint of the result. Anyone can download the
+  free [verifier](docs/manuel/verifier.md) and check the outcome themselves,
+  with no account and no trust required in the software that produced it.
+- **Fits how a real poll runs.** Most communes still have residents who won't
+  or can't vote online — a paper ballot, keyed in and countersigned by a
+  council member, sits alongside the online channel rather than being an
+  afterthought.
+- **A record that can't be quietly edited.** Every consequential action —
+  a registration decision, a ballot correction, a role grant — is written to
+  an audit log with no update or delete path, so "what actually happened" is
+  never just someone's word.
+- **In French, for a French commune's rules.** The interface, the electoral
+  roll matching and the legal caveats below are built around
+  `cahier-des-charges.md`, the CNIL and ANSSI guidance a French DPO already
+  has to answer to — not translated from a generic product built for
+  somewhere else.
+
+Skim the [screenshots](#screenshots) below, then read
+[**Is this the right tool for you?**](#what-this-software-is-not-for) before
+you commit any budget to it — it is deliberately narrow about what it is not
+for.
+
+## Main features
+
+- **Electoral roll import and registration** (§6.1–6.2) — the commune imports
+  its working roll as a CSV; residents register online and are matched against
+  it by name and address, with anything ambiguous sent to manual review rather
+  than guessed at.
+- **Voting, online and on paper** (§6.3–6.4) — electors cast or revise an
+  online ballot up to closure; a council member can key in a paper ballot
+  instead, with automatic detection if that elector already voted online.
+- **Three tally methods** (§8) — single-choice, approval, and Schulze
+  (Condorcet) for ranked preference, with the full pairwise matrix and
+  tie-break reasoning shown alongside the result, not just the winner.
+- **Publication anyone can recompute** (§9) — closure produces a closure hash,
+  an anonymised ballot CSV and a JSON bundle; an independent Rust verifier
+  (`verifier/`), sharing no code with the Python tally, recomputes the same
+  result from the published files alone.
+- **Espace mairie** (§6.5) — fourteen back-office screens (dashboard,
+  configuration, roll, registration queue, paper ballots, closure and
+  publication, operator accounts, per-poll roles, audit log, commune
+  settings), each reachable only through an audited per-poll role grant —
+  never a superuser flag.
+- **Append-only audit log** (§10) — every consequential action is logged by
+  reference, with no identifying data and no update or delete path, in the
+  application or the database.
+
+## Screenshots
+
+<p align="center">
+  <img src="docs/manuel/captures/img/02a-site-public-scrutin.png" width="49%" alt="Public page of an open poll, in French, showing the three submitted options and a Participer button">
+  <img src="docs/manuel/captures/img/07-bulletin-vote.png" width="49%" alt="Online ballot ranking three options by preference">
+</p>
+<p align="center">
+  <img src="docs/manuel/captures/img/11-mairie-tableau-de-bord.png" width="49%" alt="Espace mairie dashboard for one poll, showing turnout and pending actions">
+  <img src="docs/manuel/captures/img/20-site-public-resultats.png" width="49%" alt="Public results page with the Schulze pairwise matrix and closure fingerprints">
+</p>
+
+From left to right, top to bottom: the public page of an open poll, an
+elector's online ballot, the espace mairie dashboard for that poll, and the
+public results page with the Schulze reasoning and the closure hash anyone can
+verify. More screens — the registration flow, paper-ballot entry, the roll
+import, roles and the audit log — are captured for every role in
+[`docs/manuel/`](docs/manuel/captures/README.md), which also documents how to
+regenerate them from a throwaway demo database.
 
 ## What this software is not for
 
@@ -48,19 +131,21 @@ the right software for it.
 Ballots already in preparation for 2026 may continue under the 2019 version;
 any new ballot falls under the new text.
 
-## Quick start (development)
+## Documentation
 
-    uv sync
-    mkdir -p var/locks var/media var/static
-    uv run python manage.py migrate
-    uv run python manage.py runserver
+[`docs/manuel/`](docs/manuel/README.md) (French) is written for the people
+who will actually use the software, not for developers — it never assumes you
+have read the specification, and it is served by the application itself so it
+never goes stale:
 
-Tests, lint and types:
-
-    uv run pytest -q
-    uv run ruff check .
-    uv run mypy src tests
-    cargo test --manifest-path verifier/Cargo.toml
+| You are… | Read… |
+|---|---|
+| the IT contact installing and running an instance for the commune | [Guide de l'administrateur d'instance](docs/manuel/guide-administrateur.md) |
+| an elected official or agent working in the espace mairie | [Guide de l'espace mairie](docs/manuel/guide-espace-mairie.md) |
+| an elector invited to a poll | [Guide de l'électeur](docs/manuel/guide-electeur.md) |
+| anyone who wants to check a published result by hand | [Vérifier un résultat par vous-même](docs/manuel/verifier.md) |
+| anyone who wants to understand how a result is reached | [Les méthodes de dépouillement, expliquées](docs/manuel/methodes-de-depouillement.md) |
+| any of the above, with a specific question | [Foire aux questions](docs/manuel/faq.md) |
 
 ## Installation
 
@@ -73,6 +158,22 @@ container image is the alternative, not yet built (see Build status below).
 `contrib/init/` carries service files for systemd, OpenRC, FreeBSD and
 OpenBSD — **Debian is playbook-installed and tested in CI; the other
 platforms are best effort, installation by hand.**
+
+## Quick start (development)
+
+For working on the code itself, not for running a poll:
+
+    uv sync
+    mkdir -p var/locks var/media var/static
+    uv run python manage.py migrate
+    uv run python manage.py runserver
+
+Tests, lint and types:
+
+    uv run pytest -q
+    uv run ruff check .
+    uv run mypy src tests
+    cargo test --manifest-path verifier/Cargo.toml
 
 ## Layout
 
