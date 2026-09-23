@@ -73,6 +73,16 @@ def pending(poll: Poll) -> list[Registration]:
     )
 
 
+def awaiting_confirmation(poll: Poll) -> list[Registration]:
+    """Electors matched but not yet confirmed (R-5.5), oldest first: the ones an
+    agent can chase — most often a confirmation mail that never arrived."""
+    return list(
+        Registration.objects.filter(poll=poll, state=RegistrationState.PENDING_EMAIL).order_by(
+            "created_at"
+        )
+    )
+
+
 def poll_roll(poll: Poll) -> list[RollEntry]:
     """This poll's whole roll, fetched once for the queue screen (§6.5.4).
 

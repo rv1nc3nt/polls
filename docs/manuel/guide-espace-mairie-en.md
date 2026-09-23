@@ -223,8 +223,8 @@ two origins:
 
 ### Dashboard (screen 1)
 
-State, dates, counters (registered / confirmed / online votes / paper votes
-/ have not voted), the number of registrations awaiting review, and **the
+State, dates, counters (registered / online votes / paper votes / have not
+voted), the number of registrations awaiting review or confirmation, and **the
 actions allowed in the current state**.
 
 - While a **draft**, it names any condition that would make opening fail —
@@ -519,6 +519,20 @@ under review.
 **Figure 14 — Registration queue.**
 
 ![Registration queue](captures/img/14-mairie-file-inscriptions.png)
+
+### Voters awaiting confirmation
+
+Below the review queue, the screen lists the voters whose registration was
+matched to the roll but who have not yet followed the link they were emailed.
+Until they do, they cannot vote online. The commonest cause is an email that
+never arrived (a filter, a full mailbox).
+
+**Resend the link** sends a new email and **invalidates the previous one**; the
+action is logged. Check the address with the voter before resending: a wrong
+address cannot be corrected here. You cannot confirm a registration on the
+voter's behalf: confirmation proves that they can read their mailbox, and that
+email is also how their voting link reaches them. A voter whose address is
+unusable votes on **paper**, at the mairie.
 
 ### Duplicate attempts
 

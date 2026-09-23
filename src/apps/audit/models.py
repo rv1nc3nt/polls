@@ -47,6 +47,9 @@ class Action(models.TextChoices):
     ROLL_IMPORTED = "roll_imported", _("liste électorale importée")
     ROLL_SNAPSHOT_TAKEN = "roll_snapshot_taken", _("copie figée prise")
     REGISTRATION_REVIEWED = "registration_reviewed", _("inscription examinée")
+    # A poll admin re-sending the confirmation link to a `pending_email` elector
+    # (§6.5.4). Names the registration only, never the address it went to (§10).
+    REGISTRATION_LINK_RESENT = "registration_link_resent", _("lien de confirmation renvoyé")
     REGISTRATION_DUPLICATE = "registration_duplicate", _("tentative de doublon d'inscription")
     REGISTRATION_INELIGIBLE = (
         "registration_ineligible",

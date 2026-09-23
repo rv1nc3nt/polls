@@ -462,6 +462,41 @@ def reject(
     return registration
 
 
+@transaction.atomic
+def resend_confirmation(
+    registration: Registration, actor: User | None = None
+) -> tuple[Registration, Token]:
+    """Mint a fresh token for an elector still in ``pending_email`` and return it
+    for the caller to mail (§6.5.4).
+
+    The original mail may have been filtered or lost, and the plaintext token was
+    never stored (§7), so it cannot be re-sent — only replaced. Replacing
+    ``voter_hash`` is safe here and nowhere later: a ``pending_email``
+    registration has no ballot, so there is nothing the old token could still
+    reach, and the old link simply stops resolving. Once the mailbox is confirmed
+    the token is the elector's alone (R-7.6) and this refuses.
+
+    Deliberately not a way to *confirm*: R-5.5 has the link do that, and a token
+    can only be delivered by mail (R-7.4), so an operator-side confirmation would
+    leave an ``active`` registration nobody could vote online from.
+    """
+    check_registration_window(registration.poll)
+    locked = Registration.objects.select_for_update().get(pk=registration.pk)
+    if locked.state != RegistrationState.PENDING_EMAIL:
+        raise RegistrationRefused(_("Cette inscription n'attend plus de confirmation."))
+
+    token = issue_token(locked)
+    audit.record(
+        action=Action.REGISTRATION_LINK_RESENT,
+        poll=locked.poll,
+        actor=actor,
+        object_ref=audit.ref(locked),
+        before={"state": locked.state},
+        after={"state": locked.state},
+    )
+    return locked, token
+
+
 def find_by_token(poll: Poll, token: Token) -> Registration | None:
     """The one lookup a token permits (§7): ``voter_hash`` → registration.
 

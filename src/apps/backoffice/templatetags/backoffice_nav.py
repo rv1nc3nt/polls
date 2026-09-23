@@ -134,7 +134,7 @@ _POLL_MENU: tuple[_Group, ...] = (
                 _("Inscriptions"),
                 "registration_queue",
                 (_POLL_ADMIN,),
-                owns=("registration_decide",),
+                owns=("registration_decide", "registration_resend"),
                 icon="registrations",
             ),
         ),

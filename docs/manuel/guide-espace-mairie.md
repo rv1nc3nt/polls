@@ -230,8 +230,8 @@ a deux origines possibles :
 
 ### Tableau de bord (écran 1)
 
-État, dates, compteurs (inscrits / confirmés / votes en ligne / votes papier /
-n'ont pas voté), nombre d'inscriptions en attente d'examen, et **les actions
+État, dates, compteurs (inscrits / votes en ligne / votes papier / n'ont pas
+voté), nombre d'inscriptions en attente d'examen et de confirmation, et **les actions
 permises dans l'état courant**.
 
 - En **brouillon**, il nomme toute condition qui ferait échouer l'ouverture —
@@ -531,6 +531,21 @@ inscription est à l'étude.
 **Figure 14 — File d'attente des inscriptions.**
 
 ![File d'attente des inscriptions](captures/img/14-mairie-file-inscriptions.png)
+
+### Électeurs en attente de confirmation
+
+Sous la file d'examen, l'écran liste les électeurs dont l'inscription a été
+rapprochée de la liste mais qui n'ont pas encore suivi le lien reçu par
+courriel. Tant qu'ils ne l'ont pas fait, ils ne peuvent pas voter en ligne. La
+cause la plus fréquente est un courriel qui n'est jamais arrivé (filtre, boîte
+pleine).
+
+**Renvoyer le lien** envoie un nouveau courriel et **invalide le précédent** ;
+l'action est journalisée. Vérifiez l'adresse avec l'électeur avant de renvoyer :
+une adresse erronée ne peut pas être corrigée ici. Vous ne pouvez pas confirmer
+une inscription à sa place : la confirmation prouve que l'électeur a accès à
+sa boîte, et c'est aussi par ce courriel que lui parvient son lien de vote. Un
+électeur dont l'adresse est inutilisable vote sur **papier**, en mairie.
 
 ### Tentatives de doublon
 

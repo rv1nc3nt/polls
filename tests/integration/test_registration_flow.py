@@ -739,3 +739,48 @@ def test_t91_a_shell_that_stopped_being_cleared_is_not_retired(open_window_poll:
         services._retire_paper_shell(shell)
     shell.refresh_from_db()
     assert shell.state == RegistrationState.ACTIVE and shell.roll_entry is not None
+
+
+# --- §6.5.4: resending the confirmation link ---------------------------------
+
+
+def test_t92_resending_replaces_the_token_and_the_old_link_stops_resolving(
+    live_poll: Poll,
+) -> None:
+    registration, first = _register(live_poll)
+    assert first is not None
+
+    resent, second = services.resend_confirmation(registration)
+
+    assert resent.state == RegistrationState.PENDING_EMAIL
+    assert services.find_by_token(live_poll, first) is None
+    found = services.find_by_token(live_poll, second)
+    assert found is not None and found.pk == registration.pk
+    event = AuditEvent.objects.filter(action=Action.REGISTRATION_LINK_RESENT).get()
+    assert event.object_ref == f"registration:{registration.pk}"
+    # A reference and a state, never the address (INV-3).
+    assert "example.fr" not in str(event.before) + str(event.after)
+
+
+@pytest.mark.parametrize(
+    "state",
+    [RegistrationState.ACTIVE, RegistrationState.PENDING_REVIEW, RegistrationState.REJECTED],
+)
+def test_t92_only_a_pending_email_registration_can_be_resent(live_poll: Poll, state: str) -> None:
+    """Once the mailbox is confirmed the token is the elector's alone (R-7.6)."""
+    registration, _token = _register(live_poll)
+    Registration.objects.filter(pk=registration.pk).update(state=state)
+    registration.refresh_from_db()
+
+    with pytest.raises(services.RegistrationRefused):
+        services.resend_confirmation(registration)
+    assert not AuditEvent.objects.filter(action=Action.REGISTRATION_LINK_RESENT).exists()
+
+
+def test_t92_a_resend_after_the_window_closed_is_refused(live_poll: Poll) -> None:
+    registration, _token = _register(live_poll)
+    Poll.objects.filter(pk=live_poll.pk).update(closes_at=timezone.now() - timedelta(minutes=1))
+    registration.poll.refresh_from_db()
+
+    with pytest.raises(WindowClosed):
+        services.resend_confirmation(registration)

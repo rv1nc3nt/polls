@@ -10,9 +10,13 @@ deletion rather than as an error (§10).
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from contextlib import AbstractContextManager
 from datetime import timedelta
+from typing import Any
 
 import pytest
+from django.core import mail as django_mail
 from django.test import Client
 from django.utils import timezone
 
@@ -20,7 +24,9 @@ from apps.audit import services as audit
 from apps.audit.models import Action, AuditEvent
 from apps.backoffice.dashboard import describe_blocker, participation, permitted_actions
 from apps.ballots.models import Ballot, BallotSource, BallotStatus
+from apps.core.crypto import voter_hash
 from apps.core.models import PollRole, Role, User
+from apps.core.types import Token, TokenSalt
 from apps.elections.models import Poll, PollOption, PollState
 from apps.elections.transitions import close_poll
 from apps.registrations.models import Channel, Registration, RegistrationState
@@ -392,3 +398,60 @@ def test_a_published_poll_still_shows_its_dashboard(
     response = client.get(f"/fr/mairie/scrutin/{poll.pk}/")
     assert response.status_code == 200
     assert "Chiffres figés à la clôture" in response.content.decode()
+
+
+# --- Screen 4: electors awaiting confirmation (§6.5.4, R-5.5) ----------------
+
+
+def test_screen_4_lists_pending_email_electors_and_resends_the_link(
+    client: Client,
+    open_window_poll: Poll,
+    admin_user: User,
+    django_capture_on_commit_callbacks: Callable[..., AbstractContextManager[list[Any]]],
+) -> None:
+    force_open(open_window_poll)
+    waiting = _register(open_window_poll, "40000001", state=RegistrationState.PENDING_EMAIL)
+    _register(open_window_poll, "40000002", state=RegistrationState.ACTIVE)
+    _grant(open_window_poll, admin_user, Role.POLL_ADMIN)
+    client.force_login(admin_user)
+    base = f"/fr/mairie/scrutin/{open_window_poll.pk}/inscriptions/"
+
+    page = client.get(base).content.decode()
+    assert "40000001@example.fr" in page
+    assert "40000002@example.fr" not in page  # confirmed: nothing to chase
+
+    with django_capture_on_commit_callbacks(execute=True):
+        response = client.post(base + "renvoyer/", {"registration": str(waiting.pk)})
+    assert response.status_code == 302
+
+    assert [m.to for m in django_mail.outbox] == [["40000001@example.fr"]]
+    waiting.refresh_from_db()
+    assert waiting.state == RegistrationState.PENDING_EMAIL  # resending does not confirm
+    assert waiting.voter_hash is not None
+    assert AuditEvent.objects.filter(action=Action.REGISTRATION_LINK_RESENT).count() == 1
+    # The mailed link resolves to this registration, i.e. the new token is live.
+    url = next(w for w in django_mail.outbox[0].body.split() if "/acces/" in w)
+    token = url.rstrip("/").rsplit("/", 1)[-1]
+    digest = voter_hash(TokenSalt(bytes(open_window_poll.token_salt)), Token(token))
+    assert bytes(waiting.voter_hash) == bytes(digest)
+
+
+def test_resending_is_for_the_poll_admin_and_not_another_polls_registration(
+    client: Client, open_window_poll: Poll, admin_user: User
+) -> None:
+    waiting = _register(open_window_poll, "41000001", state=RegistrationState.PENDING_EMAIL)
+    url = f"/fr/mairie/scrutin/{open_window_poll.pk}/inscriptions/renvoyer/"
+    client.force_login(admin_user)  # no role on this poll
+    assert client.post(url, {"registration": str(waiting.pk)}).status_code == 403
+
+
+def test_the_dashboard_counts_electors_awaiting_confirmation_apart_from_registered(
+    open_window_poll: Poll,
+) -> None:
+    _register(open_window_poll, "42000001", state=RegistrationState.PENDING_EMAIL)
+    _register(open_window_poll, "42000002", state=RegistrationState.PENDING_EMAIL)
+    _register(open_window_poll, "42000003", state=RegistrationState.ACTIVE)
+
+    counts = participation(open_window_poll)
+    assert counts.pending_email == 2
+    assert counts.registered == 1

@@ -2728,10 +2728,6 @@ msgstr "Turnout"
 msgid "Chiffres figés à la clôture."
 msgstr "Figures frozen at closure."
 
-#: src/templates/backoffice/dashboard.html:86
-msgid "Confirmées"
-msgstr "Confirmed"
-
 #: src/templates/backoffice/dashboard.html:88
 #: src/templates/backoffice/results_publish.html:114
 #: src/templates/publicsite/results.html:46
@@ -5061,3 +5057,48 @@ msgstr "Sandbox poll: this vote is a test and counts for nothing."
 #: src/templates/publicsite/poll_sandbox.html:13
 msgid "Scrutin d'essai : cette consultation sert à vérifier le bon fonctionnement de la plateforme. Elle n'est pas publique, les bulletins déposés ici ne comptent pour rien, et ce lien est confidentiel — ne le transmettez qu'aux personnes invitées à l'essayer."
 msgstr "Sandbox poll: this consultation exists to check that the platform works. It is not public, the ballots cast here count for nothing, and this link is confidential — pass it on only to the people invited to try it."
+
+#: src/apps/audit/models.py
+msgid "lien de confirmation renvoyé"
+msgstr "confirmation link resent"
+
+#: src/apps/registrations/services.py
+msgid "Cette inscription n'attend plus de confirmation."
+msgstr "This registration is no longer awaiting confirmation."
+
+#: src/apps/backoffice/views.py
+msgid "Un nouveau lien de confirmation a été envoyé."
+msgstr "A new confirmation link has been sent."
+
+#: src/templates/backoffice/dashboard.html
+msgid "Inscriptions en attente de confirmation"
+msgstr "Registrations awaiting confirmation"
+
+#: src/templates/backoffice/registration_queue.html
+msgid "En attente d'examen"
+msgstr "Awaiting review"
+
+#: src/templates/backoffice/registration_queue.html
+msgid "En attente de confirmation"
+msgstr "Awaiting confirmation"
+
+#: src/templates/backoffice/registration_queue.html
+msgid "Ces électeurs n'ont pas encore suivi le lien reçu par courriel. Renvoyer un lien en crée un nouveau et invalide le précédent. Vérifiez l'adresse avec l'électeur avant de renvoyer : une adresse erronée ne peut pas être corrigée ici."
+msgstr "These voters have not yet followed the link they were emailed. Resending creates a new link and invalidates the previous one. Check the address with the voter before resending: a wrong address cannot be corrected here."
+
+#: src/templates/backoffice/registration_queue.html
+msgid "Inscriptions dont l'adresse électronique n'est pas confirmée"
+msgstr "Registrations whose email address is not confirmed"
+
+#: src/templates/backoffice/registration_queue.html
+msgid "Action"
+msgstr "Action"
+
+#: src/templates/backoffice/registration_queue.html
+msgid "Aucune inscription n'attend de confirmation."
+msgstr "No registration is awaiting confirmation."
+
+#: src/templates/backoffice/registration_queue.html
+#, python-format
+msgid "Renvoyer le lien à %(name)s"
+msgstr "Resend the link to %(name)s"

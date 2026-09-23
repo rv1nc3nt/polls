@@ -47,6 +47,7 @@ class Participation:
     not_voted: int
     #: Unavailable on a closed poll: §9 freezes turnout, not the review queue.
     pending_review: int | None = None
+    pending_email: int | None = None
 
 
 def participation(poll: Poll) -> Participation:
@@ -77,6 +78,7 @@ def participation(poll: Poll) -> Participation:
         voted_online=Count("pk", filter=active & Q(channel=Channel.ONLINE)),
         voted_paper=Count("pk", filter=active & Q(channel=Channel.PAPER)),
         pending_review=Count("pk", filter=Q(state=RegistrationState.PENDING_REVIEW)),
+        pending_email=Count("pk", filter=Q(state=RegistrationState.PENDING_EMAIL)),
     )
     return Participation(
         as_at_closure=False,
@@ -85,6 +87,7 @@ def participation(poll: Poll) -> Participation:
         voted_paper=counts["voted_paper"],
         not_voted=counts["registered"] - counts["voted_online"] - counts["voted_paper"],
         pending_review=counts["pending_review"],
+        pending_email=counts["pending_email"],
     )
 
 

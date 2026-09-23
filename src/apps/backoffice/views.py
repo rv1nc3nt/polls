@@ -898,10 +898,36 @@ def registration_queue(request: HttpRequest, poll: Poll) -> HttpResponse:
                 {"registration": registration, "matches": review.near_matches(registration, roll)}
                 for registration in queue
             ],
+            "awaiting": review.awaiting_confirmation(poll),
             "approval_reasons": review.choices(review.APPROVAL_REASONS),
             "refusal_reasons": review.choices(review.REFUSAL_REASONS),
         },
     )
+
+
+@require_poll_role(Role.POLL_ADMIN)
+def registration_resend(request: HttpRequest, poll: Poll) -> HttpResponse:
+    """Send a fresh confirmation link to an elector still in ``pending_email``.
+
+    Replaces the token rather than re-sending it, which the service explains; the
+    mail goes out after commit like every other (§6.2 step 7).
+    """
+    if request.method != "POST":
+        return redirect("backoffice:registration_queue", poll_id=str(poll.pk))
+
+    registration = get_object_or_404(
+        Registration, pk=request.POST.get("registration", ""), poll=poll
+    )
+    try:
+        registration, token = registrations.resend_confirmation(
+            registration, actor=current_operator(request)
+        )
+    except (registrations.RegistrationRefused, WindowClosed) as refusal:
+        messages.error(request, str(refusal))
+    else:
+        transaction.on_commit(lambda: registration_mail.send_confirmation(registration, token))
+        messages.success(request, _("Un nouveau lien de confirmation a été envoyé."))
+    return redirect("backoffice:registration_queue", poll_id=str(poll.pk))
 
 
 @require_poll_role(Role.POLL_ADMIN)

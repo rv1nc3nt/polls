@@ -87,6 +87,14 @@
           <dd>{{ participation.pending_review }}</dd>
         </div>
       {% endif %}
+      {% if participation.pending_email is not None %}
+        {% comment %} Not in "Inscriptions" (R-5.5), but not invisible either: a mail
+           that never arrived leaves an elector here, and only screen 4 can resend it. {% endcomment %}
+        <div>
+          <dt>{% translate "Inscriptions en attente de confirmation" %}</dt>
+          <dd>{{ participation.pending_email }}</dd>
+        </div>
+      {% endif %}
     </dl>
     {% comment %} INV-5, stated where somebody might otherwise be tempted: these come from
        the registrations, never from counting ballots. {% endcomment %}

@@ -990,3 +990,35 @@ separate "confirmed" tile, now identical to it, is removed.
 
 **Settled (2026-09-23).** No requirements change: R-5.9 and R-9.4 are both met.
 §6.2 step 6 states the exception, T-91 covers it.
+
+## 28. Electors awaiting confirmation: resend, not confirm
+
+**Request.** An operator should be able to see the electors who have not
+confirmed their mailbox, to resend the link or to confirm those who should have
+received one.
+
+**What the code does.** Screen 4 lists the `pending_email` registrations under
+the review queue, and screen 1 counts them (they are outside "registered",
+decision #27, but no longer invisible). Each row has a *renvoyer le lien*
+action, `services.resend_confirmation`: it mints a new token, replaces
+`voter_hash`, mails it after commit and logs `registration_link_resent`
+(reference and state only). It refuses any state but `pending_email`, and a
+closed window.
+
+**Why replace rather than re-send.** The plaintext token is never stored (§7),
+so the first mail cannot be re-sent, only superseded. That is safe exactly while
+the registration is `pending_email`: there is no ballot the old token could
+reach, so nothing is orphaned (INV-1, INV-5 are untouched). After confirmation
+the token is the elector's alone (R-7.6) and the action is refused.
+
+**Why no operator-side confirmation.** R-5.5 has the mailed link confirm the
+registration, and R-7.4 has the token travel by mail and nowhere else. An
+operator moving a row to `active` by hand would produce a registration that
+proves no mailbox and that nobody holds a token for, so the elector could still
+not vote online; it would also weaken the guard R-5.12 says the mailbox is. The
+useful part of the request is met by resending, and an elector whose address is
+wrong or unreachable votes on paper. Correcting an address in place is not
+offered: the address is what the elector declared, and INV-10 keys on it.
+
+**Settled (2026-09-23).** No requirements change. §6.5.4 states the screen, T-92
+covers it.

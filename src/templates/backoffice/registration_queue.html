@@ -3,7 +3,7 @@
 {# SPDX-License-Identifier: 0BSD #}
 
 {% block screen_title %}{% translate "Inscriptions en attente" %}{% endblock %}
-{% block heading %}{% translate "Inscriptions en attente d'examen" %}{% endblock %}
+{% block heading %}{% translate "Inscriptions en attente" %}{% endblock %}
 
 {% block screen %}
   {% comment %}
@@ -20,6 +20,7 @@
   {% endcomment %}
   <p class="help">{% translate "Une même adresse électronique ne peut servir qu'une fois. Deux personnes partageant une adresse ne peuvent pas s'inscrire toutes les deux en ligne : leur voie est le vote papier à la mairie." %}</p>
 
+  <h2>{% translate "En attente d'examen" %}</h2>
   {% for row in rows %}
     <article class="review" aria-labelledby="demande-{{ row.registration.pk }}">
       <h2 id="demande-{{ row.registration.pk }}">
@@ -138,4 +139,46 @@
   {% empty %}
     <p>{% translate "Aucune inscription n'attend d'examen." %}</p>
   {% endfor %}
+
+  {% comment %}
+    R-5.5: matched electors whose mailbox is not yet confirmed. They cannot vote
+    online until the link is followed, and the usual cause is a mail that never
+    arrived. The only remedy offered is a new link: confirmation itself is the
+    elector's, since the token can only travel by mail (R-7.4).
+  {% endcomment %}
+  <h2 id="confirmation">{% translate "En attente de confirmation" %}</h2>
+  <p class="help">{% translate "Ces électeurs n'ont pas encore suivi le lien reçu par courriel. Renvoyer un lien en crée un nouveau et invalide le précédent. Vérifiez l'adresse avec l'électeur avant de renvoyer : une adresse erronée ne peut pas être corrigée ici." %}</p>
+  {% if awaiting %}
+    <div class="table-scroll">
+    <table>
+      <caption>{% translate "Inscriptions dont l'adresse électronique n'est pas confirmée" %}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{% translate "Électeur" %}</th>
+          <th scope="col">{% translate "Adresse électronique" %}</th>
+          <th scope="col">{% translate "Demande reçue le" %}</th>
+          <th scope="col">{% translate "Action" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for registration in awaiting %}
+          <tr>
+            <th scope="row">{{ registration.declared_last_name }} {{ registration.declared_first_names }}</th>
+            <td>{{ registration.email }}</td>
+            <td>{{ registration.created_at }}</td>
+            <td>
+              <form method="post" action="{% url 'backoffice:registration_resend' poll.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="registration" value="{{ registration.pk }}">
+                <button type="submit">{% blocktranslate with name=registration.declared_last_name %}Renvoyer le lien à {{ name }}{% endblocktranslate %}</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  {% else %}
+    <p>{% translate "Aucune inscription n'attend de confirmation." %}</p>
+  {% endif %}
 {% endblock %}
