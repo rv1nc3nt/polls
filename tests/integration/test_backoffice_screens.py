@@ -121,6 +121,8 @@ def test_turnout_is_counted_on_registrations_not_on_ballots(open_window_poll: Po
     _register(open_window_poll, "10000002", state=RegistrationState.ACTIVE, channel=Channel.PAPER)
     _register(open_window_poll, "10000003", state=RegistrationState.ACTIVE)
     _register(open_window_poll, "10000004", state=RegistrationState.PENDING_REVIEW)
+    _register(open_window_poll, "10000005", state=RegistrationState.REJECTED)
+    _register(open_window_poll, "10000006", state=RegistrationState.PENDING_EMAIL)
     for index in range(9):
         Ballot.objects.create(
             poll=open_window_poll,
@@ -133,9 +135,9 @@ def test_turnout_is_counted_on_registrations_not_on_ballots(open_window_poll: Po
     assert counts.voted_online == 1
     assert counts.voted_paper == 1
     assert counts.not_voted == 1
-    assert counts.confirmed == 3
     assert counts.pending_review == 1
-    assert counts.registered == 4
+    # Only the three active ones: not the one in review, not the rejected one.
+    assert counts.registered == 3
     assert not counts.as_at_closure
 
 
@@ -151,7 +153,6 @@ def test_a_closed_poll_shows_the_counts_frozen_at_closure(open_window_poll: Poll
     assert counts.as_at_closure
     assert counts.registered == 1
     assert counts.voted_online == 1
-    assert counts.confirmed is None
 
 
 def test_the_dashboard_offers_only_actions_the_operator_holds_the_role_for(

@@ -661,3 +661,81 @@ def test_two_deleted_paper_ballots_in_one_poll_do_not_collide_on_the_address(
         ("Traoré", "Aminata", "03/03/1985", "1985-03-03"),
     )
     assert Registration.objects.filter(poll=live, channel=Channel.NONE).count() == 2
+
+
+# --- T-91: approving an application onto a cleared paper shell ---------------
+
+
+def _review_pending_on_shell(live: Poll) -> tuple[Registration, Registration]:
+    """A paper ballot keyed and deleted on the Dupont entry, leaving a cleared
+    shell, then a registration with a divergent name waiting in review.
+    Returns ``(shell, pending)``."""
+    _paper_only_electors(live, ("Dupont", "Émile", "12/05/1970", "1970-05-12"))
+    shell = Registration.objects.get(poll=live)
+    pending, token = _register(live, last_name="Dupond")
+    assert token is None and pending.state == RegistrationState.PENDING_REVIEW
+    return shell, pending
+
+
+def test_t91_approval_takes_over_a_cleared_paper_shell(open_window_poll: Poll) -> None:
+    """R-9.4 against R-5.9, by the admin's door: the applicant's row survives and
+    is bound, the shell is retired, and the entry still has one registration."""
+    from apps.elections.models import RollEntry
+
+    live = force_open(open_window_poll)
+    shell, pending = _review_pending_on_shell(live)
+    entry = RollEntry.objects.get(poll=live)
+
+    approved, token = services.approve(pending, entry, reason="name_divergence_accepted")
+
+    assert approved.pk == pending.pk and approved.roll_entry == entry
+    assert approved.state == RegistrationState.PENDING_EMAIL
+    assert token is not None
+    shell.refresh_from_db()
+    assert shell.state == RegistrationState.REJECTED and shell.roll_entry is None
+    assert (
+        Registration.objects.filter(poll=live, roll_entry=entry)
+        .exclude(state=RegistrationState.REJECTED)
+        .count()
+        == 1
+    )
+    event = AuditEvent.objects.filter(action=Action.REGISTRATION_REVIEWED).latest("at")
+    assert event.after["replaces"] == f"registration:{shell.pk}"
+    assert not DuplicateAttempt.objects.filter(poll=live).exists()
+
+
+def test_t91_approval_still_refuses_an_entry_with_a_live_paper_ballot(
+    open_window_poll: Poll,
+) -> None:
+    """Only a *cleared* shell gives way: while the paper ballot stands the entry
+    is genuinely taken (R-9.2, R-5.9)."""
+    from apps.ballots import services as ballot_services
+    from apps.core.models import User
+    from apps.elections.models import RollEntry
+
+    live = force_open(open_window_poll)
+    pending, _ = _register(live, last_name="Dupond")
+    entry = RollEntry.objects.get(poll=live)
+    operator = User.objects.create_user(username="op1", password="x", full_name="Op Un")
+    ballot_services.enter_paper(live, str(entry.pk), [["a"], ["b"], ["c"]], str(operator.pk), "fr")
+
+    with pytest.raises(services.RegistrationRefused):
+        services.approve(pending, entry, reason="name_divergence_accepted")
+    shell = Registration.objects.get(poll=live, roll_entry=entry)
+    assert shell.channel == Channel.PAPER and shell.state == RegistrationState.ACTIVE
+    pending.refresh_from_db()
+    assert pending.state == RegistrationState.PENDING_REVIEW
+
+
+def test_t91_a_shell_that_stopped_being_cleared_is_not_retired(open_window_poll: Poll) -> None:
+    """A paper ballot keyed between the admin's look and the write: the retire
+    step re-reads under lock and refuses rather than dropping a live indicator."""
+    live = force_open(open_window_poll)
+    shell, _pending = _review_pending_on_shell(live)
+    Registration.objects.filter(pk=shell.pk).update(channel=Channel.PAPER)
+    shell.refresh_from_db()
+
+    with pytest.raises(services.RegistrationRefused):
+        services._retire_paper_shell(shell)
+    shell.refresh_from_db()
+    assert shell.state == RegistrationState.ACTIVE and shell.roll_entry is not None

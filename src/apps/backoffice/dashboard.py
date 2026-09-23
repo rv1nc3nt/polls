@@ -46,7 +46,6 @@ class Participation:
     voted_paper: int
     not_voted: int
     #: Unavailable on a closed poll: §9 freezes turnout, not the review queue.
-    confirmed: int | None = None
     pending_review: int | None = None
 
 
@@ -64,13 +63,17 @@ def participation(poll: Poll) -> Participation:
             not_voted=counts.get("non_voters", 0),
         )
 
-    # One aggregate query with conditional counts rather than five sequential
+    # One aggregate query with conditional counts rather than several sequential
     # ones against the same table — this is the screen operators keep open
     # and reload continuously while a poll is live.
     active = Q(state=RegistrationState.ACTIVE)
+    # "Registered" is the ``active`` rows, as in ``frozen_counts``, so the figure does
+    # not jump at closure: ``pending_email`` and ``pending_review`` cannot vote yet
+    # (R-5.5) and a ``rejected`` row — an ineligible applicant, or the shell a
+    # deleted paper ballot leaves once an approval takes its entry over (decision
+    # log #27) — is no registration in force.
     counts = Registration.objects.filter(poll=poll).aggregate(
-        registered=Count("pk"),
-        confirmed=Count("pk", filter=active),
+        registered=Count("pk", filter=active),
         voted_online=Count("pk", filter=active & Q(channel=Channel.ONLINE)),
         voted_paper=Count("pk", filter=active & Q(channel=Channel.PAPER)),
         pending_review=Count("pk", filter=Q(state=RegistrationState.PENDING_REVIEW)),
@@ -78,10 +81,9 @@ def participation(poll: Poll) -> Participation:
     return Participation(
         as_at_closure=False,
         registered=counts["registered"],
-        confirmed=counts["confirmed"],
         voted_online=counts["voted_online"],
         voted_paper=counts["voted_paper"],
-        not_voted=counts["confirmed"] - counts["voted_online"] - counts["voted_paper"],
+        not_voted=counts["registered"] - counts["voted_online"] - counts["voted_paper"],
         pending_review=counts["pending_review"],
     )
 

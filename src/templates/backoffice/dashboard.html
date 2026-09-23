@@ -78,9 +78,6 @@
     {% endif %}
     <dl class="facts facts--stats">
       <div><dt>{% translate "Inscriptions" %}</dt><dd>{{ participation.registered }}</dd></div>
-      {% if participation.confirmed is not None %}
-        <div><dt>{% translate "Confirmées" %}</dt><dd>{{ participation.confirmed }}</dd></div>
-      {% endif %}
       <div><dt>{% translate "Votes en ligne" %}</dt><dd>{{ participation.voted_online }}</dd></div>
       <div><dt>{% translate "Votes papier" %}</dt><dd>{{ participation.voted_paper }}</dd></div>
       <div><dt>{% translate "N'ont pas voté" %}</dt><dd>{{ participation.not_voted }}</dd></div>

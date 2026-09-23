@@ -950,3 +950,43 @@ against the real roll and so must be on it; a sandbox-only roll bypass was
 rejected because it would test a different path than the one being rehearsed.
 Sandbox results are not shown on the public site (R-3.7) and there is no
 sandbox-specific results page: the operator reads them on screen 9.
+
+## 27. Approving an application onto a cleared paper shell
+
+**Specification, §6.2 steps 5 and 6.** Decision #25 let `register` complete the
+cleared shell a deleted paper ballot leaves on a roll entry. It missed the other
+way onto an entry: a poll admin approving a `pending_review` application
+(a name spelled differently enough to fail the automatic match) binds the entry
+by hand, and `approve` refused it under R-5.9 as "already attached to a
+registration" — the shell, again, with no elector behind it. R-9.4's promise
+failed for exactly the electors whose names the roll matches least well.
+
+**What the code does.** `approve` recognises the same cleared shell
+(`_is_cleared_paper_shell`: `active`, channel `none`, blank address) and
+retires it (`_retire_paper_shell`) inside its own transaction before binding:
+the shell is unbound and set `rejected`, which puts it outside INV-4's partial
+unique constraint. The applicant's row is the one that survives, goes to
+`pending_email` and gets its token as for any approval. The shell is re-read
+under lock and re-checked, so a paper ballot keyed in the meantime — the shell
+is then a live `paper` indicator — is still refused. The approval event carries
+`after.replaces = registration:<shell id>`, a reference and no personal data
+(INV-3). A live paper ballot, or any registration that is not a cleared shell,
+is refused as before.
+
+**Why retire rather than adopt in place, as #25 did.** There are two rows here,
+and only the applicant's carries an address, a declared identity and a language.
+A registration cannot be deleted before closure (INV-2), so the shell cannot
+simply be dropped; completing it in place would instead have to retire the
+applicant's row, leaving the review queue and the audit trail saying that an
+application was rejected when the admin approved it.
+
+**Consequence.** The retired shell stays as a `rejected` row until the retention
+purge, and screen 1's live "registered" figure, which counted every row, would
+have risen by one for each such approval. It now counts `active` registrations
+only — the definition `frozen_counts` already froze at closure, so the figure no
+longer drops when the poll closes — which leaves out the shell, ineligible
+applicants and registrations still awaiting review or confirmation. The
+separate "confirmed" tile, now identical to it, is removed.
+
+**Settled (2026-09-23).** No requirements change: R-5.9 and R-9.4 are both met.
+§6.2 step 6 states the exception, T-91 covers it.

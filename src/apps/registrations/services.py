@@ -357,7 +357,12 @@ def approve(
     log saying that somebody was let in and not why.
 
     Step 6 (R-5.9): an admin-picked entry that already carries a live
-    registration is refused, exactly as an automatic match against it would be.
+    registration is refused, exactly as an automatic match against it would be
+    — unless that registration is the cleared shell of a deleted paper ballot
+    (R-9.4), which is no elector's registration but a channel indicator with
+    nothing left on it. ``register`` completes such a shell in place; here the
+    applicant's row is the one that survives, and the shell is retired
+    (``_retire_paper_shell``), so the entry still has one registration (INV-4).
 
     ``note`` is prose and is stored on this row, where the retention purge takes
     it — never on the audit event, whose ``reason`` is a code (§10).
@@ -370,12 +375,15 @@ def approve(
     if roll_entry is None:
         raise RegistrationRefused(_("Choisissez l'entrée de la liste électorale à rattacher."))
     existing = _existing_for_roll_entry(registration.poll, roll_entry)
+    shell: Registration | None = None
     if existing is not None and existing.pk != registration.pk:
-        # The admin sees this directly; no DuplicateAttempt flag, which is the
-        # public path's way of surfacing R-5.9 to the very person now deciding.
-        raise RegistrationRefused(
-            _("Cette entrée de la liste électorale est déjà rattachée à une inscription.")
-        )
+        if not _is_cleared_paper_shell(existing):
+            # The admin sees this directly; no DuplicateAttempt flag, which is the
+            # public path's way of surfacing R-5.9 to the very person now deciding.
+            raise RegistrationRefused(
+                _("Cette entrée de la liste électorale est déjà rattachée à une inscription.")
+            )
+        shell = _retire_paper_shell(existing)
 
     before = registration.state
     registration.state = RegistrationState.PENDING_EMAIL
@@ -390,10 +398,35 @@ def approve(
         actor=actor,
         object_ref=audit.ref(registration),
         before={"state": before},
-        after={"state": registration.state},
+        after={
+            "state": registration.state,
+            **({"replaces": audit.ref(shell)} if shell is not None else {}),
+        },
         reason=reason,
     )
     return registration, token
+
+
+def _retire_paper_shell(shell: Registration) -> Registration:
+    """Free a roll entry from the cleared shell a deleted paper ballot left on
+    it, so that an approved application can be bound there (R-9.4, R-5.9).
+
+    A registration cannot be deleted before closure (INV-2), so the shell is
+    unbound and set ``rejected``: outside INV-4's partial unique constraint, and
+    counted by nothing that reads ``active`` rows. Re-read under lock and
+    re-checked, because a paper ballot keyed between the caller's look and this
+    write turns the shell back into a live channel indicator, which must be
+    refused, not retired. Runs inside ``approve``'s transaction.
+    """
+    locked = Registration.objects.select_for_update().get(pk=shell.pk)
+    if not _is_cleared_paper_shell(locked):
+        raise RegistrationRefused(
+            _("Cette entrée de la liste électorale est déjà rattachée à une inscription.")
+        )
+    locked.roll_entry = None
+    locked.state = RegistrationState.REJECTED
+    locked.save(update_fields=["roll_entry", "state"])
+    return locked
 
 
 @transaction.atomic
