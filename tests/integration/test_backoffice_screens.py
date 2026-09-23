@@ -297,7 +297,9 @@ def test_the_log_filters_by_actor_object_and_date(
     filtered = client.get(f"{url}?actor={admin_user.pk}").content.decode()
     assert "copie figée prise" not in filtered
 
-    tomorrow = (timezone.now() + timedelta(days=1)).date().isoformat()
+    # The filter reads an operator's date in the commune's own zone, so "tomorrow" is
+    # local: the UTC date lags Paris by a day between midnight and 02:00.
+    tomorrow = (timezone.localdate() + timedelta(days=1)).isoformat()
     assert "copie figée prise" not in client.get(f"{url}?date_from={tomorrow}").content.decode()
 
 
