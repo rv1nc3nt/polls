@@ -5091,10 +5091,6 @@ msgid "Inscriptions dont l'adresse électronique n'est pas confirmée"
 msgstr "Registrations whose email address is not confirmed"
 
 #: src/templates/backoffice/registration_queue.html
-msgid "Action"
-msgstr "Action"
-
-#: src/templates/backoffice/registration_queue.html
 msgid "Aucune inscription n'attend de confirmation."
 msgstr "No registration is awaiting confirmation."
 
