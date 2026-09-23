@@ -62,6 +62,7 @@
                 <th scope="col">{% translate "Date de naissance" %}</th>
                 <th scope="col">{% translate "Listes" %}</th>
                 <th scope="col">{% translate "Concordance" %}</th>
+                <th scope="col">{% translate "Inscription existante" %}</th>
               </tr>
             </thead>
             <tbody>
@@ -84,6 +85,12 @@
                     {% if match.same_dob %}{% translate "date identique" %}{% endif %}
                     {% if match.same_surname %}{% translate "nom identique" %}{% endif %}
                     {% if match.shared_first_names %}{% blocktranslate count n=match.shared_first_names %}{{ n }} prénom commun{% plural %}{{ n }} prénoms communs{% endblocktranslate %}{% endif %}
+                  </td>
+                  <td>
+                    {% if match.channel == "online" %}<span class="warn">{% translate "a voté en ligne" %}</span>
+                    {% elif match.channel == "paper" %}<span class="warn">{% translate "a un bulletin papier" %}</span>
+                    {% elif match.channel %}{% translate "déjà inscrite, n'a pas voté" %}
+                    {% else %}—{% endif %}
                   </td>
                 </tr>
               {% endfor %}

@@ -14,8 +14,10 @@ decision in front of them is how a code becomes noise (§10).
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date
+from uuid import UUID
 
 from django.db.models import Q
 
@@ -134,3 +136,60 @@ def in_force_paper_ballot(poll: Poll, entry: RollEntry) -> Ballot | None:
         .first()
     )
     return link.ballot if link is not None else None
+
+
+def channels_by_entry(poll: Poll, entries: Iterable[RollEntry]) -> dict[UUID, str]:
+    """``roll_entry_id → channel`` for the entries among ``entries`` that carry a
+    registration in force (R-9.1). An entry absent from the result has none —
+    including one holding only the cleared shell of a deleted paper ballot, which
+    is no elector's registration and which an approval takes over (R-9.4,
+    decision log #27): every online registration carries an address, a shell
+    none."""
+    rows = (
+        Registration.objects.filter(poll=poll, roll_entry__in=[entry.pk for entry in entries])
+        .exclude(state=RegistrationState.REJECTED)
+        .exclude(channel=Channel.NONE, email_canonical="")
+        .values_list("roll_entry_id", "channel")
+    )
+    return {entry_id: str(channel) for entry_id, channel in rows}
+
+
+@dataclass(frozen=True)
+class LookAlike:
+    """Another snapshot entry that may be the same elector, and has voted."""
+
+    entry: RollEntry
+    channel: str
+
+
+def voted_look_alikes(poll: Poll, entry: RollEntry) -> list[LookAlike]:
+    """Other entries of the snapshot that may be this same person and already
+    carry a vote, online or paper (R-8.3, R-9.3).
+
+    The import collapses rows sharing a normalised name and date of birth
+    (R-4.6); what it cannot collapse is one person entered twice under names
+    that do not normalise alike — a birth name on one list and a name in use on
+    the other, a typo. Each entry then has its own channel indicator, and
+    nothing about either one stops a paper ballot on the second after an online
+    vote on the first. The screen cannot tell the two apart from the record
+    either; it can say that they look alike, so the operator settles it with
+    the elector present, as R-8.3 has them do for entries the data cannot
+    distinguish. Same parsed date of birth and at least one forename in common
+    is enough to ask: a false alarm costs a question at the counter.
+    """
+    if entry.date_uncertain or entry.date_of_birth_parsed is None:
+        return []
+    forenames = name_tokens(entry.first_names)
+    candidates = [
+        other
+        for other in RollEntry.objects.filter(
+            poll=poll, date_uncertain=False, date_of_birth_parsed=entry.date_of_birth_parsed
+        ).exclude(pk=entry.pk)
+        if forenames & name_tokens(other.first_names)
+    ]
+    channels = channels_by_entry(poll, candidates)
+    return [
+        LookAlike(entry=other, channel=channels[other.pk])
+        for other in candidates
+        if channels.get(other.pk, Channel.NONE) != Channel.NONE
+    ]

@@ -525,6 +525,13 @@ directement à l'état actif — ou **refuse**. Les deux décisions exigent un
 **motif** et sont inscrites au journal. La personne est informée que son
 inscription est à l'étude.
 
+La colonne **Inscription existante** indique, pour chaque entrée proposée, si
+elle porte déjà une inscription et si cette personne a voté (en ligne ou sur
+papier). Une entrée déjà inscrite ne peut pas être choisie. Méfiez-vous aussi
+d'une entrée **voisine** marquée « a voté » : si la liste électorale compte la
+même personne deux fois, rattacher la demande à l'autre entrée lui permettrait
+de voter une seconde fois.
+
 > Deux décisions sont présentées côte à côte et distinguées par leur intitulé,
 > jamais par la couleur seule (RGAA).
 
@@ -606,6 +613,17 @@ s'applique.
      ![Interstitiel bloquant : l'électeur a déjà voté en ligne](captures/img/16b-mairie-bulletin-papier-collision.png)
 
    - **aucun** → on continue.
+
+   Une même personne peut figurer **deux fois** sur la liste électorale — sous
+   son nom de naissance sur une ligne et son nom d'usage sur une autre, ou avec
+   une faute de frappe. Chaque entrée a alors son propre canal de vote. Si une
+   autre entrée a la **même date de naissance** et **un prénom en commun**, et
+   qu'elle a déjà voté, l'écran l'affiche dans un encadré « Une entrée très
+   proche a déjà voté ». Vérifiez avec l'électeur présent qu'il s'agit bien de
+   deux personnes : le bulletin n'est enregistré qu'une fois la case
+   **« Identité confirmée avec l'électeur présent »** cochée, et le journal le
+   mentionne. S'il s'agit de la même personne, elle a déjà voté : n'enregistrez
+   rien.
 3. **Saisir le classement** selon les contraintes du scrutin.
 4. **Imprimer le reçu** portant le **code de suivi**, remis à l'électeur (page
    HTML avec feuille de style d'impression).

@@ -1054,3 +1054,26 @@ That holds for the online channel, which is what it was written for. A paper
 vote is cast in person against the roll entry and does not depend on the
 mailbox, so the code counts it. Whether R-5.5 should say so explicitly is for
 the requirements owner.
+
+## 30. An elector listed twice on the roll is flagged, not blocked
+
+**Found in review.** The import collapses rows sharing a normalised name and
+date of birth (R-4.6). One person listed under a birth name on one row and a
+name in use on another — or with a typo — stays two snapshot entries with two
+channel indicators, and nothing stopped an online vote on one and a paper
+ballot, or an approved second registration, on the other.
+
+**What the code does.** Screen 5 looks for other entries with the same parsed
+date of birth and a forename in common that already carry a vote
+(`backoffice.paper.voted_look_alikes`). If there are any, it shows them, and it
+records the ballot only once the operator ticks "identité confirmée avec
+l'électeur présent" — the R-8.3 procedure for entries the data cannot tell
+apart, which already writes `identity_confirmed_at_mairie` to the audit event.
+Screen 4 shows, for each entry offered for binding, whether it carries a
+registration and whether it has voted; a cleared paper shell (#27) is not
+shown as taken.
+
+**Why a warning and not a refusal.** Twins and namesakes born on the same day
+exist, and only the person at the counter can tell them apart (R-8.3). A
+refusal would turn a rare false alarm into a lost vote; the confirmation puts
+the judgement where R-8.3 puts it and leaves a trace. No requirements change.

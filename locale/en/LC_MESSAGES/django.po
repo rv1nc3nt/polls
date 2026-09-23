@@ -5102,3 +5102,43 @@ msgstr "No registration is awaiting confirmation."
 #, python-format
 msgid "Renvoyer le lien à %(name)s"
 msgstr "Resend the link to %(name)s"
+
+#: src/apps/backoffice/views.py
+msgid ""
+"Une entrée très proche de la liste a déjà voté. Vérifiez avec l'électeur "
+"présent qu'il s'agit bien de deux personnes, puis cochez la confirmation "
+"d'identité."
+msgstr ""
+"A very similar roll entry has already voted. Check with the elector present "
+"that these are two different people, then tick the identity confirmation."
+
+#: src/templates/backoffice/paper_entry.html
+msgid "Une entrée très proche a déjà voté"
+msgstr "A very similar entry has already voted"
+
+#: src/templates/backoffice/paper_entry.html
+msgid ""
+"Même date de naissance et un prénom en commun. S'il s'agit de la même "
+"personne inscrite deux fois sur la liste, elle a déjà voté et ne doit pas "
+"voter à nouveau."
+msgstr ""
+"Same date of birth and a first name in common. If this is the same person "
+"listed twice on the roll, they have already voted and must not vote again."
+
+#: src/templates/backoffice/paper_entry.html
+#: src/templates/backoffice/registration_queue.html
+msgid "a voté en ligne"
+msgstr "voted online"
+
+#: src/templates/backoffice/paper_entry.html
+#: src/templates/backoffice/registration_queue.html
+msgid "a un bulletin papier"
+msgstr "has a paper ballot"
+
+#: src/templates/backoffice/registration_queue.html
+msgid "Inscription existante"
+msgstr "Existing registration"
+
+#: src/templates/backoffice/registration_queue.html
+msgid "déjà inscrite, n'a pas voté"
+msgstr "already registered, has not voted"
