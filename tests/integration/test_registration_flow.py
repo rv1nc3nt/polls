@@ -566,3 +566,98 @@ def test_online_registrations_still_share_no_address(live_poll: Poll) -> None:
             email="dup@example.fr",
             email_canonical="dup@example.fr",
         )
+
+
+# --- R-9.4 versus R-5.9: a paper-only elector whose ballot is deleted -------
+
+
+def _paper_only_electors(poll: Poll, *names: tuple[str, str, str, str]) -> list[str]:
+    """Key a paper ballot for each ``(birth_name, first_names, dob, parsed)`` and
+    delete it again, leaving the bound, address-less shell registration each one
+    created (§6.4) on the ``none`` channel. Returns the roll-entry ids."""
+    from apps.audit.models import Reason
+    from apps.ballots import services as ballot_services
+    from apps.core.models import User
+    from apps.elections.models import RollEntry
+
+    operator = User.objects.create_user(username="op1", password="x", full_name="Op Un")
+    ids: list[str] = []
+    for birth_name, first_names, dob, _parsed in names:
+        entry = RollEntry.objects.get(
+            poll=poll, birth_name=birth_name, first_names=first_names, date_of_birth=dob
+        )
+        ballot = ballot_services.enter_paper(
+            poll, str(entry.pk), [["a"], ["b"], ["c"]], str(operator.pk), "fr"
+        )
+        ballot_services.delete_paper(ballot, str(operator.pk), Reason.KEYING_ERROR, "")
+        ids.append(str(entry.pk))
+    return ids
+
+
+def test_r94_an_elector_whose_paper_ballot_was_deleted_can_register_online(
+    open_window_poll: Poll,
+) -> None:
+    """R-9.4 promises online voting is re-opened. For an elector who never
+    registered online the only way in is the registration form, and R-5.9 must
+    not slam it: the leftover paper shell is adopted, not refused as a duplicate
+    of itself. One registration per roll entry still holds."""
+    live = force_open(open_window_poll)
+    _paper_only_electors(live, ("Dupont", "Émile", "12/05/1970", "1970-05-12"))
+    shell = Registration.objects.get(poll=live)
+    assert shell.state == RegistrationState.ACTIVE and shell.email == ""
+
+    registration, token = _register(live)
+
+    assert token is not None
+    assert registration.pk == shell.pk
+    assert Registration.objects.filter(poll=live).count() == 1
+    registration.refresh_from_db()
+    assert registration.state == RegistrationState.PENDING_EMAIL
+    assert registration.channel == Channel.NONE
+    assert registration.confirmed_at is None
+    assert registration.email_canonical == "emile.dupont@example.fr"
+    assert not DuplicateAttempt.objects.filter(poll=live).exists()
+
+    # The mailed link is the ordinary way in: it confirms the mailbox.
+    holder = services.arrive(live, token)
+    assert holder is not None and holder.state == RegistrationState.ACTIVE
+
+
+def test_a_live_paper_ballot_still_refuses_online_registration(open_window_poll: Poll) -> None:
+    """The adoption is for a *cleared* shell only: while the paper ballot stands,
+    the elector is refused and the attempt is flagged, as before (R-9.2, R-5.9)."""
+    from apps.ballots import services as ballot_services
+    from apps.core.models import User
+    from apps.elections.models import RollEntry
+
+    live = force_open(open_window_poll)
+    operator = User.objects.create_user(username="op1", password="x", full_name="Op Un")
+    entry = RollEntry.objects.get(poll=live)
+    ballot_services.enter_paper(live, str(entry.pk), [["a"], ["b"], ["c"]], str(operator.pk), "fr")
+
+    with pytest.raises(services.RegistrationRefused):
+        _register(live)
+    assert DuplicateAttempt.objects.filter(poll=live).count() == 1
+
+
+def test_two_deleted_paper_ballots_in_one_poll_do_not_collide_on_the_address(
+    open_window_poll: Poll,
+) -> None:
+    """Both cleared shells carry ``email_canonical = ""`` on the ``none`` channel;
+    INV-10 must not treat the empty string as one address they share."""
+    from apps.elections.models import WorkingRollEntry
+
+    WorkingRollEntry.objects.create(
+        birth_name="Traoré",
+        first_names="Aminata",
+        date_of_birth="03/03/1985",
+        date_of_birth_parsed="1985-03-03",
+        list_types=["principale"],
+    )
+    live = force_open(open_window_poll)
+    _paper_only_electors(
+        live,
+        ("Dupont", "Émile", "12/05/1970", "1970-05-12"),
+        ("Traoré", "Aminata", "03/03/1985", "1985-03-03"),
+    )
+    assert Registration.objects.filter(poll=live, channel=Channel.NONE).count() == 2

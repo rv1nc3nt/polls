@@ -102,10 +102,13 @@ class Registration(models.Model):
             # INV-10 (§6.2): one elector, one address — for the online channel.
             # A paper registration created at keying (§6.4) carries no address
             # and any number may coexist for one poll, so the paper channel is
-            # outside this constraint.
+            # outside this constraint. So is the blank address itself: deleting
+            # a paper ballot (R-9.4) moves the channel back to ``none`` but the
+            # registration still has no address, and two such electors must not
+            # collide on the empty string.
             models.UniqueConstraint(
                 fields=["poll", "email_canonical"],
-                condition=~models.Q(channel=Channel.PAPER),
+                condition=~models.Q(channel=Channel.PAPER) & ~models.Q(email_canonical=""),
                 name="uniq_registration_poll_email",
             ),
         ]

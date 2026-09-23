@@ -875,3 +875,34 @@ unaffected (it selects on `opens_at ≤ now`, so there is nothing to move).
 files); §4, §5.1's INV-6 and T-67 were updated to match. No reason is required,
 unlike the `closes_at` extension: nothing is postponed, and the two dates are
 in the audit event.
+
+## 25. Deleting a paper ballot re-opened online voting for nobody who had not registered
+
+**Specification, §6.2 step 6, §6.4 and INV-10.** Keying a paper ballot for an
+elector who never registered online creates a bound, `active`, address-less
+`Registration` on the `paper` channel, so the channel indicator has a row to
+live on. Deleting the ballot clears the indicator to `none` (R-9.4, T-31) and
+nothing else. T-31 only covers an elector who *had* registered online and so
+still holds a token.
+
+**Why that is wrong.** For an elector who had not, the leftover row is the roll
+entry's one non-rejected registration, so the registration form — the only way
+to obtain a token — refused them under R-5.9 as a duplicate, with the neutral
+message, and logged a duplicate-attempt flag against their own row. R-9.4's
+"re-opens online voting" was true in name only. Separately, the cleared row is
+on the `none` channel with `email_canonical = ""`, which the INV-10 constraint
+(exempt on `paper` only) treated as one shared address: deleting a second paper
+ballot in the same poll raised an `IntegrityError`.
+
+**What the code does.** `register` recognises a cleared paper shell (`active`,
+channel `none`, blank address) bound to the matched entry and completes it in
+place (`_adopt_paper_shell`): declared identity, address and language are
+written, the state goes to `pending_email`, `confirmed_at` is cleared and a
+token is issued, exactly as for a new registration. It is still one registration
+per roll entry (R-5.9, INV-4), the address check (R-5.9, T-17) still applies, and
+a live paper ballot — channel `paper` — is still refused and flagged. Migration
+`registrations.0002` narrows `uniq_registration_poll_email` to rows with a
+non-blank address.
+
+**Settled (2026-09-23).** No requirements change: R-5.9 and R-9.4 are both met.
+INV-10 in §5.1 now states the blank-address exemption.

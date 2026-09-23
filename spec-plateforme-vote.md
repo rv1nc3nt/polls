@@ -236,7 +236,7 @@ These MUST hold and should each have a test.
 - **INV-7** `RollEntry` rows are never modified after the snapshot.
 - **INV-8** Sandbox polls never appear in public listings or aggregate statistics (R-3.7).
 - **INV-9** Tally reads only ballots; it never reads registrations.
-- **INV-10** `(poll_id, email_canonical)` is unique across registrations (§6.2).
+- **INV-10** `(poll_id, email_canonical)` is unique across registrations (§6.2), among those that carry an address: the paper channel and the blank address of a paper-only elector are outside it (decision log #25).
 - **INV-11** `(poll_id, tracking_code)` is unique across ballots. The canonical serialisation of §9 sorts on the tracking code and the published CSV is keyed on it, so a collision would make the closure hash ambiguous.
 
 ---

@@ -225,9 +225,77 @@ def register(
                 _log_ineligible(registration, outcome.matched_entry)
             return registration, token
 
+    elif (
+        duplicate_of is not None
+        and not address_taken
+        and outcome.state == RegistrationState.PENDING_EMAIL
+        and _is_cleared_paper_shell(duplicate_of)
+    ):
+        try:
+            adopted = _adopt_paper_shell(duplicate_of, fields, language)
+        except IntegrityError:
+            pass  # the address was taken between the check and the write
+        else:
+            if adopted is not None:
+                return adopted
+
     if duplicate_of is not None:
         _flag_duplicate(poll, duplicate_of)
     raise RegistrationRefused(NEUTRAL_REFUSAL())
+
+
+def _is_cleared_paper_shell(registration: Registration) -> bool:
+    """The row keying a paper ballot leaves behind once that ballot is deleted
+    (§6.4, R-9.4): ``active`` on no channel, with no address — an elector who
+    never registered online, since every online registration carries one."""
+    return (
+        registration.state == RegistrationState.ACTIVE
+        and registration.channel == Channel.NONE
+        and registration.email_canonical == ""
+    )
+
+
+@transaction.atomic
+def _adopt_paper_shell(
+    shell: Registration, fields: dict[str, Any], language: str
+) -> tuple[Registration, Token] | None:
+    """R-9.4 against R-5.9: deleting a paper ballot re-opens online voting, but
+    an elector who never registered has no token, and the form is the only way
+    to get one. The shell is that elector's one registration for the roll entry
+    (R-5.9, INV-4), so it is completed in place rather than a second one being
+    created or the attempt refused as a duplicate of itself.
+
+    Goes back through ``pending_email`` like any registration: the address is
+    new and unproven, so ``confirmed_at`` is cleared and the mailed token is
+    what activates it (§6.2 step 5). Returns ``None`` if a concurrent adoption
+    got there first, leaving the caller to refuse.
+    """
+    locked = Registration.objects.select_for_update().get(pk=shell.pk)
+    if not _is_cleared_paper_shell(locked):
+        return None
+    locked.declared_last_name = fields["declared_last_name"]
+    locked.declared_first_names = fields["declared_first_names"]
+    locked.declared_dob = fields["declared_dob"]
+    locked.email = fields["email"]
+    locked.email_canonical = fields["email_canonical"]
+    locked.declared_on_honour = fields["declared_on_honour"]
+    locked.language = language
+    locked.state = RegistrationState.PENDING_EMAIL
+    locked.confirmed_at = None
+    locked.save(
+        update_fields=[
+            "declared_last_name",
+            "declared_first_names",
+            "declared_dob",
+            "email",
+            "email_canonical",
+            "declared_on_honour",
+            "language",
+            "state",
+            "confirmed_at",
+        ]
+    )
+    return locked, issue_token(locked)
 
 
 def _existing_for_roll_entry(poll: Poll, entry: RollEntry | None) -> Registration | None:
