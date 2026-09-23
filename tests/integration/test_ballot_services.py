@@ -483,6 +483,20 @@ def test_cast_online_flips_the_channel_and_stores_a_ballot_hash(open_paper_poll:
     }
 
 
+def test_cast_online_refuses_an_unconfirmed_registration(open_paper_poll: Poll) -> None:
+    """R-5.5: an unconfirmed registration permits no vote. The ballot view routes
+    the link away first; the service holds on its own, so no other caller can
+    cast from a ``pending_email`` row."""
+    registration_id, token = _voter(open_paper_poll)
+    Registration.objects.filter(pk=registration_id).update(
+        state=RegistrationState.PENDING_EMAIL, confirmed_at=None
+    )
+    with pytest.raises(BallotRefused):
+        services.cast_online(open_paper_poll, token, STRICT)
+    assert not Ballot.objects.filter(poll=open_paper_poll).exists()
+    assert Registration.objects.get(pk=registration_id).channel == Channel.NONE
+
+
 def test_a_spent_link_is_refused(open_paper_poll: Poll) -> None:
     """R-7.1: the token is spent on casting; ``channel`` is the guard."""
     _registration_id, token = _voter(open_paper_poll)

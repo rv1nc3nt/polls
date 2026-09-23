@@ -40,8 +40,9 @@ from .models import Ballot, BallotSource, BallotStatus, PaperBallotLink, Reconci
 from .ranking import BallotRefused as BallotRefused
 from .ranking import validate_ranking
 
-# ``apps.registrations.models.Channel`` values, compared as bare strings so this
-# module imports no registrations model (INV-1).
+# ``apps.registrations.models`` values, compared as bare strings so this module
+# imports no registrations model (INV-1).
+_STATE_ACTIVE = "active"
 _CHANNEL_NONE = "none"
 _CHANNEL_ONLINE = "online"
 
@@ -83,7 +84,11 @@ def cast_online(poll: Poll, token: Token, ranking: list[list[str]]) -> CastResul
     resolved = registrations.token_channel(poll, token)
     if resolved is None:
         raise BallotRefused(_("Ce lien n'est pas valide."))
-    registration_id, channel = resolved
+    registration_id, state, channel = resolved
+    if state != _STATE_ACTIVE:
+        # R-5.5: an unconfirmed registration permits no vote. The ballot view
+        # routes such a link away before it gets here; this holds regardless.
+        raise BallotRefused(_("Cette inscription ne permet pas de voter."))
     if channel != _CHANNEL_NONE:
         # Already voted online, or has a paper ballot. A double-clicked link
         # lands here; so does a spent link on a no-modification poll (R-7.1).

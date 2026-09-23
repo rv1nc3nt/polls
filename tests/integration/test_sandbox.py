@@ -263,8 +263,9 @@ def _fill(poll: Poll) -> None:
     from apps.ballots import services as ballots
     from apps.registrations import services as registrations
 
-    _, token = registrations.register(poll, FORM, language="fr")
+    registration, token = registrations.register(poll, FORM, language="fr")
     assert token is not None
+    registrations.confirm_mailbox(registration)
     ballots.cast_online(poll, token, [["a"], ["b"], ["c"]])
     ballots.modify(poll, ballots.online_ballot_hash(poll, token), [["c"], ["b"], ["a"]])
 

@@ -651,16 +651,18 @@ def arrive(poll: Poll, token: Token) -> TokenHolder | None:
     return TokenHolder(str(registration.pk), str(registration.state), str(registration.channel))
 
 
-def token_channel(poll: Poll, token: Token) -> tuple[str, str] | None:
-    """``(registration_id, channel)`` for a token, or ``None``.
+def token_channel(poll: Poll, token: Token) -> tuple[str, str, str] | None:
+    """``(registration_id, state, channel)`` for a token, or ``None``.
 
     A pure read: ``ballots.services.cast_online`` calls it inside its own
-    transaction to settle a double-click race before it writes the ballot.
+    transaction to settle a double-click race before it writes the ballot, and
+    to refuse a registration that is not ``active`` whatever route reached it
+    (R-5.5).
     """
     registration = find_by_token(poll, token)
     if registration is None:
         return None
-    return str(registration.pk), str(registration.channel)
+    return str(registration.pk), str(registration.state), str(registration.channel)
 
 
 def send_ballot_receipt(registration_id: str, tracking_code: str, ranking: list[list[str]]) -> None:

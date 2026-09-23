@@ -1364,6 +1364,10 @@ msgstr "Every proposition must be ranked."
 msgid "Ce lien n'est pas valide."
 msgstr "This link is not valid."
 
+#: src/apps/ballots/services.py
+msgid "Cette inscription ne permet pas de voter."
+msgstr "This registration does not permit voting."
+
 #: src/apps/ballots/services.py:90
 msgid "Un bulletin a déjà été enregistré pour cet électeur."
 msgstr "A ballot has already been recorded for this elector."
