@@ -281,6 +281,31 @@ site public. L'ancienne et la nouvelle date sont inscrites au journal.
 > il est exclu des listes publiques, des résultats publiés et de toute
 > statistique.
 
+### Essayer un scrutin d'essai, puis le supprimer
+
+Un scrutin d'essai suit le cycle de vie d'un scrutin ordinaire, mais n'apparaît
+nulle part sur le site public. Pour le faire essayer, ouvrez **« Lien d'essai et
+suppression »** depuis le tableau de bord du scrutin (`/mairie/scrutin/…/essai/`)
+et générez le **lien d'essai** : une adresse impossible à deviner qui donne
+accès, sans compte, à la page du scrutin, à l'inscription puis au vote, quel que
+soit l'état du scrutin. Chaque testeur s'inscrit comme un vrai électeur : il doit
+donc **figurer sur la liste électorale**, et reçoit son lien de vote par courriel
+comme d'habitude. Une mention rappelle sur chaque page que le vote est un test ;
+les bulletins déposés ne comptent pour rien.
+
+**Régénérer** le lien invalide aussitôt le précédent, et coupe l'accès de ceux qui
+l'avaient utilisé ; le **révoquer** ne le remplace pas. Aucun motif n'est demandé.
+Seul l'administrateur du scrutin peut le faire ; un auditeur voit le lien sans
+pouvoir le modifier.
+
+Le même écran permet de **supprimer** le scrutin d'essai, **à n'importe quel
+état**, après une case de confirmation. La suppression est **définitive** : le
+scrutin, ses propositions, ses bulletins, ses inscriptions et sa copie de la
+liste électorale sont effacés. Le journal d'audit, lui, n'est jamais modifié : il
+garde tout ce qui a été fait sur le scrutin et une ligne indique qu'il a été
+supprimé, par qui et quand. Aucun scrutin qui n'est pas un scrutin d'essai ne
+peut être supprimé.
+
 ### Retirer le scrutin
 
 Depuis les états **annoncé**, **ouvert**, **clos** ou **publié**, le bas de

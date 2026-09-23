@@ -5,6 +5,7 @@
 {% block title %}{{ heading }} — {{ poll.title }}{% endblock %}
 
 {% block content %}
+  {% include "publicsite/_sandbox_notice.html" %}
   <h1>{{ heading }}</h1>
   <p role="alert">{{ body }}</p>
 {% endblock %}

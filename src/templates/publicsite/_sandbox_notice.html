@@ -1,0 +1,7 @@
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD — R-3.7: the one reminder, on every voter-facing page, that a sandbox poll counts for nothing. #}
+{% if poll.is_sandbox %}
+  <div class="notice" role="note">
+    <p>{% translate "Scrutin d'essai : ce vote est un test, il ne compte pour rien." %}</p>
+  </div>
+{% endif %}

@@ -39,6 +39,8 @@ class Action(models.TextChoices):
     POLL_STATE_CHANGED = "poll_state_changed", _("transition d'état")
     POLL_CLOSES_AT_EXTENDED = "poll_closes_at_extended", _("clôture repoussée")
     POLL_WITHDRAWN = "poll_withdrawn", _("scrutin retiré")
+    # R-3.7: only a sandbox poll. The event outlives the poll it names (INV-3).
+    POLL_DELETED = "poll_deleted", _("scrutin d'essai supprimé")
     # R-3.10 bis: never carries the token itself in ``before``/``after`` (§10).
     PREVIEW_LINK_GENERATED = "preview_link_generated", _("lien d'aperçu généré")
     PREVIEW_LINK_REVOKED = "preview_link_revoked", _("lien d'aperçu révoqué")
@@ -100,8 +102,18 @@ class Reason(models.TextChoices):
 
 class AuditEvent(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    # No database constraint and nothing cascaded: a sandbox poll may be
+    # deleted outright (R-3.7) and the log is append-only (INV-3), so its events
+    # stay behind naming a poll that no longer exists — the same dangling
+    # reference the retention purge already leaves for a registration. The
+    # protection this foreign key used to give a *real* poll against deletion is
+    # ``inv3_poll_no_delete``'s job now (elections migration 0013).
     poll = models.ForeignKey(
-        "elections.Poll", on_delete=models.PROTECT, related_name="audit_events", null=True
+        "elections.Poll",
+        on_delete=models.DO_NOTHING,
+        db_constraint=False,
+        related_name="audit_events",
+        null=True,
     )
     # Null where a scheduled command acted; ``actor_label`` then names it.
     actor = models.ForeignKey(

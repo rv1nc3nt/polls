@@ -906,3 +906,47 @@ non-blank address.
 
 **Settled (2026-09-23).** No requirements change: R-5.9 and R-9.4 are both met.
 INV-10 in §5.1 now states the blank-address exemption.
+
+## 26. Sandbox polls became triable through their link, and deletable
+
+**Specification, INV-8, T-15, §6.6 and INV-3.** A sandbox poll was reachable from
+nowhere: every public, registration and ballot route 404ed on `is_sandbox`, so
+the flag could be set but the poll could never actually be exercised end to end.
+No code deleted a poll at all, although §6.5 spoke of deleting a draft; and the
+retention purge was the only thing allowed to remove ballots, registrations or
+roll entries.
+
+**Why that is wrong.** A rehearsal that cannot be voted on tests nothing, and one
+that cannot be cleaned up leaves test electors' identities in the database for
+good — the retention purge starts at closure, and a sandbox poll may never close.
+Neither is something R-3.7 asks for: it excludes the poll from public listings,
+published results and statistics, and says nothing about who may reach it.
+
+**What the code does.** Requirements first: R-3.7 now says a sandbox poll can be
+tried end to end through the unguessable link and deleted by its poll admin in any
+state, and states outright that this is an exception, for sandbox polls only, to
+R-7.2 (no ballot physically deleted) and R-12.3 (no role deletes a registration);
+R-3.10 bis no longer redirects a sandbox poll's link once it leaves `draft`, since
+there is no public page to redirect to.
+
+- *Reaching it.* The share link (`preview_token`) stays valid in every state and
+  serves the poll page. The session stores the presented token, compared with
+  the current one on every request, so regenerating or revoking ends the access
+  of whoever used the old link. Registration needs that grant; ballot routes
+  need it or a valid voter token (`ballots.access` grants on one — the mail is
+  opened on any device). Nothing stored identifies a voter (INV-1).
+- *Deleting it.* `elections.sandbox.delete_poll` deletes everything but the
+  audit log. `AuditEvent.poll` drops its database constraint (`DO_NOTHING`), so
+  the events outlive the poll — INV-3 stays absolute for the log. That
+  constraint was also the only thing preventing deletion of a real poll, so
+  `inv3_poll_no_delete` now does, at the table. The delete triggers of INV-2,
+  INV-3, INV-6 and INV-7 each gain a single exemption, `is_sandbox = 1`, which is
+  safe because INV-6 freezes the flag once a poll leaves `draft` and a `draft`
+  holds no ballot, registration or snapshot.
+
+**Settled (2026-09-23).** Requirements and spec updated (R-3.7, R-3.10 bis, INV-3,
+INV-8, §6.6, §11 bis, T-15, T-87–T-90). A tester on a sandbox poll registers
+against the real roll and so must be on it; a sandbox-only roll bypass was
+rejected because it would test a different path than the one being rehearsed.
+Sandbox results are not shown on the public site (R-3.7) and there is no
+sandbox-specific results page: the operator reads them on screen 9.

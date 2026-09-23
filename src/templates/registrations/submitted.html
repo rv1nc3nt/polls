@@ -5,6 +5,7 @@
 {% block title %}{% translate "Demande enregistrée" %}{% endblock %}
 
 {% block content %}
+  {% include "publicsite/_sandbox_notice.html" %}
   {% if outcome == "pending_email" %}
     <h1>{% translate "Vérifiez votre boîte aux lettres" %}</h1>
     <p>{% translate "Nous vous avons envoyé un message contenant votre lien de vote. Ouvrez-le pour confirmer votre inscription et voter." %}</p>

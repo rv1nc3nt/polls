@@ -34,7 +34,7 @@ SMTP relay (`mailbackend.py`) and the reversible encryption its stored
 password uses (`secretstore.py`, distinct from `crypto.py`'s one-way §7
 scheme) ·
 `src/apps/elections/` poll, options, snapshot, transitions, voting window,
-closure, retention, `rollimport.py` (§6.1: parsing, mapping, validation, the
+closure, retention, `sandbox.py` (sandbox access and deletion, R-3.7), `sharelink.py`, `rollimport.py` (§6.1: parsing, mapping, validation, the
 transactional apply shared by the CLI and screen 3) ·
 `src/apps/registrations/` (§6.2: `services`, `mail`, `forms`, `views`) ·
 `src/apps/ballots/` ·
@@ -65,6 +65,11 @@ find a way round it.
   name, date of birth or email; `reason` is a code from `audit.models.Reason`, never
   prose. Operator prose belongs on the referenced row, where the retention
   purge takes it (§10).
+  Deleting a **sandbox** poll (R-3.7, `elections/sandbox.py`) is the one
+  exception for ballots, registrations and roll entries: the delete triggers
+  exempt `is_sandbox = 1` and nothing else, `inv3_poll_no_delete` refuses every
+  other poll, and the events stay — `AuditEvent.poll` has no DB constraint so
+  they outlive it. Do not widen the exemption.
 - **The closure hash** covers exactly the `status = live` ballots, serialised
   with option ids and tracking codes only. `docs/canonical-serialisation.md` is
   the contract between Python, the published CSV and the Rust verifier; change

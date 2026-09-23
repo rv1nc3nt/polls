@@ -1,0 +1,16 @@
+{% extends "publicsite/poll_detail.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD #}
+{% comment %}
+  A sandbox poll (R-3.7) reached through its share link once it has left
+  `draft`. Extends the public template itself so the page is exactly what a
+  real poll would show — status, calendar, "Participer" link — with only the
+  notice below added: this is a rehearsal, and nothing cast here counts.
+{% endcomment %}
+
+{% block content %}
+  <div class="notice" role="note">
+    <p>{% translate "Scrutin d'essai : cette consultation sert à vérifier le bon fonctionnement de la plateforme. Elle n'est pas publique, les bulletins déposés ici ne comptent pour rien, et ce lien est confidentiel — ne le transmettez qu'aux personnes invitées à l'essayer." %}</p>
+  </div>
+  {{ block.super }}
+{% endblock %}

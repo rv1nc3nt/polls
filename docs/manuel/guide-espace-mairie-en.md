@@ -269,8 +269,30 @@ registration, and shown as such on the public site. The old and the new date
 are both written to the log.
 
 > A test poll (`is_sandbox`) is set at creation and **cannot be changed**;
-> it is excluded from public listings, published results and any statistics
->.
+> it is excluded from public listings, published results and any statistics.
+
+### Trying out a test poll, then deleting it
+
+A test poll follows the lifecycle of an ordinary poll but appears nowhere on the
+public site. To have people try it, open **"Test link and deletion"** from the
+poll's dashboard (`/mairie/scrutin/…/essai/`) and generate the **test link**: an
+unguessable address that gives access, with no account, to the poll page, to
+registration and then to voting, whatever state the poll is in. Each tester
+registers like a real elector, so they must be **on the electoral roll**, and
+they receive their voting link by email as usual. A notice on every page says
+the vote is a test; the ballots cast count for nothing.
+
+**Regenerating** the link invalidates the previous one at once and cuts off
+everyone who had used it; **revoking** it does not replace it. No reason is
+asked. Only the poll administrator can do either; an auditor sees the link but
+cannot change it.
+
+The same screen lets you **delete** the test poll, **in any state**, after a
+confirmation tick. Deletion is **permanent**: the poll, its propositions, its
+ballots, its registrations and its copy of the electoral roll are erased. The
+audit log is never altered: it keeps everything that was done on the poll, and
+one line records that it was deleted, by whom and when. No poll that is not a
+test poll can be deleted.
 
 ### Withdrawing the poll
 

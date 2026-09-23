@@ -34,7 +34,7 @@ from django.utils.translation import gettext as _
 from apps.core import tokensession
 from apps.core.codes import format_tracking_code
 from apps.core.types import BallotHash, Token, TrackingCode
-from apps.elections import richtext
+from apps.elections import richtext, sandbox
 from apps.elections.models import Poll
 from apps.elections.windows import WindowClosed, check_ballot_window
 from apps.registrations import services as registrations
@@ -55,9 +55,14 @@ _CHANNEL_PAPER = "paper"
 _NOTICE_KINDS = ("mairie", "enregistre", "indisponible", "lien-invalide")
 
 
-def _reachable_poll_or_404(poll_id: str) -> Poll:
-    """INV-8: a sandbox poll is not reachable from a public URL (T-15)."""
-    return get_object_or_404(Poll.objects.filter(is_sandbox=False), pk=poll_id)
+def _reachable_poll_or_404(request: HttpRequest, poll_id: str) -> Poll:
+    """INV-8: a sandbox poll is not reachable from a public URL (T-15) — only
+    from a browser that came in through its share link or a voter token
+    (R-3.7)."""
+    poll = get_object_or_404(Poll, pk=poll_id)
+    if not sandbox.may_reach(request.session, poll):
+        raise Http404
+    return poll
 
 
 def _protect_404(view: Callable[..., HttpResponse]) -> Callable[..., HttpResponse]:
@@ -99,9 +104,17 @@ def _to_notice(poll: Poll, kind: str) -> HttpResponse:
 @_protect_404
 def access(request: HttpRequest, poll_id: str, token: str) -> HttpResponse:
     """The link from the confirmation mail (§6.2 step 7, §6.3)."""
-    poll = _reachable_poll_or_404(poll_id)
+    # The one route a sandbox poll opens to a valid voter token alone
+    # (R-3.7): the mail reaches whoever registered through the share link, on
+    # a browser that may never have seen it. A wrong token, on a poll this
+    # browser has no other way into, is a bare 404 — not a page naming it.
+    poll = get_object_or_404(Poll, pk=poll_id)
     tok = Token(token)
     holder = registrations.arrive(poll, tok)
+    if holder is not None:
+        sandbox.grant_voter(request.session, poll)
+    elif not sandbox.may_reach(request.session, poll):
+        raise Http404
 
     if holder is None:
         return tokensession.protect(
@@ -182,7 +195,7 @@ def modify(request: HttpRequest, poll_id: str) -> HttpResponse:
     Reached only from ``access`` having put ``ballot_hash`` in the session; the
     token is already gone from the URL (T-21).
     """
-    poll = _reachable_poll_or_404(poll_id)
+    poll = _reachable_poll_or_404(request, poll_id)
     digest_hex = tokensession.load_ballot(request, str(poll.pk))
     if not digest_hex:
         return _to_notice(poll, "lien-invalide")
@@ -226,7 +239,7 @@ def receipt(request: HttpRequest, poll_id: str) -> HttpResponse:
     to survive the redirect off the token URL — no voter identifier accompanies
     them.
     """
-    poll = _reachable_poll_or_404(poll_id)
+    poll = _reachable_poll_or_404(request, poll_id)
     data = tokensession.load_receipt(request, str(poll.pk))
     if not data:
         return _to_notice(poll, "lien-invalide")
@@ -243,7 +256,7 @@ def receipt(request: HttpRequest, poll_id: str) -> HttpResponse:
 @_protect_404
 def notice(request: HttpRequest, poll_id: str, kind: str) -> HttpResponse:
     """The token-free dead-end pages: paper elector, spent link, closed poll."""
-    poll = _reachable_poll_or_404(poll_id)
+    poll = _reachable_poll_or_404(request, poll_id)
     if kind not in _NOTICE_KINDS:
         raise Http404
     messages = {

@@ -5,6 +5,7 @@
 {% block title %}{% translate "Voter" %} — {{ poll.title }}{% endblock %}
 
 {% block content %}
+  {% include "publicsite/_sandbox_notice.html" %}
   <h1>{% blocktranslate with title=poll.title %}Bulletin : « {{ title }} »{% endblocktranslate %}</h1>
 
   {% if description_html %}{{ description_html }}{% endif %}

@@ -62,7 +62,8 @@
       <dt>{% translate "Méthode de dépouillement" %}</dt><dd>{{ poll.get_tally_method_display }}</dd>
       {% if poll.is_sandbox %}
         <dt>{% translate "Bac à sable" %}</dt>
-        <dd>{% translate "Oui — ce scrutin n'apparaît sur aucune page publique." %}</dd>
+        <dd>{% translate "Oui — ce scrutin n'apparaît sur aucune page publique." %}
+          <a href="{% url 'backoffice:poll_sandbox' poll.id %}">{% translate "Lien d'essai et suppression" %}</a></dd>
       {% endif %}
     </dl>
   </section>

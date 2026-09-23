@@ -93,7 +93,6 @@ from apps.ballots.models import Ballot, BallotSource, BallotStatus, PaperBallotL
 from apps.ballots.ranking import BallotRefused
 from apps.core import manual
 from apps.core.codes import format_tracking_code
-from apps.core.crypto import new_token
 from apps.core.models import Commune, Role, User
 from apps.core.types import TrackingCode
 from apps.elections import (
@@ -104,6 +103,8 @@ from apps.elections import (
     results_view,
     richtext,
     rollimport,
+    sandbox,
+    sharelink,
 )
 from apps.elections.models import (
     Poll,
@@ -653,27 +654,10 @@ def poll_preview(request: HttpRequest, poll: Poll) -> HttpResponse:
             raise PermissionDenied(_("Action réservée à l'administrateur du scrutin."))
         action = request.POST.get("action", "")
         if action == "generate_preview_link":
-            # .reveal(): preview_token is a plain, persisted CharField, not a
-            # §7 voter token — holding the redacting `Token` wrapper here
-            # would only make `poll.preview_token` awkward to use below.
-            poll.preview_token = new_token().reveal()
-            poll.save(update_fields=["preview_token"])
-            audit.record(
-                action=Action.PREVIEW_LINK_GENERATED,
-                poll=poll,
-                actor=operator,
-                object_ref=audit.ref(poll),
-            )
+            sharelink.generate(poll, actor=operator)
             messages.success(request, _("Lien de partage généré."))
         elif action == "revoke_preview_link":
-            poll.preview_token = ""
-            poll.save(update_fields=["preview_token"])
-            audit.record(
-                action=Action.PREVIEW_LINK_REVOKED,
-                poll=poll,
-                actor=operator,
-                object_ref=audit.ref(poll),
-            )
+            sharelink.revoke(poll, actor=operator)
             messages.success(request, _("Lien de partage révoqué."))
         return redirect("backoffice:poll_preview", poll_id=str(poll.pk))
     language = request.LANGUAGE_CODE
@@ -708,6 +692,60 @@ def poll_preview(request: HttpRequest, poll: Poll) -> HttpResponse:
             "has_admin_role": has_admin_role,
             "preview_link_url": preview_link_url,
         },
+    )
+
+
+@require_poll_role(Role.POLL_ADMIN, Role.AUDITOR)
+def poll_sandbox(request: HttpRequest, poll: Poll) -> HttpResponse:
+    """Screen 2 addition — the rehearsal (R-3.7): share link and deletion.
+
+    Only a sandbox poll has one; any other is a 404, not a refusal, so the
+    screen does not confirm what kind of poll a URL names. The link is the one
+    of R-3.10 bis, kept valid in every state for a sandbox poll — it is how the
+    people asked to try it out reach the poll page and registration, since a
+    sandbox poll is on no public page. Deletion is offered from any state
+    (R-3.7): the poll, its ballots, registrations and roll snapshot go, and
+    only the audit log remembers it. Both are POLL_ADMIN only; an auditor
+    keeps read access to the screen (§3.7), as on the aperçu.
+    """
+    if not poll.is_sandbox:
+        raise Http404
+    operator = current_operator(request)
+    has_admin_role = Role.POLL_ADMIN in poll_roles(operator, poll)
+    if request.method == "POST":
+        if not has_admin_role:
+            raise PermissionDenied(_("Action réservée à l'administrateur du scrutin."))
+        action = request.POST.get("action", "")
+        if action == "generate_preview_link":
+            sharelink.generate(poll, actor=operator)
+            messages.success(request, _("Lien d'essai généré."))
+        elif action == "revoke_preview_link":
+            sharelink.revoke(poll, actor=operator)
+            messages.success(request, _("Lien d'essai révoqué."))
+        elif action == "delete":
+            # A destructive, irreversible action behind a deliberate tick, not
+            # a bare button.
+            if request.POST.get("confirm") != "yes":
+                messages.error(request, _("Cochez la case pour confirmer la suppression."))
+            else:
+                sandbox.delete_poll(poll, actor=operator)
+                messages.success(request, _("Scrutin d'essai supprimé."))
+                return redirect("backoffice:poll_index")
+        return redirect("backoffice:poll_sandbox", poll_id=str(poll.pk))
+    link_url = (
+        request.build_absolute_uri(
+            reverse(
+                "publicsite:poll_preview_shared",
+                kwargs={"poll_id": str(poll.pk), "token": poll.preview_token},
+            )
+        )
+        if poll.preview_token
+        else ""
+    )
+    return render(
+        request,
+        "backoffice/poll_sandbox.html",
+        {"poll": poll, "has_admin_role": has_admin_role, "link_url": link_url},
     )
 
 

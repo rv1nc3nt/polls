@@ -15,6 +15,7 @@ from django.http import Http404, HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.core import ratelimit
+from apps.elections import sandbox
 from apps.elections.models import Poll
 from apps.elections.windows import WindowClosed
 
@@ -23,14 +24,18 @@ from .forms import RegistrationForm
 from .models import RegistrationState
 
 
-def _open_poll_or_404(poll_id: str) -> Poll:
-    """INV-8: a sandbox poll is not reachable from a public URL (T-15)."""
-    return get_object_or_404(Poll.objects.filter(is_sandbox=False), pk=poll_id)
+def _open_poll_or_404(request: HttpRequest, poll_id: str) -> Poll:
+    """INV-8: a sandbox poll is not reachable from a public URL (T-15) — only
+    from a browser that came in through its share link (R-3.7)."""
+    poll = get_object_or_404(Poll, pk=poll_id)
+    if not sandbox.may_reach(request.session, poll):
+        raise Http404
+    return poll
 
 
 def register(request: HttpRequest, poll_id: str) -> HttpResponse:
     """Steps 1–7 (§6.2). The form, and what happens when it is submitted."""
-    poll = _open_poll_or_404(poll_id)
+    poll = _open_poll_or_404(request, poll_id)
     form = RegistrationForm(request.POST or None)
     error = ""
 
@@ -91,7 +96,7 @@ def submitted(request: HttpRequest, poll_id: str, outcome: str) -> HttpResponse:
     An ``ineligible`` outcome is R-4.7 — a single match whose electoral-list type
     confers no standing on this poll (T-61).
     """
-    poll = _open_poll_or_404(poll_id)
+    poll = _open_poll_or_404(request, poll_id)
     if outcome not in {"pending_email", "pending_review", "ineligible"}:
         raise Http404
     return render(request, "registrations/submitted.html", {"poll": poll, "outcome": outcome})

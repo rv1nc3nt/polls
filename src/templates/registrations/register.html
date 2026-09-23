@@ -5,6 +5,7 @@
 {% block title %}{% translate "Inscription" %} — {{ poll.title }}{% endblock %}
 
 {% block content %}
+  {% include "publicsite/_sandbox_notice.html" %}
   <h1>{% blocktranslate with title=poll.title %}S'inscrire à « {{ title }} »{% endblocktranslate %}</h1>
 
   {% if error %}

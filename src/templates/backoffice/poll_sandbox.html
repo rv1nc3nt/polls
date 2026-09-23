@@ -1,0 +1,61 @@
+{% extends "backoffice/base.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD #}
+{% comment %}
+  Scrutin d'essai (R-3.7): the share link that lets invited people try the poll,
+  and its deletion. generate_preview_link / revoke_preview_link / delete are
+  POLL_ADMIN-only (views.poll_sandbox re-checks on POST); an auditor sees the
+  link read-only.
+{% endcomment %}
+
+{% block screen_title %}{% translate "Scrutin d'essai" %}{% endblock %}
+{% block heading %}{% translate "Scrutin d'essai" %}{% endblock %}
+
+{% block screen %}
+  {% translate "Lien d'essai" as link_label %}
+  <p class="notice" role="note">{% translate "Ce scrutin est un essai : il n'apparaît dans aucune liste publique, aucun résultat publié ni aucune statistique. Il suit le cycle de vie d'un scrutin ordinaire, et les bulletins déposés ne comptent pour rien." %}</p>
+
+  <section aria-labelledby="sandbox-link">
+    <h2 id="sandbox-link">{% translate "Lien d'essai" %}</h2>
+    <p class="help">{% translate "Un lien impossible à deviner, à transmettre aux personnes invitées à essayer ce scrutin : il donne accès à la page du scrutin et à l'inscription, sans compte espace mairie, à tout état du scrutin. Les inscriptions se font contre la liste électorale comme pour un scrutin réel : chaque testeur doit y figurer. Régénérer le lien invalide aussitôt le précédent ; le révoquer coupe l'accès de ceux qui l'ont utilisé." %}</p>
+    {% if link_url %}
+      <p><input type="text" readonly value="{{ link_url }}" onclick="this.select()" aria-label="{{ link_label }}"></p>
+      {% if has_admin_role %}
+        <form method="post" class="inline">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="generate_preview_link">
+          <button type="submit">{% translate "Régénérer le lien" %}</button>
+        </form>
+        <form method="post" class="inline">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="revoke_preview_link">
+          <button type="submit" class="danger">{% translate "Révoquer le lien" %}</button>
+        </form>
+      {% endif %}
+    {% elif has_admin_role %}
+      <form method="post" class="inline">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="generate_preview_link">
+        <button type="submit">{% translate "Générer un lien d'essai" %}</button>
+      </form>
+    {% else %}
+      <p class="help">{% translate "Aucun lien d'essai n'est actif." %}</p>
+    {% endif %}
+  </section>
+
+  {% if has_admin_role %}
+    <section aria-labelledby="sandbox-delete">
+      <h2 id="sandbox-delete">{% translate "Supprimer ce scrutin" %}</h2>
+      <p class="help">{% translate "La suppression est définitive et possible à tout état du scrutin : le scrutin, ses propositions, ses bulletins, ses inscriptions et sa copie de la liste électorale sont effacés. Seule une ligne du journal d'audit rappelle qu'il a existé." %}</p>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="delete">
+        <p>
+          <input type="checkbox" id="confirm-delete" name="confirm" value="yes" required>
+          <label for="confirm-delete">{% translate "Je confirme la suppression définitive de ce scrutin d'essai." %}</label>
+        </p>
+        <button type="submit" class="danger">{% translate "Supprimer le scrutin d'essai" %}</button>
+      </form>
+    </section>
+  {% endif %}
+{% endblock %}

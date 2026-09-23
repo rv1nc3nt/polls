@@ -4989,3 +4989,75 @@ msgstr ""
 #: src/templates/registrations/submitted.html:31
 msgid "Aucune démarche supplémentaire n'est nécessaire de votre part."
 msgstr "Nothing further is required of you."
+
+#: src/apps/audit/models.py:43
+msgid "scrutin d'essai supprimé"
+msgstr "sandbox poll deleted"
+
+#: src/apps/backoffice/views.py:721
+msgid "Lien d'essai généré."
+msgstr "Test link generated."
+
+#: src/apps/backoffice/views.py:724
+msgid "Lien d'essai révoqué."
+msgstr "Test link revoked."
+
+#: src/apps/backoffice/views.py:729
+msgid "Cochez la case pour confirmer la suppression."
+msgstr "Tick the box to confirm the deletion."
+
+#: src/apps/backoffice/views.py:732
+msgid "Scrutin d'essai supprimé."
+msgstr "Sandbox poll deleted."
+
+#: src/templates/backoffice/dashboard.html:70
+msgid "Lien d'essai et suppression"
+msgstr "Test link and deletion"
+
+#: src/templates/backoffice/poll_sandbox.html:11
+msgid "Scrutin d'essai"
+msgstr "Sandbox poll"
+
+#: src/templates/backoffice/poll_sandbox.html:15
+msgid "Lien d'essai"
+msgstr "Test link"
+
+#: src/templates/backoffice/poll_sandbox.html:16
+msgid "Ce scrutin est un essai : il n'apparaît dans aucune liste publique, aucun résultat publié ni aucune statistique. Il suit le cycle de vie d'un scrutin ordinaire, et les bulletins déposés ne comptent pour rien."
+msgstr "This poll is a rehearsal: it appears on no public list, no published result and no statistic. It follows the lifecycle of an ordinary poll, and the ballots cast in it count for nothing."
+
+#: src/templates/backoffice/poll_sandbox.html:20
+msgid "Un lien impossible à deviner, à transmettre aux personnes invitées à essayer ce scrutin : il donne accès à la page du scrutin et à l'inscription, sans compte espace mairie, à tout état du scrutin. Les inscriptions se font contre la liste électorale comme pour un scrutin réel : chaque testeur doit y figurer. Régénérer le lien invalide aussitôt le précédent ; le révoquer coupe l'accès de ceux qui l'ont utilisé."
+msgstr "An unguessable link to pass to the people invited to try this poll: it gives access to the poll page and to registration, without an espace mairie account, in every state of the poll. Registration is checked against the electoral roll as for a real poll: each tester must be on it. Regenerating the link invalidates the previous one at once; revoking it cuts off everyone who used it."
+
+#: src/templates/backoffice/poll_sandbox.html:39
+msgid "Générer un lien d'essai"
+msgstr "Generate a test link"
+
+#: src/templates/backoffice/poll_sandbox.html:42
+msgid "Aucun lien d'essai n'est actif."
+msgstr "No test link is active."
+
+#: src/templates/backoffice/poll_sandbox.html:48
+msgid "Supprimer ce scrutin"
+msgstr "Delete this poll"
+
+#: src/templates/backoffice/poll_sandbox.html:49
+msgid "La suppression est définitive et possible à tout état du scrutin : le scrutin, ses propositions, ses bulletins, ses inscriptions et sa copie de la liste électorale sont effacés. Seule une ligne du journal d'audit rappelle qu'il a existé."
+msgstr "Deletion is permanent and possible in any state of the poll: the poll, its propositions, its ballots, its registrations and its copy of the electoral roll are erased. Only a line of the audit log records that it existed."
+
+#: src/templates/backoffice/poll_sandbox.html:55
+msgid "Je confirme la suppression définitive de ce scrutin d'essai."
+msgstr "I confirm the permanent deletion of this sandbox poll."
+
+#: src/templates/backoffice/poll_sandbox.html:57
+msgid "Supprimer le scrutin d'essai"
+msgstr "Delete the sandbox poll"
+
+#: src/templates/publicsite/_sandbox_notice.html:5
+msgid "Scrutin d'essai : ce vote est un test, il ne compte pour rien."
+msgstr "Sandbox poll: this vote is a test and counts for nothing."
+
+#: src/templates/publicsite/poll_sandbox.html:13
+msgid "Scrutin d'essai : cette consultation sert à vérifier le bon fonctionnement de la plateforme. Elle n'est pas publique, les bulletins déposés ici ne comptent pour rien, et ce lien est confidentiel — ne le transmettez qu'aux personnes invitées à l'essayer."
+msgstr "Sandbox poll: this consultation exists to check that the platform works. It is not public, the ballots cast here count for nothing, and this link is confidential — pass it on only to the people invited to try it."

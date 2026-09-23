@@ -51,6 +51,7 @@ urlpatterns = [
     path("scrutin/<uuid:poll_id>/", views.poll_dashboard, name="dashboard"),
     path("scrutin/<uuid:poll_id>/configuration/", views.poll_config, name="poll_config"),
     path("scrutin/<uuid:poll_id>/apercu/", views.poll_preview, name="poll_preview"),
+    path("scrutin/<uuid:poll_id>/essai/", views.poll_sandbox, name="poll_sandbox"),
     path(
         "scrutin/<uuid:poll_id>/configuration/images/",
         views.poll_image_upload,

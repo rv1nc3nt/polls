@@ -31,7 +31,7 @@ from django.utils.translation import gettext as _
 
 from apps.audit.models import Action, AuditEvent, Reason
 from apps.core import manual
-from apps.elections import closure, results_view, richtext, windows
+from apps.elections import closure, results_view, richtext, sandbox, windows
 from apps.elections.models import Poll, PollState
 from apps.registrations.models import Channel, Registration, RegistrationState
 
@@ -329,19 +329,33 @@ def poll_preview_shared(request: HttpRequest, poll_id: str, token: str) -> HttpR
     nonempty path segment, so a poll with no link generated 404s here just
     as a wrong token does — the two are indistinguishable, on purpose.
 
-    Once the poll has left ``draft`` the token no longer matters — the real
-    public page (or the withdrawn notice, or a 404 if never public) already
-    exists and does this page's job better, so a still-held link redirects
-    there instead of dying.
+    Once the poll has left ``draft`` the token no longer matters for an
+    ordinary poll — the real public page (or the withdrawn notice, or a 404 if
+    never public) already exists and does this page's job better, so a
+    still-held link redirects there instead of dying. A sandbox poll is the
+    exception: it has no public page, so the link keeps serving it (R-3.7).
     """
     poll = get_object_or_404(Poll, pk=poll_id, preview_token=token)
-    if poll.state != PollState.DRAFT:
+    if poll.state == PollState.DRAFT:
+        return render(
+            request,
+            "publicsite/poll_preview_shared.html",
+            {"poll": poll, **_draft_preview_context(poll, request.LANGUAGE_CODE)},
+        )
+    if not poll.is_sandbox:
         return redirect("publicsite:poll_detail", poll_id=str(poll.pk))
-    return render(
-        request,
-        "publicsite/poll_preview_shared.html",
-        {"poll": poll, **_draft_preview_context(poll, request.LANGUAGE_CODE)},
-    )
+    # R-3.7: a sandbox poll has no public page to redirect to, so its link
+    # stays the way in for as long as the poll exists. It leads to the same
+    # page the public would see, registration link included, and remembers in
+    # the session that this browser holds the link (``sandbox.grant_link``).
+    sandbox.grant_link(request.session, poll)
+    if poll.state == PollState.WITHDRAWN:
+        return render(
+            request,
+            "publicsite/poll_withdrawn.html",
+            {"breadcrumbs": [{"label": _("Scrutin retiré")}]},
+        )
+    return _render_poll_detail(request, poll, template="publicsite/poll_sandbox.html")
 
 
 def poll_detail(request: HttpRequest, poll_id: str) -> HttpResponse:
@@ -377,6 +391,14 @@ def poll_detail(request: HttpRequest, poll_id: str) -> HttpResponse:
             {"breadcrumbs": [{"label": _("Scrutin retiré")}]},
         )
     poll = get_object_or_404(_public_polls(), pk=poll_id)
+    return _render_poll_detail(request, poll)
+
+
+def _render_poll_detail(
+    request: HttpRequest, poll: Poll, *, template: str = "publicsite/poll_detail.html"
+) -> HttpResponse:
+    """The poll page itself, shared by the public route and a sandbox poll's
+    share link (R-3.7) so the two cannot drift apart."""
     language = request.LANGUAGE_CODE
     # ``status`` is clock-gated the same way ``apps.elections.windows`` gates
     # the write path (§5.1) — see ``_status_key``. Using ``poll.state`` alone
@@ -388,7 +410,7 @@ def poll_detail(request: HttpRequest, poll_id: str) -> HttpResponse:
     status = _status_key(poll, timezone.now())
     return render(
         request,
-        "publicsite/poll_detail.html",
+        template,
         {
             "poll": poll,
             **_draft_preview_context(poll, language),
