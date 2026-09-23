@@ -75,8 +75,9 @@ class TiebreakRule(models.TextChoices):
 #: through the reasoned extension action of R-3.4. ``opens_at`` is present but
 #: has the one carve-out of R-3.4: a manual early opening pulls it back to now.
 #: ``state``, ``opening_seed``, ``closure_hash`` and ``preview_token`` are
-#: lifecycle/access fields, not configuration — ``preview_token`` in particular must stay editable in
-#: ``draft``, the only state it does anything in (R-3.10 bis).
+#: lifecycle/access fields, not configuration — ``preview_token`` in particular
+#: must stay editable in ``draft``, the only state it does anything in
+#: (R-3.10 bis).
 FROZEN_CONFIG_FIELDS: frozenset[str] = frozenset(
     {
         "title_i18n",
