@@ -502,7 +502,12 @@ body.bo main { padding: 0; }
    file, so it would otherwise win here too and centre "Thème" while
    "Langue" stays left-aligned (§6.5's two controls read as one pair). */
 .bo-side__tools .themeswitch > span { align-self: start; }
-.bo-side__tools .themeswitch [role="group"] { display: flex; }
+/* The label's `flex-basis: 100%` (above, for the language row) is a *height* in
+   this column box: it made the label ~2 lines tall and squeezed the button group
+   below its own content, and the group's `overflow: hidden` then clipped the
+   buttons. The label takes its content height; the group never shrinks. */
+.bo-side__theme > span { flex-basis: auto; }
+.bo-side__tools .themeswitch [role="group"] { display: flex; flex-shrink: 0; }
 .bo-side__tools .themeswitch button { flex: 1; min-height: 2rem; padding: 0.3rem 0.3rem; font-size: 0.82rem; }
 
 /* Breadcrumb: sticky, so "where am I" survives a long journal or tally. */
