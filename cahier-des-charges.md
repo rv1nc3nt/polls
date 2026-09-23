@@ -49,7 +49,7 @@ v0.5 — périmètre fonctionnel uniquement ; aucun choix technique. Les règles
 
 **R-3.3** La configuration est librement modifiable à l'état de `projet` et devient immuable dès que le scrutin quitte cet état pour passer à l'état `annoncé`.
 
-**R-3.4** Seule exception à la règle R-3.3 : la date de clôture peut être prorogée pendant que le scrutin est ouvert. La prorogation est consignée au journal d'audit avec l'identité de l'opérateur, l'horodatage et un motif obligatoire, et elle est affichée sur la page publique du scrutin.
+**R-3.4** Exceptions à la règle R-3.3, au nombre de deux. D'une part, la date de clôture peut être prorogée pendant que le scrutin est ouvert. La prorogation est consignée au journal d'audit avec l'identité de l'opérateur, l'horodatage et un motif obligatoire, et elle est affichée sur la page publique du scrutin. D'autre part, lorsque l'administrateur du scrutin ouvre à la main un scrutin annoncé avant sa date d'ouverture, la date d'ouverture est ramenée à l'instant de l'ouverture : le scrutin est alors ouvert au vote et à l'inscription, et listé comme tel sur le site public, dès cet instant et non à la date initialement prévue. Cette date ne peut jamais être avancée autrement, ni reculée, et l'ancienne comme la nouvelle date figurent au journal d'audit avec l'ouverture. L'ouverture programmée à la date prévue ne modifie rien.
 
 **R-3.5** La clôture à la date et heure fixées est imposée côté serveur. Les bulletins et modifications parvenus postérieurement à cet instant sont refusés.
 

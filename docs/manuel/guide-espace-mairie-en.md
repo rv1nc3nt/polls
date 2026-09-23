@@ -185,9 +185,10 @@ two origins:
   and draws the **opening seed** (for any tie-break). This is now the only
   door into opening — a poll left in draft never opens,
   neither on its own nor by hand. *Open now* is allowed at any time once
-  announced, including before the configured opening time: this does not let
-  anyone vote early, since the window checks look at the clock, never
-  at the state.
+  announced, including before the configured opening time: the opening date is
+  then brought back to the present moment, so the poll can be voted in and is
+  shown as open on the public site from that moment, not only on the
+  dashboard.
 - **open → closed**: computes the **closure hash** over the whole set of
   retained ballots and **freezes the turnout counters**. Does not tally.
   *Close now* only appears once the paper-ballot keying deadline has been
@@ -258,10 +259,14 @@ It is **freely editable while a draft**, **immutable as soon as the poll
 leaves draft** — at announcing, the only way out of draft. The rule is held by a **database trigger**, not only by the
 application: `state != draft`.
 
-**Only exception**: the **closing date** can be **extended** while the poll
+**Two exceptions.** The **closing date** can be **extended** while the poll
 is open, through a separate, justified action. The extension is
 logged (operator, timestamp, **mandatory reason**) and **shown on the
-poll's public page**. The paper-ballot keying deadline follows it.
+poll's public page**. The paper-ballot keying deadline follows it. And if you
+**open the poll by hand before** its opening date, that date is **brought back
+to the moment of opening**: the poll is immediately open to voting and
+registration, and shown as such on the public site. The old and the new date
+are both written to the log.
 
 > A test poll (`is_sandbox`) is set at creation and **cannot be changed**;
 > it is excluded from public listings, published results and any statistics

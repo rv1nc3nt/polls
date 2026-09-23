@@ -51,7 +51,7 @@ v0.5 — functional scope only; no technical choices. Rules are numbered `R-x.y`
 
 **R-3.3** The configuration is freely modifiable in the `draft` state and becomes immutable as soon as the poll leaves that state to move to the `announced` state.
 
-**R-3.4** Sole exception to R-3.3: the closing date may be extended while the poll is open. The extension is recorded in the audit log with the identity of the operator, the timestamp and a mandatory reason, and is displayed on the public page of the poll.
+**R-3.4** Two exceptions to R-3.3. First, the closing date may be extended while the poll is open. The extension is recorded in the audit log with the identity of the operator, the timestamp and a mandatory reason, and is displayed on the public page of the poll. Second, when the poll administrator opens an announced poll by hand before its opening date, the opening date is brought back to the instant of opening: the poll is then open to voting and registration, and listed as such on the public site, from that instant and not from the date originally planned. That date can never otherwise be brought forward, nor pushed back, and both the old and the new date appear in the audit log with the opening. Opening at the planned date, on schedule, changes nothing.
 
 **R-3.5** Closure at the fixed date and time is enforced server-side. Ballots and modifications arriving after that instant are refused.
 

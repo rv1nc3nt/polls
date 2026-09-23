@@ -36,6 +36,7 @@ from apps.elections.transitions import (
     announce_poll,
     close_poll,
     extend_closes_at,
+    open_poll,
     publish_poll,
     withdraw_poll,
 )
@@ -165,13 +166,33 @@ def test_the_page_stops_advertising_the_vote_once_closes_at_has_passed(
     assert "dépouillement en cours" in listing
 
 
-def test_a_poll_opened_early_is_not_advertised_before_its_configured_opening(
+def test_a_poll_opened_early_by_hand_is_advertised_as_open_at_once(
     client: Client, db: None
 ) -> None:
-    """The mirror case (§4, T-67): a poll admin may call ``open_poll`` ahead of
-    ``opens_at`` by hand, and the window checks refuse a vote just the same
-    until the clock reaches it — so the page keeps the "not yet open" notice
-    rather than switching to ``state``'s ``open`` immediately."""
+    """R-3.4, T-67: ``open_poll`` ahead of ``opens_at`` pulls ``opens_at`` back
+    to now, so the back-office and the public site agree that the poll is
+    open instead of the latter keeping the "not yet open" notice."""
+    poll = _make_poll()
+    poll.opens_at = timezone.now() + timedelta(hours=1)
+    poll.save(update_fields=["opens_at"])
+    announce_poll(poll)
+    open_poll(Poll.objects.get(pk=poll.pk))
+
+    body = client.get(f"/fr/scrutin/{poll.pk}/").content.decode()
+    assert "n'est pas encore ouvert" not in body
+    assert "Consultation ouverte." in body
+    assert f"/fr/inscription/{poll.pk}/" in body
+    listed = client.get("/fr/?statut=open").content.decode()
+    assert "Aménagement de la place" in listed
+    assert "Aménagement de la place" not in client.get("/fr/?statut=preview").content.decode()
+
+
+def test_a_poll_forced_open_in_the_database_ahead_of_its_date_is_still_not_advertised(
+    client: Client, db: None
+) -> None:
+    """The clock, not ``state``, still decides what the page says (§5.1, T-52):
+    a poll whose ``state`` reads ``open`` with ``opens_at`` in the future, which
+    ``open_poll`` can no longer produce, keeps the "not yet open" notice."""
     poll = _make_poll()
     poll.opens_at = timezone.now() + timedelta(hours=1)
     poll.save(update_fields=["opens_at"])

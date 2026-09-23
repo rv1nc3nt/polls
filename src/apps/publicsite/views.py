@@ -69,11 +69,14 @@ def _status_key(poll: Poll, now: datetime) -> str:
     behind it may simply run late in any case — so ``state`` can read ``open``
     for a stretch after online voting has already stopped, and the window
     checks are already refusing every write (T-67, T-68). The mirror case
-    exists at the open end too: the poll admin may call ``open_poll`` ahead of
-    ``opens_at`` by hand, and the window checks refuse there just the same
-    (§4). Consulting the clock here, exactly as ``apps.elections.windows``
-    does for writes, keeps the page from telling a visitor a poll is open
-    when nothing behind it would accept their vote.
+    exists at the open end too: ``state`` is ``open`` from the moment
+    ``open_poll`` runs, which for a hand-opened poll pulls ``opens_at`` back
+    to that instant (R-3.4), so the two agree from then on. A poll that
+    somehow reads ``open`` ahead of ``opens_at`` anyway (T-52 forces the state
+    in the database) is still refused by the window checks. Consulting the
+    clock here, exactly as ``apps.elections.windows`` does for writes, keeps
+    the page from telling a visitor a poll is open when nothing behind it
+    would accept their vote.
     """
     if poll.state == PollState.ANNOUNCED or now < poll.opens_at:
         return "preview"

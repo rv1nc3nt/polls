@@ -160,11 +160,12 @@
         (visible on the public site right now) but not yet votable. This is
         now the only *ouvrir maintenant* entry point — opening from `draft`
         directly no longer exists, so reaching this state is required first.
-        Triggering it here any time ahead of `opens_at` is safe: the window
-        checks of §5.1 gate voting on the clock, never on `state`.
+        Triggering it here ahead of `opens_at` pulls `opens_at` back to now
+        (R-3.4): the window checks of §5.1 gate voting on the clock, never on
+        `state`, so the poll would otherwise read open here only.
       {% endcomment %}
       <p class="notice">{% translate "Ce scrutin est annoncé : il est visible sur le site public, mais le vote n'est pas encore ouvert." %}</p>
-      <p class="help">{% translate "Le scrutin s'ouvre normalement tout seul à la date d'ouverture configurée, même en retard si besoin. Vous pouvez aussi l'ouvrir maintenant vous-même, y compris par avance." %}</p>
+      <p class="help">{% translate "Le scrutin s'ouvre normalement tout seul à la date d'ouverture configurée, même en retard si besoin. Vous pouvez aussi l'ouvrir maintenant vous-même, y compris par avance : la date d'ouverture devient alors l'instant présent." %}</p>
       <form method="post" class="inline">
         {% csrf_token %}
         <input type="hidden" name="action" value="open_poll">

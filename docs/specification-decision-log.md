@@ -848,3 +848,30 @@ T-79's neighbouring row (new T-86) were updated to describe the suffix; the
 back-office help text next to the description/details fields and the images
 panel documents it for the operator. No requirements change — display size is
 an implementation detail R-3.12 leaves unspecified, not a rule it states.
+
+## 24. A poll opened by hand ahead of `opens_at` opened in the back-office only
+
+**Specification, §4 and item 5 above.** *Ouvrir maintenant* was offered at any
+time once `announced`, including ahead of `opens_at`, on the grounds that the
+window checks read the clock against `opens_at` and never `state`, so opening
+early "admits no vote before the configured instant".
+
+**Why that is wrong.** It is safe but useless, and it misleads: the back-office
+and the public site disagreed about the same poll. The dashboard read `open`;
+the public listing (`_status_key`, item 15) rightly kept it under "à venir"
+until the clock reached `opens_at`, and neither votes nor registrations were
+accepted. A poll admin who forces the opening wants the poll open now.
+
+**What the code does.** `_open_poll_locked` sets `opens_at` to the instant of
+opening when that instant is earlier than the configured one, and logs both
+values in the `POLL_STATE_CHANGED` event (`before.opens_at`, `after.opens_at`).
+`opens_at` is an INV-6 field, so this needed a second carve-out beside
+`closes_at`: migration 0012 recreates `inv6_poll_config_frozen` to admit a
+change of `opens_at` only on the `announced → open` write and only to an
+earlier instant, and `Poll.save()` mirrors it. The scheduled command is
+unaffected (it selects on `opens_at ≤ now`, so there is nothing to move).
+
+**Settled (2026-09-23).** R-3.4 now lists the two exceptions (both language
+files); §4, §5.1's INV-6 and T-67 were updated to match. No reason is required,
+unlike the `closes_at` extension: nothing is postponed, and the two dates are
+in the audit event.

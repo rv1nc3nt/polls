@@ -377,9 +377,10 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
       freezing the moment it runs, same as opening does (INV-6 already reads
       ``state != draft``).
     - *Ouvrir maintenant* (``announced → open``) — at any time once
-      announced, since nothing in the window checks of §5.1 depends on
-      ``state`` having moved: a poll opened early still cannot be voted in
-      before its configured ``opens_at``.
+      announced. Opened ahead of ``opens_at`` it pulls ``opens_at`` back to
+      now (R-3.4): the window checks of §5.1 read the clock and never
+      ``state``, so the poll would otherwise read open here and not on the
+      public site.
     - *Clôturer maintenant* (``open → closed``) — offered only once
       ``paper_entry_deadline`` has passed: closing early would freeze
       ``closure_hash`` and the §9 counts ahead of ballots the write path would

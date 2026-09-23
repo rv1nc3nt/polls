@@ -131,7 +131,8 @@ instead of withdrawn.
 ### Can a poll be opened or closed without waiting for the scheduled task?
 Yes, from the configuration screen (screen 2): *Announce now*, *Open now*
 and *Close now*. *Open now* is allowed at any time, including ahead
-of schedule — it does not let anyone vote before the configured time. *Close
+of schedule — the opening date is then brought back to the present moment: the
+poll is open to voting and shown as such on the public site straight away. *Close
 now* only appears once the paper-ballot keying deadline has been reached.
 
 ### What is the "announced" state for?

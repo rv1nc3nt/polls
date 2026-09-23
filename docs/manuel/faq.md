@@ -129,8 +129,9 @@ encore en brouillon, lui, se **supprime** plutôt que de se retirer.
 ### Peut-on ouvrir ou clore un scrutin sans attendre la tâche planifiée ?
 Oui, depuis l'écran de configuration (écran 2) : *Annoncer maintenant*, *Ouvrir
 maintenant* et *Clôturer maintenant*. *Ouvrir maintenant* est permis à
-tout moment, y compris par avance — cela ne fait voter personne avant l'heure
-configurée. *Clôturer maintenant* n'apparaît qu'une fois l'échéance de saisie
+tout moment, y compris par avance — la date d'ouverture est alors ramenée à
+l'instant présent : le scrutin est ouvert au vote et affiché comme tel sur le
+site public tout de suite. *Clôturer maintenant* n'apparaît qu'une fois l'échéance de saisie
 des bulletins papier atteinte.
 
 ### À quoi sert l'état « annoncé » ?

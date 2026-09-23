@@ -3277,10 +3277,11 @@ msgstr ""
 msgid ""
 "Le scrutin s'ouvre normalement tout seul à la date d'ouverture configurée, "
 "même en retard si besoin. Vous pouvez aussi l'ouvrir maintenant vous-même, y "
-"compris par avance."
+"compris par avance : la date d'ouverture devient alors l'instant présent."
 msgstr ""
 "The poll normally opens by itself at the configured opening date, even late "
-"if need be. You may also open it yourself right now, including ahead of time."
+"if need be. You may also open it yourself right now, including ahead of "
+"time: the opening date then becomes the present moment."
 
 #: src/templates/backoffice/poll_config.html:179
 msgid "Ouvrir le scrutin maintenant"

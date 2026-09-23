@@ -46,6 +46,90 @@ def test_opening_takes_the_snapshot_and_the_seed_in_one_transaction(
     assert AuditEvent.objects.filter(action=Action.ROLL_SNAPSHOT_TAKEN).exists()
 
 
+def _announced_with_future_opens_at(poll: Poll, hours: int = 3) -> Poll:
+    poll.opens_at = timezone.now() + timedelta(hours=hours)
+    poll.save(update_fields=["opens_at"])
+    announce_poll(poll)
+    return Poll.objects.get(pk=poll.pk)
+
+
+def test_t67_opening_by_hand_ahead_of_opens_at_pulls_it_back_to_now(
+    open_window_poll: Poll,
+) -> None:
+    """R-3.4: the poll must be votable, and listed, from the moment the poll
+    admin forces the opening, not just read ``open`` in the back-office."""
+    poll = _announced_with_future_opens_at(open_window_poll)
+    planned = poll.opens_at
+    now = timezone.now()
+
+    opened = open_poll(poll, now=now)
+
+    assert opened.state == PollState.OPEN
+    assert opened.opens_at == now
+    assert Poll.objects.get(pk=poll.pk).opens_at == now
+    assert opened.closes_at > opened.opens_at
+    event = AuditEvent.objects.filter(action=Action.POLL_STATE_CHANGED).latest("at")
+    assert event.before["opens_at"] == planned.isoformat()
+    assert event.after["opens_at"] == now.isoformat()
+
+
+def test_t67_the_scheduled_opening_leaves_opens_at_alone(open_window_poll: Poll) -> None:
+    poll = _announced_with_future_opens_at(open_window_poll, hours=1)
+    planned = poll.opens_at
+
+    opened = open_poll(poll, now=planned + timedelta(minutes=5))
+
+    assert opened.opens_at == planned
+    event = AuditEvent.objects.filter(action=Action.POLL_STATE_CHANGED).latest("at")
+    assert "opens_at" not in event.before
+    assert "opens_at" not in event.after
+
+
+def test_t67_an_early_opened_poll_accepts_a_registration_window_check_at_once(
+    open_window_poll: Poll,
+) -> None:
+    from apps.elections.windows import check_ballot_window, check_registration_window
+
+    poll = open_poll(_announced_with_future_opens_at(open_window_poll))
+    check_registration_window(poll)
+    check_ballot_window(poll, BallotSource.ONLINE)
+
+
+def test_t67_opens_at_moves_only_on_the_opening_write_and_only_earlier(
+    open_window_poll: Poll,
+) -> None:
+    """INV-6 stays the enforcement: the trigger admits the one carve-out of
+    R-3.4 and nothing wider, and so does ``Poll.save()`` (the message)."""
+    from django.db import connection
+
+    poll = _announced_with_future_opens_at(open_window_poll)
+    later = poll.opens_at + timedelta(hours=1)
+
+    # Announced, not opening: frozen as before, in the model and in the trigger.
+    poll.opens_at = poll.opens_at - timedelta(minutes=30)
+    with pytest.raises(ValidationError):
+        poll.save(update_fields=["opens_at"])
+    poll = Poll.objects.get(pk=poll.pk)
+    with connection.cursor() as cursor, pytest.raises(Exception, match="INV-6"):
+        cursor.execute(
+            "UPDATE elections_poll SET opens_at = %s WHERE id = %s",
+            [poll.opens_at - timedelta(minutes=30), poll.pk.hex],
+        )
+    # Opening, but later: refused by the trigger.
+    with connection.cursor() as cursor, pytest.raises(Exception, match="INV-6"):
+        cursor.execute(
+            "UPDATE elections_poll SET state = 'open', opens_at = %s WHERE id = %s",
+            [later, poll.pk.hex],
+        )
+    poll = open_poll(Poll.objects.get(pk=poll.pk))
+    # Already open: frozen again.
+    with connection.cursor() as cursor, pytest.raises(Exception, match="INV-6"):
+        cursor.execute(
+            "UPDATE elections_poll SET opens_at = %s WHERE id = %s",
+            [poll.opens_at - timedelta(hours=1), poll.pk.hex],
+        )
+
+
 def test_t70_announcing_is_lighter_than_opening(open_window_poll: Poll) -> None:
     """T-70, R-3.10: an absent roll does not block ``announce_poll`` — a
     preview needs no snapshot, unlike opening (§6.1) — but a missing

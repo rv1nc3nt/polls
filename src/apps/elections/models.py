@@ -72,9 +72,10 @@ class TiebreakRule(models.TextChoices):
 
 #: Configuration fields frozen once the poll leaves ``draft`` (INV-6, R-3.3).
 #: ``closes_at`` and ``paper_entry_deadline`` are absent: they move together
-#: through the reasoned extension action of R-3.4. ``state``, ``opening_seed``,
-#: ``closure_hash`` and ``preview_token`` are lifecycle/access fields, not
-#: configuration — ``preview_token`` in particular must stay editable in
+#: through the reasoned extension action of R-3.4. ``opens_at`` is present but
+#: has the one carve-out of R-3.4: a manual early opening pulls it back to now.
+#: ``state``, ``opening_seed``, ``closure_hash`` and ``preview_token`` are
+#: lifecycle/access fields, not configuration — ``preview_token`` in particular must stay editable in
 #: ``draft``, the only state it does anything in (R-3.10 bis).
 FROZEN_CONFIG_FIELDS: frozenset[str] = frozenset(
     {
@@ -190,14 +191,23 @@ class Poll(models.Model):
         ``update()``, ``bulk_update()`` and raw SQL (§5.1). This check is the
         one that produces a decent error message; the trigger is the one that
         actually holds.
+
+        ``opens_at`` may move earlier on the ``announced → open`` write, and
+        only there: a manual early opening pulls it back to now (R-3.4).
         """
         if not self._state.adding:
             previous = Poll.objects.filter(pk=self.pk).first()
             if previous is not None and previous.state != PollState.DRAFT:
+                opened_early = (
+                    previous.state == PollState.ANNOUNCED
+                    and self.state == PollState.OPEN
+                    and self.opens_at < previous.opens_at
+                )
                 changed = [
                     field
                     for field in FROZEN_CONFIG_FIELDS
                     if getattr(previous, field) != getattr(self, field)
+                    and not (field == "opens_at" and opened_early)
                 ]
                 if changed:
                     raise ValidationError(

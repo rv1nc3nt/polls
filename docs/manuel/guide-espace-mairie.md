@@ -191,8 +191,9 @@ a deux origines possibles :
   désormais la seule porte vers l'ouverture — un scrutin resté
   en brouillon ne s'ouvre jamais, ni tout seul ni à la main. *Ouvrir
   maintenant* est permis à tout moment une fois annoncé, y compris avant
-  l'heure d'ouverture configurée : cela ne fait rien voter en avance, puisque
-  les contrôles de fenêtre portent sur l'horloge, jamais sur l'état.
+  l'heure d'ouverture configurée : la date d'ouverture est alors ramenée à
+  l'instant présent, si bien que le scrutin est votable et affiché ouvert sur
+  le site public dès ce moment, et non seulement dans le tableau de bord.
 - **ouvert → clos** : calcule l'**empreinte de clôture** sur l'ensemble des
   bulletins retenus et **fige les compteurs de participation**. Ne dépouille
   pas. *Clôturer maintenant* n'est proposé qu'une fois l'échéance de saisie
@@ -267,11 +268,14 @@ quitte le brouillon** — à l'annonce, la seule porte de sortie du
 brouillon. La règle est tenue par un **déclencheur de base de
 données**, pas seulement par l'application : `state != draft`.
 
-**Seule exception** : la **date de clôture** peut être **reportée** pendant que
+**Deux exceptions.** La **date de clôture** peut être **reportée** pendant que
 le scrutin est ouvert, par une action séparée et motivée. Le report est
 inscrit au journal (opérateur, horodatage, **motif obligatoire**) et **affiché
 sur la page publique** du scrutin. L'échéance de saisie des bulletins papier
-suit.
+suit. Et si vous **ouvrez le scrutin à la main avant** sa date d'ouverture,
+celle-ci est **ramenée à l'instant de l'ouverture** : le scrutin est
+immédiatement ouvert au vote et à l'inscription, et affiché comme tel sur le
+site public. L'ancienne et la nouvelle date sont inscrites au journal.
 
 > Un scrutin test (`is_sandbox`) est fixé à la création et **non modifiable** ;
 > il est exclu des listes publiques, des résultats publiés et de toute

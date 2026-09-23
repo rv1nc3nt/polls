@@ -201,9 +201,16 @@ def open_poll(poll: Poll, actor: User | None = None, now: datetime | None = None
     reviewed by announcing it cannot open, scheduled or by hand. Two callers:
     the scheduled ``open_poll`` command, selecting on ``state = announced AND
     opens_at ≤ now`` so a host that was down opens the poll late rather than
-    never; and the poll admin, by hand, from screen 2 (R-2.1), at any time —
-    including ahead of ``opens_at``, which is harmless since the window
-    checks of §5.1 gate voting on the clock and never on ``state`` (T-67).
+    never; and the poll admin, by hand, from screen 2 (R-2.1), at any time.
+
+    A manual opening ahead of ``opens_at`` pulls ``opens_at`` back to the
+    instant of opening (R-3.4, T-67). The window checks of §5.1 gate voting
+    on the clock against ``opens_at`` and never on ``state``, so leaving it
+    in place would have produced a poll that reads ``open`` in the back-office
+    while the public site still says it has not started. The INV-6 trigger
+    admits exactly this write and no other change to ``opens_at``; the
+    scheduled command never triggers it, since it selects on ``opens_at ≤
+    now``.
     """
     return _run_transition("open_poll", _open_poll_locked, poll, actor, now)
 
@@ -216,6 +223,9 @@ def _open_poll_locked(poll: Poll, actor: User | None, now: datetime | None) -> P
         raise TransitionRefused(_("Ouverture refusée : configuration incomplète."), blockers)
 
     previous_state = poll.state  # always announced (R-3.2, R-3.10) — kept for the audit event below
+    opened_at = now or timezone.now()
+    planned_opens_at = poll.opens_at
+    opened_early = opened_at < planned_opens_at
     RollEntry.objects.bulk_create(
         RollEntry(
             poll=poll,
@@ -232,7 +242,11 @@ def _open_poll_locked(poll: Poll, actor: User | None, now: datetime | None) -> P
     snapshot_size = poll.roll_entries.count()
     poll.opening_seed = new_opening_seed()
     poll.state = PollState.OPEN
-    poll.save(update_fields=["opening_seed", "state"])
+    update_fields = ["opening_seed", "state"]
+    if opened_early:
+        poll.opens_at = opened_at
+        update_fields.append("opens_at")
+    poll.save(update_fields=update_fields)
 
     audit.record(
         action=Action.ROLL_SNAPSHOT_TAKEN,
@@ -246,8 +260,15 @@ def _open_poll_locked(poll: Poll, actor: User | None, now: datetime | None) -> P
         poll=poll,
         actor=actor,
         object_ref=audit.ref(poll),
-        before={"state": previous_state},
-        after={"state": PollState.OPEN, "opened_at": (now or timezone.now()).isoformat()},
+        before={
+            "state": previous_state,
+            **({"opens_at": planned_opens_at.isoformat()} if opened_early else {}),
+        },
+        after={
+            "state": PollState.OPEN,
+            "opened_at": opened_at.isoformat(),
+            **({"opens_at": poll.opens_at.isoformat()} if opened_early else {}),
+        },
     )
     return poll
 
