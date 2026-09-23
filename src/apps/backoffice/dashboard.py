@@ -26,7 +26,7 @@ from apps.elections.closure import frozen_counts
 from apps.elections.models import Poll, PollState
 from apps.elections.transitions import announcing_blockers, closing_blockers, opening_blockers
 from apps.elections.windows import online_voting_closed
-from apps.registrations.models import Channel, Registration, RegistrationState
+from apps.registrations.models import PARTICIPATING, Channel, Registration, RegistrationState
 
 
 @dataclass(frozen=True)
@@ -67,18 +67,22 @@ def participation(poll: Poll) -> Participation:
     # One aggregate query with conditional counts rather than several sequential
     # ones against the same table — this is the screen operators keep open
     # and reload continuously while a poll is live.
-    active = Q(state=RegistrationState.ACTIVE)
-    # "Registered" is the ``active`` rows, as in ``frozen_counts``, so the figure does
-    # not jump at closure: ``pending_email`` and ``pending_review`` cannot vote yet
-    # (R-5.5) and a ``rejected`` row — an ineligible applicant, or the shell a
-    # deleted paper ballot leaves once an approval takes its entry over (decision
-    # log #27) — is no registration in force.
+    active = PARTICIPATING
+    # "Registered" is the ``PARTICIPATING`` rows, as in ``frozen_counts``, so the
+    # figure does not jump at closure: ``pending_email`` and ``pending_review``
+    # cannot vote online yet (R-5.5) and a ``rejected`` row — an ineligible
+    # applicant, or the shell a deleted paper ballot leaves once an approval takes
+    # its entry over (decision log #27) — is no registration in force. A
+    # ``pending_email`` row keyed on paper has voted, so it counts there and not
+    # as still awaiting confirmation (decision log #29).
     counts = Registration.objects.filter(poll=poll).aggregate(
         registered=Count("pk", filter=active),
         voted_online=Count("pk", filter=active & Q(channel=Channel.ONLINE)),
         voted_paper=Count("pk", filter=active & Q(channel=Channel.PAPER)),
         pending_review=Count("pk", filter=Q(state=RegistrationState.PENDING_REVIEW)),
-        pending_email=Count("pk", filter=Q(state=RegistrationState.PENDING_EMAIL)),
+        pending_email=Count(
+            "pk", filter=Q(state=RegistrationState.PENDING_EMAIL, channel=Channel.NONE)
+        ),
     )
     return Participation(
         as_at_closure=False,

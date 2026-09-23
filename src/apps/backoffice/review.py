@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from apps.audit.models import Reason
 from apps.core.names import name_tokens, parse_dob, surname_matches
 from apps.elections.models import Poll, RollEntry
-from apps.registrations.models import Registration, RegistrationState
+from apps.registrations.models import Channel, Registration, RegistrationState
 
 #: The reason codes that mean something on *this* screen (§10). The full
 #: vocabulary spans the paper-ballot screens too, and offering an agent
@@ -75,11 +75,13 @@ def pending(poll: Poll) -> list[Registration]:
 
 def awaiting_confirmation(poll: Poll) -> list[Registration]:
     """Electors matched but not yet confirmed (R-5.5), oldest first: the ones an
-    agent can chase — most often a confirmation mail that never arrived."""
+    agent can chase — most often a confirmation mail that never arrived. Not one
+    keyed on paper meanwhile: they have voted, and there is nothing to chase
+    (``docs/specification-decision-log.md`` #29)."""
     return list(
-        Registration.objects.filter(poll=poll, state=RegistrationState.PENDING_EMAIL).order_by(
-            "created_at"
-        )
+        Registration.objects.filter(
+            poll=poll, state=RegistrationState.PENDING_EMAIL, channel=Channel.NONE
+        ).order_by("created_at")
     )
 
 

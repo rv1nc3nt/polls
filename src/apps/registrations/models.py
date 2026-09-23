@@ -35,6 +35,20 @@ class Channel(models.TextChoices):
     PAPER = "paper", _("papier")
 
 
+#: The registrations every participation figure counts — frozen at closure (§9),
+#: shown live (R-11.5) and on screen 1: the ``active`` rows, plus any other
+#: non-rejected row that carries a vote. The second half is the elector keyed
+#: on paper while their own online registration still awaited mailbox
+#: confirmation: ``ensure_paper_registration`` hangs the paper channel off that
+#: row (INV-4), and the INV-2 trigger freezes ``state`` through the
+#: transcription window, so it stays ``pending_email`` beside a live ballot.
+#: Counting ``active`` alone left that ballot in the hash and out of the counts
+#: (``docs/specification-decision-log.md`` #29).
+PARTICIPATING = models.Q(state=RegistrationState.ACTIVE) | (
+    ~models.Q(channel=Channel.NONE) & ~models.Q(state=RegistrationState.REJECTED)
+)
+
+
 class Registration(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     poll = models.ForeignKey(

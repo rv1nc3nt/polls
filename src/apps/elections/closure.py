@@ -25,7 +25,7 @@ from apps.ballots.models import Ballot
 from apps.core.canonical import CanonicalBallot, canonical_serialisation, closure_hash
 from apps.core.models import User
 from apps.core.types import OptionId, TrackingCode
-from apps.registrations.models import Channel, Registration, RegistrationState
+from apps.registrations.models import PARTICIPATING, Channel, Registration
 from apps.tally.methods import Method, TallyResult, tally
 from apps.tally.tiebreak import tiebreak_order
 
@@ -60,9 +60,10 @@ def frozen_counts(poll: Poll) -> dict[str, int]:
     Computed on entry to ``closed`` and stored, never derived at publication
     time: they read ``Registration``, which the retention job deletes, and a
     late publication must still produce them (T-58). ``pending_email``
-    registrations are excluded from turnout entirely (R-5.5, T-27).
+    registrations are excluded from turnout (R-5.5, T-27) unless a paper ballot
+    was keyed against one — ``PARTICIPATING`` says why.
     """
-    active = Registration.objects.filter(poll=poll, state=RegistrationState.ACTIVE)
+    active = Registration.objects.filter(PARTICIPATING, poll=poll)
     online = active.filter(channel=Channel.ONLINE).count()
     paper = active.filter(channel=Channel.PAPER).count()
     registered = active.count()

@@ -1022,3 +1022,35 @@ offered: the address is what the elector declared, and INV-10 keys on it.
 
 **Settled (2026-09-23).** No requirements change. §6.5.4 states the screen, T-92
 covers it.
+
+## 29. A paper ballot keyed for an unconfirmed registration was not counted
+
+**Found in review.** An elector registers online and never opens the
+confirmation mail, then votes on paper at the mairie. Keying binds the paper
+channel to the registration already on their roll entry — the one registration
+INV-4 allows — which is still `pending_email`. Every participation figure read
+`state = active` only, so that live paper ballot was in the closure hash, the
+tally and the published list, and missing from `ballots_paper` and
+`registered`. The publication then showed six ballots beside counts adding up
+to five.
+
+**What the code does.** `registrations.models.PARTICIPATING` is the one
+definition the three readers share — `frozen_counts` (§9), the live figures of
+R-11.5 and screen 1: `active` rows, plus any non-rejected row carrying a vote.
+Screen 4's list of electors awaiting confirmation, and screen 1's count of
+them, leave such a row out: they have voted, there is nothing to chase.
+
+**Why not change the registration instead.** Moving it to `active` at keying
+would claim a mailbox proof that never happened (R-5.5), and the INV-2 trigger
+freezes `state` through the transcription window after `closes_at`, so it
+could not be done there anyway. Retiring it and creating a fresh paper
+registration would strand the elector's address: the retired row keeps it, and
+a later online registration after the paper ballot is deleted (R-9.4) would be
+refused as a reused address.
+
+**Open question.** R-5.5 says an unconfirmed registration "carries no ballot …
+and is not counted in participation figures"; T-27 repeats the second half.
+That holds for the online channel, which is what it was written for. A paper
+vote is cast in person against the roll entry and does not depend on the
+mailbox, so the code counts it. Whether R-5.5 should say so explicitly is for
+the requirements owner.

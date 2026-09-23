@@ -30,12 +30,14 @@ from django.test.utils import override_settings
 from django.utils import timezone
 
 from apps.audit.models import Reason
+from apps.backoffice import dashboard, review
 from apps.ballots import services as ballots
 from apps.ballots.models import Ballot, BallotStatus
 from apps.core.models import User
-from apps.elections import sharelink
+from apps.elections import closure, sharelink
 from apps.elections.models import Poll, PollOption, PollState, RollEntry, WorkingRollEntry
 from apps.elections.transitions import announce_poll, open_poll
+from apps.publicsite import views as publicsite_views
 from apps.registrations import services as registrations
 from apps.registrations.models import Channel, Registration, RegistrationState
 from tests.conftest import force_announce
@@ -265,6 +267,35 @@ def test_an_elector_whose_mail_was_never_opened_cannot_vote_online_once_keyed_on
     ballots.delete_paper(paper, str(operator.pk), Reason.KEYING_ERROR, "")
     _cast(poll, token)
     assert Registration.objects.get(poll=poll).channel == Channel.ONLINE
+
+
+def test_a_paper_ballot_keyed_for_an_unconfirmed_registration_is_counted(
+    operator: User, django_capture_on_commit_callbacks: CaptureOnCommit
+) -> None:
+    """The mail is never opened: the registration stays ``pending_email`` with a
+    live paper ballot hanging off it — and must stay so through the transcription
+    window, where the INV-2 trigger freezes ``state``. Every participation figure
+    counts it as a paper voter, not as someone still to confirm, so the counts
+    published at closure agree with the ballots they accompany (§9, decision log
+    #29)."""
+    poll = _opened_poll(sandbox=False, show_live_participation=True)
+    token = _register_over_http(_enter(poll, operator), poll, django_capture_on_commit_callbacks)
+    assert token is not None
+    ballots.enter_paper(poll, str(_entry(poll).pk), RANKING, str(operator.pk), "fr")
+    assert Registration.objects.get(poll=poll).state == RegistrationState.PENDING_EMAIL
+
+    live = dashboard.participation(poll)
+    assert (live.registered, live.voted_paper, live.not_voted, live.pending_email) == (1, 1, 0, 0)
+    assert review.awaiting_confirmation(poll) == []
+    assert publicsite_views._live_participation(poll) == {
+        "voted_online": 0,
+        "voted_paper": 1,
+        "voted_total": 1,
+        "not_voted": 0,
+    }
+    counts = closure.frozen_counts(poll)
+    assert counts == {"registered": 1, "ballots_online": 0, "ballots_paper": 1, "non_voters": 0}
+    assert counts["ballots_paper"] == Ballot.live.filter(poll=poll).count()
 
 
 @KINDS
