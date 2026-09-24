@@ -15,6 +15,50 @@ where noted, the functional requirements (`cahier-des-charges.md` /
 `requirements-en.md`). Each keeps its context and carries the resolution
 inline.
 
+## Status at a glance
+
+Entries marked **open** still need a decision; the rest are kept for their
+reasoning.
+
+| # | Entry | Status |
+|---|---|---|
+| 1 | Retention purge on a poll that closed but was never published | settled |
+| 2 | Tracking code in the registration email (R-5.6) | settled |
+| 3 | Plurality with a tied first group | settled |
+| 4 | The registration window admits a channel change for the paper channel | settled |
+| 5 | Paper entry is refused outright when an online ballot exists | settled |
+| 6 | A ballot *modification* sends no confirmation email | settled |
+| 7 | The commune record is a model the domain model (§3) does not list | settled |
+| 8 | Option labels cannot be corrected after the poll leaves draft | settled |
+| 9 | TLS in the Ansible role is certbot only | recorded, no spec change — nginx-acme deferred until Debian packages a build |
+| 10 | No screen ever created a poll | **open in part** — creation and templates settled; direct duplication of a poll open |
+| 11 | Screen 3 (import de la liste électorale) was gated per poll | settled |
+| 12 | Nothing ever called `open_poll` or `close_poll` by hand | settled; superseded in part by #19, #33, #34 |
+| 13 | R-3.10's early preview is a state, not a flag | settled; its optional `announced` reversed by #19 |
+| 14 | The public page read "open" off `state`, not the clock | settled |
+| 15 | The back-office read the same "open" off `state`, and R-3.4's extension did not check the clock either | settled |
+| 16 | R-8.6's formal reconciliation has no described flow | settled; see #34 for manual closure |
+| 17 | R-8.2 bis's required content is not carried by the receipt as specified | **open in part** — receipt settled; signed-form layout unspecified |
+| 18 | Option images and commune branding are not yet in the backup/restore playbook | settled |
+| 19 | `announced` became mandatory, reversing item 13's "optional waypoint" | settled |
+| 20 | The draft-preview share link (R-3.10 bis) is deliberately not frozen | not a divergence; rationale recorded |
+| 21 | R-3.12's images moved from per-option to a shared per-poll library | settled |
+| 22 | `PollImage.alt_text` is a default, overridable per reference | settled |
+| 23 | `image:<n>` gained an optional display-size suffix | settled |
+| 24 | A poll opened by hand ahead of `opens_at` opened in the back-office only | settled |
+| 25 | Deleting a paper ballot re-opened online voting for nobody who had not registered | settled |
+| 26 | Sandbox polls became triable through their link, and deletable | settled |
+| 27 | Approving an application onto a cleared paper shell | settled |
+| 28 | Electors awaiting confirmation: resend, not confirm | settled |
+| 29 | A paper ballot keyed for an unconfirmed registration was not counted | **open question** for the requirements owner (R-5.5 wording) |
+| 30 | An elector listed twice on the roll is flagged, not blocked | settled |
+| 31 | Uncountersigned paper entries are published as their own figure | settled |
+| 32 | A corrected paper ballot is countersigned again | settled |
+| 33 | The clock refuses, the state admits | settled |
+| 34 | A poll may be closed early, by hand, with a reason | decided |
+| 35 | Definitive actions are confirmed on a separate page | decided |
+| 36 | A sandbox poll's result is reachable through its link | decided |
+
 ## 1. Retention purge on a poll that closed but was never published
 
 **Specification, §11.** Two statements that cannot both hold:
