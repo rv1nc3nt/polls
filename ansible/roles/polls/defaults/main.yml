@@ -70,6 +70,9 @@ polls_gunicorn_workers: 3
 # nginx alone, 2 when TLS is terminated by another proxy in front of it. The
 # rate limiter keys on the address that many entries from the end.
 polls_trusted_proxy_hops: 1
+# The "code source" link in every page's footer. The upstream repository; a
+# commune running its own fork points it at that fork.
+polls_source_code_url: "https://github.com/rv1nc3nt/polls"
 
 # --- SMTP (§15 step 9). prod.py no longer requires DJANGO_EMAIL_HOST — a
 # commune admin can set the relay instead from the back-office (§6.5.12) — but

@@ -312,6 +312,9 @@ section:last-child { margin-bottom: 0; }
 .header-tools .themeswitch button { padding: 0.3rem 0.6rem; }
 
 .contentinfo { border-top: 1px solid var(--rule); color: var(--ink-quiet); font-size: 0.9rem; margin-top: 1rem; }
+/* A filled glyph (the GitHub mark), where .ic draws outlines. */
+.ic--mark { fill: currentColor; stroke: none; }
+.software__source { display: inline-flex; align-items: center; gap: 0.35em; }
 
 /* ---- espace mairie shell (§6.5) ---------------------------------------
    A classic layout: one fixed left-column menu, the same on every screen, with
