@@ -12,6 +12,10 @@ Reference implementations: `src/apps/core/canonical.py` (Python) and
 `verifier/core/src/canonical.rs` (Rust, written from this document and sharing
 no code with it).
 
+The publication document (`?format=json`) carries the same records in its
+`ballots` member, and the verifier hashes them the same way. Its layout is
+[`publication-format.md`](publication-format.md).
+
 ## The set
 
 Exactly the ballots with `status = live`. `superseded`, `deleted` and

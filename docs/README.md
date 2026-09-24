@@ -32,6 +32,7 @@ itself, so their paths and names are fixed: renaming one breaks the site.
 | [`review-guide.md`](review-guide.md) | review the code: reading order, critical paths, privacy-sensitive areas, where each invariant is enforced and tested. |
 | [`glossary.md`](glossary.md) | match a code identifier to its French interface term and its meaning. |
 | [`canonical-serialisation.md`](canonical-serialisation.md) | know the exact bytes the closure hash covers. The contract between the Python code, the published CSV and the Rust verifier: change one, change all three. |
+| [`publication-format.md`](publication-format.md) | know the layout of the published JSON document, which the verifier reads and checks claim by claim. Versioned; a change to a member the verifier reads is a new version. |
 | [`specification-decision-log.md`](specification-decision-log.md) | find where and why the code departs from the specification, and which departures are still open (status table at the top). Cited as `#n` in code and commits. |
 | [`review-notes.md`](review-notes.md) | see the suspected defects found in the September 2026 documentation pass, with their severity. |
 | [`roadmap.md`](roadmap.md) | see the changes agreed in principle but deferred, and what each would touch. |

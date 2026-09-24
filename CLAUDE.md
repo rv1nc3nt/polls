@@ -78,7 +78,10 @@ find a way round it.
 - **The closure hash** covers exactly the `status = live` ballots, serialised
   with option ids and tracking codes only. `docs/canonical-serialisation.md` is
   the contract between Python, the published CSV and the Rust verifier; change
-  one and you change all three, deliberately.
+  one and you change all three, deliberately. `docs/publication-format.md` is
+  the same kind of contract for the JSON publication document the verifier
+  reads; it is versioned (`closure.PUBLICATION_FORMAT_VERSION`), and removing,
+  renaming or re-typing a member the verifier reads is a new version.
 - **The tie-break** is the hash chain of §8.3. No language PRNG, no
   `random.shuffle`, no seeded sort.
 - **`Poll.state` is assigned in exactly one module**,
