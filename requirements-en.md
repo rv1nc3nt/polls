@@ -39,7 +39,7 @@ v0.5 — functional scope only; no technical choices. Rules are numbered `R-x.y`
 
 **R-2.3** No role permits an elector who voted online to be associated with the ballot they cast (see R-7.4).
 
-**R-2.4** The administrative interface is purpose-built. It is used by council members and mairie staff, is subject to R-14.1 like the rest of the site, and must not present destructive actions alongside routine ones.
+**R-2.4** The administrative interface is purpose-built. It is used by council members and mairie staff, is subject to R-14.1 like the rest of the site, and must not present destructive actions alongside routine ones. Every definitive action on a poll — announcing, opening, closing, publishing, withdrawing, extending the closing date, deleting a test poll, recording the paper-ballot reconciliation — is carried out only after explicit confirmation, given on a page that restates its consequences.
 
 ---
 
@@ -51,7 +51,7 @@ v0.5 — functional scope only; no technical choices. Rules are numbered `R-x.y`
 
 **R-3.3** The configuration is freely modifiable in the `draft` state and becomes immutable as soon as the poll leaves that state to move to the `announced` state.
 
-**R-3.4** Two exceptions to R-3.3. First, the closing date may be extended while the poll is open. The extension is recorded in the audit log with the identity of the operator, the timestamp and a mandatory reason, and is displayed on the public page of the poll. Second, when the poll administrator opens an announced poll by hand before its opening date, the opening date is brought back to the instant of opening: the poll is then open to voting and registration, and listed as such on the public site, from that instant and not from the date originally planned. That date can never otherwise be brought forward, nor pushed back, and both the old and the new date appear in the audit log with the opening. Opening at the planned date, on schedule, changes nothing.
+**R-3.4** Three exceptions to R-3.3. First, the closing date may be extended while the poll is open. The extension is recorded in the audit log with the identity of the operator, the timestamp and a mandatory reason, and is displayed on the public page of the poll. Second, when the poll administrator opens an announced poll by hand before its opening date, the opening date is brought back to the instant of opening: the poll is then open to voting and registration, and listed as such on the public site, from that instant and not from the date originally planned. That date can never otherwise be brought forward, nor pushed back, and both the old and the new date appear in the audit log with the opening. Opening at the planned date, on schedule, changes nothing. Third, the poll administrator may close an open poll by hand before its closing date: the closing date is then brought back to the instant of closure, and no ballot or registration is accepted from that instant. Early closure requires a mandatory reason; it is recorded in the audit log with the identity of the operator, the timestamp, and both the old and the new date, and is displayed on the public page of the poll.
 
 **R-3.5** Closure at the fixed date and time is enforced server-side. Ballots and modifications arriving after that instant are refused.
 

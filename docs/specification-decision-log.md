@@ -1173,3 +1173,38 @@ monitoring.
 
 **Settled (2026-09-24).** No requirements change: R-3.10 already requires it.
 §4, §5.1, INV-2, T-52 and T-78 are reworded to match.
+
+## 34. A poll may be closed early, by hand, with a reason
+
+**Decided (2026-09-24).** The poll administrator may close an open poll
+before its deadline. The specification used to forbid it, because the window
+checks read only the clock and would have gone on admitting ballots after a
+hash that did not cover them. Since #33 every write needs `state = open`, so
+that objection is gone.
+
+**What the code does.** `close_poll` called before `paper_entry_deadline` is
+an early closure. It needs a reason code, like an extension. It brings
+`closes_at` (if still in the future) and `paper_entry_deadline` back to the
+instant of closure, and logs `poll_closed_early` with both instants and the
+reason. The poll's public page shows that event beside any extension. The
+countersignature and reconciliation guards are unchanged. The scheduled job
+never closes early.
+
+**Requirements.** R-3.4 gains a third exception, in both languages.
+
+## 35. Definitive actions are confirmed on a separate page
+
+**Decided (2026-09-24).** Every definitive action on a poll is confirmed on a
+page that restates its consequences before it runs. The actions are
+announcing, opening, closing, publishing, withdrawing, extending the closing
+date, deleting a sandbox poll, and recording the reconciliation. Before this,
+one click acted; sandbox deletion alone had a checkbox.
+
+**What the code does.** The action's form posts to the same screen. Without
+`confirmed=1`, the view validates the input and renders
+`backoffice/confirm.html`. That page names the action, lists its
+consequences computed at that moment, and re-posts the input as hidden
+fields with `confirmed=1`, or offers Cancel. Nothing is written on the first
+POST. The role and state checks run on both POSTs.
+
+**Requirements.** R-2.4 gains the rule, in both languages.
