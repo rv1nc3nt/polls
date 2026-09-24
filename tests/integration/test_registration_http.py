@@ -545,3 +545,32 @@ def test_a_reason_from_the_wrong_vocabulary_is_refused(
     registration.refresh_from_db()
     assert registration.state == RegistrationState.PENDING_REVIEW
     assert not AuditEvent.objects.filter(action=Action.REGISTRATION_REVIEWED).exists()
+
+
+# --- Decision log #33: registration only while the poll is open ---------------
+
+
+def test_a_draft_poll_has_no_registration_page(client: Client, open_window_poll: Poll) -> None:
+    """R-3.10: a ``draft`` appears on no public page — even once its
+    ``opens_at`` has passed, which the clock alone used to admit."""
+    assert client.get(f"/fr/inscription/{open_window_poll.pk}/").status_code == 404
+    response = client.post(f"/fr/inscription/{open_window_poll.pk}/", FORM)
+    assert response.status_code == 404
+    assert not Registration.objects.filter(poll=open_window_poll).exists()
+
+
+def test_an_announced_poll_past_opens_at_offers_no_registration(
+    client: Client, open_window_poll: Poll
+) -> None:
+    """``open_poll`` has not run: no snapshot exists, and R-3.10 offers
+    neither registration nor voting while ``announced``. The page says so and
+    shows no form; a POST is refused and writes nothing."""
+    from tests.conftest import force_announce
+
+    force_announce(open_window_poll)
+    page = client.get(f"/fr/inscription/{open_window_poll.pk}/")
+    assert page.status_code == 200
+    assert b'<form method="post"' not in page.content
+    assert "pas encore ouvertes" in page.content.decode()
+    client.post(f"/fr/inscription/{open_window_poll.pk}/", FORM)
+    assert not Registration.objects.filter(poll=open_window_poll).exists()

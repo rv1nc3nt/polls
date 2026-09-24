@@ -205,7 +205,7 @@ def open_poll(poll: Poll, actor: User | None = None, now: datetime | None = None
 
     A manual opening ahead of ``opens_at`` pulls ``opens_at`` back to the
     instant of opening (R-3.4, T-67). The window checks of §5.1 gate voting
-    on the clock against ``opens_at`` and never on ``state``, so leaving it
+    on the clock against ``opens_at`` as well as on ``state``, so leaving it
     in place would have produced a poll that reads ``open`` in the back-office
     while the public site still says it has not started. The INV-6 trigger
     admits exactly this write and no other change to ``opens_at``; the
@@ -294,9 +294,9 @@ def close_poll(
     is exactly the parameter the poll admin's manual trigger on screen 2
     exists to supply (R-2.1). Unlike ``open_poll``, that screen offers the
     manual call only once ``paper_entry_deadline`` has passed: an earlier
-    close would freeze ``closure_hash`` and the counts above the ballots the
-    window checks of §5.1 would still legitimately go on accepting, since they
-    read the clock and not ``state`` (T-68).
+    close would cut the window short of its advertised deadline — the window
+    checks of §5.1 admit only an ``open`` poll (decision log #33) — and freeze
+    ``closure_hash`` and the counts at that point (T-68).
     """
     return _run_transition("close_poll", _close_poll_locked, poll, actor, override_reason, now)
 

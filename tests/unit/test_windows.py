@@ -25,7 +25,7 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from apps.ballots.models import BallotSource
-from apps.elections.models import Poll
+from apps.elections.models import Poll, PollState
 from apps.elections.windows import WindowClosed, check_ballot_window, check_registration_window
 
 PARIS = ZoneInfo("Europe/Paris")
@@ -46,9 +46,10 @@ SECOND_0230 = _utc(_WALL_0230, fold=1)
 
 
 def _poll(closes_at: datetime) -> Poll:
-    """An unsaved poll opened well before ``closes_at``, no deferred paper
-    window."""
+    """An unsaved ``open`` poll opened well before ``closes_at``, no deferred
+    paper window."""
     return Poll(
+        state=PollState.OPEN,
         opens_at=closes_at - timedelta(days=1),
         closes_at=closes_at,
         paper_entry_deadline=closes_at,
@@ -95,6 +96,7 @@ def test_t47_paper_deadline_after_the_fold_keeps_keying_open_through_it() -> Non
     window open at the first one and shut at the second — again the absolute
     instants, an hour apart (§6.4)."""
     poll = Poll(
+        state=PollState.OPEN,
         opens_at=FIRST_0230 - timedelta(days=1),
         closes_at=FIRST_0230,
         paper_entry_deadline=SECOND_0230,
@@ -116,3 +118,45 @@ def test_t47_spring_forward_gap_reading_is_still_a_definite_instant() -> None:
     check_ballot_window(poll, BallotSource.ONLINE, now=gap - timedelta(minutes=1))
     with pytest.raises(WindowClosed):
         check_ballot_window(poll, BallotSource.ONLINE, now=gap + timedelta(minutes=1))
+
+
+# --- The clock refuses, the state admits (decision log #33) -------------------
+
+
+@pytest.mark.parametrize(
+    "state",
+    [
+        PollState.DRAFT,
+        PollState.ANNOUNCED,
+        PollState.CLOSED,
+        PollState.PUBLISHED,
+        PollState.WITHDRAWN,
+    ],
+)
+def test_a_poll_that_is_not_open_admits_no_write_inside_its_window(state: str) -> None:
+    """Inside the window by the clock, every write is still refused unless the
+    poll is ``open``: a ``draft`` or ``announced`` poll whose ``open_poll`` has
+    not run has no snapshot to register or key against (R-3.10)."""
+    poll = _poll(SECOND_0230)
+    poll.state = state
+    inside = FIRST_0230
+    for source in (BallotSource.ONLINE, BallotSource.PAPER):
+        with pytest.raises(WindowClosed):
+            check_ballot_window(poll, source, now=inside)
+    with pytest.raises(WindowClosed):
+        check_registration_window(poll, now=inside)
+    with pytest.raises(WindowClosed):
+        check_registration_window(poll, now=inside, channel=BallotSource.PAPER)
+
+
+def test_state_open_never_admits_a_write_past_a_deadline() -> None:
+    """The other half: ``open`` is necessary, never sufficient. A ``close_poll``
+    that has not run leaves the state ``open`` past the deadline, and the clock
+    alone refuses (T-52's mirror at the closing end)."""
+    poll = _poll(FIRST_0230)
+    past = SECOND_0230
+    for source in (BallotSource.ONLINE, BallotSource.PAPER):
+        with pytest.raises(WindowClosed):
+            check_ballot_window(poll, source, now=past)
+    with pytest.raises(WindowClosed):
+        check_registration_window(poll, now=past)

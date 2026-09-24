@@ -12,6 +12,7 @@
     <p class="error" role="alert">{{ error }}</p>
   {% endif %}
 
+  {% if form %}
   <form method="post">
     {% csrf_token %}
     {% for field in form %}
@@ -26,6 +27,7 @@
     {% endfor %}
     <button type="submit">{% translate "S'inscrire" %}</button>
   </form>
+  {% endif %}
 
   {% comment %}
     R-13.2: the privacy notice belongs at the point of collection, and §3.8

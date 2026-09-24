@@ -111,12 +111,15 @@ assigns `Poll.state` (tested). The database trigger `poll_state_irreversible`
 is the actual enforcement. Configuration freezes when the poll leaves `draft`
 (INV-6): `Poll.save()` produces the error message and the triggers enforce it.
 
-**State is not what gates a vote.** Ballot and registration writes go through
-`elections/windows.py`, which compares the clock against `opens_at`,
-`closes_at` and `paper_entry_deadline` and never reads `state`, apart from
-refusing everything once a poll is `withdrawn`. The scheduled jobs can
-therefore run late, twice, or not at all without letting a vote through
-outside the window. The INV-2 triggers enforce the same rule.
+**The clock refuses, the state admits** (decision log #33). Ballot and
+registration writes go through `elections/windows.py`, which requires the
+poll to be `open` *and* compares the clock against `opens_at`, `closes_at` and
+`paper_entry_deadline`. Nothing relies on `state` to refuse a write past a
+deadline, so a `close_poll` that runs late, twice, or not at all lets nothing
+through late. A late `open_poll` delays the start of voting, which no rule
+could avoid, since the snapshot it takes is what registration and paper entry
+read. The dashboard and `/sante` flag it. The INV-2 triggers enforce the same
+rule.
 
 ### Registering and voting online
 

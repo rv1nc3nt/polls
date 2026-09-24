@@ -108,11 +108,13 @@ clear error message. A change that only touches one side is incomplete.
   column that must stay unchanged during the paper carve-out. A new model field
   missing from that list becomes writable after closure
   (`0002_invariant_triggers.py`, comment above `REGISTRATION_WINDOW`).
-* **Clock, not state.** The windows, the public page (`_status_key`) and the
-  dashboard all read the clock, because the scheduled transitions can lag.
-  Code that reads `poll.state == OPEN` to decide whether voting is possible
-  is almost always wrong. The reverse gap, where a poll that is not open
-  accepts a registration, is review note M1.
+* **The clock refuses, the state admits** (decision log #33). A write needs
+  `state = open` *and* the clock inside the window. Never let `state` alone
+  refuse a write past a deadline: the scheduled transitions can lag, so
+  `closes_at` and `paper_entry_deadline` are the clock's alone. For the same
+  reason the public page (`_status_key`) and the dashboard read the clock at
+  the closing end. Code that treats `poll.state == OPEN` as enough to accept a
+  vote is wrong.
 * **Concurrency relies on SQLite `IMMEDIATE`** (review note M4).
   `select_for_update()` does nothing on SQLite.
 * **Audit events inside a transaction that raises are lost.** Refusals are

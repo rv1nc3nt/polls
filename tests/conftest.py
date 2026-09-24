@@ -16,15 +16,12 @@ from apps.elections.models import Poll, PollOption, PollState, RollEntry, Workin
 def open_window_poll(db: None) -> Poll:
     """A poll whose window is open now, with three options and a roll.
 
-    Stays ``draft`` — the ballot/registration write paths gate on the clock
-    against ``opens_at``/``closes_at``, never on ``state`` (§5.1), so a
-    still-``draft`` poll is exactly as usable for those tests as an
-    ``open`` one. Tests that specifically need the *state* to be ``open``
-    use ``open_paper_poll`` (or build their own via ``announce_poll`` then
-    ``open_poll`` with a future ``opens_at``) instead of transitioning this
-    fixture — announcing now requires ``opens_at`` still in the future
-    (R-3.10), which this fixture's deliberately-past ``opens_at`` cannot
-    satisfy.
+    Stays ``draft``, so a test can still change its configuration. Every
+    ballot or registration write needs the poll ``open`` as well as the clock
+    inside the window (§5.1, decision log #33), so a test that writes either
+    calls ``force_open`` on it first — announcing requires ``opens_at`` still
+    in the future (R-3.10), which this fixture's deliberately-past
+    ``opens_at`` cannot satisfy — or uses ``open_paper_poll``.
     """
     now = timezone.now()
     poll = Poll.objects.create(

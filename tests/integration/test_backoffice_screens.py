@@ -441,6 +441,7 @@ def test_screen_4_lists_pending_email_electors_and_resends_the_link(
 def test_resending_is_for_the_poll_admin_and_not_another_polls_registration(
     client: Client, open_window_poll: Poll, admin_user: User
 ) -> None:
+    force_open(open_window_poll)
     waiting = _register(open_window_poll, "41000001", state=RegistrationState.PENDING_EMAIL)
     url = f"/fr/mairie/scrutin/{open_window_poll.pk}/inscriptions/renvoyer/"
     client.force_login(admin_user)  # no role on this poll
@@ -450,6 +451,7 @@ def test_resending_is_for_the_poll_admin_and_not_another_polls_registration(
 def test_the_dashboard_counts_electors_awaiting_confirmation_apart_from_registered(
     open_window_poll: Poll,
 ) -> None:
+    force_open(open_window_poll)
     _register(open_window_poll, "42000001", state=RegistrationState.PENDING_EMAIL)
     _register(open_window_poll, "42000002", state=RegistrationState.PENDING_EMAIL)
     _register(open_window_poll, "42000003", state=RegistrationState.ACTIVE)
