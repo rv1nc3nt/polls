@@ -159,7 +159,9 @@ def _tally_counted(
         for option in chosen:
             if option in counts:
                 counts[option] += 1
-    best = max(counts.values()) if ballots else 0
+    # ``default``: no options at all is unreachable from a real poll (it
+    # needs two to be announced), but a pure function must not crash on it.
+    best = max(counts.values(), default=0)
     winners = [o for o in options if counts[o] == best] if ballots else []
     return TallyResult(
         method=method,
