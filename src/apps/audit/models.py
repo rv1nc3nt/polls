@@ -104,6 +104,11 @@ class Reason(models.TextChoices):
 
 
 class AuditEvent(models.Model):
+    """One append-only log entry. Written only by ``audit.services.record``;
+    no update or delete path exists (INV-3, enforced by the triggers in
+    ``elections/migrations/0002_invariant_triggers.py``).
+    """
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     # No database constraint and nothing cascaded: a sandbox poll may be
     # deleted outright (R-3.7) and the log is append-only (INV-3), so its events

@@ -86,7 +86,15 @@ def record(
     """Append one event.
 
     ``reason`` is a code from the declared vocabulary, never prose: any note an
-    operator writes goes on the referenced object (§10).
+    operator writes goes on the referenced object (§10). That is the caller's
+    obligation — a plain ``str`` is accepted and not checked against
+    ``Reason`` here.
+
+    Raises ``PersonalDataInAuditEvent`` if ``before`` or ``after`` carries a
+    ``FORBIDDEN_KEYS`` key at any depth. Writes inside the caller's
+    transaction, so an event recorded before a rollback is lost with it (see
+    ``elections.transitions.open_poll`` for refusals logged after one).
+    ``actor_label`` defaults to ``"system"`` when there is no ``actor``.
     """
     before = before or {}
     after = after or {}
