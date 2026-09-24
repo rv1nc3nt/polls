@@ -355,6 +355,36 @@ them at all — whether a sandbox poll may be a source, whether per-language
 content missing at the source should block the clone the way it blocks
 opening (§3.8) — and stays tracked here rather than folded into this item.
 
+## 11. Screen 3 (import de la liste électorale) was gated per poll
+
+**Requirements, R-2.1's role table.** "Commune administrator — Creates polls,
+assigns the roles specific to each poll, **imports the electoral roll**. This
+role does not of itself carry any access to ballots." The roll import is
+explicitly a commune administrator's action, not a poll administrator's.
+
+**Specification, §6.5.** The screen list read "Screens, gated by the per-poll
+roles of §3.7 — except 10, 11 and 12" — screen 3 among the nine gated per poll,
+contradicting R-2.1 directly.
+
+**What the code did.** `roll_import` and `roll_import_review` were
+`@require_poll_role(Role.POLL_ADMIN)`, reached from one poll's own menu at
+`scrutin/<poll_id>/liste-electorale/`. This was backwards on its own terms
+quite apart from R-2.1: `WorkingRollEntry` is commune-wide (§3.2), so an import
+started from one poll's back-office silently replaced what *every* poll still
+in `draft` would pick up at its opening — a poll submenu is exactly the wrong
+place to invite that confusion from, and a user of the back-office noticed the
+same thing from the UI side before this was traced to R-2.1.
+
+**Settled (2026-09-11).** The two screens moved to the general menu, gated by
+`require_commune_admin` like screens 10 and 12, at `liste-electorale/` and
+`liste-electorale/verification/` with no poll in the URL at all. A poll's own
+menu keeps a read-only entry, `roll_status` (`require_poll_role(POLL_ADMIN)`,
+`scrutin/<poll_id>/liste-electorale/`) — filename, row count, when it was
+imported and by whom, no form. §6.5's screen list and item 3 were corrected to
+match (screen 3 added to the commune-level exception, its description
+rewritten); `apps/elections/rollimport.py`'s module docstring, which had made
+the same "reached from one poll's back-office" claim, was corrected too.
+
 ## 12. Nothing ever called `open_poll` or `close_poll` by hand
 
 **Requirements, R-2.1.** The role table gives the *administrateur de scrutin*
@@ -439,88 +469,6 @@ one is opt-in, unlisted, and reachable only by a link the poll admin
 generates and hands out deliberately. The one objection from this entry that
 does carry over — a viewer sees content that can still change — is accepted
 there explicitly, and the page says so, rather than solved by freezing.
-
-## 11. Screen 3 (import de la liste électorale) was gated per poll
-
-**Requirements, R-2.1's role table.** "Commune administrator — Creates polls,
-assigns the roles specific to each poll, **imports the electoral roll**. This
-role does not of itself carry any access to ballots." The roll import is
-explicitly a commune administrator's action, not a poll administrator's.
-
-**Specification, §6.5.** The screen list read "Screens, gated by the per-poll
-roles of §3.7 — except 10, 11 and 12" — screen 3 among the nine gated per poll,
-contradicting R-2.1 directly.
-
-**What the code did.** `roll_import` and `roll_import_review` were
-`@require_poll_role(Role.POLL_ADMIN)`, reached from one poll's own menu at
-`scrutin/<poll_id>/liste-electorale/`. This was backwards on its own terms
-quite apart from R-2.1: `WorkingRollEntry` is commune-wide (§3.2), so an import
-started from one poll's back-office silently replaced what *every* poll still
-in `draft` would pick up at its opening — a poll submenu is exactly the wrong
-place to invite that confusion from, and a user of the back-office noticed the
-same thing from the UI side before this was traced to R-2.1.
-
-**Settled (2026-09-11).** The two screens moved to the general menu, gated by
-`require_commune_admin` like screens 10 and 12, at `liste-electorale/` and
-`liste-electorale/verification/` with no poll in the URL at all. A poll's own
-menu keeps a read-only entry, `roll_status` (`require_poll_role(POLL_ADMIN)`,
-`scrutin/<poll_id>/liste-electorale/`) — filename, row count, when it was
-imported and by whom, no form. §6.5's screen list and item 3 were corrected to
-match (screen 3 added to the commune-level exception, its description
-rewritten); `apps/elections/rollimport.py`'s module docstring, which had made
-the same "reached from one poll's back-office" claim, was corrected too.
-
-## 18. Option images and commune branding are not yet in the backup/restore playbook
-
-**Specification, §14 (Backups).** "Since §3.1 bis, the database alone no
-longer reconstructs every public page: `DJANGO_MEDIA_ROOT` (option images,
-R-3.12; the commune logo and favicon, §6.5.14) needs the same nightly
-coverage and the same off-host replication as the database snapshot."
-
-**What the code does.** `ansible/roles/polls/tasks/backup.yml` and
-`polls-backup.sh.j2` still snapshot only `db.sqlite3` — `VACUUM INTO`,
-integrity check, retention window, optional `rsync` to
-`polls_backup_replicate_to`. `provision.yml` creates
-`{{ polls_state_dir }}/media`, `polls.env.j2` points `DJANGO_MEDIA_ROOT` at it
-and nginx serves it, so uploads work end to end — but nothing backs the
-directory up, and `restore.yml` restores the database alone. A restore today
-brings back every poll's configuration, including `PollOption.details_i18n`
-text that references images by id, with the images themselves gone: a broken
-reference, not a wrong one, since rendering drops a reference to a missing
-`OptionImage` row rather than erroring (§3.1 bis) — but broken all the same.
-Screen 14's logo and favicon (`Commune.logo`/`.favicon`) land in the same
-directory and are lost the same way, except there the database row still
-names the missing file directly (`Commune.logo.name`), so a restore serves a
-broken `<img>`/`<link rel="icon">` rather than a dropped reference.
-
-**Why this is recorded rather than fixed here.** Pairing a media snapshot with
-a database snapshot correctly needs a decision this file shouldn't make
-silently: whether a restore should refuse when the two don't correspond (a
-media directory older or newer than the chosen `db-*.sqlite3`), or accept the
-mismatch and report it, and how `molecule/restore` should assert either
-choice. That is a real piece of design, not a one-line addition to
-`polls-backup.sh.j2`.
-
-**Not settled.** Until this is done, an adopting commune's disaster-recovery
-story has a gap: instructions to any operator following R-3.12 or §6.5.14 in
-the field should say so, and `restore.yml`'s final report should probably say
-so too, until the fix lands.
-
-**Settled (2026-09-17).** `polls-backup.sh.j2` now writes `media-<stamp>.tar.gz`
-beside `db-<stamp>.sqlite3` in the same run, sharing the timestamp — the
-correspondence question above resolves by construction, since the two are
-never produced independently: a `db-<stamp>.sqlite3` and its `media-<stamp>.tar.gz`
-either both exist (one backup run) or the media side is simply absent (a
-snapshot from before this change, or a directory an operator deleted by hand).
-`restore.yml` derives the media archive's path from whichever snapshot it is
-restoring and, finding no match, restores the database anyway and reports the
-gap rather than failing the whole restore — reported, not refused, per the
-open question above, on the view that a database back with a stale-but-present
-media directory beats no restore at all. Retention and off-host replication
-apply to both files unchanged, since `polls-backup.sh.j2`'s retention `find`
-now matches either pattern and `rsync` already mirrors the whole backup
-directory. `molecule/restore` asserts the round trip with a marker file under
-`media/`.
 
 ## 14. The public page read "open" off `state`, not the clock
 
@@ -696,6 +644,58 @@ the place for either. **Not settled**: the signed-form path still has no
 described layout, so nothing yet specifies where on that form its four
 elements — ranking, honour declaration, identity, traceability mention —
 must appear.
+
+## 18. Option images and commune branding are not yet in the backup/restore playbook
+
+**Specification, §14 (Backups).** "Since §3.1 bis, the database alone no
+longer reconstructs every public page: `DJANGO_MEDIA_ROOT` (option images,
+R-3.12; the commune logo and favicon, §6.5.14) needs the same nightly
+coverage and the same off-host replication as the database snapshot."
+
+**What the code does.** `ansible/roles/polls/tasks/backup.yml` and
+`polls-backup.sh.j2` still snapshot only `db.sqlite3` — `VACUUM INTO`,
+integrity check, retention window, optional `rsync` to
+`polls_backup_replicate_to`. `provision.yml` creates
+`{{ polls_state_dir }}/media`, `polls.env.j2` points `DJANGO_MEDIA_ROOT` at it
+and nginx serves it, so uploads work end to end — but nothing backs the
+directory up, and `restore.yml` restores the database alone. A restore today
+brings back every poll's configuration, including `PollOption.details_i18n`
+text that references images by id, with the images themselves gone: a broken
+reference, not a wrong one, since rendering drops a reference to a missing
+`OptionImage` row rather than erroring (§3.1 bis) — but broken all the same.
+Screen 14's logo and favicon (`Commune.logo`/`.favicon`) land in the same
+directory and are lost the same way, except there the database row still
+names the missing file directly (`Commune.logo.name`), so a restore serves a
+broken `<img>`/`<link rel="icon">` rather than a dropped reference.
+
+**Why this is recorded rather than fixed here.** Pairing a media snapshot with
+a database snapshot correctly needs a decision this file shouldn't make
+silently: whether a restore should refuse when the two don't correspond (a
+media directory older or newer than the chosen `db-*.sqlite3`), or accept the
+mismatch and report it, and how `molecule/restore` should assert either
+choice. That is a real piece of design, not a one-line addition to
+`polls-backup.sh.j2`.
+
+**Not settled.** Until this is done, an adopting commune's disaster-recovery
+story has a gap: instructions to any operator following R-3.12 or §6.5.14 in
+the field should say so, and `restore.yml`'s final report should probably say
+so too, until the fix lands.
+
+**Settled (2026-09-17).** `polls-backup.sh.j2` now writes `media-<stamp>.tar.gz`
+beside `db-<stamp>.sqlite3` in the same run, sharing the timestamp — the
+correspondence question above resolves by construction, since the two are
+never produced independently: a `db-<stamp>.sqlite3` and its `media-<stamp>.tar.gz`
+either both exist (one backup run) or the media side is simply absent (a
+snapshot from before this change, or a directory an operator deleted by hand).
+`restore.yml` derives the media archive's path from whichever snapshot it is
+restoring and, finding no match, restores the database anyway and reports the
+gap rather than failing the whole restore — reported, not refused, per the
+open question above, on the view that a database back with a stale-but-present
+media directory beats no restore at all. Retention and off-host replication
+apply to both files unchanged, since `polls-backup.sh.j2`'s retention `find`
+now matches either pattern and `rsync` already mirrors the whole backup
+directory. `molecule/restore` asserts the round trip with a marker file under
+`media/`.
 
 ## 19. `announced` became mandatory, reversing item 13's "optional waypoint"
 
