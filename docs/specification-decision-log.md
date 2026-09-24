@@ -1022,3 +1022,108 @@ offered: the address is what the elector declared, and INV-10 keys on it.
 
 **Settled (2026-09-23).** No requirements change. §6.5.4 states the screen, T-92
 covers it.
+
+## 29. A paper ballot keyed for an unconfirmed registration was not counted
+
+**Found in review.** An elector registers online and never opens the
+confirmation mail, then votes on paper at the mairie. Keying binds the paper
+channel to the registration already on their roll entry — the one registration
+INV-4 allows — which is still `pending_email`. Every participation figure read
+`state = active` only, so that live paper ballot was in the closure hash, the
+tally and the published list, and missing from `ballots_paper` and
+`registered`. The publication then showed six ballots beside counts adding up
+to five.
+
+**What the code does.** `registrations.models.PARTICIPATING` is the one
+definition the three readers share — `frozen_counts` (§9), the live figures of
+R-11.5 and screen 1: `active` rows, plus any non-rejected row carrying a vote.
+Screen 4's list of electors awaiting confirmation, and screen 1's count of
+them, leave such a row out: they have voted, there is nothing to chase.
+
+**Why not change the registration instead.** Moving it to `active` at keying
+would claim a mailbox proof that never happened (R-5.5), and the INV-2 trigger
+freezes `state` through the transcription window after `closes_at`, so it
+could not be done there anyway. Retiring it and creating a fresh paper
+registration would strand the elector's address: the retired row keeps it, and
+a later online registration after the paper ballot is deleted (R-9.4) would be
+refused as a reused address.
+
+**Open question.** R-5.5 says an unconfirmed registration "carries no ballot …
+and is not counted in participation figures"; T-27 repeats the second half.
+That holds for the online channel, which is what it was written for. A paper
+vote is cast in person against the roll entry and does not depend on the
+mailbox, so the code counts it. Whether R-5.5 should say so explicitly is for
+the requirements owner.
+
+## 30. An elector listed twice on the roll is flagged, not blocked
+
+**Found in review.** The import collapses rows sharing a normalised name and
+date of birth (R-4.6). One person listed under a birth name on one row and a
+name in use on another — or with a typo — stays two snapshot entries with two
+channel indicators, and nothing stopped an online vote on one and a paper
+ballot, or an approved second registration, on the other.
+
+**What the code does.** Screen 5 looks for other entries with the same parsed
+date of birth and a forename in common that already carry a vote
+(`backoffice.paper.voted_look_alikes`). If there are any, it shows them, and it
+records the ballot only once the operator ticks "identité confirmée avec
+l'électeur présent" — the R-8.3 procedure for entries the data cannot tell
+apart, which already writes `identity_confirmed_at_mairie` to the audit event.
+Screen 4 shows, for each entry offered for binding, whether it carries a
+registration and whether it has voted; a cleared paper shell (#27) is not
+shown as taken.
+
+**Why a warning and not a refusal.** Twins and namesakes born on the same day
+exist, and only the person at the counter can tell them apart (R-8.3). A
+refusal would turn a rare false alarm into a lost vote; the confirmation puts
+the judgement where R-8.3 puts it and leaves a trace. No requirements change.
+
+## 31. Uncountersigned paper entries are published as their own figure
+
+**Request.** When a poll admin closes past outstanding countersignatures
+(R-8.7 bis), the entries still awaiting one are left out of the tally, the hash
+and the ballot list — but their electors are on the paper channel, so
+`ballots_paper` counted them. The published counts then exceeded the ballot
+list, with only the override reason to explain it.
+
+**What the code does.** `frozen_counts` publishes `ballots_paper` as the paper
+ballots actually counted and adds `paper_uncountersigned`, the entries set
+aside. `ballots_online + ballots_paper` is the ballot count, and `registered =
+ballots_online + ballots_paper + paper_uncountersigned + non_voters`. Those
+electors are not non-voters: they voted, and their ballot was not validated.
+The figure is always present in a new publication (zero, usually), and shown on
+screens 1 and 9 and the public results page only when non-zero. Counts frozen
+before this change keep their stored shape and are not recomputed (T-58).
+
+**Why no INV-1 concern.** The new figure is a bare count of `pending_countersign`
+paper ballots. Each hangs off one paper-channel registration (INV-4, INV-5), so
+the paper count is a subtraction of two totals, never a join.
+
+**Settled (2026-09-24).** Spec §9 lists the figure. No requirements change:
+R-8.7 bis already requires that uncountersigned entries be neither counted nor
+dropped in silence.
+
+## 32. A corrected paper ballot is countersigned again
+
+**Found in review.** A correction (R-8.5) carried the previous version's
+countersignature over to the new one, which stayed live. On a poll requiring
+countersignature (R-8.7), one operator could therefore key a ballot, have it
+countersigned, then correct it to any ranking — counted, and shown as validated
+by a second operator who never saw that ranking. The before/after audit event
+was the only trace.
+
+**What the code does.** On such a poll, `correct_paper` writes the new version
+`pending_countersign`, with no countersignature, whatever the previous status.
+The corrector is the new version's operator, so `countersign` refuses them;
+another operator validates it on screen 7. The audit event records the status
+before and after. On a poll without countersignature nothing changes.
+
+**Consequence.** A correction shortly before `paper_entry_deadline` puts the
+ballot back in the queue, and closure is refused until it is countersigned or
+the poll admin overrides with a reason (R-8.7 bis) — in which case it is
+published as uncountersigned (#31). That is the intended cost: the requirement
+is that no entry counts without a second operator, and a correction is an
+entry.
+
+**Settled (2026-09-24).** No requirements change: this is R-8.7 applied to
+corrections.

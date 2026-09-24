@@ -3,8 +3,10 @@
 
 Two aggregates are read here, from different tables, and they are never joined:
 counts come from ``Registration``, the hash comes from ``Ballot`` (INV-1). They
-meet only as two integers in a dictionary, which is exactly the pair of
-irreconcilable lists an administrator is allowed to see (R-7.5).
+meet only as integers in a dictionary, which is exactly the pair of
+irreconcilable lists an administrator is allowed to see (R-7.5). The one count
+read from ``Ballot`` — paper entries left uncountersigned — is a bare total of
+rows, never a per-voter answer.
 """
 
 from __future__ import annotations
@@ -21,11 +23,11 @@ from django.utils.translation import gettext as _
 
 from apps.audit import services as audit
 from apps.audit.models import Action
-from apps.ballots.models import Ballot
+from apps.ballots.models import Ballot, BallotSource, BallotStatus
 from apps.core.canonical import CanonicalBallot, canonical_serialisation, closure_hash
 from apps.core.models import User
 from apps.core.types import OptionId, TrackingCode
-from apps.registrations.models import Channel, Registration, RegistrationState
+from apps.registrations.models import PARTICIPATING, Channel, Registration
 from apps.tally.methods import Method, TallyResult, tally
 from apps.tally.tiebreak import tiebreak_order
 
@@ -60,17 +62,33 @@ def frozen_counts(poll: Poll) -> dict[str, int]:
     Computed on entry to ``closed`` and stored, never derived at publication
     time: they read ``Registration``, which the retention job deletes, and a
     late publication must still produce them (T-58). ``pending_email``
-    registrations are excluded from turnout entirely (R-5.5, T-27).
+    registrations are excluded from turnout (R-5.5, T-27) unless a paper ballot
+    was keyed against one — ``PARTICIPATING`` says why.
+
+    ``ballots_paper`` is the paper ballots the tally counts. A closure that
+    overrode the countersignature guard (R-8.7 bis) leaves some entries
+    ``pending_countersign``: their electors are on the paper channel, but the
+    ballots are outside the live set, so they are published apart as
+    ``paper_uncountersigned`` rather than folded into a figure the ballot list
+    would contradict (decision log #31). Every such entry is a paper one, and
+    each hangs off exactly one paper-channel registration (INV-4, INV-5), so the
+    subtraction needs no join. The identity the figures satisfy:
+    ``registered = ballots_online + ballots_paper + paper_uncountersigned +
+    non_voters``, and ``ballots_online + ballots_paper`` is the ballot count.
     """
-    active = Registration.objects.filter(poll=poll, state=RegistrationState.ACTIVE)
+    active = Registration.objects.filter(PARTICIPATING, poll=poll)
     online = active.filter(channel=Channel.ONLINE).count()
-    paper = active.filter(channel=Channel.PAPER).count()
+    paper_channel = active.filter(channel=Channel.PAPER).count()
     registered = active.count()
+    uncountersigned = Ballot.objects.filter(
+        poll=poll, source=BallotSource.PAPER, status=BallotStatus.PENDING_COUNTERSIGN
+    ).count()
     return {
         "registered": registered,
         "ballots_online": online,
-        "ballots_paper": paper,
-        "non_voters": registered - online - paper,
+        "ballots_paper": paper_channel - uncountersigned,
+        "paper_uncountersigned": uncountersigned,
+        "non_voters": registered - online - paper_channel,
     }
 
 

@@ -182,6 +182,65 @@ def _keyed(poll: Poll, operator: User) -> Ballot:
     return services.enter_paper(poll, str(_entry(poll).pk), STRICT, str(operator.pk), "fr")
 
 
+def test_a_corrected_ballot_goes_back_to_countersignature(
+    paper_poll_countersign: Poll, operator: User, second_operator: User
+) -> None:
+    """R-8.7, decision log #32: the countersignature validated a ranking the
+    correction replaces, so the new version is pending again and nobody's
+    signature is carried over. The corrector cannot sign their own correction;
+    until a second operator does, the ballot is not counted."""
+    poll = paper_poll_countersign
+    keyed = services.enter_paper(poll, str(_entry(poll).pk), STRICT, str(operator.pk), "fr")
+    signed = services.countersign(keyed, str(second_operator.pk))
+    assert signed.status == BallotStatus.LIVE
+
+    corrected = services.correct_paper(
+        signed, [["c"], ["b"], ["a"]], str(operator.pk), Reason.KEYING_ERROR, ""
+    )
+    assert corrected.status == BallotStatus.PENDING_COUNTERSIGN
+    assert corrected.paper_link.countersigned_by is None
+    assert not Ballot.live.filter(poll=poll).exists()
+    event = AuditEvent.objects.get(poll=poll, action=Action.PAPER_BALLOT_CORRECTED)
+    assert (event.before["status"], event.after["status"]) == (
+        BallotStatus.LIVE,
+        BallotStatus.PENDING_COUNTERSIGN,
+    )
+
+    with pytest.raises(BallotRefused):
+        services.countersign(corrected, str(operator.pk))
+    revalidated = services.countersign(corrected, str(second_operator.pk))
+    assert revalidated.status == BallotStatus.LIVE
+    assert [b.ranking for b in Ballot.live.filter(poll=poll)] == [[["c"], ["b"], ["a"]]]
+
+
+def test_the_original_signer_cannot_sign_their_own_correction(
+    paper_poll_countersign: Poll, operator: User, second_operator: User
+) -> None:
+    """The second operator correcting what they countersigned is now the
+    version's operator; the keyer, a different person, may validate it."""
+    poll = paper_poll_countersign
+    keyed = services.enter_paper(poll, str(_entry(poll).pk), STRICT, str(operator.pk), "fr")
+    signed = services.countersign(keyed, str(second_operator.pk))
+    corrected = services.correct_paper(
+        signed, [["b"], ["a"], ["c"]], str(second_operator.pk), Reason.KEYING_ERROR, ""
+    )
+    with pytest.raises(BallotRefused):
+        services.countersign(corrected, str(second_operator.pk))
+    assert services.countersign(corrected, str(operator.pk)).status == BallotStatus.LIVE
+
+
+def test_a_correction_stays_live_where_no_countersignature_is_required(
+    open_paper_poll: Poll, operator: User
+) -> None:
+    keyed = services.enter_paper(
+        open_paper_poll, str(_entry(open_paper_poll).pk), STRICT, str(operator.pk), "fr"
+    )
+    corrected = services.correct_paper(
+        keyed, [["c"], ["b"], ["a"]], str(operator.pk), Reason.KEYING_ERROR, ""
+    )
+    assert corrected.status == BallotStatus.LIVE
+
+
 def test_correct_paper_supersedes_and_logs_before_after(
     open_paper_poll: Poll, operator: User
 ) -> None:
@@ -481,6 +540,20 @@ def test_cast_online_flips_the_channel_and_stores_a_ballot_hash(open_paper_poll:
         registration.declared_last_name,
         str(registration.voter_hash),
     }
+
+
+def test_cast_online_refuses_an_unconfirmed_registration(open_paper_poll: Poll) -> None:
+    """R-5.5: an unconfirmed registration permits no vote. The ballot view routes
+    the link away first; the service holds on its own, so no other caller can
+    cast from a ``pending_email`` row."""
+    registration_id, token = _voter(open_paper_poll)
+    Registration.objects.filter(pk=registration_id).update(
+        state=RegistrationState.PENDING_EMAIL, confirmed_at=None
+    )
+    with pytest.raises(BallotRefused):
+        services.cast_online(open_paper_poll, token, STRICT)
+    assert not Ballot.objects.filter(poll=open_paper_poll).exists()
+    assert Registration.objects.get(pk=registration_id).channel == Channel.NONE
 
 
 def test_a_spent_link_is_refused(open_paper_poll: Poll) -> None:

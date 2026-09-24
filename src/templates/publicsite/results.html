@@ -43,6 +43,10 @@
       <dt>{% translate "Inscrits" %}</dt><dd>{{ view.document.counts.registered }}</dd>
       <dt>{% translate "Votes en ligne" %}</dt><dd>{{ view.document.counts.ballots_online }}</dd>
       <dt>{% translate "Votes papier" %}</dt><dd>{{ view.document.counts.ballots_paper }}</dd>
+      {% if view.document.counts.paper_uncountersigned %}
+        {% comment %} R-8.7 bis: not counted, and not dropped in silence either. {% endcomment %}
+        <dt>{% translate "Bulletins papier non contresignés, non décomptés" %}</dt><dd>{{ view.document.counts.paper_uncountersigned }}</dd>
+      {% endif %}
       <dt>{% translate "N'ont pas voté" %}</dt><dd>{{ view.document.counts.non_voters }}</dd>
     </dl>
   </section>

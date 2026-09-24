@@ -1217,13 +1217,30 @@ def paper_entry(request: HttpRequest, poll: Poll) -> HttpResponse:
         # Dead end: no form, no way through. The online vote is final.
         return render(request, "backoffice/paper_entry.html", context)
 
+    # One person entered twice on the roll has two channel indicators; a vote on
+    # the other entry is only visible here (``paper.voted_look_alikes``).
+    look_alikes = paper.voted_look_alikes(poll, entry)
+    context["look_alikes"] = look_alikes
+
     submitting = request.POST.get("action") == "record"
     form = RankingForm(
         request.POST if submitting else None, poll=poll, language=request.LANGUAGE_CODE
     )
     context["form"] = form
+    identity_confirmed = bool(request.POST.get("identity_confirmed"))
 
-    if submitting and form.is_valid():
+    if submitting and look_alikes and not identity_confirmed:
+        # R-8.3: entries the record cannot tell apart are settled with the
+        # elector present, and the tick is what puts that in the audit log.
+        messages.error(
+            request,
+            _(
+                "Une entrée très proche de la liste a déjà voté. Vérifiez avec l'électeur "
+                "présent qu'il s'agit bien de deux personnes, puis cochez la confirmation "
+                "d'identité."
+            ),
+        )
+    elif submitting and form.is_valid():
         # §3.8: the receipt's language is the operator's own choice at entry,
         # not whatever locale their browsing session happens to be under —
         # `request.LANGUAGE_CODE` answers a different question (which
@@ -1241,7 +1258,7 @@ def paper_entry(request: HttpRequest, poll: Poll) -> HttpResponse:
                 form.cleaned_data["ranking"],
                 str(current_operator(request).pk),
                 receipt_language,
-                identity_confirmed=bool(request.POST.get("identity_confirmed")),
+                identity_confirmed=identity_confirmed,
                 note=request.POST.get("note", "").strip(),
             )
         except (BallotRefused, WindowClosed) as refused:
@@ -1328,7 +1345,12 @@ def paper_ballot(request: HttpRequest, poll: Poll, ballot_id: str) -> HttpRespon
                     new = ballots.correct_paper(
                         ballot, form.cleaned_data["ranking"], operator_id, reason, note
                     )
-                    messages.success(request, _("Bulletin rectifié."))
+                    messages.success(
+                        request,
+                        _("Bulletin rectifié ; il attend un nouveau contreseing.")
+                        if new.status == BallotStatus.PENDING_COUNTERSIGN
+                        else _("Bulletin rectifié."),
+                    )
                     return redirect(
                         "backoffice:paper_ballot", poll_id=str(poll.pk), ballot_id=str(new.pk)
                     )

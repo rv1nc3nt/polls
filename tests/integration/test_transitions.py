@@ -303,6 +303,7 @@ def test_frozen_counts_are_stored_at_closure_not_derived_later(
         "registered",
         "ballots_online",
         "ballots_paper",
+        "paper_uncountersigned",
         "non_voters",
     }
 

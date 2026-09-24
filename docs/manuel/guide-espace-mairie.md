@@ -525,6 +525,13 @@ directement à l'état actif — ou **refuse**. Les deux décisions exigent un
 **motif** et sont inscrites au journal. La personne est informée que son
 inscription est à l'étude.
 
+La colonne **Inscription existante** indique, pour chaque entrée proposée, si
+elle porte déjà une inscription et si cette personne a voté (en ligne ou sur
+papier). Une entrée déjà inscrite ne peut pas être choisie. Méfiez-vous aussi
+d'une entrée **voisine** marquée « a voté » : si la liste électorale compte la
+même personne deux fois, rattacher la demande à l'autre entrée lui permettrait
+de voter une seconde fois.
+
 > Deux décisions sont présentées côte à côte et distinguées par leur intitulé,
 > jamais par la couleur seule (RGAA).
 
@@ -606,6 +613,17 @@ s'applique.
      ![Interstitiel bloquant : l'électeur a déjà voté en ligne](captures/img/16b-mairie-bulletin-papier-collision.png)
 
    - **aucun** → on continue.
+
+   Une même personne peut figurer **deux fois** sur la liste électorale — sous
+   son nom de naissance sur une ligne et son nom d'usage sur une autre, ou avec
+   une faute de frappe. Chaque entrée a alors son propre canal de vote. Si une
+   autre entrée a la **même date de naissance** et **un prénom en commun**, et
+   qu'elle a déjà voté, l'écran l'affiche dans un encadré « Une entrée très
+   proche a déjà voté ». Vérifiez avec l'électeur présent qu'il s'agit bien de
+   deux personnes : le bulletin n'est enregistré qu'une fois la case
+   **« Identité confirmée avec l'électeur présent »** cochée, et le journal le
+   mentionne. S'il s'agit de la même personne, elle a déjà voté : n'enregistrez
+   rien.
 3. **Saisir le classement** selon les contraintes du scrutin.
 4. **Imprimer le reçu** portant le **code de suivi**, remis à l'électeur (page
    HTML avec feuille de style d'impression).
@@ -628,6 +646,12 @@ modifier leur vote : réparer une erreur de saisie n'est pas le même acte qu'un
 électeur qui change d'avis. La **suppression** efface l'indicateur de canal et
 **rouvre le vote en ligne** pour l'électeur concerné.
 
+Si le scrutin exige un contreseing, un bulletin corrigé **repasse en attente de
+contreseing**, même s'il avait déjà été contresigné : le second opérateur avait
+validé un classement qui n'existe plus. Il n'est plus compté tant qu'un autre
+opérateur que celui qui l'a corrigé ne l'a pas contresigné à nouveau (écran 7).
+Corriger peu avant l'échéance de saisie peut donc bloquer la clôture.
+
 **Figure 16d — Liste des bulletins papier saisis.**
 
 ![Liste des bulletins papier saisis](captures/img/16d-mairie-bulletins-papier-liste.png)
@@ -647,8 +671,9 @@ mauvaise mine quand on le découvre au lieu de l'annoncer.
 
 Présent **uniquement** si `paper_requires_countersign` est activé. File des
 saisies en attente d'un second opérateur nommé. Tant qu'une saisie attend, elle
-**n'est pas comptée**. Le contreseing est lui-même une écriture sur le bulletin
-et reste permis dans la même fenêtre que la saisie.
+**n'est pas comptée**. Une saisie corrigée y revient. Le contreseing est
+lui-même une écriture sur le bulletin et reste permis dans la même fenêtre que
+la saisie.
 
 ## 8. Clôture et publication (écran 9)
 
@@ -669,7 +694,9 @@ La clôture est **refusée** tant qu'une saisie attend un contreseing. L'adminis
 du scrutin soit obtient les contreseings, soit **passe outre avec un motif
 obligatoire**, qui est enregistré et **apparaît dans la publication**. Les
 saisies non contresignées ne sont pas comptées, et l'abandon silencieux de
-bulletins à la clôture n'est pas permis.
+bulletins à la clôture n'est pas permis : la publication indique leur nombre à
+part (« Bulletins papier non contresignés, non décomptés »), distinct des votes
+papier, qui correspondent exactement aux bulletins publiés.
 
 ### Rapprochement des bulletins papier
 

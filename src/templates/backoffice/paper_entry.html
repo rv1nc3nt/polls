@@ -47,6 +47,24 @@
           {% endif %}
         </div>
       {% else %}
+      {% if look_alikes %}
+        {% comment %} One person entered twice on the roll has two channel
+           indicators, and nothing on this entry shows a vote cast on the other.
+           R-8.3: the operator settles it with the elector present; the view
+           refuses to record until the identity box below is ticked. {% endcomment %}
+        <div class="collision" role="alert">
+          <p class="collision__title">{% translate "Une entrée très proche a déjà voté" %}</p>
+          <p>{% translate "Même date de naissance et un prénom en commun. S'il s'agit de la même personne inscrite deux fois sur la liste, elle a déjà voté et ne doit pas voter à nouveau." %}</p>
+          <ul>
+            {% for other in look_alikes %}
+              <li>
+                {{ other.entry.birth_name }}{% if other.entry.usual_name %} ({{ other.entry.usual_name }}){% endif %} {{ other.entry.first_names }}, {{ other.entry.date_of_birth }} —
+                {% if other.channel == "online" %}{% translate "a voté en ligne" %}{% else %}{% translate "a un bulletin papier" %}{% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
       <form method="post" class="paper-form">
         {% csrf_token %}
         <input type="hidden" name="roll_entry" value="{{ entry.pk }}">

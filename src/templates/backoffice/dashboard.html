@@ -80,6 +80,9 @@
       <div><dt>{% translate "Inscriptions" %}</dt><dd>{{ participation.registered }}</dd></div>
       <div><dt>{% translate "Votes en ligne" %}</dt><dd>{{ participation.voted_online }}</dd></div>
       <div><dt>{% translate "Votes papier" %}</dt><dd>{{ participation.voted_paper }}</dd></div>
+      {% if participation.paper_uncountersigned %}
+        <div><dt>{% translate "Bulletins papier non contresignés, non décomptés" %}</dt><dd>{{ participation.paper_uncountersigned }}</dd></div>
+      {% endif %}
       <div><dt>{% translate "N'ont pas voté" %}</dt><dd>{{ participation.not_voted }}</dd></div>
       {% if participation.pending_review is not None %}
         <div>

@@ -57,3 +57,19 @@ def test_the_english_catalogue_has_no_empty_translations() -> None:
         msgid for msgid, _fuzzy, is_empty, is_header in _entries() if is_empty and not is_header
     ]
     assert empty == [], f"{len(empty)} untranslated entries, e.g. {empty[:5]!r}"
+
+
+def test_the_english_catalogue_has_no_duplicate_msgids() -> None:
+    """``msgfmt`` refuses a catalogue defining one ``msgid`` twice, and so does
+    the deploy's ``compilemessages`` — but only CI and the server have gettext.
+    A hand-appended entry that already existed elsewhere in the file broke both
+    while every local gate stayed green; this catches it without gettext."""
+    seen: set[str] = set()
+    dupes = []
+    for msgid, _fuzzy, _empty, is_header in _entries():
+        if is_header:
+            continue
+        if msgid in seen:
+            dupes.append(msgid)
+        seen.add(msgid)
+    assert dupes == [], f"duplicate msgids: {dupes!r}"

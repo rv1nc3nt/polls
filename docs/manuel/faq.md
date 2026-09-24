@@ -208,7 +208,9 @@ avant/après au journal.
 Soit vous obtenez les contreseings (écran 7), soit l'administrateur du scrutin
 **passe outre avec un motif obligatoire**, qui est enregistré et **apparaît dans
 la publication**. Les bulletins non contresignés ne sont pas comptés ; on
-n'abandonne pas de bulletins en silence.
+n'abandonne pas de bulletins en silence : leur nombre est publié à part, sous
+« Bulletins papier non contresignés, non décomptés », et n'entre pas dans les
+votes papier.
 
 ### La clôture est refusée : « rapprochement des bulletins papier non enregistré ».
 Le scrutin exige le **rapprochement formel** : comptez les

@@ -26,7 +26,7 @@ from apps.elections.closure import frozen_counts
 from apps.elections.models import Poll, PollState
 from apps.elections.transitions import announcing_blockers, closing_blockers, opening_blockers
 from apps.elections.windows import online_voting_closed
-from apps.registrations.models import Channel, Registration, RegistrationState
+from apps.registrations.models import PARTICIPATING, Channel, Registration, RegistrationState
 
 
 @dataclass(frozen=True)
@@ -45,6 +45,10 @@ class Participation:
     voted_online: int
     voted_paper: int
     not_voted: int
+    #: At closure only: paper entries a countersignature override left out of
+    #: the tally (R-8.7 bis, decision log #31). Zero while the poll is open,
+    #: where a pending entry may yet be countersigned and counts as a vote.
+    paper_uncountersigned: int = 0
     #: Unavailable on a closed poll: §9 freezes turnout, not the review queue.
     pending_review: int | None = None
     pending_email: int | None = None
@@ -61,24 +65,29 @@ def participation(poll: Poll) -> Participation:
             registered=counts.get("registered", 0),
             voted_online=counts.get("ballots_online", 0),
             voted_paper=counts.get("ballots_paper", 0),
+            paper_uncountersigned=counts.get("paper_uncountersigned", 0),
             not_voted=counts.get("non_voters", 0),
         )
 
     # One aggregate query with conditional counts rather than several sequential
     # ones against the same table — this is the screen operators keep open
     # and reload continuously while a poll is live.
-    active = Q(state=RegistrationState.ACTIVE)
-    # "Registered" is the ``active`` rows, as in ``frozen_counts``, so the figure does
-    # not jump at closure: ``pending_email`` and ``pending_review`` cannot vote yet
-    # (R-5.5) and a ``rejected`` row — an ineligible applicant, or the shell a
-    # deleted paper ballot leaves once an approval takes its entry over (decision
-    # log #27) — is no registration in force.
+    active = PARTICIPATING
+    # "Registered" is the ``PARTICIPATING`` rows, as in ``frozen_counts``, so the
+    # figure does not jump at closure: ``pending_email`` and ``pending_review``
+    # cannot vote online yet (R-5.5) and a ``rejected`` row — an ineligible
+    # applicant, or the shell a deleted paper ballot leaves once an approval takes
+    # its entry over (decision log #27) — is no registration in force. A
+    # ``pending_email`` row keyed on paper has voted, so it counts there and not
+    # as still awaiting confirmation (decision log #29).
     counts = Registration.objects.filter(poll=poll).aggregate(
         registered=Count("pk", filter=active),
         voted_online=Count("pk", filter=active & Q(channel=Channel.ONLINE)),
         voted_paper=Count("pk", filter=active & Q(channel=Channel.PAPER)),
         pending_review=Count("pk", filter=Q(state=RegistrationState.PENDING_REVIEW)),
-        pending_email=Count("pk", filter=Q(state=RegistrationState.PENDING_EMAIL)),
+        pending_email=Count(
+            "pk", filter=Q(state=RegistrationState.PENDING_EMAIL, channel=Channel.NONE)
+        ),
     )
     return Participation(
         as_at_closure=False,

@@ -17,12 +17,14 @@ forename — turns the decision into a comparison.
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from apps.audit.models import Reason
 from apps.core.names import name_tokens, parse_dob, surname_matches
 from apps.elections.models import Poll, RollEntry
-from apps.registrations.models import Registration, RegistrationState
+from apps.registrations.models import Channel, Registration, RegistrationState
+
+from . import paper
 
 #: The reason codes that mean something on *this* screen (§10). The full
 #: vocabulary spans the paper-ballot screens too, and offering an agent
@@ -62,6 +64,11 @@ class NearMatch:
     same_surname: bool
     shared_first_names: int
     date_uncertain: bool
+    #: The channel of the registration already bound to this entry (R-9.1), or
+    #: ``None`` where it carries none. Approval onto a bound entry is refused
+    #: anyway (R-5.9); what this adds is the vote on a look-alike entry — the
+    #: applicant's own, if the roll lists them twice (``paper.voted_look_alikes``).
+    channel: str | None = None
 
 
 def pending(poll: Poll) -> list[Registration]:
@@ -75,11 +82,13 @@ def pending(poll: Poll) -> list[Registration]:
 
 def awaiting_confirmation(poll: Poll) -> list[Registration]:
     """Electors matched but not yet confirmed (R-5.5), oldest first: the ones an
-    agent can chase — most often a confirmation mail that never arrived."""
+    agent can chase — most often a confirmation mail that never arrived. Not one
+    keyed on paper meanwhile: they have voted, and there is nothing to chase
+    (``docs/specification-decision-log.md`` #29)."""
     return list(
-        Registration.objects.filter(poll=poll, state=RegistrationState.PENDING_EMAIL).order_by(
-            "created_at"
-        )
+        Registration.objects.filter(
+            poll=poll, state=RegistrationState.PENDING_EMAIL, channel=Channel.NONE
+        ).order_by("created_at")
     )
 
 
@@ -136,4 +145,6 @@ def near_matches(
         key=lambda m: (m.same_dob, m.same_surname, m.shared_first_names),
         reverse=True,
     )
-    return scored[:NEAR_MATCH_LIMIT]
+    shown = scored[:NEAR_MATCH_LIMIT]
+    channels = paper.channels_by_entry(registration.poll, [m.entry for m in shown])
+    return [replace(m, channel=channels.get(m.entry.pk)) for m in shown]

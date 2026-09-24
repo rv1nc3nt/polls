@@ -33,7 +33,7 @@ from apps.audit.models import Action, AuditEvent, Reason
 from apps.core import manual
 from apps.elections import closure, results_view, richtext, sandbox, windows
 from apps.elections.models import Poll, PollState
-from apps.registrations.models import Channel, Registration, RegistrationState
+from apps.registrations.models import PARTICIPATING, Channel, Registration
 
 #: The manual documents served publicly (docs/manuel/README.md's own table):
 #: the voter's guide, the independent-verifier walkthrough and the tally
@@ -270,7 +270,7 @@ def _live_participation(poll: Poll) -> dict[str, int] | None:
         and not windows.online_voting_closed(poll)
     ):
         return None
-    active = Registration.objects.filter(poll=poll, state=RegistrationState.ACTIVE)
+    active = Registration.objects.filter(PARTICIPATING, poll=poll)
     online = active.filter(channel=Channel.ONLINE).count()
     paper = active.filter(channel=Channel.PAPER).count()
     confirmed = active.count()

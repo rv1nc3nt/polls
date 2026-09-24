@@ -810,3 +810,83 @@ def test_t75_a_withdrawn_poll_shows_only_a_fixed_notice(client: Client, db: None
         if fmt:
             url += f"?format={fmt}"
         assert client.get(url).status_code == 404
+
+
+def test_uncountersigned_paper_ballots_are_published_apart_from_the_counted_ones(
+    db: None,
+) -> None:
+    """R-8.7 bis, decision log #31: a closure that overrides the countersignature
+    guard leaves those entries out of the tally, and the published figures say
+    so — ``ballots_paper`` matches the ballot list, and the entries set aside
+    appear as their own figure instead of vanishing or inflating it."""
+    from apps.ballots import services as ballots
+    from apps.registrations import services as registrations
+
+    for name, dob in (("Dupont", "1970"), ("Martin", "1971"), ("Petit", "1972"), ("Roux", "1973")):
+        WorkingRollEntry.objects.create(
+            birth_name=name,
+            first_names="Claire",
+            date_of_birth=f"01/01/{dob}",
+            date_of_birth_parsed=f"{dob}-01-01",
+            list_types=["principale"],
+        )
+    now = timezone.now()
+    poll = Poll.objects.create(
+        title_i18n={"fr": "Contreseing"},
+        description_i18n={"fr": "Trois propositions."},
+        languages=["fr"],
+        opens_at=now - timedelta(days=1),
+        closes_at=now + timedelta(days=1),
+        paper_entry_deadline=now + timedelta(days=1),
+        paper_requires_countersign=True,
+    )
+    for position, option_id in enumerate(["a", "b", "c"]):
+        PollOption.objects.create(
+            poll=poll, option_id=option_id, label_i18n={"fr": option_id.upper()}, position=position
+        )
+    poll = force_open(poll)
+    keyer = User.objects.create_user(username="k", password="x", full_name="K")
+    signer = User.objects.create_user(username="s", password="x", full_name="S")
+    entries = {e.birth_name: e for e in poll.roll_entries.all()}
+
+    registration, token = registrations.register(
+        poll,
+        {
+            "last_name": "Dupont",
+            "first_names": "Claire",
+            "date_of_birth": "01/01/1970",
+            "email": "claire@example.fr",
+            "declared_on_honour": "on",
+        },
+        language="fr",
+    )
+    assert token is not None
+    registrations.confirm_mailbox(registration)
+    ballots.cast_online(poll, token, [["a"], ["b"], ["c"]])
+    signed = ballots.enter_paper(
+        poll, str(entries["Martin"].pk), [["b"], ["a"], ["c"]], str(keyer.pk), "fr"
+    )
+    ballots.countersign(signed, str(signer.pk))
+    ballots.enter_paper(poll, str(entries["Petit"].pk), [["c"], ["b"], ["a"]], str(keyer.pk), "fr")
+
+    closed = close_poll(poll, override_reason=Reason.COUNTERSIGN_UNAVAILABLE)
+    publish_poll(closed, signer)
+
+    document = Client().get(f"/fr/scrutin/{poll.pk}/resultats/?format=json").json()
+    counts = document["counts"]
+    assert counts == {
+        "registered": 3,
+        "ballots_online": 1,
+        "ballots_paper": 1,
+        "paper_uncountersigned": 1,
+        "non_voters": 0,
+    }
+    assert document["ballot_count"] == counts["ballots_online"] + counts["ballots_paper"]
+    assert counts["registered"] == (
+        counts["ballots_online"]
+        + counts["ballots_paper"]
+        + counts["paper_uncountersigned"]
+        + counts["non_voters"]
+    )
+    page = Client().get(f"/fr/scrutin/{poll.pk}/resultats/").content.decode()
+    assert "Bulletins papier non contresignés, non décomptés" in page
