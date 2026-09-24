@@ -5,11 +5,14 @@ The commune record (§6.5.11) carries the identity the public notices must show:
 the data controller (R-13.1) and the data-protection referent (R-13.2). It is
 ``None`` until the first-run wizard has created it, and every template that
 uses it falls back to a generic label so a not-yet-installed instance still
-renders.
+renders. Beside it, the software's own licence and source link, for the footer.
 """
 
 from __future__ import annotations
 
+from urllib.parse import urlsplit
+
+from django.conf import settings
 from django.http import HttpRequest
 
 from .models import Commune
@@ -21,3 +24,14 @@ def commune(request: HttpRequest) -> dict[str, Commune | None]:
     Registered in ``settings.TEMPLATES``' context processors.
     """
     return {"commune": Commune.current()}
+
+
+def software(request: HttpRequest) -> dict[str, str | bool]:
+    """The source-code link every footer carries, and whether it is on GitHub,
+    so a fork hosted elsewhere is not labelled with GitHub's name and mark.
+
+    Registered in ``settings.TEMPLATES``' context processors.
+    """
+    url = settings.SOURCE_CODE_URL
+    host = (urlsplit(url).hostname or "").lower()
+    return {"source_code_url": url, "source_code_on_github": host == "github.com"}

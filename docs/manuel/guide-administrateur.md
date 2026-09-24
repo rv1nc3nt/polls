@@ -162,6 +162,7 @@ utilisées :
 | `polls_python_version` | `3.13` | `uv` gère son propre interpréteur sous le préfixe. |
 | `polls_bind` | `127.0.0.1:8000` | adresse d'écoute de gunicorn (derrière nginx). |
 | `polls_gunicorn_workers` | `3` | |
+| `polls_source_code_url` | dépôt du projet sur GitHub | adresse du lien « Code source » en pied de chaque page, à côté de la mention de la licence 0BSD ; à changer pour pointer vers votre propre dépôt si vous exploitez une version modifiée. Hors de GitHub, le lien s'affiche sans le logo GitHub. |
 | `polls_trusted_proxy_hops` | `1` | nombre de relais devant gunicorn : `1` pour le seul nginx du rôle, `2` si TLS est terminé par un autre relais placé devant (section 11). |
 
 ## 5. Première mise en service applicative

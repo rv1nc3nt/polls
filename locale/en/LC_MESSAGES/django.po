@@ -5353,6 +5353,18 @@ msgstr ""
 msgid "Aucune démarche supplémentaire n'est nécessaire de votre part."
 msgstr "Nothing further is required of you."
 
+#: src/templates/base.html:172
+msgid "Logiciel libre sous licence"
+msgstr "Free software, licensed under"
+
+#: src/templates/base.html:173
+msgid "Code source sur GitHub"
+msgstr "Source code on GitHub"
+
+#: src/templates/base.html:173
+msgid "Code source"
+msgstr "Source code"
+
 #~ msgid ""
 #~ "Les réponses aux questions les plus courantes sur cette plateforme de "
 #~ "consultation citoyenne."

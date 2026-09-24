@@ -62,6 +62,8 @@ TEMPLATES = [
                 "django.template.context_processors.i18n",
                 # The commune record (§6.5.11) for the R-1.4 / R-13.2 notices.
                 "apps.core.context.commune",
+                # The licence and source-code link in every page's footer.
+                "apps.core.context.software",
             ],
         },
     },
@@ -202,6 +204,10 @@ LOGGING = {
 
 # Application version, reported by GET /sante (§14).
 APP_VERSION = os.environ.get("APP_VERSION", "0.1.0-dev")
+# Where the footer's "code source" link points (apps.core.context.software).
+# The upstream repository by default; a commune running its own fork may point
+# it there. A github.com address gets the GitHub mark, anything else plain text.
+SOURCE_CODE_URL = os.environ.get("DJANGO_SOURCE_CODE_URL", "https://github.com/rv1nc3nt/polls")
 
 # Directory holding job lock files (§14, self-locking commands).
 JOB_LOCK_DIR = Path(os.environ.get("DJANGO_JOB_LOCK_DIR", BASE_DIR / "var" / "locks"))
