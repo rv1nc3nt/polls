@@ -48,17 +48,24 @@ class Limit:
 def client_digest(request: HttpRequest) -> str:
     """A stable, non-reversible handle for the caller.
 
-    ``X-Forwarded-For``'s first entry is the client where nginx sets it (§14);
-    trusting it unconditionally would let anyone forge the header and evade the
-    limit, so it is read only when the proxy header configuration says there is
-    a proxy in front. Salted with ``SECRET_KEY`` so the digest is meaningless
-    outside this instance (R-13.5).
+    Behind the proxy (``SECURE_PROXY_SSL_HEADER`` set), the address is read from
+    ``X-Forwarded-For`` counting from the **right**: nginx *appends* the address
+    it saw (``$proxy_add_x_forwarded_for``, §14), so everything left of that is
+    whatever the client chose to send. With ``TRUSTED_PROXY_HOPS`` proxies in
+    front, each appending, the entry that many places from the end is the
+    first one no client could write. Reading the first entry instead let any
+    client evade the limit, or fill someone else's (review note M3). Salted
+    with ``SECRET_KEY`` so the digest is meaningless outside this instance
+    (R-13.5).
     """
     address = request.META.get("REMOTE_ADDR", "")
     if getattr(settings, "SECURE_PROXY_SSL_HEADER", None):
-        forwarded = request.META.get("HTTP_X_FORWARDED_FOR", "")
-        if forwarded:
-            address = forwarded.split(",")[0].strip()
+        entries = [
+            e.strip() for e in request.META.get("HTTP_X_FORWARDED_FOR", "").split(",") if e.strip()
+        ]
+        if entries:
+            hops = max(1, settings.TRUSTED_PROXY_HOPS)
+            address = entries[max(0, len(entries) - hops)]
     salted = f"{settings.SECRET_KEY}:{address}".encode()
     return hashlib.sha256(salted).hexdigest()[:32]
 

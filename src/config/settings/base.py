@@ -175,6 +175,11 @@ CACHES = {
 # numbers, and neither should have to edit the source to get them.
 RATE_LIMIT_REGISTRATION = os.environ.get("DJANGO_RATE_LIMIT_REGISTRATION", "5/1h")
 RATE_LIMIT_EMAIL = os.environ.get("DJANGO_RATE_LIMIT_EMAIL", "3/1h")
+# How many proxies append to X-Forwarded-For in front of gunicorn: 1 for the
+# nginx of §14 alone. One too few and the limiter keys on a proxy, so every
+# caller shares one bucket; one too many and a client can forge its address
+# (apps.core.ratelimit.client_digest).
+TRUSTED_PROXY_HOPS = int(os.environ.get("DJANGO_TRUSTED_PROXY_HOPS", "1"))
 
 LOGGING = {
     "version": 1,

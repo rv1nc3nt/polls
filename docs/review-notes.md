@@ -62,7 +62,13 @@ dashboard and by `/sante`. The analysis below is kept as found.
   say plainly in the manual and in the CLI/GUI output that the winner check
   applies to Schulze polls only.
 
-### M3. The rate limiter trusts a client-controlled `X-Forwarded-For` entry
+### M3. The rate limiter trusts a client-controlled `X-Forwarded-For` entry — resolved
+
+**Resolved:** `client_digest` now counts from the right of the header,
+`TRUSTED_PROXY_HOPS` entries from the end (default 1, this role's nginx;
+`polls_trusted_proxy_hops` in Ansible), so the key is an address a trusted
+proxy wrote. `tests/unit/test_ratelimit.py` covers forged leading entries and a
+second proxy. The analysis below is kept as found.
 
 * **Where:** `src/apps/core/ratelimit.py`, `client_digest`;
   `ansible/roles/polls/templates/nginx-vhost.conf.j2:89,102`.
@@ -136,4 +142,5 @@ commits. They are listed so a reviewer can check the new wording.
   stated in the threat model and the data-protection notice?
 * **Deployment of M3.** Is the production nginx the only proxy in front, or is
   there another hop that would change which `X-Forwarded-For` entry is
-  trustworthy?
+  trustworthy? *Answered by configuration:* `polls_trusted_proxy_hops`, documented
+  in the instance administrator's guide.
