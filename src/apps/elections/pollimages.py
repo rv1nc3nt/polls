@@ -10,6 +10,8 @@ an operator can act on, before anything is read into memory.
 
 from __future__ import annotations
 
+from functools import partial
+
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import UploadedFile
 from django.db import transaction
@@ -102,7 +104,9 @@ def remove_poll_image(image: PollImage, *, actor: User) -> None:
     file_name = image.file.name
     image.delete()
     if file_name:
-        image.file.storage.delete(file_name)
+        # After commit, as ``sandbox.delete_poll`` does: a rollback must not
+        # leave the restored row naming a deleted file (review note L1).
+        transaction.on_commit(partial(image.file.storage.delete, file_name))
     audit.record(
         action=Action.POLL_IMAGE_REMOVED,
         poll=poll,

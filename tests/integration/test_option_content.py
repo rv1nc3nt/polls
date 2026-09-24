@@ -6,8 +6,13 @@ and the screen-2 write path and views built on both.
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from contextlib import AbstractContextManager
+from typing import Any
+
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import transaction
 from django.test import Client
 
 from apps.audit.models import Action, AuditEvent
@@ -15,6 +20,8 @@ from apps.core.models import PollRole, Role, User
 from apps.elections import config, pollimages, richtext
 from apps.elections.models import Poll, PollImage
 from tests.conftest import force_open
+
+CaptureOnCommit = Callable[..., AbstractContextManager[list[Any]]]
 
 _PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 32
 _OTHER_PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 33
@@ -378,7 +385,7 @@ def test_add_and_remove_poll_image_refused_outside_draft(
 
 
 def test_remove_poll_image_deletes_the_row_and_the_file(
-    open_window_poll: Poll, admin_user: User
+    open_window_poll: Poll, admin_user: User, django_capture_on_commit_callbacks: CaptureOnCommit
 ) -> None:
     image = pollimages.add_poll_image(
         open_window_poll, SimpleUploadedFile("a.png", _PNG), alt_text="", actor=admin_user
@@ -388,11 +395,33 @@ def test_remove_poll_image_deletes_the_row_and_the_file(
     assert file_name is not None
     assert stored.storage.exists(file_name)
 
-    pollimages.remove_poll_image(image, actor=admin_user)
+    with django_capture_on_commit_callbacks(execute=True):
+        pollimages.remove_poll_image(image, actor=admin_user)
 
     assert not PollImage.objects.filter(pk=image.pk).exists()
     assert not stored.storage.exists(file_name)
     assert AuditEvent.objects.filter(action=Action.POLL_IMAGE_REMOVED).exists()
+
+
+def test_a_rolled_back_removal_keeps_the_file(open_window_poll: Poll, admin_user: User) -> None:
+    """Review note L1: the file goes only once the row's deletion commits, so
+    a rollback cannot leave a restored row naming a file that is gone."""
+    image = pollimages.add_poll_image(
+        open_window_poll, SimpleUploadedFile("a.png", _PNG), alt_text="", actor=admin_user
+    )
+    image_pk = image.pk
+    file_name = image.file.name
+    assert file_name is not None
+
+    class Abort(Exception):
+        pass
+
+    with pytest.raises(Abort), transaction.atomic():
+        pollimages.remove_poll_image(image, actor=admin_user)
+        raise Abort
+
+    assert PollImage.objects.filter(pk=image_pk).exists()
+    assert image.file.storage.exists(file_name)
 
 
 # --- screen 2's write path (apps.elections.config) --------------------------

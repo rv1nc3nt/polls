@@ -26,6 +26,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from functools import partial
 
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import UploadedFile
@@ -132,7 +133,10 @@ def _set_branding(
     getattr(commune, field).save(digest, ContentFile(data), save=False)
     commune.save()
     if old_name and old_name != getattr(commune, field).name:
-        getattr(commune, field).storage.delete(old_name)
+        # After commit, not now: a rollback would otherwise restore a row
+        # naming a file already gone (review note L1).
+        storage = getattr(commune, field).storage
+        transaction.on_commit(partial(storage.delete, old_name))
 
     audit.record(
         action=Action.COMMUNE_BRANDING_CHANGED,
@@ -150,7 +154,7 @@ def _remove_branding(commune: Commune, *, field: str, actor: User) -> Commune:
     old_name = getattr(commune, field).name
     if not old_name:
         return commune
-    getattr(commune, field).storage.delete(old_name)
+    transaction.on_commit(partial(getattr(commune, field).storage.delete, old_name))
     setattr(commune, field, "")
     setattr(commune, f"{field}_content_type", "")
     setattr(commune, f"{field}_content_hash", "")

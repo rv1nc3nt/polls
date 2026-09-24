@@ -12,12 +12,18 @@ half.
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from contextlib import AbstractContextManager
+from typing import Any
+
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client
 
 from apps.audit.models import Action, AuditEvent
 from apps.core.models import Commune, User
+
+CaptureOnCommit = Callable[..., AbstractContextManager[list[Any]]]
 
 SETTINGS_URL = "/fr/mairie/commune/"
 LOGO_URL = "/fr/mairie/commune/logo/"
@@ -234,7 +240,9 @@ def test_an_svg_is_refused_despite_the_declared_content_type(
     assert not commune.logo
 
 
-def test_replacing_a_logo_deletes_the_previous_file(admin_client: Client, commune: Commune) -> None:
+def test_replacing_a_logo_deletes_the_previous_file(
+    admin_client: Client, commune: Commune, django_capture_on_commit_callbacks: CaptureOnCommit
+) -> None:
     first = SimpleUploadedFile("a.png", PNG_BYTES, content_type="image/png")
     admin_client.post(LOGO_URL, {"logo": first})
     commune.refresh_from_db()
@@ -243,14 +251,15 @@ def test_replacing_a_logo_deletes_the_previous_file(admin_client: Client, commun
     assert old_name is not None
 
     second = SimpleUploadedFile("b.png", PNG_BYTES + b"\x01", content_type="image/png")
-    admin_client.post(LOGO_URL, {"logo": second})
+    with django_capture_on_commit_callbacks(execute=True):
+        admin_client.post(LOGO_URL, {"logo": second})
     commune.refresh_from_db()
     assert commune.logo.name != old_name
     assert not storage.exists(old_name)
 
 
 def test_removing_a_logo_deletes_the_file_and_clears_the_field(
-    admin_client: Client, commune: Commune
+    admin_client: Client, commune: Commune, django_capture_on_commit_callbacks: CaptureOnCommit
 ) -> None:
     upload = SimpleUploadedFile("logo.png", PNG_BYTES, content_type="image/png")
     admin_client.post(LOGO_URL, {"logo": upload})
@@ -259,7 +268,8 @@ def test_removing_a_logo_deletes_the_file_and_clears_the_field(
     name = commune.logo.name
     assert name is not None
 
-    response = admin_client.post(LOGO_REMOVE_URL, follow=True)
+    with django_capture_on_commit_callbacks(execute=True):
+        response = admin_client.post(LOGO_REMOVE_URL, follow=True)
     assert any("Logo supprimé" in m for m in _messages(response))
     commune.refresh_from_db()
     assert not commune.logo
@@ -334,7 +344,7 @@ def test_an_oversized_dark_logo_is_refused(admin_client: Client, commune: Commun
 
 
 def test_removing_a_dark_logo_deletes_the_file_and_clears_the_field(
-    admin_client: Client, commune: Commune
+    admin_client: Client, commune: Commune, django_capture_on_commit_callbacks: CaptureOnCommit
 ) -> None:
     upload = SimpleUploadedFile("logo-dark.png", PNG_BYTES, content_type="image/png")
     admin_client.post(LOGO_DARK_URL, {"logo_dark": upload})
@@ -343,7 +353,8 @@ def test_removing_a_dark_logo_deletes_the_file_and_clears_the_field(
     name = commune.logo_dark.name
     assert name is not None
 
-    response = admin_client.post(LOGO_DARK_REMOVE_URL, follow=True)
+    with django_capture_on_commit_callbacks(execute=True):
+        response = admin_client.post(LOGO_DARK_REMOVE_URL, follow=True)
     assert any("Logo (thème sombre) supprimé" in m for m in _messages(response))
     commune.refresh_from_db()
     assert not commune.logo_dark
