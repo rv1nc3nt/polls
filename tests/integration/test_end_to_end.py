@@ -312,8 +312,18 @@ def test_a_poll_from_roll_import_to_independent_re_tally(
     op2.login("agent2")
 
     # --- Screen 2: announce, then open by hand ahead of opens_at ------------
-    assert admin.submit(f"{base}/configuration/", {"action": "announce_poll"}).status_code == 302
-    assert admin.submit(f"{base}/configuration/", {"action": "open_poll"}).status_code == 302
+    assert (
+        admin.submit(
+            f"{base}/configuration/", {"confirmed": "1", "action": "announce_poll"}
+        ).status_code
+        == 302
+    )
+    assert (
+        admin.submit(
+            f"{base}/configuration/", {"confirmed": "1", "action": "open_poll"}
+        ).status_code
+        == 302
+    )
     poll.refresh_from_db()
     assert poll.state == PollState.OPEN
     assert poll.roll_entries.count() == 7
@@ -452,9 +462,9 @@ def test_a_poll_from_roll_import_to_independent_re_tally(
     assert bernard.browser.get(bernard.access)["Location"].endswith("/info/indisponible/")
 
     # Closing before the transcription deadline is refused (T-68).
-    assert admin.client.post(f"{base}/configuration/", {"action": "close_poll"}).status_code in (
-        403,
-    )
+    assert admin.client.post(
+        f"{base}/configuration/", {"confirmed": "1", "action": "close_poll"}
+    ).status_code in (403,)
     Poll.objects.filter(pk=poll.pk).update(
         paper_entry_deadline=online_end + (timezone.now() - online_end) / 2
     )
@@ -462,15 +472,25 @@ def test_a_poll_from_roll_import_to_independent_re_tally(
     # --- Screen 9: reconciliation (R-8.6), closure, publication -------------
     reconciled = admin.submit(
         f"{base}/depouillement/",
-        {"action": "record_reconciliation", "forms_retained_count": "3", "note": ""},
+        {
+            "confirmed": "1",
+            "action": "record_reconciliation",
+            "forms_retained_count": "3",
+            "note": "",
+        },
     )
     assert reconciled.status_code == 302
     assert poll.reconciliation_record.discrepancy == 0
-    closed = admin.submit(f"{base}/configuration/", {"action": "close_poll", "reason": ""})
+    closed = admin.submit(
+        f"{base}/configuration/", {"confirmed": "1", "action": "close_poll", "reason": ""}
+    )
     assert closed.status_code == 302, closed.content.decode()
     poll.refresh_from_db()
     assert poll.state == PollState.CLOSED
-    assert admin.submit(f"{base}/depouillement/", {"action": "publish"}).status_code == 302
+    assert (
+        admin.submit(f"{base}/depouillement/", {"confirmed": "1", "action": "publish"}).status_code
+        == 302
+    )
     poll.refresh_from_db()
     assert poll.state == PollState.PUBLISHED
 

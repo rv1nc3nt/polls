@@ -238,6 +238,11 @@ Every route taking a `poll_id` is wrapped in `access.require_poll_role`.
 | – | Nouveau scrutin | `poll_create` | commune admin | none | `elections.config.create_poll` |
 | – | Aide | `manual_index`, `manual_page`, `manual_image` | any signed-in operator | `core.manual` | none |
 
+Every definitive action in the table (announce, open, close, extend, withdraw,
+publish, reconciliation, sandbox deletion) first renders
+`backoffice/confirm.html` from `confirmations.py`, and runs only on a second
+POST carrying `confirmed=1` (R-2.4, decision log #35).
+
 `commune_admin` grants nothing on any individual poll, and `is_superuser` is
 never checked. Reaching a poll's screens always goes through an audited
 `PollRole` grant.

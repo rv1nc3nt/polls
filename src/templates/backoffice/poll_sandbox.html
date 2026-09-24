@@ -50,10 +50,6 @@
       <form method="post">
         {% csrf_token %}
         <input type="hidden" name="action" value="delete">
-        <p>
-          <input type="checkbox" id="confirm-delete" name="confirm" value="yes" required>
-          <label for="confirm-delete">{% translate "Je confirme la suppression définitive de ce scrutin d'essai." %}</label>
-        </p>
         <button type="submit" class="danger">{% translate "Supprimer le scrutin d'essai" %}</button>
       </form>
     </section>

@@ -174,6 +174,16 @@ a deux origines possibles :
   seul un humain peut motiver. Le retrait n'a, lui, aucune tâche planifiée
   équivalente : c'est une action manuelle et volontaire, ou rien.
 
+**Toute action définitive demande une confirmation.** Annoncer, ouvrir,
+clore, reporter la clôture, retirer, publier, signer le procès-verbal de
+rapprochement et supprimer un scrutin d'essai : le bouton mène d'abord à une
+page qui rappelle ce qui va se passer — calculé au moment même, par exemple
+le nombre d'inscriptions encore en attente d'examen qui ne pourront plus
+voter — et rien n'est fait tant que vous n'avez pas confirmé. *Annuler*
+ramène à l'écran sans rien changer. Si l'action doit de toute façon être
+refusée (traduction manquante, motif absent…), le refus s'affiche tout de
+suite, sans page de confirmation.
+
 - **brouillon → annoncé** (**obligatoire**) : rend le scrutin visible
   sur le site public — propositions et calendrier, sans inscription ni vote
   possibles — avant même son ouverture. Fige la configuration au même instant
@@ -312,7 +322,7 @@ Seul l'administrateur du scrutin peut le faire ; un auditeur voit le lien sans
 pouvoir le modifier.
 
 Le même écran permet de **supprimer** le scrutin d'essai, **à n'importe quel
-état**, après une case de confirmation. La suppression est **définitive** : le
+état**, après une page de confirmation. La suppression est **définitive** : le
 scrutin, ses propositions, ses bulletins, ses inscriptions et sa copie de la
 liste électorale sont effacés. Le journal d'audit, lui, n'est jamais modifié : il
 garde tout ce qui a été fait sur le scrutin et une ligne indique qu'il a été

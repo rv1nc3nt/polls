@@ -141,7 +141,9 @@ def test_an_auditor_reads_the_screen_but_cannot_publish(
 
     assert client.get(_url(closed_poll), {"format": "csv"}).status_code == 200
     assert client.get(_url(closed_poll), {"format": "json"}).status_code == 200
-    assert client.post(_url(closed_poll), {"action": "publish"}).status_code == 403
+    assert (
+        client.post(_url(closed_poll), {"confirmed": "1", "action": "publish"}).status_code == 403
+    )
 
 
 def test_the_poll_admin_sees_the_derivation(
@@ -214,7 +216,13 @@ def test_publish_transitions_the_poll_and_is_logged(
     client: Client, closed_poll: Poll, admin_user: User
 ) -> None:
     client.force_login(admin_user)
-    response = client.post(_url(closed_poll), {"action": "publish"})
+    # R-2.4, T-93: the first POST only states what publishing will do.
+    page = client.post(_url(closed_poll), {"action": "publish"}).content.decode()
+    assert "Publier les résultats ?" in page
+    closed_poll.refresh_from_db()
+    assert closed_poll.state == PollState.CLOSED
+
+    response = client.post(_url(closed_poll), {"confirmed": "1", "action": "publish"})
     assert response.status_code == 302
 
     closed_poll.refresh_from_db()
@@ -230,7 +238,7 @@ def test_a_published_poll_is_read_only_with_download_links(
     client: Client, closed_poll: Poll, admin_user: User
 ) -> None:
     client.force_login(admin_user)
-    client.post(_url(closed_poll), {"action": "publish"})
+    client.post(_url(closed_poll), {"confirmed": "1", "action": "publish"})
 
     body = client.get(_url(closed_poll)).content.decode()
     assert "résultats sont publiés" in body
@@ -249,7 +257,7 @@ def test_publication_is_refused_while_the_physical_draw_is_unentered(
     assert "tirage au sort physique" in body
     assert "Publier les résultats" not in body
 
-    client.post(_url(tied_poll), {"action": "publish"})
+    client.post(_url(tied_poll), {"confirmed": "1", "action": "publish"})
     tied_poll.refresh_from_db()
     assert tied_poll.state == PollState.CLOSED
 
@@ -266,7 +274,7 @@ def test_recording_the_draw_lets_publication_proceed(
     event = AuditEvent.objects.get(action=Action.TIEBREAK_ENTERED, poll=tied_poll)
     assert event.after["order"] == ["b", "c", "a"]
 
-    assert client.post(_url(tied_poll), {"action": "publish"}).status_code == 302
+    assert client.post(_url(tied_poll), {"confirmed": "1", "action": "publish"}).status_code == 302
     tied_poll.refresh_from_db()
     assert tied_poll.state == PollState.PUBLISHED
 
@@ -287,7 +295,7 @@ def test_the_draw_cannot_be_rewritten_once_published(
     winner it names is public, a second draw must not silently replace it."""
     client.force_login(admin_user)
     client.post(_url(tied_poll), {"action": "record_tiebreak", "order": ["b", "c", "a"]})
-    client.post(_url(tied_poll), {"action": "publish"})
+    client.post(_url(tied_poll), {"confirmed": "1", "action": "publish"})
 
     response = client.post(_url(tied_poll), {"action": "record_tiebreak", "order": ["c", "a", "b"]})
     assert response.status_code == 200
@@ -396,7 +404,12 @@ def test_recording_it_clears_the_closure_blocker_and_archives_the_counts(
 
     response = client.post(
         _url(reconciliation_poll),
-        {"action": "record_reconciliation", "forms_retained_count": "3", "note": "RAS"},
+        {
+            "confirmed": "1",
+            "action": "record_reconciliation",
+            "forms_retained_count": "3",
+            "note": "RAS",
+        },
     )
     assert response.status_code == 302
 
@@ -431,6 +444,6 @@ def test_an_auditor_cannot_record_the_reconciliation(
 
     response = client.post(
         _url(reconciliation_poll),
-        {"action": "record_reconciliation", "forms_retained_count": "0"},
+        {"confirmed": "1", "action": "record_reconciliation", "forms_retained_count": "0"},
     )
     assert response.status_code == 403

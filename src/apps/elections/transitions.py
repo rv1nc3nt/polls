@@ -169,6 +169,35 @@ def transitions_overdue(now: datetime | None = None) -> bool:
     ).exists()
 
 
+def closing_refusal(
+    poll: Poll,
+    *,
+    override_reason: Reason | str = "",
+    early_reason: Reason | str = "",
+    now: datetime | None = None,
+) -> list[str]:
+    """Why ``close_poll`` would refuse with these reasons, or ``[]``.
+
+    The single statement of its guards, shared with screen 2 so a closure that
+    will be refused is refused at once rather than after a confirmation step
+    (decision log #35): ``closing_blockers``, overridable only for ballots
+    pending countersignature and only with a reason (R-8.7 bis), then the
+    reason an early closure needs (R-3.4, decision log #34).
+    """
+    blockers = closing_blockers(poll)
+    overridable = all(b.startswith("pending_countersign:") for b in blockers)
+    if blockers and not (override_reason and overridable):
+        return blockers
+    if is_early_closure(poll, now) and not early_reason:
+        return ["early_closure_reason_required"]
+    return []
+
+
+def is_early_closure(poll: Poll, now: datetime | None = None) -> bool:
+    """Would closing ``poll`` now be early — before ``paper_entry_deadline``?"""
+    return poll.state == PollState.OPEN and (now or timezone.now()) < poll.paper_entry_deadline
+
+
 def _run_transition(
     command: str, locked: Callable[..., Poll], poll: Poll, actor: User | None, *rest: object
 ) -> Poll:
@@ -359,15 +388,15 @@ def _close_poll_locked(
 
     poll = Poll.objects.select_for_update().get(pk=poll.pk)
     closed_at = now or timezone.now()
-    early = poll.state == PollState.OPEN and closed_at < poll.paper_entry_deadline
+    early = is_early_closure(poll, closed_at)
+    refusal = closing_refusal(
+        poll, override_reason=override_reason, early_reason=early_reason, now=closed_at
+    )
+    if refusal == ["early_closure_reason_required"]:
+        raise TransitionRefused(_("Une clôture anticipée exige un motif."), refusal)
+    if refusal:
+        raise TransitionRefused(_("Clôture refusée."), refusal)
     blockers = closing_blockers(poll)
-    overridable = all(b.startswith("pending_countersign:") for b in blockers)
-    if blockers and not (override_reason and overridable):
-        raise TransitionRefused(_("Clôture refusée."), blockers)
-    if early and not early_reason:
-        raise TransitionRefused(
-            _("Une clôture anticipée exige un motif."), ["early_closure_reason_required"]
-        )
 
     if blockers:
         audit.record(

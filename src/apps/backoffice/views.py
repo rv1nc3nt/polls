@@ -111,6 +111,7 @@ from apps.elections import (
     sandbox,
     sharelink,
 )
+from apps.elections.closure import unresolved_physical_tiebreak
 from apps.elections.models import (
     Poll,
     PollImage,
@@ -124,9 +125,12 @@ from apps.elections.retention import RETENTION
 from apps.elections.transitions import (
     TransitionRefused,
     announce_poll,
+    announcing_blockers,
     close_poll,
+    closing_refusal,
     extend_closes_at,
     open_poll,
+    opening_blockers,
     overdue_transition,
     publish_poll,
     withdraw_poll,
@@ -141,6 +145,7 @@ from . import (
     accounts,
     auditlog,
     communesettings,
+    confirmations,
     dashboard,
     firstrun,
     mailsettings,
@@ -366,6 +371,32 @@ def poll_dashboard(request: HttpRequest, poll: Poll) -> HttpResponse:
     )
 
 
+def _confirmation_page(
+    request: HttpRequest, confirmation: confirmations.Confirmation
+) -> HttpResponse | None:
+    """The confirmation step of a definitive action (R-2.4, decision log #35).
+
+    ``None`` when this POST carries ``confirmed=1``: the caller acts. Otherwise
+    the page stating ``confirmation``'s consequences, whose form re-posts this
+    request's fields unchanged plus ``confirmed=1``. Called only after the
+    role, state and form checks have passed, and those run again on the
+    confirming POST — the flag saves a click, never a check.
+    """
+    if request.POST.get("confirmed") == "1":
+        return None
+    fields = [
+        (name, value)
+        for name, values in request.POST.lists()
+        if name not in ("csrfmiddlewaretoken", "confirmed")
+        for value in values
+    ]
+    return render(
+        request,
+        "backoffice/confirm.html",
+        {"poll": confirmation.poll, "confirmation": confirmation, "fields": fields},
+    )
+
+
 @require_poll_role(Role.POLL_ADMIN, Role.AUDITOR)
 def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
     """Screen 2 — configuration du scrutin (§6.5.2).
@@ -453,6 +484,12 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
         # here otherwise is a forged or stale request.
         if poll.state != PollState.DRAFT:
             raise PermissionDenied(_("Le scrutin n'est plus en brouillon."))
+        # A refusal is shown at once rather than after a confirmation: there
+        # is nothing to confirm about an action that will not happen.
+        if not announcing_blockers(poll):
+            page = _confirmation_page(request, confirmations.announce(poll))
+            if page is not None:
+                return page
         try:
             announce_poll(poll, actor=operator)
         except TransitionRefused as refused:
@@ -467,6 +504,10 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
         # reaching here otherwise is a forged or stale request.
         if poll.state != PollState.ANNOUNCED:
             raise PermissionDenied(_("Le scrutin doit être annoncé."))
+        if not opening_blockers(poll):
+            page = _confirmation_page(request, confirmations.open_(poll))
+            if page is not None:
+                return page
         try:
             open_poll(poll, actor=operator)
         except TransitionRefused as refused:
@@ -486,6 +527,10 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
             # countersignature override (R-8.7 bis) and the early closure
             # (R-3.4). ``close_poll`` uses each only where it applies.
             reason = closing_form.cleaned_data["reason"]
+            if not closing_refusal(poll, override_reason=reason, early_reason=reason):
+                page = _confirmation_page(request, confirmations.close(poll, reason))
+                if page is not None:
+                    return page
             try:
                 close_poll(poll, actor=operator, override_reason=reason, early_reason=reason)
             except TransitionRefused as refused:
@@ -507,8 +552,12 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
         ):
             raise PermissionDenied(_("Le scrutin ne peut pas être retiré dans cet état."))
         if withdrawal_form.is_valid():
+            reason = withdrawal_form.cleaned_data["reason"]
+            page = _confirmation_page(request, confirmations.withdraw(poll, reason))
+            if page is not None:
+                return page
             try:
-                withdraw_poll(poll, actor=operator, reason=withdrawal_form.cleaned_data["reason"])
+                withdraw_poll(poll, actor=operator, reason=reason)
             except TransitionRefused as refused:
                 messages.error(request, str(refused))
             else:
@@ -571,6 +620,14 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
         else None
     )
     if configuring and extension is not None and extension.is_valid():
+        page = _confirmation_page(
+            request,
+            confirmations.extend(
+                poll, extension.cleaned_data["new_closes_at"], extension.cleaned_data["reason"]
+            ),
+        )
+        if page is not None:
+            return page
         try:
             extend_closes_at(
                 poll,
@@ -726,14 +783,12 @@ def poll_sandbox(request: HttpRequest, poll: Poll) -> HttpResponse:
             sharelink.revoke(poll, actor=operator)
             messages.success(request, _("Lien d'essai révoqué."))
         elif action == "delete":
-            # A destructive, irreversible action behind a deliberate tick, not
-            # a bare button.
-            if request.POST.get("confirm") != "yes":
-                messages.error(request, _("Cochez la case pour confirmer la suppression."))
-            else:
-                sandbox.delete_poll(poll, actor=operator)
-                messages.success(request, _("Scrutin d'essai supprimé."))
-                return redirect("backoffice:poll_index")
+            page = _confirmation_page(request, confirmations.delete_sandbox(poll))
+            if page is not None:
+                return page
+            sandbox.delete_poll(poll, actor=operator)
+            messages.success(request, _("Scrutin d'essai supprimé."))
+            return redirect("backoffice:poll_index")
         return redirect("backoffice:poll_sandbox", poll_id=str(poll.pk))
     link_url = (
         request.build_absolute_uri(
@@ -1479,6 +1534,14 @@ def results_publish(request: HttpRequest, poll: Poll) -> HttpResponse:
             if request.method == "POST" and request.POST.get("action") == "record_reconciliation":
                 reconciliation_form = ReconciliationForm(request.POST)
                 if reconciliation_form.is_valid():
+                    page = _confirmation_page(
+                        request,
+                        confirmations.reconciliation(
+                            poll, reconciliation_form.cleaned_data["forms_retained_count"]
+                        ),
+                    )
+                    if page is not None:
+                        return page
                     try:
                         ballots.record_reconciliation(
                             poll,
@@ -1531,6 +1594,10 @@ def results_publish(request: HttpRequest, poll: Poll) -> HttpResponse:
                 messages.success(request, _("Résultat du tirage au sort enregistré."))
                 return redirect("backoffice:results_publish", poll_id=str(poll.pk))
         elif action == "publish":
+            if poll.state == PollState.CLOSED and not unresolved_physical_tiebreak(poll):
+                page = _confirmation_page(request, confirmations.publish(poll))
+                if page is not None:
+                    return page
             try:
                 publish_poll(poll, current_operator(request))
             except TransitionRefused as refused:

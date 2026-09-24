@@ -41,7 +41,9 @@ transactional apply shared by the CLI and screen 3) ·
 `src/apps/audit/` · `src/apps/tally/` pure, imports no model ·
 `src/apps/backoffice/` espace mairie (§6.5, the bulk of the remaining work;
 `access.py` is the role gate every screen goes through, `dashboard.py`,
-`auditlog.py` and `review.py` the read models for screens 1, 4 and 8)
+`auditlog.py` and `review.py` the read models for screens 1, 4 and 8,
+`confirmations.py` the confirmation page every definitive poll action goes
+through first, R-2.4)
 · `src/apps/publicsite/`
 · `src/templates/` · `src/static/` · `locale/` (French is the msgid language, so
 only `en` has a catalogue) · `verifier/` independent Rust verifier — `core/`

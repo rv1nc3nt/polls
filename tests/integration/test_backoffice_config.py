@@ -31,7 +31,7 @@ from apps.elections.transitions import (
     publish_poll,
 )
 from apps.elections.windows import WindowClosed, check_registration_window
-from tests.conftest import force_open
+from tests.conftest import force_announce, force_open
 
 
 @pytest.fixture
@@ -432,14 +432,18 @@ def test_the_closing_date_can_be_extended_on_an_open_poll(
     new_closes_at = open_window_poll.closes_at + timedelta(days=3)
     _grant(open_window_poll, admin_user, Role.POLL_ADMIN)
     client.force_login(admin_user)
+    data = {"new_closes_at": _dt(new_closes_at), "reason": Reason.ADMINISTRATIVE_DECISION}
 
-    response = client.post(
-        _url(open_window_poll),
-        {
-            "new_closes_at": _dt(new_closes_at),
-            "reason": Reason.ADMINISTRATIVE_DECISION,
-        },
-    )
+    # R-2.4, T-93: confirmed first, with the entered date carried over.
+    page = client.post(_url(open_window_poll), data).content.decode()
+    assert "Reporter la clôture ?" in page
+    assert f'value="{data["new_closes_at"]}"' in page
+    open_window_poll.refresh_from_db()
+    assert not AuditEvent.objects.filter(
+        action=Action.POLL_CLOSES_AT_EXTENDED, poll=open_window_poll
+    ).exists()
+
+    response = client.post(_url(open_window_poll), {**data, "confirmed": "1"})
     assert response.status_code == 302
 
     open_window_poll.refresh_from_db()
@@ -462,6 +466,7 @@ def test_an_extension_to_an_earlier_instant_is_refused(
     response = client.post(
         _url(open_window_poll),
         {
+            "confirmed": "1",
             "new_closes_at": _dt(original - timedelta(days=1)),
             "reason": Reason.ADMINISTRATIVE_DECISION,
         },
@@ -499,6 +504,7 @@ def test_the_extension_form_disappears_once_online_voting_has_actually_closed(
     response = client.post(
         _url(poll),
         {
+            "confirmed": "1",
             "new_closes_at": _dt(timezone.now() + timedelta(days=1)),
             "reason": Reason.ADMINISTRATIVE_DECISION,
         },
@@ -551,7 +557,12 @@ def test_an_auditor_reads_the_configuration_screen_but_cannot_post_to_it(
     assert 'name="action" value="close_poll"' not in body
     assert 'name="action" value="withdraw_poll"' not in body
 
-    assert client.post(_url(open_window_poll), {"action": "withdraw_poll"}).status_code == 403
+    assert (
+        client.post(
+            _url(open_window_poll), {"confirmed": "1", "action": "withdraw_poll"}
+        ).status_code
+        == 403
+    )
 
 
 def test_an_auditor_reads_a_draft_poll_read_only_too(
@@ -565,7 +576,10 @@ def test_an_auditor_reads_a_draft_poll_read_only_too(
     response = client.get(_url(open_window_poll))
     assert response.status_code == 200
     assert response.context["editable"] is False
-    assert client.post(_url(open_window_poll), {"action": "open_poll"}).status_code == 403
+    assert (
+        client.post(_url(open_window_poll), {"confirmed": "1", "action": "open_poll"}).status_code
+        == 403
+    )
 
 
 def test_the_dashboard_links_to_the_configuration_screen(
@@ -593,8 +607,13 @@ def test_t67_open_now_succeeds_early_and_refuses_an_unready_poll(
     _grant(open_window_poll, admin_user, Role.POLL_ADMIN)
     client.force_login(admin_user)
 
-    assert client.post(_url(open_window_poll), {"action": "announce_poll"}).status_code == 302
-    response = client.post(_url(open_window_poll), {"action": "open_poll"})
+    assert (
+        client.post(
+            _url(open_window_poll), {"confirmed": "1", "action": "announce_poll"}
+        ).status_code
+        == 302
+    )
+    response = client.post(_url(open_window_poll), {"confirmed": "1", "action": "open_poll"})
     assert response.status_code == 302
     open_window_poll.refresh_from_db()
     assert open_window_poll.state == PollState.OPEN
@@ -614,10 +633,12 @@ def test_t67_open_now_succeeds_early_and_refuses_an_unready_poll(
     PollOption.objects.create(poll=unready, option_id="a", label_i18n={"fr": "A"}, position=0)
     PollOption.objects.create(poll=unready, option_id="b", label_i18n={"fr": "B"}, position=1)
     _grant(unready, admin_user, Role.POLL_ADMIN)
-    assert client.post(_url(unready), {"action": "announce_poll"}).status_code == 302
+    assert (
+        client.post(_url(unready), {"confirmed": "1", "action": "announce_poll"}).status_code == 302
+    )
     WorkingRollEntry.objects.all().delete()
 
-    body = client.post(_url(unready), {"action": "open_poll"}).content.decode()
+    body = client.post(_url(unready), {"confirmed": "1", "action": "open_poll"}).content.decode()
     unready.refresh_from_db()
     assert unready.state == PollState.ANNOUNCED
     assert "Ouverture refusée" in body
@@ -650,13 +671,16 @@ def test_t68_close_now_after_the_deadline_needs_a_reason_when_blocked(
     # Due, but blocked without a reason: refused, not silently dropped (§9).
     body = client.get(_url(poll)).content.decode()
     assert 'value="close_poll"' in body
-    blocked = client.post(_url(poll), {"action": "close_poll", "reason": ""}).content.decode()
+    blocked = client.post(
+        _url(poll), {"confirmed": "1", "action": "close_poll", "reason": ""}
+    ).content.decode()
     assert "Clôture refusée" in blocked
     poll.refresh_from_db()
     assert poll.state == PollState.OPEN
 
     response = client.post(
-        _url(poll), {"action": "close_poll", "reason": Reason.COUNTERSIGN_UNAVAILABLE}
+        _url(poll),
+        {"confirmed": "1", "action": "close_poll", "reason": Reason.COUNTERSIGN_UNAVAILABLE},
     )
     assert response.status_code == 302
     poll.refresh_from_db()
@@ -678,13 +702,16 @@ def test_t68_early_close_needs_a_reason_and_brings_the_dates_back(
     client.force_login(admin_user)
 
     assert 'value="close_poll"' in client.get(_url(poll)).content.decode()
-    refused = client.post(_url(poll), {"action": "close_poll", "reason": ""}).content.decode()
+    refused = client.post(
+        _url(poll), {"confirmed": "1", "action": "close_poll", "reason": ""}
+    ).content.decode()
     assert "Une clôture anticipée exige un motif." in refused
     poll.refresh_from_db()
     assert poll.state == PollState.OPEN
 
     response = client.post(
-        _url(poll), {"action": "close_poll", "reason": Reason.ADMINISTRATIVE_DECISION}
+        _url(poll),
+        {"confirmed": "1", "action": "close_poll", "reason": Reason.ADMINISTRATIVE_DECISION},
     )
     assert response.status_code == 302
     poll.refresh_from_db()
@@ -711,7 +738,7 @@ def test_close_now_succeeds_without_a_reason_once_due_and_nothing_is_blocked(
     _grant(poll, admin_user, Role.POLL_ADMIN)
     client.force_login(admin_user)
 
-    response = client.post(_url(poll), {"action": "close_poll", "reason": ""})
+    response = client.post(_url(poll), {"confirmed": "1", "action": "close_poll", "reason": ""})
     assert response.status_code == 302
     poll.refresh_from_db()
     assert poll.state == PollState.CLOSED
@@ -729,7 +756,7 @@ def test_announce_now_shows_the_poll_publicly_and_freezes_configuration(
     _grant(open_window_poll, admin_user, Role.POLL_ADMIN)
     client.force_login(admin_user)
 
-    response = client.post(_url(open_window_poll), {"action": "announce_poll"})
+    response = client.post(_url(open_window_poll), {"confirmed": "1", "action": "announce_poll"})
     assert response.status_code == 302
     open_window_poll.refresh_from_db()
     assert open_window_poll.state == PollState.ANNOUNCED
@@ -751,7 +778,7 @@ def test_announce_now_shows_the_poll_publicly_and_freezes_configuration(
             actor=admin_user,
         )
 
-    response = client.post(_url(open_window_poll), {"action": "open_poll"})
+    response = client.post(_url(open_window_poll), {"confirmed": "1", "action": "open_poll"})
     assert response.status_code == 302
     open_window_poll.refresh_from_db()
     assert open_window_poll.state == PollState.OPEN
@@ -764,7 +791,9 @@ def test_announce_now_refuses_fewer_than_two_propositions(
     _grant(open_window_poll, admin_user, Role.POLL_ADMIN)
     client.force_login(admin_user)
 
-    body = client.post(_url(open_window_poll), {"action": "announce_poll"}).content.decode()
+    body = client.post(
+        _url(open_window_poll), {"confirmed": "1", "action": "announce_poll"}
+    ).content.decode()
     open_window_poll.refresh_from_db()
     assert open_window_poll.state == PollState.DRAFT
     assert "Annonce refusée" in body
@@ -777,7 +806,7 @@ def test_announce_now_is_refused_once_the_poll_has_left_draft(
     _grant(poll, admin_user, Role.POLL_ADMIN)
     client.force_login(admin_user)
 
-    response = client.post(_url(poll), {"action": "announce_poll"})
+    response = client.post(_url(poll), {"confirmed": "1", "action": "announce_poll"})
     assert response.status_code == 403
     poll.refresh_from_db()
     assert poll.state == PollState.OPEN
@@ -797,7 +826,8 @@ def test_withdraw_now_pulls_an_open_poll_and_the_screen_becomes_the_readonly_vie
     assert 'value="withdraw_poll"' in body
 
     response = client.post(
-        _url(poll), {"action": "withdraw_poll", "reason": Reason.ADMINISTRATIVE_DECISION}
+        _url(poll),
+        {"confirmed": "1", "action": "withdraw_poll", "reason": Reason.ADMINISTRATIVE_DECISION},
     )
     assert response.status_code == 302
     poll.refresh_from_db()
@@ -821,7 +851,7 @@ def test_withdraw_now_requires_a_reason(
     _grant(poll, admin_user, Role.POLL_ADMIN)
     client.force_login(admin_user)
 
-    response = client.post(_url(poll), {"action": "withdraw_poll", "reason": ""})
+    response = client.post(_url(poll), {"confirmed": "1", "action": "withdraw_poll", "reason": ""})
     assert response.status_code == 200
     poll.refresh_from_db()
     assert poll.state == PollState.OPEN
@@ -841,7 +871,9 @@ def test_withdraw_now_is_offered_from_closed_and_published_too(
     published = publish_poll(Poll.objects.get(pk=poll.pk), admin_user)
     assert 'value="withdraw_poll"' in client.get(_url(published)).content.decode()
 
-    response = client.post(_url(published), {"action": "withdraw_poll", "reason": Reason.OTHER})
+    response = client.post(
+        _url(published), {"confirmed": "1", "action": "withdraw_poll", "reason": Reason.OTHER}
+    )
     assert response.status_code == 302
     assert Poll.objects.get(pk=published.pk).state == PollState.WITHDRAWN
 
@@ -855,8 +887,80 @@ def test_withdraw_now_is_refused_on_a_draft_poll(
     # The button never renders on a draft poll; a forged POST is refused
     # outright, same as a forged announce/open/close (§6.5).
     response = client.post(
-        _url(open_window_poll), {"action": "withdraw_poll", "reason": Reason.OTHER}
+        _url(open_window_poll),
+        {"confirmed": "1", "action": "withdraw_poll", "reason": Reason.OTHER},
     )
     assert response.status_code == 403
     open_window_poll.refresh_from_db()
     assert open_window_poll.state == PollState.DRAFT
+
+
+# --- R-2.4, T-93: definitive actions are confirmed first ----------------------
+
+
+@pytest.mark.parametrize(
+    ("action", "title", "setup"),
+    [
+        ("announce_poll", "Annoncer le scrutin ?", "draft"),
+        ("open_poll", "Ouvrir le scrutin ?", "announced"),
+        ("close_poll", "Clore le scrutin ?", "open"),
+        ("withdraw_poll", "Retirer le scrutin ?", "open"),
+    ],
+)
+def test_t93_a_definitive_action_waits_for_its_confirmation(
+    client: Client, admin_user: User, action: str, title: str, setup: str
+) -> None:
+    """The first POST renders the consequences and changes nothing, carrying
+    the operator's input over; the confirming POST acts."""
+    now = timezone.now()
+    poll = Poll.objects.create(
+        title_i18n={"fr": "Confirmation"},
+        description_i18n={"fr": "Confirmation"},
+        languages=["fr"],
+        opens_at=now + timedelta(days=1),
+        closes_at=now + timedelta(days=3),
+        paper_entry_deadline=now + timedelta(days=3),
+    )
+    for position, option_id in enumerate(["a", "b"]):
+        PollOption.objects.create(
+            poll=poll, option_id=option_id, label_i18n={"fr": option_id}, position=position
+        )
+    WorkingRollEntry.objects.create(
+        birth_name="Dupont", first_names="Émile", date_of_birth="12/05/1970", list_types=[]
+    )
+    if setup == "announced":
+        force_announce(poll)
+    elif setup == "open":
+        # An open poll's ``opens_at`` is behind it: moved while still ``draft``,
+        # since it freezes once the poll leaves that state (R-3.3).
+        poll.opens_at = now - timedelta(days=1)
+        poll.save(update_fields=["opens_at"])
+        poll = force_open(poll)
+    before = Poll.objects.get(pk=poll.pk).state
+    _grant(poll, admin_user, Role.POLL_ADMIN)
+    client.force_login(admin_user)
+    data = {"action": action, "reason": Reason.ADMINISTRATIVE_DECISION}
+
+    page = client.post(_url(poll), data)
+    assert page.status_code == 200
+    body = page.content.decode()
+    assert title.replace("'", "&#x27;") in body
+    assert 'name="confirmed" value="1"' in body
+    assert f'name="action" value="{action}"' in body
+    assert Poll.objects.get(pk=poll.pk).state == before
+
+    assert client.post(_url(poll), {**data, "confirmed": "1"}).status_code == 302
+    assert Poll.objects.get(pk=poll.pk).state != before
+
+
+def test_t93_a_refusal_is_shown_at_once_without_a_confirmation_step(
+    client: Client, open_window_poll: Poll, admin_user: User
+) -> None:
+    """There is nothing to confirm about an action that will not happen: an
+    early closure without a reason is refused on the first POST."""
+    poll = force_open(open_window_poll)
+    _grant(poll, admin_user, Role.POLL_ADMIN)
+    client.force_login(admin_user)
+    body = client.post(_url(poll), {"action": "close_poll", "reason": ""}).content.decode()
+    assert "Une clôture anticipée exige un motif." in body
+    assert 'name="confirmed"' not in body

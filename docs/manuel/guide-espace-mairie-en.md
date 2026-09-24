@@ -168,6 +168,16 @@ two origins:
   Withdrawal, for its part, has no equivalent scheduled task: it is a
   manual, deliberate action, or nothing.
 
+**Every final action asks for confirmation.** Announcing, opening, closing,
+extending the closing date, withdrawing, publishing, signing the
+reconciliation record and deleting a test poll: the button first leads to a
+page that restates what will happen — worked out at that very moment, for
+instance how many registrations still under review will no longer be able to
+vote — and nothing is done until you confirm. *Cancel* returns to the screen
+without changing anything. If the action would be refused anyway (a missing
+translation, no reason given…), the refusal is shown straight away, with no
+confirmation page.
+
 - **draft → announced** (**mandatory**): makes the poll visible on
   the public site — propositions and schedule, with no registration or vote
   possible — even before it opens. Freezes the configuration at the same
@@ -299,7 +309,7 @@ asked. Only the poll administrator can do either; an auditor sees the link but
 cannot change it.
 
 The same screen lets you **delete** the test poll, **in any state**, after a
-confirmation tick. Deletion is **permanent**: the poll, its propositions, its
+confirmation page. Deletion is **permanent**: the poll, its propositions, its
 ballots, its registrations and its copy of the electoral roll are erased. The
 audit log is never altered: it keeps everything that was done on the poll, and
 one line records that it was deleted, by whom and when. No poll that is not a

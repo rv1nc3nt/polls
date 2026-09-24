@@ -4981,10 +4981,6 @@ msgstr "Test link generated."
 msgid "Lien d'essai révoqué."
 msgstr "Test link revoked."
 
-#: src/apps/backoffice/views.py:729
-msgid "Cochez la case pour confirmer la suppression."
-msgstr "Tick the box to confirm the deletion."
-
 #: src/apps/backoffice/views.py:732
 msgid "Scrutin d'essai supprimé."
 msgstr "Sandbox poll deleted."
@@ -5024,10 +5020,6 @@ msgstr "Delete this poll"
 #: src/templates/backoffice/poll_sandbox.html:49
 msgid "La suppression est définitive et possible à tout état du scrutin : le scrutin, ses propositions, ses bulletins, ses inscriptions et sa copie de la liste électorale sont effacés. Seule une ligne du journal d'audit rappelle qu'il a existé."
 msgstr "Deletion is permanent and possible in any state of the poll: the poll, its propositions, its ballots, its registrations and its copy of the electoral roll are erased. Only a line of the audit log records that it existed."
-
-#: src/templates/backoffice/poll_sandbox.html:55
-msgid "Je confirme la suppression définitive de ce scrutin d'essai."
-msgstr "I confirm the permanent deletion of this sandbox poll."
 
 #: src/templates/backoffice/poll_sandbox.html:57
 msgid "Supprimer le scrutin d'essai"
@@ -5172,3 +5164,179 @@ msgstr "Early closure"
 #, python-format
 msgid "Clôture prévue le %(planned)s, avancée au %(actual)s"
 msgstr "Closing planned for %(planned)s, brought forward to %(actual)s"
+
+#: src/apps/backoffice/confirmations.py
+msgid "Les inscriptions et le vote s'ouvrent immédiatement."
+msgstr "Registration and voting open immediately."
+
+#: src/apps/backoffice/confirmations.py
+msgid "La liste électorale en vigueur est figée pour ce scrutin."
+msgstr "The electoral roll currently in force is frozen for this poll."
+
+#: src/apps/backoffice/confirmations.py
+msgid "Plus aucune inscription, aucun vote en ligne ni aucune saisie de bulletin papier ne sera accepté."
+msgstr "No further registration, online vote or paper-ballot entry will be accepted."
+
+#: src/apps/backoffice/confirmations.py
+msgid "L'empreinte de clôture et les compteurs de participation sont figés."
+msgstr "The closure hash and the turnout counters are frozen."
+
+#: src/apps/backoffice/confirmations.py
+msgid "Le résultat, la liste anonymisée des bulletins et l'empreinte de clôture deviennent publics."
+msgstr "The result, the anonymised ballot list and the closure hash become public."
+
+#: src/apps/backoffice/confirmations.py
+msgid "Annoncer le scrutin ?"
+msgstr "Announce the poll?"
+
+#: src/apps/backoffice/confirmations.py
+msgid "Annoncer le scrutin"
+msgstr "Announce the poll"
+
+#: src/apps/backoffice/confirmations.py
+msgid "Ouvrir le scrutin ?"
+msgstr "Open the poll?"
+
+#: src/apps/backoffice/confirmations.py
+msgid "Ouvrir le scrutin"
+msgstr "Open the poll"
+
+#: src/apps/backoffice/confirmations.py
+msgid "Clore le scrutin ?"
+msgstr "Close the poll?"
+
+#: src/apps/backoffice/confirmations.py
+msgid "Clore le scrutin"
+msgstr "Close the poll"
+
+#: src/apps/backoffice/confirmations.py
+msgid "Reporter la clôture ?"
+msgstr "Extend the closing date?"
+
+#: src/apps/backoffice/confirmations.py
+msgid "Retirer le scrutin ?"
+msgstr "Withdraw the poll?"
+
+#: src/apps/backoffice/confirmations.py
+msgid "Publier les résultats ?"
+msgstr "Publish the results?"
+
+#: src/apps/backoffice/confirmations.py
+msgid "Signer le procès-verbal de rapprochement ?"
+msgstr "Sign the reconciliation record?"
+
+#: src/apps/backoffice/confirmations.py
+msgid "Signer le procès-verbal"
+msgstr "Sign the record"
+
+#: src/apps/backoffice/confirmations.py
+msgid "Supprimer ce scrutin d'essai ?"
+msgstr "Delete this test poll?"
+
+#: src/apps/backoffice/confirmations.py
+msgid "Supprimer définitivement"
+msgstr "Delete permanently"
+
+#: src/apps/backoffice/confirmations.py
+msgid "Le scrutin devient visible sur le site public : propositions et calendrier."
+msgstr "The poll becomes visible on the public site: propositions and calendar."
+
+#: src/apps/backoffice/confirmations.py
+msgid "La configuration est figée : elle ne pourra plus être modifiée."
+msgstr "The configuration is frozen: it can no longer be changed."
+
+#: src/apps/backoffice/confirmations.py
+msgid "Ni inscription ni vote ne sont possibles avant l'ouverture."
+msgstr "Neither registration nor voting is possible before opening."
+
+#: src/apps/backoffice/confirmations.py
+#, python-format
+msgid "Ouverture avancée : prévue le %(planned)s, elle devient l'instant présent."
+msgstr "Early opening: planned for %(planned)s, it becomes the present instant."
+
+#: src/apps/backoffice/confirmations.py
+#, python-format
+msgid "Clôture anticipée : la fin de saisie prévue le %(planned)s devient l'instant présent. Elle sera affichée sur la page publique avec le motif « %(reason)s »."
+msgstr "Early closure: the entry deadline planned for %(planned)s becomes the present instant. It will be shown on the public page with the reason “%(reason)s”."
+
+#: src/apps/backoffice/confirmations.py
+msgid "Plus rien du scrutin ne reste visible sur le site public, y compris son résultat s'il a été publié."
+msgstr "Nothing of the poll remains visible on the public site, including its result if it was published."
+
+#: src/apps/backoffice/confirmations.py
+msgid "Aucune inscription ni aucun vote n'est plus accepté."
+msgstr "No further registration or vote is accepted."
+
+#: src/apps/backoffice/confirmations.py
+msgid "Les bulletins et le journal d'audit sont conservés."
+msgstr "The ballots and the audit log are kept."
+
+#: src/apps/backoffice/confirmations.py
+#, python-format
+msgid "Proposition publiée comme gagnante : %(label)s."
+msgstr "Proposition published as the winner: %(label)s."
+
+#: src/apps/backoffice/confirmations.py
+msgid "Le procès-verbal est signé à votre nom et ne pourra plus être modifié."
+msgstr "The record is signed in your name and can no longer be changed."
+
+#: src/apps/backoffice/confirmations.py
+msgid "Le scrutin d'essai et tout ce qu'il contient — inscriptions, bulletins, liste figée, images — sont supprimés."
+msgstr "The test poll and everything it holds — registrations, ballots, frozen roll, images — are deleted."
+
+#: src/apps/backoffice/confirmations.py
+msgid "Le journal d'audit conserve la trace de la suppression."
+msgstr "The audit log keeps a record of the deletion."
+
+#: src/apps/backoffice/confirmations.py
+#, python-format
+msgid "La clôture passe du %(old)s au %(new)s ; la fin de saisie papier est décalée d'autant."
+msgstr "Closing moves from %(old)s to %(new)s; the paper-entry deadline moves by the same amount."
+
+#: src/apps/backoffice/confirmations.py
+#, python-format
+msgid "Le report est affiché sur la page publique avec le motif « %(reason)s »."
+msgstr "The extension is shown on the public page with the reason “%(reason)s”."
+
+#: src/apps/backoffice/confirmations.py
+#, python-format
+msgid "Motif enregistré : « %(reason)s »."
+msgstr "Reason recorded: “%(reason)s”."
+
+#: src/apps/backoffice/confirmations.py
+#, python-format
+msgid "%(forms)d formulaire(s) conservé(s) pour %(recorded)d bulletin(s) papier enregistré(s) : écart de %(gap)d."
+msgstr "%(forms)d form(s) retained for %(recorded)d paper ballot(s) recorded: a difference of %(gap)d."
+
+#: src/templates/backoffice/confirm.html
+msgid "Ce qui va se passer"
+msgstr "What will happen"
+
+#: src/templates/backoffice/confirm.html
+msgid "Cette action est définitive : elle ne pourra pas être annulée."
+msgstr "This action is final: it cannot be undone."
+
+#: src/templates/backoffice/confirm.html
+msgid "Annuler"
+msgstr "Cancel"
+
+#: src/apps/backoffice/confirmations.py
+#, python-format
+msgid "%(count)d inscription en attente d'examen ne pourra plus voter."
+msgid_plural "%(count)d inscriptions en attente d'examen ne pourront plus voter."
+msgstr[0] "%(count)d registration under review will no longer be able to vote."
+msgstr[1] "%(count)d registrations under review will no longer be able to vote."
+
+#: src/apps/backoffice/confirmations.py
+#, python-format
+msgid "%(count)d électeur n'a pas confirmé son adresse et ne pourra plus voter."
+msgid_plural "%(count)d électeurs n'ont pas confirmé leur adresse et ne pourront plus voter."
+msgstr[0] "%(count)d elector has not confirmed their address and will no longer be able to vote."
+msgstr[1] "%(count)d electors have not confirmed their address and will no longer be able to vote."
+
+#: src/apps/backoffice/confirmations.py
+#, python-format
+msgid "%(count)d bulletin papier non contresigné sera exclu du décompte et publié à part (motif « %(reason)s »)."
+msgid_plural "%(count)d bulletins papier non contresignés seront exclus du décompte et publiés à part (motif « %(reason)s »)."
+msgstr[0] "%(count)d paper ballot not countersigned will be left out of the count and published separately (reason “%(reason)s”)."
+msgstr[1] "%(count)d paper ballots not countersigned will be left out of the count and published separately (reason “%(reason)s”)."
