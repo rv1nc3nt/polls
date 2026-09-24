@@ -113,4 +113,7 @@ class JobCommand(BaseCommand):
             sys.exit(EXIT_OK)
 
     def handle_job(self, run: JobRun, **options: Any) -> None:
+        """The command's work, run under the lock. May set ``run.succeeded``
+        and ``run.detail``; a refusal sets them and then raises
+        ``SystemExit(EXIT_REFUSED)`` (see ``job_lock``)."""
         raise NotImplementedError

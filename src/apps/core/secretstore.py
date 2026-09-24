@@ -50,6 +50,8 @@ def encrypt(plaintext: str) -> str:
 
 
 def decrypt(ciphertext: str) -> str:
+    """Inverse of ``encrypt``. Raises ``SecretUnreadable`` on a ciphertext
+    that is corrupt or was made under a different ``SECRET_KEY``."""
     try:
         return _fernet().decrypt(ciphertext.encode()).decode()
     except InvalidToken as bad:

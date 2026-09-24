@@ -85,8 +85,11 @@ def allow(bucket: str, request: HttpRequest, limit: Limit) -> bool:
 
 
 def registration_limit() -> Limit:
+    """``settings.RATE_LIMIT_REGISTRATION``, parsed on every call (so
+    ``override_settings`` takes effect). Raises ``ValueError`` if malformed."""
     return Limit.parse(settings.RATE_LIMIT_REGISTRATION)
 
 
 def email_limit() -> Limit:
+    """``settings.RATE_LIMIT_EMAIL``, parsed like ``registration_limit``."""
     return Limit.parse(settings.RATE_LIMIT_EMAIL)

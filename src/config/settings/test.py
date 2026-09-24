@@ -1,4 +1,8 @@
 # SPDX-License-Identifier: 0BSD
+"""The pytest settings (selected in ``pyproject.toml``): in-memory SQLite with
+the invariant triggers installed by migration, locmem mail outbox, fast
+password hashing, and a throwaway ``MEDIA_ROOT``."""
+
 import tempfile
 from pathlib import Path
 

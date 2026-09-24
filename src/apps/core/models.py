@@ -170,6 +170,9 @@ class Commune(models.Model):
 
 
 class MailEncryption(models.TextChoices):
+    """Transport security for the relay; mapped onto Django's ``use_tls`` /
+    ``use_ssl`` flags by ``mailbackend.connection_for``."""
+
     NONE = "none", _("aucun")
     STARTTLS = "starttls", _("STARTTLS")
     SSL = "ssl", _("SSL/TLS implicite")
@@ -264,6 +267,10 @@ class User(AbstractUser):
 
 
 class Role(models.TextChoices):
+    """The per-poll roles of R-2.1, held in ``PollRole``. ``commune_admin`` is
+    not one of them: it is ``User.is_commune_admin`` and confers nothing on a
+    poll (``apps.backoffice.access``)."""
+
     POLL_ADMIN = "poll_admin", _("administrateur du scrutin")
     ENTRY_OPERATOR = "entry_operator", _("opérateur de saisie")
     AUDITOR = "auditor", _("auditeur")
@@ -293,9 +300,11 @@ class PollRole(models.Model):
 class JobRun(models.Model):
     """One row per management-command run (§14, self-locking commands).
 
-    The lock is a row here rather than only a ``flock`` file, so that a job is
-    observable after the fact and a second instance started by cron while the
-    first is still running exits 0 without acting (T-49, T-51).
+    Mutual exclusion is the ``flock`` in ``apps.core.jobs.job_lock``; this row
+    is what makes a run observable after the fact. It is created only once the
+    lock is held, so a second instance that exits 0 without acting (T-49,
+    T-51) leaves no row. ``succeeded`` stays ``NULL`` only while a run is in
+    progress or if the process was killed outright.
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
