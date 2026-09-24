@@ -90,9 +90,12 @@ find a way round it.
   `closes_at` and `paper_entry_deadline` are enforced on the clock alone
   (decision log #33).
 - **The plaintext token is never persisted.** Only `voter_hash` is stored
-  (§7). It follows that the token-for-session exchange of §6.3
-  (`apps/core/tokensession.py`) puts a *registration id* in the session, never
-  the token: Django's session backend is a database table.
+  (§7). Django's session backend is a database table, so the session is held
+  to the same rule and more: the token-for-session exchange of §6.3
+  (`apps/core/tokensession.py`) stores only the `ballot_hash`, and the
+  receipt only a tracking code and a ranking — never the token, and never a
+  registration id or anything else that identifies a voter, which beside a
+  ballot hash would be the join INV-1 forbids.
 - **No Django admin**, in any environment.
 - **Every poll-scoped back-office screen goes through `require_poll_role`**
   (`apps/backoffice/access.py`). `commune_admin` is commune-level and grants
