@@ -242,7 +242,8 @@ lien de bulletin papier), pas sur l'événement, dont le motif est un code.
 
 ### Un scrutin « test » apparaîtra-t-il dans les résultats publics ?
 Non. L'indicateur est fixé à la création, non modifiable ; le scrutin est exclu
-des listes publiques, des résultats et de toute statistique.
+des listes publiques et de toute statistique. Une fois publié, son résultat
+n'est visible que par ceux qui détiennent le lien d'essai.
 
 ### Pourquoi ne puis-je pas changer l'identifiant d'une proposition ?
 Parce que les bulletins et le résultat publié le portent ; le dépouillement et

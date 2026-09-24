@@ -237,7 +237,8 @@ paper-ballot link), not on the event, whose reason is a code.
 
 ### Will a "test" poll appear in the public results?
 No. The flag is set at creation and cannot be changed; the poll is excluded
-from public listings, results and any statistics.
+from public listings and any statistics. Once published, its result is
+visible only to those holding the test link.
 
 ### Why can't I change a proposition's identifier?
 Because the ballots and the published result carry it; the tally and the

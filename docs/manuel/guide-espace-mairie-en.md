@@ -290,7 +290,8 @@ registration, and shown as such on the public site. The old and the new date
 are both written to the log.
 
 > A test poll (`is_sandbox`) is set at creation and **cannot be changed**;
-> it is excluded from public listings, published results and any statistics.
+> it is excluded from public listings and any statistics, and its result
+> appears on no public page.
 
 ### Trying out a test poll, then deleting it
 
@@ -301,7 +302,10 @@ unguessable address that gives access, with no account, to the poll page, to
 registration and then to voting, whatever state the poll is in. Each tester
 registers like a real elector, so they must be **on the electoral roll**, and
 they receive their voting link by email as usual. A notice on every page says
-the vote is a test; the ballots cast count for nothing.
+the vote is a test; the ballots cast count for nothing. Once the poll is
+published, the same link leads to its **result**, CSV and JSON files included,
+so the tally and the verifier can be tried too; without the link, that page
+cannot be found.
 
 **Regenerating** the link invalidates the previous one at once and cuts off
 everyone who had used it; **revoking** it does not replace it. No reason is

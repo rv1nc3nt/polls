@@ -463,10 +463,16 @@ def results(request: HttpRequest, poll_id: str) -> HttpResponse:
     publication document verbatim. Otherwise the page renders the derivation,
     the pairwise matrix, the frozen counts, the tie-break where one applies and
     the per-ordering table (R-11.3), all from ``elections.results_view``.
+
+    A sandbox poll's result is served too, but only to a browser holding its
+    share link or a voter token of its own (R-3.7, ``sandbox.may_reach``):
+    trying a poll end to end includes reading what it produced, the CSV and
+    JSON the verifier checks among it. Any other browser gets the same bare
+    404 as for a poll never published, and nothing lists it (INV-8).
     """
-    poll = get_object_or_404(
-        Poll.objects.filter(is_sandbox=False, state=PollState.PUBLISHED), pk=poll_id
-    )
+    poll = get_object_or_404(Poll, state=PollState.PUBLISHED, pk=poll_id)
+    if not sandbox.may_reach(request.session, poll):
+        raise Http404
 
     fmt = request.GET.get("format")
     if fmt == "csv":
@@ -478,6 +484,16 @@ def results(request: HttpRequest, poll_id: str) -> HttpResponse:
     if fmt is not None:
         raise Http404
 
+    # A sandbox poll has no public page to lead back to; its share link is
+    # the page, when this browser came through it. One that only holds a
+    # voter token gets the title without a link rather than a link to a 404.
+    if not poll.is_sandbox:
+        poll_url = reverse("publicsite:poll_detail", args=[poll.pk])
+    elif sandbox.link_granted(request.session, poll):
+        poll_url = reverse("publicsite:poll_preview_shared", args=[poll.pk, poll.preview_token])
+    else:
+        poll_url = ""
+
     return render(
         request,
         "publicsite/results.html",
@@ -485,10 +501,7 @@ def results(request: HttpRequest, poll_id: str) -> HttpResponse:
             "poll": poll,
             "view": results_view.result_view(poll),
             "breadcrumbs": [
-                {
-                    "label": poll.title(request.LANGUAGE_CODE),
-                    "url": reverse("publicsite:poll_detail", args=[poll.pk]),
-                },
+                {"label": poll.title(request.LANGUAGE_CODE), "url": poll_url},
                 {"label": _("Résultats")},
             ],
         },

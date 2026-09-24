@@ -1,11 +1,17 @@
 {% extends "base.html" %}
 {% load i18n %}
-{# SPDX-License-Identifier: 0BSD — served only for a published, non-sandbox poll (§9). #}
+{# SPDX-License-Identifier: 0BSD — a published poll (§9); a sandbox one only through its link (R-3.7). #}
 
 {% block title %}{% translate "Résultats" %} — {{ poll.title }}{% endblock %}
 
 {% block content %}
   {% include "publicsite/_crumb.html" %}
+
+  {% if poll.is_sandbox %}
+    <div class="notice" role="note">
+      <p>{% translate "Scrutin d'essai : ce résultat n'est pas public et ne compte pour rien. Il sert à vérifier le bon fonctionnement de la plateforme, jusqu'au dépouillement et aux fichiers publiés." %}</p>
+    </div>
+  {% endif %}
 
   <h1>{% blocktranslate with title=poll.title %}Résultats : « {{ title }} »{% endblocktranslate %}</h1>
 

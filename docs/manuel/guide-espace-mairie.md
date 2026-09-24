@@ -301,8 +301,8 @@ immédiatement ouvert au vote et à l'inscription, et affiché comme tel sur le
 site public. L'ancienne et la nouvelle date sont inscrites au journal.
 
 > Un scrutin test (`is_sandbox`) est fixé à la création et **non modifiable** ;
-> il est exclu des listes publiques, des résultats publiés et de toute
-> statistique.
+> il est exclu des listes publiques et de toute statistique, et son résultat
+> n'apparaît sur aucune page publique.
 
 ### Essayer un scrutin d'essai, puis le supprimer
 
@@ -314,7 +314,9 @@ accès, sans compte, à la page du scrutin, à l'inscription puis au vote, quel 
 soit l'état du scrutin. Chaque testeur s'inscrit comme un vrai électeur : il doit
 donc **figurer sur la liste électorale**, et reçoit son lien de vote par courriel
 comme d'habitude. Une mention rappelle sur chaque page que le vote est un test ;
-les bulletins déposés ne comptent pour rien.
+les bulletins déposés ne comptent pour rien. Une fois le scrutin publié, le même
+lien mène à son **résultat**, fichiers CSV et JSON compris, de quoi essayer aussi
+le dépouillement et le vérificateur ; sans le lien, cette page reste introuvable.
 
 **Régénérer** le lien invalide aussitôt le précédent, et coupe l'accès de ceux qui
 l'avaient utilisé ; le **révoquer** ne le remplace pas. Aucun motif n'est demandé.
