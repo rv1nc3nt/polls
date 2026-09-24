@@ -42,6 +42,9 @@ class TiebreakRefused(Exception):
 
 @dataclass(frozen=True)
 class Closure:
+    """What ``transitions.close_poll`` freezes onto the poll: the §9 hash and
+    the counts of ``frozen_counts``."""
+
     closure_hash: bytes
     counts: dict[str, int]
 

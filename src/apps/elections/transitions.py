@@ -2,7 +2,7 @@
 """The one module that assigns ``Poll.state`` (§5.1).
 
 No view, no management command and no service anywhere else mutates it; a test
-greps the tree to assert that (``tests/integration/test_single_transition.py``).
+greps the tree to assert that (``tests/integration/test_single_transition_point.py``).
 The transition table is here, the guards are here, and the audit event is
 written in the same transaction as the state write.
 

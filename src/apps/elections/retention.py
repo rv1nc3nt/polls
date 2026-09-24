@@ -58,6 +58,8 @@ RETENTION = timedelta(days=61)
 
 @dataclass(frozen=True)
 class PurgeReport:
+    """Rows deleted from one poll by ``purge``; zeros on a re-run."""
+
     poll_id: str
     registrations: int
     roll_entries: int

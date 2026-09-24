@@ -293,6 +293,10 @@ def _identity_key(row: MappedRow) -> tuple[str, ...]:
 
 @dataclass(frozen=True)
 class CollapseResult:
+    """The output of ``collapse``; ``collapsed`` and ``indistinguishable`` feed
+    the ``ValidationReport``."""
+
+    #: One entry per elector: what ``apply_import`` writes.
     entries: list[Entry]
     #: Entries built from more than one row, merged across list types (R-4.6).
     collapsed: list[Entry]
@@ -395,6 +399,7 @@ class ValidationReport:
 
     @property
     def clean(self) -> bool:
+        """Nothing to report at all, advisory categories included."""
         return not (
             self.missing_columns
             or self.nameless_rows

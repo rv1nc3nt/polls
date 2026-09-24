@@ -88,6 +88,12 @@ def check_registration_window(
     before ``closes_at`` (§6.4) and the INV-2 trigger admits the same. Every
     other registration write still stops at ``closes_at``.
 
+    Consequence of not consulting ``state``: a poll still ``draft`` or
+    ``announced`` once ``opens_at`` has passed — the scheduled ``open_poll``
+    late, or blocked — passes this check, and with no snapshot yet every
+    applicant lands in ``pending_review``, the outcome described above. The
+    registration view does not gate on ``state`` either (``docs/review-notes.md``).
+
     The retention purge is the sole exception and is not a caller here: it goes
     through ``apps.elections.retention``, of which it is the only user, and the
     database trigger names the exception rather than being disabled for it
