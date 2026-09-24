@@ -1218,11 +1218,27 @@ def roll_status(request: HttpRequest, poll: Poll) -> HttpResponse:
         and timezone.now() >= poll.closed_at + RETENTION
         and not entries.exists()
     )
+    # R-7.5: the poll admin sees each name with its voted flag, so an elector
+    # who says they cannot vote can be told why. The auditor browses the same
+    # roll for eligibility (R-4.4) but not who took part: R-13.4 bis keeps
+    # participation by name to the poll admin alone.
+    shown = list(page.object_list)
+    show_participation = Role.POLL_ADMIN in poll_roles(request.user, poll)
+    flags = rollbrowse.participation(poll, shown) if show_participation else {}
+    rows = [(entry, flags.get(entry.pk)) for entry in shown]
 
     return render(
         request,
         "backoffice/roll_status.html",
-        {"poll": poll, "draft": False, "page": page, "query": query, "purged": purged},
+        {
+            "poll": poll,
+            "draft": False,
+            "page": page,
+            "rows": rows,
+            "show_participation": show_participation,
+            "query": query,
+            "purged": purged,
+        },
     )
 
 

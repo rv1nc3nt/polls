@@ -42,6 +42,15 @@
         <button type="submit">{% translate "Rechercher" %}</button>
       </form>
 
+      {% if show_participation %}
+        {% comment %}
+          R-7.5: names with a voted flag, never with a ballot (INV-1). A
+          registration still under review is bound to no entry yet, so it
+          shows here as "pas d'inscription" and is found on screen 4.
+        {% endcomment %}
+        <p class="help">{% translate "La colonne « Participation » indique si l'électeur s'est inscrit et s'il a voté, jamais ce qu'il a voté. Une inscription en attente d'examen n'apparaît pas encore ici : elle figure dans la file d'attente des inscriptions." %}</p>
+      {% endif %}
+
       <div class="table-scroll">
       <table>
         <caption>
@@ -57,10 +66,11 @@
             <th scope="col">{% translate "Nom d'usage" %}</th>
             <th scope="col">{% translate "Prénoms" %}</th>
             <th scope="col">{% translate "Date de naissance" %}</th>
+            {% if show_participation %}<th scope="col">{% translate "Participation" %}</th>{% endif %}
           </tr>
         </thead>
         <tbody>
-          {% for entry in page.object_list %}
+          {% for entry, participation in rows %}
             <tr>
               <td>{{ entry.birth_name }}</td>
               <td>{{ entry.usual_name }}</td>
@@ -69,9 +79,10 @@
                 {{ entry.date_of_birth }}
                 {% if entry.date_uncertain %}<span class="notice">{% translate "(incertaine)" %}</span>{% endif %}
               </td>
+              {% if show_participation %}<td>{{ participation.label }}</td>{% endif %}
             </tr>
           {% empty %}
-            <tr><td colspan="4">{% translate "Aucun électeur ne correspond." %}</td></tr>
+            <tr><td colspan="{% if show_participation %}5{% else %}4{% endif %}">{% translate "Aucun électeur ne correspond." %}</td></tr>
           {% endfor %}
         </tbody>
       </table>

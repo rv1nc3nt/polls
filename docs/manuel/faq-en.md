@@ -175,6 +175,15 @@ consumes any longer is deleted two months after its import —
 distinct from the retention of a poll's frozen snapshot, which starts from
 its closing.
 
+### A voter says they cannot vote. How do I find out why?
+Look their name up in the poll's "Electoral roll" menu. The poll
+administrator sees a **Participation** column there for each elector: *not
+registered*, *registration not confirmed* (the link sent by email was never
+opened), *registered, has not voted*, *voted online* or *voted on paper*. It
+says **whether** the person voted, never **how**, nor when. A registration
+still under review is not yet attached to any roll entry: it is in the
+registration queue. The auditor sees the same roll without this column.
+
 ### A voter says they are registered but the matching fails.
 Their request goes to the **registration queue**. Compare the declaration
 against the nearby entries; **accept** it (choosing the roll entry) or

@@ -14,7 +14,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: commune-polls\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-19 09:29+0200\n"
+"POT-Creation-Date: 2026-09-24 10:08+0200\n"
 "Language: en\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -45,183 +45,195 @@ msgstr "state transition"
 msgid "clôture repoussée"
 msgstr "closing date extended"
 
-#: src/apps/audit/models.py:41
+#: src/apps/audit/models.py:43
+msgid "clôture anticipée"
+msgstr "early closure"
+
+#: src/apps/audit/models.py:44
 msgid "scrutin retiré"
 msgstr "poll withdrawn"
 
-#: src/apps/audit/models.py:43
+#: src/apps/audit/models.py:46
+msgid "scrutin d'essai supprimé"
+msgstr "sandbox poll deleted"
+
+#: src/apps/audit/models.py:48
 msgid "lien d'aperçu généré"
 msgstr "preview link generated"
 
-#: src/apps/audit/models.py:44
+#: src/apps/audit/models.py:49
 msgid "lien d'aperçu révoqué"
 msgstr "preview link revoked"
 
-#: src/apps/audit/models.py:45
+#: src/apps/audit/models.py:50
 msgid "liste électorale importée"
 msgstr "electoral roll imported"
 
-#: src/apps/audit/models.py:46
+#: src/apps/audit/models.py:51
 msgid "copie figée prise"
 msgstr "snapshot taken"
 
-#: src/apps/audit/models.py:47
+#: src/apps/audit/models.py:52
 msgid "inscription examinée"
 msgstr "registration reviewed"
 
-#: src/apps/audit/models.py:48
+#: src/apps/audit/models.py:55
+msgid "lien de confirmation renvoyé"
+msgstr "confirmation link resent"
+
+#: src/apps/audit/models.py:56
 msgid "tentative de doublon d'inscription"
 msgstr "duplicate registration attempt"
 
-#: src/apps/audit/models.py:51
+#: src/apps/audit/models.py:59
 msgid "inscription refusée : type de liste non autorisé"
 msgstr "registration refused: ineligible electoral-list type"
 
-#: src/apps/audit/models.py:53
+#: src/apps/audit/models.py:61
 msgid "bulletin papier saisi"
 msgstr "paper ballot keyed in"
 
-#: src/apps/audit/models.py:54
+#: src/apps/audit/models.py:62
 msgid "bulletin papier rectifié"
 msgstr "paper ballot corrected"
 
-#: src/apps/audit/models.py:55
+#: src/apps/audit/models.py:63
 msgid "bulletin papier supprimé"
 msgstr "paper ballot deleted"
 
-#: src/apps/audit/models.py:56
+#: src/apps/audit/models.py:64
 msgid "bulletin contresigné"
 msgstr "ballot countersigned"
 
-#: src/apps/audit/models.py:57
+#: src/apps/audit/models.py:65
 msgid "rapprochement papier enregistré"
 msgstr "paper reconciliation recorded"
 
-#: src/apps/audit/models.py:58
+#: src/apps/audit/models.py:66
 msgid "clôture forcée"
 msgstr "closure overridden"
 
-#: src/apps/audit/models.py:59
+#: src/apps/audit/models.py:67
 msgid "dépouillement effectué"
 msgstr "tally run"
 
-#: src/apps/audit/models.py:60
+#: src/apps/audit/models.py:68
 msgid "tirage au sort physique saisi"
 msgstr "physical draw recorded"
 
-#: src/apps/audit/models.py:61
+#: src/apps/audit/models.py:69
 msgid "résultats publiés"
 msgstr "results published"
 
-#: src/apps/audit/models.py:62
+#: src/apps/audit/models.py:70
 msgid "rôle attribué"
 msgstr "role assigned"
 
-#: src/apps/audit/models.py:63
+#: src/apps/audit/models.py:71
 msgid "rôle retiré"
 msgstr "role revoked"
 
-#: src/apps/audit/models.py:64
+#: src/apps/audit/models.py:72
 msgid "paramètres de messagerie modifiés"
 msgstr "mail settings changed"
 
-#: src/apps/audit/models.py:65
+#: src/apps/audit/models.py:73
 msgid "paramètres de la commune modifiés"
 msgstr "commune settings changed"
 
-#: src/apps/audit/models.py:66
+#: src/apps/audit/models.py:74
 msgid "image de la commune ajoutée"
 msgstr "commune image added"
 
-#: src/apps/audit/models.py:67
+#: src/apps/audit/models.py:75
 msgid "image de la commune supprimée"
 msgstr "commune image removed"
 
-#: src/apps/audit/models.py:68
+#: src/apps/audit/models.py:76
 msgid "modèle enregistré"
 msgstr "template saved"
 
-#: src/apps/audit/models.py:69
+#: src/apps/audit/models.py:77
 msgid "modèle renommé"
 msgstr "template renamed"
 
-#: src/apps/audit/models.py:70
+#: src/apps/audit/models.py:78
 msgid "modèle supprimé"
 msgstr "template deleted"
 
-#: src/apps/audit/models.py:71
+#: src/apps/audit/models.py:79
 msgid "journal consulté"
 msgstr "audit log accessed"
 
-#: src/apps/audit/models.py:72
+#: src/apps/audit/models.py:80
 msgid "purge de rétention"
 msgstr "retention purge"
 
-#: src/apps/audit/models.py:73
+#: src/apps/audit/models.py:81
 msgid "liste de travail purgée"
 msgstr "working roll purged"
 
-#: src/apps/audit/models.py:74
+#: src/apps/audit/models.py:82
 msgid "tâche planifiée refusée"
 msgstr "scheduled job refused"
 
-#: src/apps/audit/models.py:86
+#: src/apps/audit/models.py:94
 msgid "divergence de nom acceptée"
 msgstr "name divergence accepted"
 
-#: src/apps/audit/models.py:87
+#: src/apps/audit/models.py:95
 msgid "divergence de nom refusée"
 msgstr "name divergence refused"
 
-#: src/apps/audit/models.py:88
+#: src/apps/audit/models.py:96
 msgid "aucune correspondance dans la liste"
 msgstr "no match in the roll"
 
-#: src/apps/audit/models.py:89
+#: src/apps/audit/models.py:97
 msgid "type de liste non autorisé pour ce scrutin"
 msgstr "electoral-list type not eligible for this poll"
 
-#: src/apps/audit/models.py:90
+#: src/apps/audit/models.py:98
 msgid "identité confirmée en mairie"
 msgstr "identity confirmed at the mairie"
 
-#: src/apps/audit/models.py:91
+#: src/apps/audit/models.py:99
 msgid "erreur de saisie"
 msgstr "keying error"
 
-#: src/apps/audit/models.py:92
+#: src/apps/audit/models.py:100
 msgid "demande de l'électeur"
 msgstr "voter's request"
 
-#: src/apps/audit/models.py:93
+#: src/apps/audit/models.py:101
 msgid "bulletin en double"
 msgstr "duplicate ballot"
 
-#: src/apps/audit/models.py:94
+#: src/apps/audit/models.py:102
 msgid "a déjà voté en ligne"
 msgstr "already voted online"
 
-#: src/apps/audit/models.py:95
+#: src/apps/audit/models.py:103
 msgid "contreseing indisponible"
 msgstr "countersignature unavailable"
 
-#: src/apps/audit/models.py:96
+#: src/apps/audit/models.py:104
 msgid "échéance atteinte"
 msgstr "deadline reached"
 
-#: src/apps/audit/models.py:97
+#: src/apps/audit/models.py:105
 msgid "décision administrative"
 msgstr "administrative decision"
 
-#: src/apps/audit/models.py:98
+#: src/apps/audit/models.py:106
 msgid "autre"
 msgstr "other"
 
-#: src/apps/audit/models.py:120
+#: src/apps/audit/models.py:143
 msgid "événement d'audit"
 msgstr "audit event"
 
-#: src/apps/audit/models.py:121
+#: src/apps/audit/models.py:144
 msgid "journal d'audit"
 msgstr "audit log"
 
@@ -233,7 +245,7 @@ msgstr "This action requires a signed-in account."
 msgid "Vous n'avez pas le rôle requis sur ce scrutin."
 msgstr "You do not hold the required role on this poll."
 
-#: src/apps/backoffice/access.py:146 src/apps/backoffice/views.py:423
+#: src/apps/backoffice/access.py:146 src/apps/backoffice/views.py:469
 msgid "Réservé à l'administration de la commune."
 msgstr "Restricted to the commune administration."
 
@@ -257,34 +269,265 @@ msgstr "This account is deactivated; reactivate it before assigning it a role."
 msgid "Ce compte détient déjà ce rôle sur ce scrutin."
 msgstr "This account already holds this role on this poll."
 
-#: src/apps/backoffice/communesettings.py:182
-#: src/apps/backoffice/communesettings.py:205
+#: src/apps/backoffice/communesettings.py:179
+#: src/apps/backoffice/communesettings.py:203
 msgid "Image trop volumineuse (2 Mo maximum)."
 msgstr "Image too large (2 MB maximum)."
 
-#: src/apps/backoffice/communesettings.py:183
-#: src/apps/backoffice/communesettings.py:206
-#: src/apps/elections/pollimages.py:63
+#: src/apps/backoffice/communesettings.py:180
+#: src/apps/backoffice/communesettings.py:204
+#: src/apps/elections/pollimages.py:62
 msgid "Format d'image non reconnu (PNG, JPEG, GIF ou WebP attendus)."
 msgstr "Unrecognised image format (PNG, JPEG, GIF or WebP expected)."
 
-#: src/apps/backoffice/communesettings.py:226
+#: src/apps/backoffice/communesettings.py:225
 msgid "Image trop volumineuse (256 Ko maximum)."
 msgstr "Image too large (256 KB maximum)."
 
-#: src/apps/backoffice/communesettings.py:227
+#: src/apps/backoffice/communesettings.py:226
 msgid "Format d'image non reconnu (ICO, PNG, JPEG, GIF ou WebP attendus)."
 msgstr "Unrecognised image format (ICO, PNG, JPEG, GIF or WebP expected)."
 
-#: src/apps/backoffice/dashboard.py:93 src/apps/backoffice/views.py:440
+#: src/apps/backoffice/confirmations.py:66
+msgid "Annoncer le scrutin ?"
+msgstr "Announce the poll?"
+
+#: src/apps/backoffice/confirmations.py:67
+msgid "Annoncer le scrutin"
+msgstr "Announce the poll"
+
+#: src/apps/backoffice/confirmations.py:69
+msgid ""
+"Le scrutin devient visible sur le site public : propositions et calendrier."
+msgstr ""
+"The poll becomes visible on the public site: propositions and calendar."
+
+#: src/apps/backoffice/confirmations.py:70
+msgid "La configuration est figée : elle ne pourra plus être modifiée."
+msgstr "The configuration is frozen: it can no longer be changed."
+
+#: src/apps/backoffice/confirmations.py:71
+msgid "Ni inscription ni vote ne sont possibles avant l'ouverture."
+msgstr "Neither registration nor voting is possible before opening."
+
+#: src/apps/backoffice/confirmations.py:79
+msgid "Les inscriptions et le vote s'ouvrent immédiatement."
+msgstr "Registration and voting open immediately."
+
+#: src/apps/backoffice/confirmations.py:80
+msgid "La liste électorale en vigueur est figée pour ce scrutin."
+msgstr "The electoral roll currently in force is frozen for this poll."
+
+#: src/apps/backoffice/confirmations.py:84
+#, python-format
+msgid ""
+"Ouverture avancée : prévue le %(planned)s, elle devient l'instant présent."
+msgstr ""
+"Early opening: planned for %(planned)s, it becomes the present instant."
+
+#: src/apps/backoffice/confirmations.py:89
+msgid "Ouvrir le scrutin ?"
+msgstr "Open the poll?"
+
+#: src/apps/backoffice/confirmations.py:90
+msgid "Ouvrir le scrutin"
+msgstr "Open the poll"
+
+#: src/apps/backoffice/confirmations.py:98
+msgid ""
+"Plus aucune inscription, aucun vote en ligne ni aucune saisie de bulletin "
+"papier ne sera accepté."
+msgstr ""
+"No further registration, online vote or paper-ballot entry will be accepted."
+
+#: src/apps/backoffice/confirmations.py:101
+msgid "L'empreinte de clôture et les compteurs de participation sont figés."
+msgstr "The closure hash and the turnout counters are frozen."
+
+#: src/apps/backoffice/confirmations.py:106
+#, python-format
+msgid ""
+"Clôture anticipée : la fin de saisie prévue le %(planned)s devient l'instant "
+"présent. Elle sera affichée sur la page publique avec le motif "
+"« %(reason)s »."
+msgstr ""
+"Early closure: the entry deadline planned for %(planned)s becomes the "
+"present instant. It will be shown on the public page with the reason "
+"“%(reason)s”."
+
+#: src/apps/backoffice/confirmations.py:116
+#, python-format
+msgid "%(count)d inscription en attente d'examen ne pourra plus voter."
+msgid_plural ""
+"%(count)d inscriptions en attente d'examen ne pourront plus voter."
+msgstr[0] "%(count)d registration under review will no longer be able to vote."
+msgstr[1] ""
+"%(count)d registrations under review will no longer be able to vote."
+
+#: src/apps/backoffice/confirmations.py:125
+#, python-format
+msgid ""
+"%(count)d électeur n'a pas confirmé son adresse et ne pourra plus voter."
+msgid_plural ""
+"%(count)d électeurs n'ont pas confirmé leur adresse et ne pourront plus "
+"voter."
+msgstr[0] ""
+"%(count)d elector has not confirmed their address and will no longer be able "
+"to vote."
+msgstr[1] ""
+"%(count)d electors have not confirmed their address and will no longer be "
+"able to vote."
+
+#: src/apps/backoffice/confirmations.py:136
+#, python-format
+msgid ""
+"%(count)d bulletin papier non contresigné sera exclu du décompte et publié à "
+"part (motif « %(reason)s »)."
+msgid_plural ""
+"%(count)d bulletins papier non contresignés seront exclus du décompte et "
+"publiés à part (motif « %(reason)s »)."
+msgstr[0] ""
+"%(count)d paper ballot not countersigned will be left out of the count and "
+"published separately (reason “%(reason)s”)."
+msgstr[1] ""
+"%(count)d paper ballots not countersigned will be left out of the count and "
+"published separately (reason “%(reason)s”)."
+
+#: src/apps/backoffice/confirmations.py:146
+msgid "Clore le scrutin ?"
+msgstr "Close the poll?"
+
+#: src/apps/backoffice/confirmations.py:147
+msgid "Clore le scrutin"
+msgstr "Close the poll"
+
+#: src/apps/backoffice/confirmations.py:155
+msgid "Reporter la clôture ?"
+msgstr "Extend the closing date?"
+
+#: src/apps/backoffice/confirmations.py:156
+#: src/templates/backoffice/poll_config.html:205
+msgid "Reporter la clôture"
+msgstr "Postpone closing"
+
+#: src/apps/backoffice/confirmations.py:159
+#, python-format
+msgid ""
+"La clôture passe du %(old)s au %(new)s ; la fin de saisie papier est décalée "
+"d'autant."
+msgstr ""
+"Closing moves from %(old)s to %(new)s; the paper-entry deadline moves by the "
+"same amount."
+
+#: src/apps/backoffice/confirmations.py:163
+#, python-format
+msgid ""
+"Le report est affiché sur la page publique avec le motif « %(reason)s »."
+msgstr ""
+"The extension is shown on the public page with the reason “%(reason)s”."
+
+#: src/apps/backoffice/confirmations.py:172
+msgid "Retirer le scrutin ?"
+msgstr "Withdraw the poll?"
+
+#: src/apps/backoffice/confirmations.py:173
+#: src/templates/backoffice/poll_config.html:256
+#: src/templates/backoffice/poll_config.html:268
+msgid "Retirer le scrutin"
+msgstr "Withdraw the poll"
+
+#: src/apps/backoffice/confirmations.py:176
+msgid ""
+"Plus rien du scrutin ne reste visible sur le site public, y compris son "
+"résultat s'il a été publié."
+msgstr ""
+"Nothing of the poll remains visible on the public site, including its result "
+"if it was published."
+
+#: src/apps/backoffice/confirmations.py:179
+msgid "Aucune inscription ni aucun vote n'est plus accepté."
+msgstr "No further registration or vote is accepted."
+
+#: src/apps/backoffice/confirmations.py:180
+#, python-format
+msgid "Motif enregistré : « %(reason)s »."
+msgstr "Reason recorded: “%(reason)s”."
+
+#: src/apps/backoffice/confirmations.py:181
+msgid "Les bulletins et le journal d'audit sont conservés."
+msgstr "The ballots and the audit log are kept."
+
+#: src/apps/backoffice/confirmations.py:191
+msgid ""
+"Le résultat, la liste anonymisée des bulletins et l'empreinte de clôture "
+"deviennent publics."
+msgstr ""
+"The result, the anonymised ballot list and the closure hash become public."
+
+#: src/apps/backoffice/confirmations.py:197
+#, python-format
+msgid "Proposition publiée comme gagnante : %(label)s."
+msgstr "Proposition published as the winner: %(label)s."
+
+#: src/apps/backoffice/confirmations.py:202
+msgid "Publier les résultats ?"
+msgstr "Publish the results?"
+
+#: src/apps/backoffice/confirmations.py:203
+#: src/templates/backoffice/results_publish.html:256
+msgid "Publier les résultats"
+msgstr "Publish the results"
+
+#: src/apps/backoffice/confirmations.py:212
+msgid "Signer le procès-verbal de rapprochement ?"
+msgstr "Sign the reconciliation record?"
+
+#: src/apps/backoffice/confirmations.py:213
+msgid "Signer le procès-verbal"
+msgstr "Sign the record"
+
+#: src/apps/backoffice/confirmations.py:216
+#, python-format
+msgid ""
+"%(forms)d formulaire(s) conservé(s) pour %(recorded)d bulletin(s) papier "
+"enregistré(s) : écart de %(gap)d."
+msgstr ""
+"%(forms)d form(s) retained for %(recorded)d paper ballot(s) recorded: a "
+"difference of %(gap)d."
+
+#: src/apps/backoffice/confirmations.py:220
+msgid "Le procès-verbal est signé à votre nom et ne pourra plus être modifié."
+msgstr "The record is signed in your name and can no longer be changed."
+
+#: src/apps/backoffice/confirmations.py:228
+msgid "Supprimer ce scrutin d'essai ?"
+msgstr "Delete this test poll?"
+
+#: src/apps/backoffice/confirmations.py:229
+msgid "Supprimer définitivement"
+msgstr "Delete permanently"
+
+#: src/apps/backoffice/confirmations.py:232
+msgid ""
+"Le scrutin d'essai et tout ce qu'il contient — inscriptions, bulletins, "
+"liste figée, images — sont supprimés."
+msgstr ""
+"The test poll and everything it holds — registrations, ballots, frozen roll, "
+"images — are deleted."
+
+#: src/apps/backoffice/confirmations.py:235
+msgid "Le journal d'audit conserve la trace de la suppression."
+msgstr "The audit log keeps a record of the deletion."
+
+#: src/apps/backoffice/dashboard.py:116 src/apps/backoffice/views.py:486
 msgid "Le scrutin n'est plus en brouillon."
 msgstr "The poll is no longer a draft."
 
-#: src/apps/backoffice/dashboard.py:95
+#: src/apps/backoffice/dashboard.py:118
 msgid "Le scrutin doit être annoncé pour pouvoir s'ouvrir."
 msgstr "The poll must be announced to be able to open."
 
-#: src/apps/backoffice/dashboard.py:98
+#: src/apps/backoffice/dashboard.py:121
 msgid ""
 "La date d'ouverture est déjà passée : reportez-la avant de pouvoir annoncer "
 "le scrutin."
@@ -292,98 +535,98 @@ msgstr ""
 "The opening date has already passed: push it forward before you can announce "
 "the poll."
 
-#: src/apps/backoffice/dashboard.py:102 src/apps/backoffice/views.py:469
+#: src/apps/backoffice/dashboard.py:125 src/apps/backoffice/views.py:524
 msgid "Le scrutin n'est pas ouvert."
 msgstr "The poll is not open."
 
-#: src/apps/backoffice/dashboard.py:104
+#: src/apps/backoffice/dashboard.py:127
 msgid "Il faut au moins deux propositions."
 msgstr "At least two propositions are required."
 
-#: src/apps/backoffice/dashboard.py:106
+#: src/apps/backoffice/dashboard.py:129
 msgid "Aucune liste électorale importée : rien à figer à l'ouverture."
 msgstr "No electoral roll imported: nothing to freeze at opening."
 
-#: src/apps/backoffice/dashboard.py:108
+#: src/apps/backoffice/dashboard.py:131
 #, python-format
 msgid "Clôture bloquée : %(count)s bulletin(s) en attente de contreseing."
 msgstr "Closure blocked: %(count)s ballot(s) awaiting countersignature."
 
-#: src/apps/backoffice/dashboard.py:112
+#: src/apps/backoffice/dashboard.py:135
 msgid ""
 "Clôture bloquée : rapprochement des bulletins papier non enregistré (R-8.6)."
 msgstr "Closure blocked: paper-ballot reconciliation not recorded (R-8.6)."
 
-#: src/apps/backoffice/dashboard.py:116
+#: src/apps/backoffice/dashboard.py:139
 #, python-format
 msgid "Traduction manquante en %(language)s : proposition « %(option)s »."
 msgstr "Missing %(language)s translation: proposition “%(option)s”."
 
-#: src/apps/backoffice/dashboard.py:120
+#: src/apps/backoffice/dashboard.py:143
 msgid "le titre"
 msgstr "the title"
 
-#: src/apps/backoffice/dashboard.py:120
+#: src/apps/backoffice/dashboard.py:143
 msgid "la description"
 msgstr "the description"
 
-#: src/apps/backoffice/dashboard.py:121
+#: src/apps/backoffice/dashboard.py:144
 #, python-format
 msgid "Traduction manquante en %(language)s : %(what)s."
 msgstr "Missing %(language)s translation: %(what)s."
 
-#: src/apps/backoffice/dashboard.py:183
+#: src/apps/backoffice/dashboard.py:206
 msgid "Configurer le scrutin"
 msgstr "Configure the poll"
 
-#: src/apps/backoffice/dashboard.py:189 src/apps/backoffice/dashboard.py:206
+#: src/apps/backoffice/dashboard.py:212 src/apps/backoffice/dashboard.py:229
 msgid "Consulter la liste électorale"
 msgstr "View the electoral roll"
 
-#: src/apps/backoffice/dashboard.py:200
+#: src/apps/backoffice/dashboard.py:223
 msgid "Consulter la configuration"
 msgstr "View the configuration"
 
-#: src/apps/backoffice/dashboard.py:215
+#: src/apps/backoffice/dashboard.py:238
 msgid "Examiner les inscriptions en attente"
 msgstr "Review pending registrations"
 
-#: src/apps/backoffice/dashboard.py:221
+#: src/apps/backoffice/dashboard.py:244
 msgid "Saisir un bulletin papier"
 msgstr "Key in a paper ballot"
 
-#: src/apps/backoffice/dashboard.py:227
+#: src/apps/backoffice/dashboard.py:250
 msgid "Rectifier ou supprimer un bulletin papier"
 msgstr "Correct or delete a paper ballot"
 
-#: src/apps/backoffice/dashboard.py:242
-#: src/templates/backoffice/poll_config.html:186
+#: src/apps/backoffice/dashboard.py:265
+#: src/templates/backoffice/poll_config.html:187
 msgid "Reporter la date de clôture"
 msgstr "Extend the closing date"
 
-#: src/apps/backoffice/dashboard.py:251
+#: src/apps/backoffice/dashboard.py:274
 msgid "Contresigner des bulletins"
 msgstr "Countersign ballots"
 
-#: src/apps/backoffice/dashboard.py:262
+#: src/apps/backoffice/dashboard.py:285
 #: src/templates/backoffice/results_publish.html:40
 #: src/templates/backoffice/results_publish.html:93
 msgid "Rapprochement des bulletins papier"
 msgstr "Paper ballot reconciliation"
 
-#: src/apps/backoffice/dashboard.py:272
+#: src/apps/backoffice/dashboard.py:295
 msgid "Dépouiller et publier"
 msgstr "Tally and publish"
 
-#: src/apps/backoffice/dashboard.py:281
+#: src/apps/backoffice/dashboard.py:304
 msgid "Consulter le dépouillement et la publication"
 msgstr "View the tally and publication"
 
-#: src/apps/backoffice/dashboard.py:292
+#: src/apps/backoffice/dashboard.py:315
 msgid "Consulter le scrutin retiré"
 msgstr "View the withdrawn poll"
 
-#: src/apps/backoffice/dashboard.py:312
+#: src/apps/backoffice/dashboard.py:335
 msgid "Consulter le journal d'audit"
 msgstr "Read the audit log"
 
@@ -399,14 +642,14 @@ msgstr ""
 "The server's local time. The poll opens at this instant, or later if the "
 "scheduled job has fallen behind."
 
-#: src/apps/backoffice/forms.py:91 src/templates/backoffice/dashboard.html:57
+#: src/apps/backoffice/forms.py:91 src/templates/backoffice/dashboard.html:76
 #: src/templates/backoffice/poll_config.html:141
 #: src/templates/backoffice/results_publish.html:20
-#: src/templates/publicsite/poll_detail.html:96
+#: src/templates/publicsite/poll_detail.html:105
 msgid "Clôture du vote en ligne"
 msgstr "Online voting closes"
 
-#: src/apps/backoffice/forms.py:93 src/templates/backoffice/dashboard.html:63
+#: src/apps/backoffice/forms.py:93 src/templates/backoffice/dashboard.html:82
 #: src/templates/backoffice/poll_config.html:142
 msgid "Fin de saisie des bulletins papier"
 msgstr "Paper ballot keying deadline"
@@ -425,7 +668,7 @@ msgstr ""
 msgid "Fuseau horaire du scrutin"
 msgstr "Poll's timezone"
 
-#: src/apps/backoffice/forms.py:105 src/templates/backoffice/dashboard.html:66
+#: src/apps/backoffice/forms.py:105 src/templates/backoffice/dashboard.html:85
 #: src/templates/backoffice/poll_config.html:144
 #: src/templates/backoffice/template_admin.html:24
 #: src/templates/publicsite/results.html:24
@@ -662,7 +905,7 @@ msgstr ""
 "Fixed for good: a sandbox poll appears on no public page, no published "
 "result and no statistic."
 
-#: src/apps/backoffice/forms.py:329 src/apps/backoffice/forms.py:710
+#: src/apps/backoffice/forms.py:329 src/apps/backoffice/forms.py:742
 #: src/templates/backoffice/account_admin.html:39
 #: src/templates/backoffice/login.html:19
 msgid "Identifiant"
@@ -676,17 +919,30 @@ msgstr ""
 "Short, no spaces or accents. Carried by the ballots and the published "
 "result: do not change it after opening."
 
-#: src/apps/backoffice/forms.py:343
+#: src/apps/backoffice/forms.py:341
+msgid "Position"
+msgstr "Position"
+
+#: src/apps/backoffice/forms.py:346
+msgid ""
+"Ordre d'affichage de cette proposition dans cette page et dans les "
+"résultats. Le bulletin de vote, lui, tire un ordre différent pour chaque "
+"électeur."
+msgstr ""
+"Display order of this proposition on this page and in the results. The "
+"ballot itself draws a different order for each elector."
+
+#: src/apps/backoffice/forms.py:356
 #, python-format
 msgid "Intitulé (%(lang)s)"
 msgstr "Label (%(lang)s)"
 
-#: src/apps/backoffice/forms.py:352
+#: src/apps/backoffice/forms.py:365
 #, python-format
 msgid "Description étendue (%(lang)s)"
 msgstr "Extended description (%(lang)s)"
 
-#: src/apps/backoffice/forms.py:354
+#: src/apps/backoffice/forms.py:367
 msgid ""
 "Facultatif. Mise en forme Markdown : titres avec ##, listes avec -, emphase "
 "avec *…* ou **…**, liens en [texte](url). Pour une image de la bibliothèque "
@@ -701,44 +957,49 @@ msgstr ""
 "*…* or **…**, links as [text](url). For an image from the poll's library "
 "(“Images” tab): ![alt text](image:NUMBER), or ![](image:NUMBER) to reuse the "
 "alt text entered when the image was added; add :small, :medium or :large "
-"after the number to pick a display size. For a YouTube video, a fenced "
-"block on its own lines: ```youtube then the video's eleven-character id, "
-"then ``` ."
+"after the number to pick a display size. For a YouTube video, a fenced block "
+"on its own lines: ```youtube then the video's eleven-character id, then ``` ."
 
-#: src/apps/backoffice/forms.py:377
+#: src/apps/backoffice/forms.py:390
 msgid "Donnez un identifiant à cette proposition."
 msgstr "Give this proposition an identifier."
 
-#: src/apps/backoffice/forms.py:410
+#: src/apps/backoffice/forms.py:423
 msgid "Deux propositions portent le même identifiant."
 msgstr "Two propositions carry the same identifier."
 
-#: src/apps/backoffice/forms.py:412
+#: src/apps/backoffice/forms.py:425
 msgid "Un scrutin comporte au moins deux propositions."
 msgstr "A poll has at least two propositions."
 
-#: src/apps/backoffice/forms.py:433
+#: src/apps/backoffice/forms.py:459
 msgid "Nouvelle date de clôture"
 msgstr "New closing date"
 
-#: src/apps/backoffice/forms.py:435
+#: src/apps/backoffice/forms.py:461
 msgid "Motif (obligatoire)"
 msgstr "Reason (required)"
 
+#: src/apps/backoffice/forms.py:489
+msgid ""
+"Motif (obligatoire avant l'échéance, ou si des bulletins attendent un "
+"contreseing)"
+msgstr ""
+"Reason (required before the deadline, or if ballots await countersignature)"
 
-#: src/apps/backoffice/forms.py:478
+#: src/apps/backoffice/forms.py:506
 msgid "Formulaires papier conservés par la commune"
 msgstr "Paper forms retained by the commune"
 
-#: src/apps/backoffice/forms.py:481
+#: src/apps/backoffice/forms.py:509
 msgid "Remarques (écart constaté, etc.)"
 msgstr "Remarks (discrepancy noted, etc.)"
 
-#: src/apps/backoffice/forms.py:506
+#: src/apps/backoffice/forms.py:534
 msgid "Motif du retrait (obligatoire)"
 msgstr "Reason for withdrawal (mandatory)"
 
-#: src/apps/backoffice/forms.py:545
+#: src/apps/backoffice/forms.py:577
 msgid ""
 "Méthode majoritaire avec ex æquo autorisés sur le bulletin : un bulletin qui "
 "place plusieurs propositions en tête donne une voix à chacune. C'est "
@@ -749,29 +1010,29 @@ msgstr ""
 "several options first gives one vote to each of them. This is rarely "
 "intended for a single-choice question — check one setting or the other."
 
-#: src/apps/backoffice/forms.py:579
+#: src/apps/backoffice/forms.py:611
 msgid "Mot de passe initial"
 msgstr "Initial password"
 
-#: src/apps/backoffice/forms.py:581
+#: src/apps/backoffice/forms.py:613
 msgid "À remettre à la personne, qui le changera à la première connexion."
 msgstr "Hand it to the person, who will change it on first sign-in."
 
-#: src/apps/backoffice/forms.py:588
+#: src/apps/backoffice/forms.py:620
 msgid "Identifiant de connexion"
 msgstr "Sign-in username"
 
-#: src/apps/backoffice/forms.py:589
+#: src/apps/backoffice/forms.py:621
 #: src/templates/backoffice/account_admin.html:40
 msgid "Nom complet"
 msgstr "Full name"
 
-#: src/apps/backoffice/forms.py:590
+#: src/apps/backoffice/forms.py:622
 #: src/templates/backoffice/account_admin.html:41
 msgid "Administrateur de la commune"
 msgstr "Commune administrator"
 
-#: src/apps/backoffice/forms.py:594
+#: src/apps/backoffice/forms.py:626
 msgid ""
 "Gère les comptes et crée les scrutins. Ne donne accès à aucun écran d'un "
 "scrutin : cela demande un rôle sur ce scrutin."
@@ -779,19 +1040,19 @@ msgstr ""
 "Manages accounts and creates polls. Grants no access to any poll's own "
 "screens: that needs a role on that poll."
 
-#: src/apps/backoffice/forms.py:626 src/apps/backoffice/forms.py:768
+#: src/apps/backoffice/forms.py:658 src/apps/backoffice/forms.py:800
 msgid "Nom de la commune"
 msgstr "Commune name"
 
-#: src/apps/backoffice/forms.py:628
+#: src/apps/backoffice/forms.py:660
 msgid "Tel qu'il apparaîtra sur les pages publiques et dans la notice."
 msgstr "As it will appear on the public pages and in the notice."
 
-#: src/apps/backoffice/forms.py:631 src/apps/backoffice/forms.py:769
+#: src/apps/backoffice/forms.py:663 src/apps/backoffice/forms.py:801
 msgid "Référent données personnelles"
 msgstr "Data-protection referent"
 
-#: src/apps/backoffice/forms.py:634
+#: src/apps/backoffice/forms.py:666
 msgid ""
 "Personne ou service qui répond aux demandes d'accès, de rectification et "
 "d'effacement des électeurs."
@@ -799,19 +1060,19 @@ msgstr ""
 "Person or office that answers electors' access, rectification and erasure "
 "requests."
 
-#: src/apps/backoffice/forms.py:639 src/apps/backoffice/forms.py:770
+#: src/apps/backoffice/forms.py:671 src/apps/backoffice/forms.py:802
 msgid "Contact du référent"
 msgstr "Referent's contact"
 
-#: src/apps/backoffice/forms.py:641 src/apps/core/models.py:90
+#: src/apps/backoffice/forms.py:673 src/apps/core/models.py:90
 msgid "Adresse électronique ou postale, publiée dans la notice d'information."
 msgstr "Email or postal address, published in the information notice."
 
-#: src/apps/backoffice/forms.py:644 src/apps/backoffice/forms.py:771
+#: src/apps/backoffice/forms.py:676 src/apps/backoffice/forms.py:803
 msgid "Adresse du site"
 msgstr "Site address"
 
-#: src/apps/backoffice/forms.py:648
+#: src/apps/backoffice/forms.py:680
 msgid ""
 "Ex. : https://votecommune.fr — sans barre oblique finale. Laissez vide pour "
 "utiliser l'adresse configurée au déploiement ; modifiable ensuite depuis "
@@ -821,52 +1082,52 @@ msgstr ""
 "address configured at deployment; changeable afterwards from the “Commune "
 "settings” screen."
 
-#: src/apps/backoffice/forms.py:655
+#: src/apps/backoffice/forms.py:687
 msgid "Identifiant de connexion de l'administrateur"
 msgstr "Administrator's sign-in username"
 
-#: src/apps/backoffice/forms.py:660
+#: src/apps/backoffice/forms.py:692
 msgid "Nom complet de l'administrateur"
 msgstr "Administrator's full name"
 
-#: src/apps/backoffice/forms.py:662
+#: src/apps/backoffice/forms.py:694
 msgid "Le journal d'audit nomme une personne, pas une fonction."
 msgstr "The audit log names a person, not an office."
 
-#: src/apps/backoffice/forms.py:664 src/apps/backoffice/forms.py:697
+#: src/apps/backoffice/forms.py:696 src/apps/backoffice/forms.py:729
 #: src/templates/backoffice/login.html:23
 msgid "Mot de passe"
 msgstr "Password"
 
-#: src/apps/backoffice/forms.py:666
+#: src/apps/backoffice/forms.py:698
 msgid "Confirmer le mot de passe"
 msgstr "Confirm the password"
 
-#: src/apps/backoffice/forms.py:683
+#: src/apps/backoffice/forms.py:715
 msgid "Les deux mots de passe diffèrent."
 msgstr "The two passwords differ."
 
-#: src/apps/backoffice/forms.py:700
+#: src/apps/backoffice/forms.py:732
 msgid "Laissez vide pour conserver le mot de passe déjà enregistré."
 msgstr "Leave blank to keep the password already stored."
 
-#: src/apps/backoffice/forms.py:707
+#: src/apps/backoffice/forms.py:739
 msgid "Serveur SMTP"
 msgstr "SMTP server"
 
-#: src/apps/backoffice/forms.py:708
+#: src/apps/backoffice/forms.py:740
 msgid "Port"
 msgstr "Port"
 
-#: src/apps/backoffice/forms.py:709
+#: src/apps/backoffice/forms.py:741
 msgid "Chiffrement"
 msgstr "Encryption"
 
-#: src/apps/backoffice/forms.py:711
+#: src/apps/backoffice/forms.py:743
 msgid "Adresse d'expédition"
 msgstr "Sending address"
 
-#: src/apps/backoffice/forms.py:716
+#: src/apps/backoffice/forms.py:748
 msgid ""
 "Le port dépend du chiffrement choisi ci-dessous : 587 pour STARTTLS, 465 "
 "pour SSL/TLS implicite, 25 sans chiffrement — à vérifier auprès de "
@@ -875,7 +1136,7 @@ msgstr ""
 "The port depends on the encryption chosen below: 587 for STARTTLS, 465 for "
 "implicit SSL/TLS, 25 with no encryption — check with your mail host."
 
-#: src/apps/backoffice/forms.py:721
+#: src/apps/backoffice/forms.py:753
 msgid ""
 "STARTTLS : connexion normale puis passage en chiffré (le plus courant). SSL/"
 "TLS implicite : chiffré dès la connexion. Aucun : à réserver à un relais "
@@ -886,32 +1147,32 @@ msgstr ""
 "reserve this for a trusted internal relay, never for sending over the "
 "internet."
 
-#: src/apps/backoffice/forms.py:730
+#: src/apps/backoffice/forms.py:762
 msgid "Le port doit être compris entre 1 et 65535."
 msgstr "The port must be between 1 and 65535."
 
-#: src/apps/backoffice/forms.py:737
+#: src/apps/backoffice/forms.py:769
 msgid "Adresse de test"
 msgstr "Test address"
 
-#: src/apps/backoffice/forms.py:747
+#: src/apps/backoffice/forms.py:779
 #: src/templates/backoffice/template_admin.html:23
 msgid "Nom du modèle"
 msgstr "Template name"
 
-#: src/apps/backoffice/forms.py:772 src/templates/base.html:141
+#: src/apps/backoffice/forms.py:804 src/templates/base.html:141
 msgid "Mentions légales"
 msgstr "Legal notice"
 
-#: src/apps/backoffice/forms.py:773
+#: src/apps/backoffice/forms.py:805
 msgid "Afficher le nom de la commune à côté du logo"
 msgstr "Show the commune name next to the logo"
 
-#: src/apps/backoffice/mailsettings.py:90
+#: src/apps/backoffice/mailsettings.py:91
 msgid "Message de test — espace mairie"
 msgstr "Test message — mairie area"
 
-#: src/apps/backoffice/mailsettings.py:92
+#: src/apps/backoffice/mailsettings.py:93
 msgid ""
 "Ceci est un message de test envoyé depuis les paramètres de messagerie de "
 "l'espace mairie. Si vous le recevez, le serveur SMTP configuré est joignable "
@@ -921,24 +1182,46 @@ msgstr ""
 "you receive it, the configured SMTP server is reachable and accepts these "
 "credentials."
 
-#: src/apps/backoffice/mailsettings.py:105
+#: src/apps/backoffice/mailsettings.py:106
 msgid "L'envoi a échoué sans message d'erreur du serveur."
 msgstr "The send failed with no error message from the server."
 
-#: src/apps/backoffice/templatetags/backoffice_nav.py:92
+#: src/apps/backoffice/rollbrowse.py:59
+msgid "pas d'inscription"
+msgstr "not registered"
+
+#: src/apps/backoffice/rollbrowse.py:60
+msgid "inscription non confirmée"
+msgstr "registration not confirmed"
+
+#: src/apps/backoffice/rollbrowse.py:61
+msgid "inscrit, n'a pas voté"
+msgstr "registered, has not voted"
+
+#: src/apps/backoffice/rollbrowse.py:62
+#: src/templates/backoffice/paper_entry.html:65
+#: src/templates/backoffice/registration_queue.html:93
+msgid "a voté en ligne"
+msgstr "voted online"
+
+#: src/apps/backoffice/rollbrowse.py:63
+msgid "a voté sur papier"
+msgstr "voted on paper"
+
+#: src/apps/backoffice/templatetags/backoffice_nav.py:93
 #: src/templates/backoffice/base.html:54
 #: src/templates/backoffice/poll_index.html:5
 msgid "Scrutins"
 msgstr "Polls"
 
-#: src/apps/backoffice/templatetags/backoffice_nav.py:93
+#: src/apps/backoffice/templatetags/backoffice_nav.py:94
 #: src/templates/backoffice/poll_create.html:5
 #: src/templates/backoffice/poll_create.html:6
 msgid "Nouveau scrutin"
 msgstr "New poll"
 
-#: src/apps/backoffice/templatetags/backoffice_nav.py:99
-#: src/apps/backoffice/templatetags/backoffice_nav.py:128
+#: src/apps/backoffice/templatetags/backoffice_nav.py:100
+#: src/apps/backoffice/templatetags/backoffice_nav.py:133
 #: src/templates/backoffice/roll_import.html:5
 #: src/templates/backoffice/roll_import.html:6
 #: src/templates/backoffice/roll_status.html:5
@@ -946,343 +1229,382 @@ msgstr "New poll"
 msgid "Liste électorale"
 msgstr "Electoral roll"
 
-#: src/apps/backoffice/templatetags/backoffice_nav.py:105
+#: src/apps/backoffice/templatetags/backoffice_nav.py:106
 #: src/templates/backoffice/account_admin.html:6
 msgid "Comptes opérateurs"
 msgstr "Operator accounts"
 
-#: src/apps/backoffice/templatetags/backoffice_nav.py:106
+#: src/apps/backoffice/templatetags/backoffice_nav.py:107
 #: src/templates/backoffice/account_admin.html:43
 #: src/templates/backoffice/role_admin.html:5
 #: src/templates/backoffice/role_admin.html:6
 msgid "Rôles par scrutin"
 msgstr "Roles per poll"
 
-#: src/apps/backoffice/templatetags/backoffice_nav.py:107
+#: src/apps/backoffice/templatetags/backoffice_nav.py:108
 #: src/templates/backoffice/mail_settings.html:5
 msgid "Messagerie"
 msgstr "Mail"
 
-#: src/apps/backoffice/templatetags/backoffice_nav.py:108
+#: src/apps/backoffice/templatetags/backoffice_nav.py:109
 #: src/templates/backoffice/template_admin.html:5
 #: src/templates/backoffice/template_admin.html:6
 msgid "Modèles de scrutin"
 msgstr "Poll templates"
 
-#: src/apps/backoffice/templatetags/backoffice_nav.py:109
+#: src/apps/backoffice/templatetags/backoffice_nav.py:110
 #: src/templates/backoffice/commune_settings.html:6
 msgid "Paramètres de la commune"
 msgstr "Commune settings"
 
-#: src/apps/backoffice/templatetags/backoffice_nav.py:116
+# templates/base.html, templates/publicsite/poll_list.html and
+# templates/publicsite/help.html: the public FAQ and its footer/landing-page
+# links, added by hand for the same reason as the header explains.
+#: src/apps/backoffice/templatetags/backoffice_nav.py:114
+#: src/apps/publicsite/views.py:129 src/apps/publicsite/views.py:181
+#: src/templates/backoffice/manual_index.html:5
+#: src/templates/backoffice/manual_index.html:6 src/templates/base.html:147
+#: src/templates/publicsite/manual_index.html:5
+#: src/templates/publicsite/manual_index.html:10
+msgid "Aide"
+msgstr "Help"
+
+#: src/apps/backoffice/templatetags/backoffice_nav.py:121
 #: src/templates/backoffice/poll_index.html:27
 #: src/templates/backoffice/role_admin.html:53
 msgid "Scrutin"
 msgstr "Poll"
 
-#: src/apps/backoffice/templatetags/backoffice_nav.py:118
+#: src/apps/backoffice/templatetags/backoffice_nav.py:123
 #: src/templates/backoffice/dashboard.html:5
 msgid "Tableau de bord"
 msgstr "Dashboard"
 
-#: src/apps/backoffice/templatetags/backoffice_nav.py:122
+#: src/apps/backoffice/templatetags/backoffice_nav.py:127
 msgid "Configuration"
 msgstr "Configuration"
 
-#: src/apps/backoffice/templatetags/backoffice_nav.py:130
-#: src/templates/backoffice/dashboard.html:84
+#: src/apps/backoffice/templatetags/backoffice_nav.py:135
+#: src/templates/backoffice/dashboard.html:104
 msgid "Inscriptions"
 msgstr "Registrations"
 
-#: src/apps/backoffice/templatetags/backoffice_nav.py:139
-#: src/apps/backoffice/templatetags/backoffice_nav.py:149
-#: src/templates/backoffice/_poll_config_panels.html:186
+#: src/apps/backoffice/templatetags/backoffice_nav.py:144
+#: src/apps/backoffice/templatetags/backoffice_nav.py:154
+#: src/templates/backoffice/_poll_config_panels.html:190
 #: src/templates/backoffice/_poll_config_tablist.html:23
 #: src/templates/backoffice/paper_ballot_list.html:5
 #: src/templates/backoffice/paper_ballot_list.html:6
 msgid "Bulletins papier"
 msgstr "Paper ballots"
 
-#: src/apps/backoffice/templatetags/backoffice_nav.py:142
+#: src/apps/backoffice/templatetags/backoffice_nav.py:147
 msgid "Saisie"
 msgstr "Keying"
 
-#: src/apps/backoffice/templatetags/backoffice_nav.py:156
+#: src/apps/backoffice/templatetags/backoffice_nav.py:161
 #: src/templates/backoffice/countersign_queue.html:5
 msgid "Contreseing"
 msgstr "Countersignature"
 
-#: src/apps/backoffice/templatetags/backoffice_nav.py:165
-#: src/apps/publicsite/views.py:358
-#: src/templates/backoffice/paper_entry.html:98
+#: src/apps/backoffice/templatetags/backoffice_nav.py:170
+#: src/apps/publicsite/views.py:492
+#: src/templates/backoffice/paper_entry.html:117
 #: src/templates/publicsite/results.html:5
 msgid "Résultats"
 msgstr "Results"
 
-#: src/apps/backoffice/templatetags/backoffice_nav.py:169
-#: src/templates/backoffice/results_publish.html:121
+#: src/apps/backoffice/templatetags/backoffice_nav.py:174
+#: src/templates/backoffice/results_publish.html:124
 msgid "Dépouillement"
 msgstr "Tally"
 
-#: src/apps/backoffice/templatetags/backoffice_nav.py:172
+#: src/apps/backoffice/templatetags/backoffice_nav.py:177
 msgid "Suivi"
 msgstr "Oversight"
 
-#: src/apps/backoffice/templatetags/backoffice_nav.py:173
+#: src/apps/backoffice/templatetags/backoffice_nav.py:178
 #: src/templates/backoffice/audit_log.html:5
 #: src/templates/backoffice/audit_log.html:6
 msgid "Journal d'audit"
 msgstr "Audit log"
 
-#: src/apps/backoffice/views.py:230
+#: src/apps/backoffice/views.py:247
 msgid ""
 "Installation terminée. Vous êtes connecté comme administrateur de la commune."
 msgstr "Installation complete. You are signed in as commune administrator."
 
-#: src/apps/backoffice/views.py:308
+#: src/apps/backoffice/views.py:325
 msgid "Scrutin créé. Attribuez-vous un rôle pour y accéder."
 msgstr "Poll created. Grant yourself a role to access it."
 
-#: src/apps/backoffice/views.py:413
+#: src/apps/backoffice/views.py:459
 msgid "Configuration en lecture seule pour ce rôle."
 msgstr "Configuration is read-only for this role."
 
-#: src/apps/backoffice/views.py:432
+#: src/apps/backoffice/views.py:478
 msgid "Modèle enregistré."
 msgstr "Template saved."
 
 # R-3.10 redesign: the `announced` state, added by hand for the same
 # reason as the header explains.
-#: src/apps/backoffice/views.py:446
+#: src/apps/backoffice/views.py:498
 msgid "Scrutin annoncé."
 msgstr "Poll announced."
 
-#: src/apps/backoffice/views.py:454
+#: src/apps/backoffice/views.py:506
 msgid "Le scrutin doit être annoncé."
 msgstr "The poll must be announced."
 
-#: src/apps/backoffice/views.py:460
+#: src/apps/backoffice/views.py:516
 msgid "Scrutin ouvert."
 msgstr "Poll opened."
 
-
-#: src/apps/backoffice/views.py:481
+#: src/apps/backoffice/views.py:539
 msgid "Scrutin clos."
 msgstr "Poll closed."
 
-#: src/apps/backoffice/views.py:495
+#: src/apps/backoffice/views.py:553
 msgid "Le scrutin ne peut pas être retiré dans cet état."
 msgstr "This poll cannot be withdrawn in this state."
 
-#: src/apps/backoffice/views.py:502
+#: src/apps/backoffice/views.py:564
 msgid "Scrutin retiré."
 msgstr "Poll withdrawn."
 
-#: src/apps/backoffice/views.py:533
+#: src/apps/backoffice/views.py:595
 msgid "Configuration enregistrée."
 msgstr "Configuration saved."
 
-#: src/apps/backoffice/views.py:571
+#: src/apps/backoffice/views.py:641
 msgid "Date de clôture repoussée."
 msgstr "Closing date extended."
 
-#: src/apps/backoffice/views.py:648
+#: src/apps/backoffice/views.py:714 src/apps/backoffice/views.py:777
 msgid "Action réservée à l'administrateur du scrutin."
 msgstr "Action reserved to the poll administrator."
 
-#: src/apps/backoffice/views.py:662
+#: src/apps/backoffice/views.py:718
 msgid "Lien de partage généré."
 msgstr "Share link generated."
 
-#: src/apps/backoffice/views.py:672
+#: src/apps/backoffice/views.py:721
 msgid "Lien de partage révoqué."
 msgstr "Share link revoked."
 
-#: src/apps/backoffice/views.py:723 src/apps/backoffice/views.py:1828
-#: src/apps/backoffice/views.py:1857 src/apps/backoffice/views.py:1885
+#: src/apps/backoffice/views.py:781
+msgid "Lien d'essai généré."
+msgstr "Test link generated."
+
+#: src/apps/backoffice/views.py:784
+msgid "Lien d'essai révoqué."
+msgstr "Test link revoked."
+
+#: src/apps/backoffice/views.py:790
+msgid "Scrutin d'essai supprimé."
+msgstr "Sandbox poll deleted."
+
+#: src/apps/backoffice/views.py:824 src/apps/backoffice/views.py:2051
 msgid "Choisissez une image."
 msgstr "Choose an image."
 
-#: src/apps/backoffice/views.py:735
+#: src/apps/backoffice/views.py:836
 msgid "Image ajoutée."
 msgstr "Image added."
 
-#: src/apps/backoffice/views.py:749
+#: src/apps/backoffice/views.py:850
 msgid "Image supprimée."
 msgstr "Image deleted."
 
-#: src/apps/backoffice/views.py:897
+#: src/apps/backoffice/views.py:987
+msgid "Un nouveau lien de confirmation a été envoyé."
+msgstr "A new confirmation link has been sent."
+
+#: src/apps/backoffice/views.py:1025
 msgid "Un motif est obligatoire pour accepter."
 msgstr "A reason is required to accept."
 
-#: src/apps/backoffice/views.py:900 src/apps/registrations/services.py:303
+#: src/apps/backoffice/views.py:1028 src/apps/registrations/services.py:376
 msgid "Choisissez l'entrée de la liste électorale à rattacher."
 msgstr "Choose the electoral-roll entry to link."
 
-#: src/apps/backoffice/views.py:913
+#: src/apps/backoffice/views.py:1041
 msgid "Inscription acceptée : le lien de vote a été envoyé."
 msgstr "Registration accepted: the voting link has been sent."
 
-#: src/apps/backoffice/views.py:917
+#: src/apps/backoffice/views.py:1045
 msgid "Un motif est obligatoire pour refuser."
 msgstr "A reason is required to refuse."
 
-#: src/apps/backoffice/views.py:922
+#: src/apps/backoffice/views.py:1050
 msgid "Inscription refusée."
 msgstr "Registration refused."
 
-#: src/apps/backoffice/views.py:924
+#: src/apps/backoffice/views.py:1052
 msgid "Décision inconnue."
 msgstr "Unknown decision."
 
-#: src/apps/backoffice/views.py:964
+#: src/apps/backoffice/views.py:1092
 msgid "Choisissez un fichier."
 msgstr "Choose a file."
 
-#: src/apps/backoffice/views.py:1004
+#: src/apps/backoffice/views.py:1132
 msgid "Aucun import en cours. Recommencez."
 msgstr "No import in progress. Start again."
 
-#: src/apps/backoffice/views.py:1049
+#: src/apps/backoffice/views.py:1177
 #, python-format
 msgid "Liste électorale importée : %(count)s inscrit(s)."
 msgstr "Electoral roll imported: %(count)s elector(s)."
 
-#: src/apps/backoffice/views.py:1123
+#: src/apps/backoffice/views.py:1270
 msgid "La saisie des bulletins papier n'est possible que pendant le scrutin."
 msgstr "Paper ballots can only be entered while the poll is open."
 
-#: src/apps/backoffice/views.py:1180
+#: src/apps/backoffice/views.py:1315
+msgid ""
+"Une entrée très proche de la liste a déjà voté. Vérifiez avec l'électeur "
+"présent qu'il s'agit bien de deux personnes, puis cochez la confirmation "
+"d'identité."
+msgstr ""
+"A very similar roll entry has already voted. Check with the elector present "
+"that these are two different people, then tick the identity confirmation."
+
+#: src/apps/backoffice/views.py:1344
 msgid "Bulletin papier enregistré."
 msgstr "Paper ballot recorded."
 
-#: src/apps/backoffice/views.py:1261
+#: src/apps/backoffice/views.py:1427
+msgid "Bulletin rectifié ; il attend un nouveau contreseing."
+msgstr "Ballot corrected; it now awaits a new countersignature."
+
+#: src/apps/backoffice/views.py:1429
 msgid "Bulletin rectifié."
 msgstr "Ballot corrected."
 
-#: src/apps/backoffice/views.py:1266
+#: src/apps/backoffice/views.py:1435
 msgid "Un motif est obligatoire pour rectifier."
 msgstr "A reason is required to correct."
 
-#: src/apps/backoffice/views.py:1270
+#: src/apps/backoffice/views.py:1439
 msgid "Un motif est obligatoire pour supprimer."
 msgstr "A reason is required to delete."
 
-#: src/apps/backoffice/views.py:1276
+#: src/apps/backoffice/views.py:1445
 msgid ""
 "Bulletin supprimé ; le vote en ligne redevient possible pour cet électeur."
 msgstr "Ballot deleted; online voting becomes possible again for this elector."
 
-#: src/apps/backoffice/views.py:1331
+#: src/apps/backoffice/views.py:1500
 msgid "Bulletin contresigné."
 msgstr "Ballot countersigned."
 
-#: src/apps/backoffice/views.py:1397
+#: src/apps/backoffice/views.py:1574
 #: src/templates/backoffice/results_publish.html:42
 msgid "Rapprochement enregistré."
 msgstr "Reconciliation recorded."
 
-#: src/apps/backoffice/views.py:1404
+#: src/apps/backoffice/views.py:1581
 msgid "Rapprochement réservé à l'administrateur du scrutin."
 msgstr "Reconciliation is reserved to the poll administrator."
 
-#: src/apps/backoffice/views.py:1427
+#: src/apps/backoffice/views.py:1604
 msgid "Publication réservée à l'administrateur du scrutin."
 msgstr "Publication is reserved to the poll administrator."
 
-#: src/apps/backoffice/views.py:1436
+#: src/apps/backoffice/views.py:1613
 msgid "Résultat du tirage au sort enregistré."
 msgstr "Draw of lots result recorded."
 
-#: src/apps/backoffice/views.py:1444
+#: src/apps/backoffice/views.py:1625
 msgid "Résultats publiés."
 msgstr "Results published."
 
-#: src/apps/backoffice/views.py:1447 src/apps/backoffice/views.py:1531
-#: src/apps/backoffice/views.py:1646 src/apps/backoffice/views.py:1767
+#: src/apps/backoffice/views.py:1628 src/apps/backoffice/views.py:1712
+#: src/apps/backoffice/views.py:1827 src/apps/backoffice/views.py:1948
 msgid "Action inconnue."
 msgstr "Unknown action."
 
-#: src/apps/backoffice/views.py:1503
+#: src/apps/backoffice/views.py:1684
 #, python-format
 msgid "Compte créé : %(name)s."
 msgstr "Account created: %(name)s."
 
-#: src/apps/backoffice/views.py:1512
+#: src/apps/backoffice/views.py:1693
 msgid "Compte réactivé."
 msgstr "Account reactivated."
 
-#: src/apps/backoffice/views.py:1514
+#: src/apps/backoffice/views.py:1695
 msgid "Compte désactivé : l'accès cesse à la prochaine requête."
 msgstr "Account deactivated: access ends on the next request."
 
-#: src/apps/backoffice/views.py:1519
+#: src/apps/backoffice/views.py:1700
 msgid "Rôle d'administration de la commune mis à jour."
 msgstr "Commune-administrator role updated."
 
-#: src/apps/backoffice/views.py:1529
+#: src/apps/backoffice/views.py:1710
 msgid "Mot de passe réinitialisé."
 msgstr "Password reset."
 
-#: src/apps/backoffice/views.py:1644
+#: src/apps/backoffice/views.py:1825
 msgid "Rôles mis à jour."
 msgstr "Roles updated."
 
-#: src/apps/backoffice/views.py:1693
+#: src/apps/backoffice/views.py:1874
 msgid "Enregistrez d'abord les paramètres avant de les tester."
 msgstr "Save the settings first, before testing them."
 
-#: src/apps/backoffice/views.py:1701
+#: src/apps/backoffice/views.py:1882
 #, python-format
 msgid "Échec de l'envoi : %(error)s"
 msgstr "Send failed: %(error)s"
 
-#: src/apps/backoffice/views.py:1706
+#: src/apps/backoffice/views.py:1887
 #, python-format
 msgid "Message de test envoyé à %(to)s."
 msgstr "Test message sent to %(to)s."
 
-#: src/apps/backoffice/views.py:1719
+#: src/apps/backoffice/views.py:1900
 msgid "Paramètres de messagerie enregistrés."
 msgstr "Mail settings saved."
 
-#: src/apps/backoffice/views.py:1758
+#: src/apps/backoffice/views.py:1939
 msgid "Modèle renommé."
 msgstr "Template renamed."
 
-#: src/apps/backoffice/views.py:1760
+#: src/apps/backoffice/views.py:1941
 msgid "Donnez un nom au modèle."
 msgstr "Give the template a name."
 
-#: src/apps/backoffice/views.py:1764
+#: src/apps/backoffice/views.py:1945
 msgid "Modèle supprimé."
 msgstr "Template deleted."
 
-#: src/apps/backoffice/views.py:1807
+#: src/apps/backoffice/views.py:1988
 msgid "Paramètres de la commune enregistrés."
 msgstr "Commune settings saved."
 
-#: src/apps/backoffice/views.py:1835
+#: src/apps/backoffice/views.py:2025
 msgid "Logo mis à jour."
 msgstr "Logo updated."
 
-#: src/apps/backoffice/views.py:1845
+#: src/apps/backoffice/views.py:2026
 msgid "Logo supprimé."
 msgstr "Logo removed."
 
-#: src/apps/backoffice/views.py:1864
+#: src/apps/backoffice/views.py:2032
 msgid "Logo (thème sombre) mis à jour."
 msgstr "Logo (dark theme) updated."
 
-#: src/apps/backoffice/views.py:1874
+#: src/apps/backoffice/views.py:2033
 msgid "Logo (thème sombre) supprimé."
 msgstr "Logo (dark theme) removed."
 
-#: src/apps/backoffice/views.py:1892
+#: src/apps/backoffice/views.py:2039
 msgid "Favicon mis à jour."
 msgstr "Favicon updated."
 
-#: src/apps/backoffice/views.py:1902
+#: src/apps/backoffice/views.py:2040
 msgid "Favicon supprimé."
 msgstr "Favicon removed."
 
@@ -1290,43 +1612,43 @@ msgstr "Favicon removed."
 msgid "Non classé"
 msgstr "Unranked"
 
-#: src/apps/ballots/models.py:31 src/apps/registrations/models.py:34
+#: src/apps/ballots/models.py:35 src/apps/registrations/models.py:52
 msgid "en ligne"
 msgstr "online"
 
-#: src/apps/ballots/models.py:32 src/apps/registrations/models.py:35
+#: src/apps/ballots/models.py:36 src/apps/registrations/models.py:53
 msgid "papier"
 msgstr "paper"
 
-#: src/apps/ballots/models.py:36
+#: src/apps/ballots/models.py:54
 msgid "courant"
 msgstr "live"
 
-#: src/apps/ballots/models.py:37
+#: src/apps/ballots/models.py:55
 msgid "remplacé"
 msgstr "superseded"
 
-#: src/apps/ballots/models.py:38
+#: src/apps/ballots/models.py:56
 msgid "supprimé"
 msgstr "deleted"
 
-#: src/apps/ballots/models.py:39
+#: src/apps/ballots/models.py:57
 msgid "en attente de contreseing"
 msgstr "awaiting countersignature"
 
-#: src/apps/ballots/models.py:83
+#: src/apps/ballots/models.py:107
 msgid "bulletin"
 msgstr "ballot"
 
-#: src/apps/ballots/models.py:84
+#: src/apps/ballots/models.py:108
 msgid "bulletins"
 msgstr "ballots"
 
-#: src/apps/ballots/models.py:190
+#: src/apps/ballots/models.py:214
 msgid "procès-verbal de rapprochement"
 msgstr "reconciliation record"
 
-#: src/apps/ballots/models.py:191
+#: src/apps/ballots/models.py:215
 msgid "procès-verbaux de rapprochement"
 msgstr "reconciliation records"
 
@@ -1354,36 +1676,36 @@ msgstr "This poll does not permit ties."
 msgid "Toutes les propositions doivent être classées."
 msgstr "Every proposition must be ranked."
 
-#: src/apps/ballots/services.py:85
+#: src/apps/ballots/services.py:86
 msgid "Ce lien n'est pas valide."
 msgstr "This link is not valid."
 
-#: src/apps/ballots/services.py
+#: src/apps/ballots/services.py:91
 msgid "Cette inscription ne permet pas de voter."
 msgstr "This registration does not permit voting."
 
-#: src/apps/ballots/services.py:90
+#: src/apps/ballots/services.py:95
 msgid "Un bulletin a déjà été enregistré pour cet électeur."
 msgstr "A ballot has already been recorded for this elector."
 
-#: src/apps/ballots/services.py:122
+#: src/apps/ballots/services.py:127
 msgid "Ce scrutin n'autorise pas la modification d'un bulletin."
 msgstr "This poll does not permit modifying a ballot."
 
-#: src/apps/ballots/services.py:131
+#: src/apps/ballots/services.py:136
 msgid "Aucun bulletin à modifier pour ce lien."
 msgstr "No ballot to modify for this link."
 
-#: src/apps/ballots/services.py:211
+#: src/apps/ballots/services.py:216
 msgid "Impossible d'attribuer un code de suivi ; réessayez."
 msgstr "Could not assign a tracking code; try again."
 
-#: src/apps/ballots/services.py:271
+#: src/apps/ballots/services.py:276
 msgid ""
 "Cet électeur a déjà un bulletin papier ; passez par l'écran de rectification."
 msgstr "This elector already has a paper ballot; use the correction screen."
 
-#: src/apps/ballots/services.py:279
+#: src/apps/ballots/services.py:284
 msgid ""
 "Cet électeur a déjà voté en ligne ; ce vote fait foi et ne peut pas être "
 "remplacé par un bulletin papier."
@@ -1391,35 +1713,35 @@ msgstr ""
 "This elector has already voted online; that vote stands and cannot be "
 "replaced by a paper ballot."
 
-#: src/apps/ballots/services.py:318
+#: src/apps/ballots/services.py:330
 msgid "Un motif est obligatoire pour rectifier un bulletin."
 msgstr "A reason is required to correct a ballot."
 
-#: src/apps/ballots/services.py:325
+#: src/apps/ballots/services.py:337
 msgid "Ce bulletin ne peut pas être rectifié."
 msgstr "This ballot cannot be corrected."
 
-#: src/apps/ballots/services.py:366
+#: src/apps/ballots/services.py:378
 msgid "Un motif est obligatoire pour supprimer un bulletin."
 msgstr "A reason is required to delete a ballot."
 
-#: src/apps/ballots/services.py:370
+#: src/apps/ballots/services.py:382
 msgid "Ce bulletin ne peut pas être supprimé."
 msgstr "This ballot cannot be deleted."
 
-#: src/apps/ballots/services.py:406
+#: src/apps/ballots/services.py:418
 msgid "Ce bulletin n'est pas en attente de contreseing."
 msgstr "This ballot is not awaiting countersignature."
 
-#: src/apps/ballots/services.py:409
+#: src/apps/ballots/services.py:421
 msgid "Le contreseing doit être apposé par un second opérateur."
 msgstr "The countersignature must be given by a second operator."
 
-#: src/apps/ballots/services.py:445
+#: src/apps/ballots/services.py:457
 msgid "Le rapprochement ne peut être enregistré que sur un scrutin ouvert."
 msgstr "Reconciliation can only be recorded on an open poll."
 
-#: src/apps/ballots/services.py:450
+#: src/apps/ballots/services.py:462
 msgid ""
 "Le rapprochement n'est possible qu'une fois la fin de la saisie des "
 "bulletins papier atteinte."
@@ -1427,15 +1749,15 @@ msgstr ""
 "Reconciliation is only possible once the paper-ballot keying deadline has "
 "passed."
 
-#: src/apps/ballots/services.py:455
+#: src/apps/ballots/services.py:467
 msgid "Le rapprochement a déjà été enregistré pour ce scrutin."
 msgstr "Reconciliation has already been recorded for this poll."
 
-#: src/apps/ballots/views.py:113 src/apps/ballots/views.py:272
+#: src/apps/ballots/views.py:126 src/apps/ballots/views.py:285
 msgid "Lien non valide"
 msgstr "Invalid link"
 
-#: src/apps/ballots/views.py:115
+#: src/apps/ballots/views.py:128
 msgid ""
 "Ce lien n'est pas valide. Vérifiez que vous l'avez copié en entier ; en cas "
 "de doute, adressez-vous à la mairie."
@@ -1443,11 +1765,11 @@ msgstr ""
 "This link is not valid. Check that you copied it in full; if in doubt, "
 "contact the town hall."
 
-#: src/apps/ballots/views.py:251
+#: src/apps/ballots/views.py:264
 msgid "Rendez-vous en mairie"
 msgstr "Visit the town hall"
 
-#: src/apps/ballots/views.py:253
+#: src/apps/ballots/views.py:266
 msgid ""
 "Vous avez un bulletin papier pour cette consultation. Le vote en ligne n'est "
 "donc pas possible ; toute modification se fait en mairie."
@@ -1455,11 +1777,11 @@ msgstr ""
 "You have a paper ballot for this consultation. Online voting is therefore "
 "not possible; any change is made at the town hall."
 
-#: src/apps/ballots/views.py:258
+#: src/apps/ballots/views.py:271
 msgid "Bulletin déjà enregistré"
 msgstr "Ballot already recorded"
 
-#: src/apps/ballots/views.py:260
+#: src/apps/ballots/views.py:273
 msgid ""
 "Votre bulletin a été enregistré. Ce scrutin n'autorise pas sa modification, "
 "et le lien reçu par courriel ne peut plus servir."
@@ -1467,11 +1789,11 @@ msgstr ""
 "Your ballot has been recorded. This poll does not permit modifying it, and "
 "the link you received by email can no longer be used."
 
-#: src/apps/ballots/views.py:265
+#: src/apps/ballots/views.py:278
 msgid "Vote indisponible"
 msgstr "Voting unavailable"
 
-#: src/apps/ballots/views.py:267
+#: src/apps/ballots/views.py:280
 msgid ""
 "Ce lien ne donne pas accès à un bulletin : l'inscription n'est pas active, "
 "ou le scrutin n'est pas ouvert au vote en ligne."
@@ -1479,7 +1801,7 @@ msgstr ""
 "This link does not give access to a ballot: the registration is not active, "
 "or the poll is not open for online voting."
 
-#: src/apps/ballots/views.py:273
+#: src/apps/ballots/views.py:286
 msgid "Ce lien n'est pas valide. En cas de doute, adressez-vous à la mairie."
 msgstr "This link is not valid. If in doubt, contact the town hall."
 
@@ -1556,43 +1878,43 @@ msgstr ""
 msgid "commune"
 msgstr "commune"
 
-#: src/apps/core/models.py:173 src/apps/registrations/models.py:33
+#: src/apps/core/models.py:176 src/apps/registrations/models.py:51
 msgid "aucun"
 msgstr "none"
 
-#: src/apps/core/models.py:174
+#: src/apps/core/models.py:177
 msgid "STARTTLS"
 msgstr "STARTTLS"
 
-#: src/apps/core/models.py:175
+#: src/apps/core/models.py:178
 msgid "SSL/TLS implicite"
 msgstr "Implicit SSL/TLS"
 
-#: src/apps/core/models.py:198
+#: src/apps/core/models.py:201
 msgid "serveur SMTP"
 msgstr "SMTP server"
 
-#: src/apps/core/models.py:199
+#: src/apps/core/models.py:202
 msgid "port"
 msgstr "port"
 
-#: src/apps/core/models.py:201
+#: src/apps/core/models.py:204
 msgid "chiffrement"
 msgstr "encryption"
 
-#: src/apps/core/models.py:206
+#: src/apps/core/models.py:209
 msgid "identifiant"
 msgstr "username"
 
-#: src/apps/core/models.py:207
+#: src/apps/core/models.py:210
 msgid "mot de passe (chiffré)"
 msgstr "password (encrypted)"
 
-#: src/apps/core/models.py:209
+#: src/apps/core/models.py:212
 msgid "adresse d'expédition"
 msgstr "sending address"
 
-#: src/apps/core/models.py:212
+#: src/apps/core/models.py:215
 msgid ""
 "Laissez vide pour utiliser l'adresse par défaut du déploiement. Doit "
 "généralement correspondre au compte authentifié auprès du serveur."
@@ -1600,68 +1922,68 @@ msgstr ""
 "Leave blank to use the deployment's default address. Should usually match "
 "the account authenticated with the server."
 
-#: src/apps/core/models.py:216
+#: src/apps/core/models.py:219
 msgid "dernière modification"
 msgstr "last changed"
 
-#: src/apps/core/models.py:219 src/apps/core/models.py:220
+#: src/apps/core/models.py:222 src/apps/core/models.py:223
 msgid "paramètres de messagerie"
 msgstr "mail settings"
 
-#: src/apps/core/models.py:226
+#: src/apps/core/models.py:229
 msgid "(non configuré)"
 msgstr "(not configured)"
 
-#: src/apps/core/models.py:252
+#: src/apps/core/models.py:255
 msgid "administrateur de la commune"
 msgstr "commune administrator"
 
-#: src/apps/core/models.py:254
+#: src/apps/core/models.py:257
 msgid "Gère les comptes et crée les scrutins."
 msgstr "Manages accounts and creates polls."
 
-#: src/apps/core/models.py:256
+#: src/apps/core/models.py:259
 msgid "nom complet"
 msgstr "full name"
 
-#: src/apps/core/models.py:259
+#: src/apps/core/models.py:262
 msgid "compte"
 msgstr "account"
 
-#: src/apps/core/models.py:260
+#: src/apps/core/models.py:263
 msgid "comptes"
 msgstr "accounts"
 
-#: src/apps/core/models.py:267
+#: src/apps/core/models.py:274
 msgid "administrateur du scrutin"
 msgstr "poll administrator"
 
-#: src/apps/core/models.py:268
+#: src/apps/core/models.py:275
 msgid "opérateur de saisie"
 msgstr "entry operator"
 
-#: src/apps/core/models.py:269
+#: src/apps/core/models.py:276
 msgid "auditeur"
 msgstr "auditor"
 
-#: src/apps/elections/closure.py:133
+#: src/apps/elections/closure.py:160
 msgid "Le départage ne se saisit que sur un scrutin clos."
 msgstr "The tie-break can only be entered on a closed poll."
 
-#: src/apps/elections/closure.py:135
+#: src/apps/elections/closure.py:162
 msgid "Ce scrutin n'utilise pas le tirage au sort physique."
 msgstr "This poll does not use the physical draw of lots."
 
-#: src/apps/elections/closure.py:138
+#: src/apps/elections/closure.py:165
 msgid "Le dépouillement ne rapporte aucune égalité à départager."
 msgstr "The tally reports no tie to break."
 
-#: src/apps/elections/closure.py:142
+#: src/apps/elections/closure.py:169
 msgid "L'ordre saisi doit reprendre chaque proposition à égalité, une fois."
 msgstr "The order entered must list each tied proposition exactly once."
 
-#: src/apps/elections/config.py:169 src/apps/elections/pollimages.py:54
-#: src/apps/elections/pollimages.py:99
+#: src/apps/elections/config.py:169 src/apps/elections/pollimages.py:52
+#: src/apps/elections/pollimages.py:98
 msgid "La configuration est figée : le scrutin n'est plus en brouillon."
 msgstr "The configuration is frozen: the poll is no longer in draft."
 
@@ -1701,108 +2023,108 @@ msgstr "complementary municipal list"
 msgid "liste complémentaire européenne"
 msgstr "complementary European list"
 
-#: src/apps/elections/models.py:63
+#: src/apps/elections/models.py:66
 msgid "Schulze"
 msgstr "Schulze"
 
-#: src/apps/elections/models.py:64
+#: src/apps/elections/models.py:67
 msgid "majoritaire"
 msgstr "plurality"
 
-#: src/apps/elections/models.py:65
+#: src/apps/elections/models.py:68
 msgid "par assentiment"
 msgstr "approval"
 
-#: src/apps/elections/models.py:69
+#: src/apps/elections/models.py:79
 msgid "tirage au sort calculé"
 msgstr "computed draw"
 
-#: src/apps/elections/models.py:70
+#: src/apps/elections/models.py:80
 msgid "tirage au sort physique"
 msgstr "physical draw"
 
-#: src/apps/elections/models.py:108
+#: src/apps/elections/models.py:140
 msgid "titre"
 msgstr "title"
 
-#: src/apps/elections/models.py:109
+#: src/apps/elections/models.py:141
 msgid "description"
 msgstr "description"
 
-#: src/apps/elections/models.py:112
+#: src/apps/elections/models.py:144
 msgid "ouverture"
 msgstr "opening"
 
-#: src/apps/elections/models.py:113
+#: src/apps/elections/models.py:145
 msgid "clôture"
 msgstr "closing"
 
-#: src/apps/elections/models.py:115
+#: src/apps/elections/models.py:147
 msgid "fin de saisie des bulletins papier"
 msgstr "paper ballot keying deadline"
 
-#: src/apps/elections/models.py:116
+#: src/apps/elections/models.py:148
 msgid "≥ clôture ; par défaut égale à elle (§6.4)."
 msgstr "≥ closing; equal to it by default (§6.4)."
 
-#: src/apps/elections/models.py:170
+#: src/apps/elections/models.py:202
 msgid "scrutin"
 msgstr "poll"
 
-#: src/apps/elections/models.py:171
+#: src/apps/elections/models.py:203
 msgid "scrutins"
 msgstr "polls"
 
-#: src/apps/elections/models.py:204
+#: src/apps/elections/models.py:245
 #, python-format
 msgid "Configuration figée hors brouillon : %(fields)s"
 msgstr "Configuration is frozen outside draft: %(fields)s"
 
-#: src/apps/elections/models.py:230
+#: src/apps/elections/models.py:271
 msgid "(scrutin sans titre)"
 msgstr "(untitled poll)"
 
-#: src/apps/elections/models.py:355
+#: src/apps/elections/models.py:396
 msgid "texte alternatif"
 msgstr "alt text"
 
-#: src/apps/elections/models.py:391
+#: src/apps/elections/models.py:432
 msgid "nom"
 msgstr "name"
 
-#: src/apps/elections/models.py:419
+#: src/apps/elections/models.py:460
 msgid "modèle de scrutin"
 msgstr "poll template"
 
-#: src/apps/elections/models.py:420
+#: src/apps/elections/models.py:461
 msgid "modèles de scrutin"
 msgstr "poll templates"
 
-#: src/apps/elections/models.py:435
+#: src/apps/elections/models.py:476
 msgid "nom de naissance"
 msgstr "birth surname"
 
-#: src/apps/elections/models.py:438
+#: src/apps/elections/models.py:479
 msgid "nom d'usage"
 msgstr "name in use"
 
-#: src/apps/elections/models.py:439
+#: src/apps/elections/models.py:480
 msgid "prénoms"
 msgstr "forenames"
 
-#: src/apps/elections/models.py:443
+#: src/apps/elections/models.py:484
 msgid "date de naissance"
 msgstr "date of birth"
 
-#: src/apps/elections/models.py:475
+#: src/apps/elections/models.py:516
 msgid "électeur inscrit"
 msgstr "registered elector"
 
-#: src/apps/elections/models.py:476
+#: src/apps/elections/models.py:517
 msgid "liste électorale figée"
 msgstr "frozen electoral roll"
 
-#: src/apps/elections/pollimages.py:57 src/apps/elections/pollimages.py:60
+#: src/apps/elections/pollimages.py:59
 msgid "Image trop volumineuse (5 Mo maximum)."
 msgstr "Image too large (5 MB maximum)."
 
@@ -1831,86 +2153,82 @@ msgstr "Unreadable .xlsx file."
 msgid "Encodage non reconnu (ni UTF-8 ni Latin-1)."
 msgstr "Unrecognised encoding (neither UTF-8 nor Latin-1)."
 
-#: src/apps/elections/transitions.py:165
+#: src/apps/elections/transitions.py:245
 msgid "Annonce refusée : configuration incomplète."
 msgstr "Announcement refused: incomplete configuration."
 
-#: src/apps/elections/transitions.py:215
+#: src/apps/elections/transitions.py:289
 msgid "Ouverture refusée : configuration incomplète."
 msgstr "Opening refused: configuration incomplete."
 
-#: src/apps/elections/transitions.py:304
+#: src/apps/elections/transitions.py:396
+msgid "Une clôture anticipée exige un motif."
+msgstr "An early closure requires a reason."
+
+#: src/apps/elections/transitions.py:398
 msgid "Clôture refusée."
 msgstr "Closure refused."
 
-#: src/apps/elections/transitions.py:361
+#: src/apps/elections/transitions.py:479
 msgid "Seul un scrutin clos peut être publié."
 msgstr "Only a closed poll can be published."
 
-#: src/apps/elections/transitions.py:363
+#: src/apps/elections/transitions.py:481
 msgid "Aucune empreinte de clôture."
 msgstr "No closure hash."
 
-#: src/apps/elections/transitions.py:366
+#: src/apps/elections/transitions.py:484
 msgid "Départage par tirage au sort physique non saisi."
 msgstr "Physical draw of lots result not yet entered."
 
-#: src/apps/elections/transitions.py:419
+#: src/apps/elections/transitions.py:537
 msgid "Report possible uniquement sur un scrutin ouvert."
 msgstr "Only an open poll can be extended."
 
-#: src/apps/elections/transitions.py:422
+#: src/apps/elections/transitions.py:540
 msgid ""
 "Le vote en ligne est déjà clos ; la date de clôture ne peut plus être "
 "reportée."
 msgstr ""
 "Online voting has already closed; the closing date can no longer be extended."
 
-#: src/apps/elections/transitions.py:425
+#: src/apps/elections/transitions.py:543
 msgid "La nouvelle date doit être postérieure."
 msgstr "The new date must be later."
 
-#: src/apps/elections/transitions.py:514
+#: src/apps/elections/transitions.py:620
 msgid "Retrait refusé."
 msgstr "Withdrawal refused."
 
-#: src/apps/elections/windows.py:43 src/apps/elections/windows.py:97
+#: src/apps/elections/windows.py:51
 #: src/templates/backoffice/poll_config.html:114
 #: src/templates/publicsite/poll_withdrawn.html:11
 msgid "Ce scrutin a été retiré."
 msgstr "This poll has been withdrawn."
 
-#: src/apps/elections/windows.py:46
-msgid "Le scrutin n'est pas encore ouvert."
-msgstr "The poll is not open yet."
-
-#: src/apps/elections/windows.py:50 src/templates/backoffice/dashboard.html:51
+#: src/apps/elections/windows.py:60 src/templates/backoffice/dashboard.html:70
 #: src/templates/backoffice/poll_config.html:128
 #: src/templates/publicsite/poll_detail.html:34
 msgid "Le vote en ligne est clos."
 msgstr "Online voting has closed."
 
-#: src/apps/elections/windows.py:52
+#: src/apps/elections/windows.py:62
 msgid "La saisie des bulletins papier est close."
 msgstr "Paper ballot keying has closed."
 
-#: src/apps/elections/windows.py:100
+#: src/apps/elections/windows.py:64 src/apps/elections/windows.py:67
+msgid "Le scrutin n'est pas encore ouvert."
+msgstr "The poll is not open yet."
+
+#: src/apps/elections/windows.py:114 src/apps/elections/windows.py:119
 msgid "Les inscriptions ne sont pas encore ouvertes."
 msgstr "Registration is not open yet."
 
-#: src/apps/elections/windows.py:103
+#: src/apps/elections/windows.py:115 src/apps/elections/windows.py:122
 msgid "Les inscriptions sont closes."
 msgstr "Registration has closed."
 
-# templates/base.html, templates/publicsite/poll_list.html and
-# templates/publicsite/help.html: the public FAQ and its footer/landing-page
-# links, added by hand for the same reason as the header explains.
-#: src/apps/publicsite/views.py:93 src/templates/base.html:147
-#: src/templates/publicsite/help.html:5 src/templates/publicsite/help.html:10
-msgid "Aide"
-msgstr "Help"
-
-#: src/apps/publicsite/views.py:292
+#: src/apps/publicsite/views.py:382 src/apps/publicsite/views.py:417
 #: src/templates/publicsite/poll_withdrawn.html:5
 #: src/templates/publicsite/poll_withdrawn.html:10
 msgid "Scrutin retiré"
@@ -1934,11 +2252,11 @@ msgstr "All your first names, as they appear on your voter card."
 
 #: src/apps/registrations/forms.py:32
 #: src/templates/backoffice/paper_entry.html:30
-#: src/templates/backoffice/paper_entry.html:109
-#: src/templates/backoffice/registration_queue.html:64
+#: src/templates/backoffice/paper_entry.html:128
+#: src/templates/backoffice/registration_queue.html:65
 #: src/templates/backoffice/roll_import.html:72
 #: src/templates/backoffice/roll_import_review.html:90
-#: src/templates/backoffice/roll_status.html:61
+#: src/templates/backoffice/roll_status.html:71
 msgid "Date de naissance"
 msgstr "Date of birth"
 
@@ -1947,7 +2265,8 @@ msgid "Au format JJ/MM/AAAA."
 msgstr "In DD/MM/YYYY format."
 
 #: src/apps/registrations/forms.py:37
-#: src/templates/backoffice/registration_queue.html:34
+#: src/templates/backoffice/registration_queue.html:35
+#: src/templates/backoffice/registration_queue.html:171
 msgid "Adresse électronique"
 msgstr "Email address"
 
@@ -1985,31 +2304,31 @@ msgstr "Confirm your registration: %(poll)s"
 msgid "Rappel : le scrutin « %(poll)s » se clôt bientôt"
 msgstr "Reminder: the poll “%(poll)s” closes soon"
 
-#: src/apps/registrations/models.py:24
+#: src/apps/registrations/models.py:42
 msgid "en attente de confirmation"
 msgstr "awaiting confirmation"
 
-#: src/apps/registrations/models.py:25
+#: src/apps/registrations/models.py:43
 msgid "en attente d'examen"
 msgstr "awaiting review"
 
-#: src/apps/registrations/models.py:26
+#: src/apps/registrations/models.py:44
 msgid "active"
 msgstr "active"
 
-#: src/apps/registrations/models.py:27
+#: src/apps/registrations/models.py:45
 msgid "rejetée"
 msgstr "rejected"
 
-#: src/apps/registrations/models.py:65
+#: src/apps/registrations/models.py:106
 msgid "Adresse en minuscules, sans autre normalisation (§3.3)."
 msgstr "Address lower-cased, with no other normalisation (§3.3)."
 
-#: src/apps/registrations/models.py:89
+#: src/apps/registrations/models.py:130
 msgid "inscription"
 msgstr "registration"
 
-#: src/apps/registrations/models.py:90
+#: src/apps/registrations/models.py:131
 msgid "inscriptions"
 msgstr "registrations"
 
@@ -2019,22 +2338,27 @@ msgid ""
 "adresser à la mairie."
 msgstr "We cannot record this request online. Please contact the mairie."
 
-#: src/apps/registrations/services.py:299
-#: src/apps/registrations/services.py:343
+#: src/apps/registrations/services.py:372
+#: src/apps/registrations/services.py:444
 msgid "Cette inscription n'est pas en attente d'examen."
 msgstr "This registration is not awaiting review."
 
-#: src/apps/registrations/services.py:301
-#: src/apps/registrations/services.py:345
+#: src/apps/registrations/services.py:374
+#: src/apps/registrations/services.py:446
 msgid "Un motif est obligatoire."
 msgstr "A reason is required."
 
-#: src/apps/registrations/services.py:309
+#: src/apps/registrations/services.py:384
+#: src/apps/registrations/services.py:424
 msgid ""
 "Cette entrée de la liste électorale est déjà rattachée à une inscription."
 msgstr "This electoral-roll entry is already linked to a registration."
 
-#: src/apps/registrations/services.py:394
+#: src/apps/registrations/services.py:486
+msgid "Cette inscription n'attend plus de confirmation."
+msgstr "This registration is no longer awaiting confirmation."
+
+#: src/apps/registrations/services.py:530
 msgid "Cette inscription ne peut pas être confirmée."
 msgstr "This registration cannot be confirmed."
 
@@ -2058,53 +2382,53 @@ msgstr "Page not found"
 msgid "Cette adresse ne correspond à aucune page."
 msgstr "This address matches no page."
 
-#: src/templates/backoffice/_nav.html:34
+#: src/templates/backoffice/_nav.html:35
 msgid "Navigation de l’espace mairie"
 msgstr "Mairie area navigation"
 
-#: src/templates/backoffice/_nav.html:35 src/templates/backoffice/base.html:19
-#: src/templates/backoffice/base.html:67
+#: src/templates/backoffice/_nav.html:36 src/templates/backoffice/base.html:19
+#: src/templates/backoffice/base.html:81
 msgid "Espace mairie"
 msgstr "Mairie area"
 
-#: src/templates/backoffice/_nav.html:80
+#: src/templates/backoffice/_nav.html:81
 msgid "rôle à s’attribuer"
 msgstr "role to assign yourself"
 
-#: src/templates/backoffice/_nav.html:97 src/templates/base.html:79
+#: src/templates/backoffice/_nav.html:98 src/templates/base.html:79
 msgid "Langue"
 msgstr "Language"
 
-#: src/templates/backoffice/_nav.html:105 src/templates/base.html:86
+#: src/templates/backoffice/_nav.html:106 src/templates/base.html:86
 msgid "Changer"
 msgstr "Change"
 
-#: src/templates/backoffice/_nav.html:109 src/templates/base.html:94
+#: src/templates/backoffice/_nav.html:110 src/templates/base.html:94
 msgid "Thème"
 msgstr "Theme"
 
-#: src/templates/backoffice/_nav.html:111 src/templates/base.html:96
+#: src/templates/backoffice/_nav.html:112 src/templates/base.html:96
 msgid "Clair"
 msgstr "Light"
 
-#: src/templates/backoffice/_nav.html:112 src/templates/base.html:97
+#: src/templates/backoffice/_nav.html:113 src/templates/base.html:97
 msgid "Sombre"
 msgstr "Dark"
 
-#: src/templates/backoffice/_nav.html:113 src/templates/base.html:98
+#: src/templates/backoffice/_nav.html:114 src/templates/base.html:98
 msgid "Système"
 msgstr "System"
 
-#: src/templates/backoffice/_option_row.html:14
+#: src/templates/backoffice/_option_row.html:16
 msgid "Proposition"
 msgstr "Proposition"
 
-#: src/templates/backoffice/_option_row.html:33
-#: src/templates/backoffice/_option_row.html:34
+#: src/templates/backoffice/_option_row.html:35
+#: src/templates/backoffice/_option_row.html:36
 msgid "Retirer cette proposition"
 msgstr "Remove this proposition"
 
-#: src/templates/backoffice/_option_row.html:34
+#: src/templates/backoffice/_option_row.html:36
 msgid "Rétablir cette proposition"
 msgstr "Restore this proposition"
 
@@ -2192,9 +2516,9 @@ msgid ""
 "« :large » après le repère, par exemple ![](image:1:large). Sans cette "
 "précision, l'image s'affiche à sa taille naturelle."
 msgstr ""
-"To choose a display size, add “:small”, “:medium” or “:large” after the "
-"tag, for example ![](image:1:large). Without it, the image shows at its "
-"natural size."
+"To choose a display size, add “:small”, “:medium” or “:large” after the tag, "
+"for example ![](image:1:large). Without it, the image shows at its natural "
+"size."
 
 #: src/templates/backoffice/_poll_config_images_panel.html:32
 msgid "Repère à recopier dans une description"
@@ -2243,18 +2567,18 @@ msgid "Scrutin réel (non bac à sable), fixé à la création."
 msgstr "Real poll (not sandbox), fixed at creation."
 
 #: src/templates/backoffice/_poll_config_panels.html:106
-#: src/templates/backoffice/_poll_config_panels.html:145
-#: src/templates/backoffice/_poll_config_panels.html:163
-#: src/templates/backoffice/_poll_config_panels.html:181
-#: src/templates/backoffice/_poll_config_panels.html:199
+#: src/templates/backoffice/_poll_config_panels.html:149
+#: src/templates/backoffice/_poll_config_panels.html:167
+#: src/templates/backoffice/_poll_config_panels.html:185
+#: src/templates/backoffice/_poll_config_panels.html:203
 msgid "Enregistrer la configuration"
 msgstr "Save configuration"
 
 #: src/templates/backoffice/_poll_config_panels.html:106
-#: src/templates/backoffice/_poll_config_panels.html:145
-#: src/templates/backoffice/_poll_config_panels.html:163
-#: src/templates/backoffice/_poll_config_panels.html:181
-#: src/templates/backoffice/_poll_config_panels.html:199
+#: src/templates/backoffice/_poll_config_panels.html:149
+#: src/templates/backoffice/_poll_config_panels.html:167
+#: src/templates/backoffice/_poll_config_panels.html:185
+#: src/templates/backoffice/_poll_config_panels.html:203
 msgid "Créer le scrutin"
 msgstr "Create the poll"
 
@@ -2264,34 +2588,36 @@ msgstr "Create the poll"
 msgid "Propositions"
 msgstr "Propositions"
 
-#: src/templates/backoffice/_poll_config_panels.html:121
+#: src/templates/backoffice/_poll_config_panels.html:125
 msgid ""
-"Au moins deux propositions. L'ordre des lignes est l'ordre des propositions. "
-"L'identifiant est porté par les bulletins et le résultat publié : ne le "
-"changez plus après l'ouverture."
+"Au moins deux propositions. La position détermine leur ordre dans cette page "
+"et dans les résultats ; le bulletin de vote tire un ordre différent pour "
+"chaque électeur. L'identifiant est porté par les bulletins et le résultat "
+"publié : ne le changez plus après l'ouverture."
 msgstr ""
-"At least two propositions. The order of the rows is the order of the "
-"propositions. The identifier is carried by the ballots and the published "
-"result: do not change it once opened."
+"At least two propositions. The position sets their order on this page and in "
+"the results; the ballot draws a different order for each elector. The "
+"identifier is carried by the ballots and the published result: do not change "
+"it once opened."
 
-#: src/templates/backoffice/_poll_config_panels.html:133
+#: src/templates/backoffice/_poll_config_panels.html:137
 msgid "Ajouter une proposition"
 msgstr "Add a proposition"
 
-#: src/templates/backoffice/_poll_config_panels.html:150
+#: src/templates/backoffice/_poll_config_panels.html:154
 #: src/templates/backoffice/_poll_config_tablist.html:21
-#: src/templates/publicsite/poll_detail.html:88
+#: src/templates/publicsite/poll_detail.html:97
 msgid "Calendrier"
 msgstr "Timetable"
 
-#: src/templates/backoffice/_poll_config_panels.html:154
+#: src/templates/backoffice/_poll_config_panels.html:158
 #: src/templates/backoffice/first_run.html:29
 #: src/templates/backoffice/first_run.html:46
-#: src/templates/registrations/register.html:19
+#: src/templates/registrations/register.html:21
 msgid "(obligatoire)"
 msgstr "(required)"
 
-#: src/templates/backoffice/_poll_config_panels.html:168
+#: src/templates/backoffice/_poll_config_panels.html:172
 #: src/templates/backoffice/_poll_config_tablist.html:22
 msgid "Bulletin et dépouillement"
 msgstr "Ballot and tally"
@@ -2339,8 +2665,8 @@ msgid "Tous les comptes opérateurs"
 msgstr "All operator accounts"
 
 #: src/templates/backoffice/account_admin.html:42
-#: src/templates/backoffice/dashboard.html:42
-#: src/templates/backoffice/dashboard.html:55
+#: src/templates/backoffice/dashboard.html:61
+#: src/templates/backoffice/dashboard.html:74
 #: src/templates/backoffice/paper_ballot.html:25
 #: src/templates/backoffice/paper_ballot.html:104
 #: src/templates/backoffice/paper_ballot_list.html:23
@@ -2480,14 +2806,15 @@ msgid "Date"
 msgstr "Date"
 
 #: src/templates/backoffice/audit_log.html:55
+#: src/templates/backoffice/registration_queue.html:173
 msgid "Action"
 msgstr "Action"
 
 #: src/templates/backoffice/audit_log.html:57
 #: src/templates/backoffice/paper_ballot.html:48
 #: src/templates/backoffice/paper_ballot.html:79
-#: src/templates/backoffice/registration_queue.html:120
-#: src/templates/backoffice/registration_queue.html:132
+#: src/templates/backoffice/registration_queue.html:128
+#: src/templates/backoffice/registration_queue.html:140
 msgid "Motif"
 msgstr "Reason"
 
@@ -2512,14 +2839,14 @@ msgstr "Log pages"
 #: src/templates/backoffice/audit_log.html:96
 #: src/templates/backoffice/role_admin.html:80
 #: src/templates/backoffice/roll_import.html:97
-#: src/templates/backoffice/roll_status.html:86
+#: src/templates/backoffice/roll_status.html:98
 msgid "Page précédente"
 msgstr "Previous page"
 
 #: src/templates/backoffice/audit_log.html:98
 #: src/templates/backoffice/role_admin.html:82
 #: src/templates/backoffice/roll_import.html:99
-#: src/templates/backoffice/roll_status.html:88
+#: src/templates/backoffice/roll_status.html:100
 #, python-format
 msgid "Page %(current)s sur %(total)s"
 msgstr "Page %(current)s of %(total)s"
@@ -2527,7 +2854,7 @@ msgstr "Page %(current)s of %(total)s"
 #: src/templates/backoffice/audit_log.html:100
 #: src/templates/backoffice/role_admin.html:84
 #: src/templates/backoffice/roll_import.html:101
-#: src/templates/backoffice/roll_status.html:90
+#: src/templates/backoffice/roll_status.html:102
 msgid "Page suivante"
 msgstr "Next page"
 
@@ -2620,6 +2947,18 @@ msgstr "Remove the favicon"
 msgid "Remplacer le favicon"
 msgstr "Replace the favicon"
 
+#: src/templates/backoffice/confirm.html:19
+msgid "Ce qui va se passer"
+msgstr "What will happen"
+
+#: src/templates/backoffice/confirm.html:24
+msgid "Cette action est définitive : elle ne pourra pas être annulée."
+msgstr "This action is final: it cannot be undone."
+
+#: src/templates/backoffice/confirm.html:31
+msgid "Annuler"
+msgstr "Cancel"
+
 #: src/templates/backoffice/countersign_queue.html:6
 msgid "Contreseing des bulletins papier"
 msgstr "Countersigning paper ballots"
@@ -2638,6 +2977,7 @@ msgstr "Ballots awaiting countersignature"
 
 #: src/templates/backoffice/countersign_queue.html:22
 #: src/templates/backoffice/paper_ballot_list.html:20
+#: src/templates/backoffice/registration_queue.html:170
 msgid "Électeur"
 msgstr "Elector"
 
@@ -2668,26 +3008,54 @@ msgstr "Countersign"
 msgid "Aucun bulletin n'attend de contreseing."
 msgstr "No ballot is awaiting countersignature."
 
-#: src/templates/backoffice/dashboard.html:17
+#: src/templates/backoffice/dashboard.html:19
+msgid "L'ouverture planifiée n'a pas eu lieu"
+msgstr "The scheduled opening has not happened"
+
+#: src/templates/backoffice/dashboard.html:20
+msgid ""
+"L'heure d'ouverture est passée mais le scrutin est toujours annoncé : ni "
+"inscription ni vote ne sont possibles. Vérifiez les blocages ci-dessous et "
+"le planificateur des tâches, ou ouvrez le scrutin depuis l'écran de "
+"configuration."
+msgstr ""
+"The opening time has passed but the poll is still announced: neither "
+"registration nor voting is possible. Check the blockers below and the task "
+"scheduler, or open the poll from the configuration screen."
+
+#: src/templates/backoffice/dashboard.html:22
+msgid "La clôture planifiée n'a pas eu lieu"
+msgstr "The scheduled closure has not happened"
+
+#: src/templates/backoffice/dashboard.html:23
+msgid ""
+"La fin de saisie des bulletins papier est passée mais le scrutin est "
+"toujours ouvert. Plus aucun bulletin n'est accepté ; vérifiez les blocages "
+"ci-dessous et le planificateur des tâches."
+msgstr ""
+"The paper entry deadline has passed but the poll is still open. No more "
+"ballots are accepted; check the blockers below and the task scheduler."
+
+#: src/templates/backoffice/dashboard.html:36
 msgid "Ce scrutin ne peut pas être annoncé"
 msgstr "This poll cannot be announced"
 
-#: src/templates/backoffice/dashboard.html:18
+#: src/templates/backoffice/dashboard.html:37
 msgid "Ce scrutin ne peut pas s'ouvrir"
 msgstr "This poll cannot open"
 
-#: src/templates/backoffice/dashboard.html:19
+#: src/templates/backoffice/dashboard.html:38
 msgid "Ce scrutin ne peut pas se clore"
 msgstr "This poll cannot close"
 
-#: src/templates/backoffice/dashboard.html:35
+#: src/templates/backoffice/dashboard.html:54
 #, python-format
 msgid "%(counter)s inscription en attente d'examen"
 msgid_plural "%(counter)s inscriptions en attente d'examen"
 msgstr[0] "%(counter)s registration awaiting review"
 msgstr[1] "%(counter)s registrations awaiting review"
 
-#: src/templates/backoffice/dashboard.html:36
+#: src/templates/backoffice/dashboard.html:55
 msgid ""
 "Aucune correspondance automatique unique n'a été trouvée avec la liste "
 "électorale — une décision manuelle est nécessaire avant la clôture."
@@ -2695,61 +3063,75 @@ msgstr ""
 "No unique automatic match was found against the electoral roll — a manual "
 "decision is needed before closure."
 
-#: src/templates/backoffice/dashboard.html:52
+#: src/templates/backoffice/dashboard.html:71
 #: src/templates/backoffice/poll_config.html:129
 #: src/templates/publicsite/poll_detail.html:35
 #, python-format
 msgid "La saisie des bulletins papier se poursuit jusqu'au %(when)s."
 msgstr "Paper ballot keying continues until %(when)s."
 
-#: src/templates/backoffice/dashboard.html:56
+#: src/templates/backoffice/dashboard.html:75
 #: src/templates/backoffice/poll_config.html:140
 #: src/templates/backoffice/poll_config.html:164
 msgid "Ouverture"
 msgstr "Opens"
 
-#: src/templates/backoffice/dashboard.html:68
+#: src/templates/backoffice/dashboard.html:87
 #: src/templates/backoffice/poll_config.html:154
 msgid "Bac à sable"
 msgstr "Sandbox"
 
-#: src/templates/backoffice/dashboard.html:69
+#: src/templates/backoffice/dashboard.html:88
 msgid "Oui — ce scrutin n'apparaît sur aucune page publique."
 msgstr "Yes — this poll appears on no public page."
 
-#: src/templates/backoffice/dashboard.html:75
-#: src/templates/publicsite/poll_detail.html:128
+#: src/templates/backoffice/dashboard.html:89
+msgid "Lien d'essai et suppression"
+msgstr "Test link and deletion"
+
+#: src/templates/backoffice/dashboard.html:95
+#: src/templates/backoffice/roll_status.html:72
+#: src/templates/publicsite/poll_detail.html:147
 msgid "Participation"
 msgstr "Turnout"
 
-#: src/templates/backoffice/dashboard.html:81
+#: src/templates/backoffice/dashboard.html:101
 msgid "Chiffres figés à la clôture."
 msgstr "Figures frozen at closure."
 
-#: src/templates/backoffice/dashboard.html:88
+#: src/templates/backoffice/dashboard.html:105
 #: src/templates/backoffice/results_publish.html:114
 #: src/templates/publicsite/results.html:46
 msgid "Votes en ligne"
 msgstr "Online votes"
 
-#: src/templates/backoffice/dashboard.html:89
+#: src/templates/backoffice/dashboard.html:106
 #: src/templates/backoffice/results_publish.html:115
 #: src/templates/publicsite/results.html:47
 msgid "Votes papier"
 msgstr "Paper votes"
 
-#: src/templates/backoffice/dashboard.html:90
-#: src/templates/backoffice/results_publish.html:116
-#: src/templates/publicsite/results.html:48
+#: src/templates/backoffice/dashboard.html:108
+#: src/templates/backoffice/results_publish.html:117
+#: src/templates/publicsite/results.html:51
+msgid "Bulletins papier non contresignés, non décomptés"
+msgstr "Paper ballots not countersigned, not counted"
+
+#: src/templates/backoffice/dashboard.html:110
+#: src/templates/backoffice/results_publish.html:119
+#: src/templates/publicsite/results.html:53
 msgid "N'ont pas voté"
 msgstr "Did not vote"
 
-#: src/templates/backoffice/dashboard.html:93
-#: src/templates/backoffice/registration_queue.html:6
+#: src/templates/backoffice/dashboard.html:113
 msgid "Inscriptions en attente d'examen"
 msgstr "Registrations awaiting review"
 
-#: src/templates/backoffice/dashboard.html:101
+#: src/templates/backoffice/dashboard.html:122
+msgid "Inscriptions en attente de confirmation"
+msgstr "Registrations awaiting confirmation"
+
+#: src/templates/backoffice/dashboard.html:130
 msgid ""
 "La participation est comptée sur les inscriptions, jamais sur les "
 "bulletins : aucun lien entre un électeur et un bulletin en ligne n'existe."
@@ -2757,15 +3139,15 @@ msgstr ""
 "Turnout is counted from the registrations, never from the ballots: no link "
 "between an elector and an online ballot exists."
 
-#: src/templates/backoffice/dashboard.html:105
+#: src/templates/backoffice/dashboard.html:134
 msgid "Actions possibles"
 msgstr "Available actions"
 
-#: src/templates/backoffice/dashboard.html:120
+#: src/templates/backoffice/dashboard.html:149
 msgid "écran à venir"
 msgstr "screen to come"
 
-#: src/templates/backoffice/dashboard.html:126
+#: src/templates/backoffice/dashboard.html:155
 msgid "Aucune action ne vous est ouverte dans cet état."
 msgstr "No action is open to you in this state."
 
@@ -2892,16 +3274,16 @@ msgstr ""
 
 #: src/templates/backoffice/paper_ballot.html:50
 #: src/templates/backoffice/paper_ballot.html:81
-#: src/templates/backoffice/registration_queue.html:122
-#: src/templates/backoffice/registration_queue.html:134
-#: src/templates/backoffice/results_publish.html:214
+#: src/templates/backoffice/registration_queue.html:130
+#: src/templates/backoffice/registration_queue.html:142
+#: src/templates/backoffice/results_publish.html:217
 msgid "— choisir —"
 msgstr "— choose —"
 
 #: src/templates/backoffice/paper_ballot.html:55
 #: src/templates/backoffice/paper_ballot.html:86
-#: src/templates/backoffice/paper_entry.html:68
-#: src/templates/backoffice/registration_queue.html:100
+#: src/templates/backoffice/paper_entry.html:87
+#: src/templates/backoffice/registration_queue.html:108
 msgid "Note (facultative)"
 msgstr "Note (optional)"
 
@@ -2984,11 +3366,11 @@ msgid "Rechercher"
 msgstr "Search"
 
 #: src/templates/backoffice/paper_entry.html:28
-#: src/templates/backoffice/paper_entry.html:107
-#: src/templates/backoffice/registration_queue.html:62
+#: src/templates/backoffice/paper_entry.html:126
+#: src/templates/backoffice/registration_queue.html:63
 #: src/templates/backoffice/roll_import.html:70
 #: src/templates/backoffice/roll_import_review.html:88
-#: src/templates/backoffice/roll_status.html:59
+#: src/templates/backoffice/roll_status.html:69
 msgid "Nom d'usage"
 msgstr "Name in use"
 
@@ -3023,85 +3405,103 @@ msgid ""
 msgstr ""
 "This poll does not permit modifying a ballot: the online vote is final."
 
-#: src/templates/backoffice/paper_entry.html:58
-#: src/templates/backoffice/results_publish.html:161
-#: src/templates/publicsite/results.html:90
+#: src/templates/backoffice/paper_entry.html:59
+msgid "Une entrée très proche a déjà voté"
+msgstr "A very similar entry has already voted"
+
+#: src/templates/backoffice/paper_entry.html:60
+msgid ""
+"Même date de naissance et un prénom en commun. S'il s'agit de la même "
+"personne inscrite deux fois sur la liste, elle a déjà voté et ne doit pas "
+"voter à nouveau."
+msgstr ""
+"Same date of birth and a first name in common. If this is the same person "
+"listed twice on the roll, they have already voted and must not vote again."
+
+#: src/templates/backoffice/paper_entry.html:65
+#: src/templates/backoffice/registration_queue.html:94
+msgid "a un bulletin papier"
+msgstr "has a paper ballot"
+
+#: src/templates/backoffice/paper_entry.html:77
+#: src/templates/backoffice/results_publish.html:164
+#: src/templates/publicsite/results.html:95
 msgid "Classement"
 msgstr "Ordering"
 
-#: src/templates/backoffice/paper_entry.html:64
+#: src/templates/backoffice/paper_entry.html:83
 msgid ""
 "Identité confirmée avec l'électeur présent (entrées de la liste "
 "indistinguables)."
 msgstr ""
 "Identity confirmed with the elector present (indistinguishable roll entries)."
 
-#: src/templates/backoffice/paper_entry.html:69
+#: src/templates/backoffice/paper_entry.html:88
 msgid ""
 "Conservée avec le bulletin et supprimée avec lui. N'apparaît pas dans le "
 "journal d'audit."
 msgstr ""
 "Kept with the ballot and deleted with it. Does not appear in the audit log."
 
-#: src/templates/backoffice/paper_entry.html:80
+#: src/templates/backoffice/paper_entry.html:99
 msgid "Langue du récépissé"
 msgstr "Receipt language"
 
-#: src/templates/backoffice/paper_entry.html:89
+#: src/templates/backoffice/paper_entry.html:108
 msgid "Enregistrer le bulletin papier"
 msgstr "Record the paper ballot"
 
-#: src/templates/backoffice/paper_entry.html:102
+#: src/templates/backoffice/paper_entry.html:121
 msgid "Choisir l'électeur, puis continuer"
 msgstr "Choose the elector, then continue"
 
-#: src/templates/backoffice/paper_entry.html:105
+#: src/templates/backoffice/paper_entry.html:124
 msgid "Choisir"
 msgstr "Choose"
 
-#: src/templates/backoffice/paper_entry.html:106
-#: src/templates/backoffice/registration_queue.html:61
+#: src/templates/backoffice/paper_entry.html:125
+#: src/templates/backoffice/registration_queue.html:62
 #: src/templates/backoffice/roll_import.html:69
 #: src/templates/backoffice/roll_import_review.html:87
-#: src/templates/backoffice/roll_status.html:58
+#: src/templates/backoffice/roll_status.html:68
 msgid "Nom de naissance"
 msgstr "Birth surname"
 
-#: src/templates/backoffice/paper_entry.html:108
-#: src/templates/backoffice/registration_queue.html:63
+#: src/templates/backoffice/paper_entry.html:127
+#: src/templates/backoffice/registration_queue.html:64
 #: src/templates/backoffice/roll_import.html:71
 #: src/templates/backoffice/roll_import_review.html:89
-#: src/templates/backoffice/roll_status.html:60
+#: src/templates/backoffice/roll_status.html:70
 msgid "Prénoms"
 msgstr "First names"
 
-#: src/templates/backoffice/paper_entry.html:110
-#: src/templates/backoffice/registration_queue.html:66
+#: src/templates/backoffice/paper_entry.html:129
+#: src/templates/backoffice/registration_queue.html:67
 msgid "Concordance"
 msgstr "Match"
 
-#: src/templates/backoffice/paper_entry.html:125
-#: src/templates/backoffice/registration_queue.html:82
+#: src/templates/backoffice/paper_entry.html:144
+#: src/templates/backoffice/registration_queue.html:84
 msgid "(date incertaine)"
 msgstr "(uncertain date)"
 
-#: src/templates/backoffice/paper_entry.html:128
-#: src/templates/backoffice/registration_queue.html:86
+#: src/templates/backoffice/paper_entry.html:147
+#: src/templates/backoffice/registration_queue.html:88
 msgid "date identique"
 msgstr "matching date of birth"
 
-#: src/templates/backoffice/paper_entry.html:129
+#: src/templates/backoffice/paper_entry.html:148
 #, python-format
 msgid "%(n)s terme de nom commun"
 msgid_plural "%(n)s termes de nom communs"
 msgstr[0] "%(n)s shared name term"
 msgstr[1] "%(n)s shared name terms"
 
-#: src/templates/backoffice/paper_entry.html:136
+#: src/templates/backoffice/paper_entry.html:155
 msgid "Continuer avec cet électeur"
 msgstr "Continue with this elector"
 
-#: src/templates/backoffice/paper_entry.html:138
+#: src/templates/backoffice/paper_entry.html:157
 msgid ""
 "Aucune entrée proche. Précisez la recherche, ou vérifiez l'inscription de la "
 "personne sur la liste électorale."
@@ -3259,7 +3659,7 @@ msgstr "Countersignature required (paper)"
 msgid "Rapprochement exigé (papier)"
 msgstr "Reconciliation required (paper)"
 
-#: src/templates/backoffice/poll_config.html:174
+#: src/templates/backoffice/poll_config.html:175
 msgid ""
 "Ce scrutin est annoncé : il est visible sur le site public, mais le vote "
 "n'est pas encore ouvert."
@@ -3267,7 +3667,7 @@ msgstr ""
 "This poll is announced: it is visible on the public site, but voting is not "
 "yet open."
 
-#: src/templates/backoffice/poll_config.html:175
+#: src/templates/backoffice/poll_config.html:176
 msgid ""
 "Le scrutin s'ouvre normalement tout seul à la date d'ouverture configurée, "
 "même en retard si besoin. Vous pouvez aussi l'ouvrir maintenant vous-même, y "
@@ -3277,11 +3677,11 @@ msgstr ""
 "if need be. You may also open it yourself right now, including ahead of "
 "time: the opening date then becomes the present moment."
 
-#: src/templates/backoffice/poll_config.html:179
+#: src/templates/backoffice/poll_config.html:180
 msgid "Ouvrir le scrutin maintenant"
 msgstr "Open the poll now"
 
-#: src/templates/backoffice/poll_config.html:194
+#: src/templates/backoffice/poll_config.html:195
 msgid ""
 "Uniquement vers une date postérieure. Le report est inscrit au journal "
 "d'audit et affiché sur la page publique du scrutin ; la fenêtre de saisie "
@@ -3290,18 +3690,26 @@ msgstr ""
 "Only to a later date. The extension is recorded in the audit log and shown "
 "on the poll's public page; the paper-entry window shifts by the same amount."
 
-#: src/templates/backoffice/poll_config.html:204
-msgid "Reporter la clôture"
-msgstr "Postpone closing"
-
-#: src/templates/backoffice/poll_config.html:211
+#: src/templates/backoffice/poll_config.html:212
 #: src/templates/backoffice/poll_index.html:29
 #: src/templates/backoffice/results_publish.html:70
 #: src/templates/backoffice/role_admin.html:55
 msgid "Clôture"
 msgstr "Closing"
 
-#: src/templates/backoffice/poll_config.html:222
+#: src/templates/backoffice/poll_config.html:221
+msgid ""
+"Clore le scrutin avant l'échéance met fin immédiatement aux inscriptions, au "
+"vote en ligne et à la saisie des bulletins papier. Les dates de clôture "
+"deviennent l'instant présent ; la clôture anticipée, avec son motif, est "
+"inscrite au journal d'audit et affichée sur la page publique du scrutin."
+msgstr ""
+"Closing the poll before its deadline immediately ends registration, online "
+"voting and paper-ballot entry. The closing dates become the present instant; "
+"the early closure and its reason are recorded in the audit log and shown on "
+"the poll's public page."
+
+#: src/templates/backoffice/poll_config.html:223
 msgid ""
 "L'échéance de saisie des bulletins papier est atteinte : vous pouvez clore "
 "le scrutin maintenant plutôt que d'attendre la prochaine exécution de la "
@@ -3310,21 +3718,16 @@ msgstr ""
 "The paper-entry deadline has been reached: you may close the poll now "
 "instead of waiting for the next scheduled run."
 
-#: src/templates/backoffice/poll_config.html:234
+#: src/templates/backoffice/poll_config.html:235
 msgid "Clôturer le scrutin maintenant"
 msgstr "Close the poll now"
 
 # R-3.11: withdrawal, added by hand for the same reason as the header explains.
-#: src/templates/backoffice/poll_config.html:244
+#: src/templates/backoffice/poll_config.html:242
 msgid "Retrait"
 msgstr "Withdrawal"
 
-#: src/templates/backoffice/poll_config.html:258
-#: src/templates/backoffice/poll_config.html:270
-msgid "Retirer le scrutin"
-msgstr "Withdraw the poll"
-
-#: src/templates/backoffice/poll_config.html:259
+#: src/templates/backoffice/poll_config.html:257
 msgid ""
 "Retire ce scrutin du site public, immédiatement et irréversiblement : plus "
 "rien de lui — propositions, calendrier, participation, résultat déjà publié "
@@ -3434,10 +3837,12 @@ msgid "Lien de partage"
 msgstr "Share link"
 
 #: src/templates/backoffice/poll_preview.html:33
+#: src/templates/backoffice/poll_sandbox.html:27
 msgid "Régénérer le lien"
 msgstr "Regenerate the link"
 
 #: src/templates/backoffice/poll_preview.html:38
+#: src/templates/backoffice/poll_sandbox.html:32
 msgid "Révoquer le lien"
 msgstr "Revoke the link"
 
@@ -3454,7 +3859,71 @@ msgstr "No share link is active."
 msgid "Brouillon — pas encore annoncé ni visible du public."
 msgstr "Draft — not yet announced or visible to the public."
 
+#: src/templates/backoffice/poll_sandbox.html:11
+#: src/templates/backoffice/poll_sandbox.html:12
+msgid "Scrutin d'essai"
+msgstr "Sandbox poll"
+
+#: src/templates/backoffice/poll_sandbox.html:15
+#: src/templates/backoffice/poll_sandbox.html:19
+msgid "Lien d'essai"
+msgstr "Test link"
+
+#: src/templates/backoffice/poll_sandbox.html:16
+msgid ""
+"Ce scrutin est un essai : il n'apparaît dans aucune liste publique, aucun "
+"résultat publié ni aucune statistique. Il suit le cycle de vie d'un scrutin "
+"ordinaire, et les bulletins déposés ne comptent pour rien."
+msgstr ""
+"This poll is a rehearsal: it appears on no public list, no published result "
+"and no statistic. It follows the lifecycle of an ordinary poll, and the "
+"ballots cast in it count for nothing."
+
+#: src/templates/backoffice/poll_sandbox.html:20
+msgid ""
+"Un lien impossible à deviner, à transmettre aux personnes invitées à essayer "
+"ce scrutin : il donne accès à la page du scrutin et à l'inscription, sans "
+"compte espace mairie, à tout état du scrutin. Les inscriptions se font "
+"contre la liste électorale comme pour un scrutin réel : chaque testeur doit "
+"y figurer. Régénérer le lien invalide aussitôt le précédent ; le révoquer "
+"coupe l'accès de ceux qui l'ont utilisé."
+msgstr ""
+"An unguessable link to pass to the people invited to try this poll: it gives "
+"access to the poll page and to registration, without an espace mairie "
+"account, in every state of the poll. Registration is checked against the "
+"electoral roll as for a real poll: each tester must be on it. Regenerating "
+"the link invalidates the previous one at once; revoking it cuts off everyone "
+"who used it."
+
+#: src/templates/backoffice/poll_sandbox.html:39
+msgid "Générer un lien d'essai"
+msgstr "Generate a test link"
+
+#: src/templates/backoffice/poll_sandbox.html:42
+msgid "Aucun lien d'essai n'est actif."
+msgstr "No test link is active."
+
+#: src/templates/backoffice/poll_sandbox.html:48
+msgid "Supprimer ce scrutin"
+msgstr "Delete this poll"
+
+#: src/templates/backoffice/poll_sandbox.html:49
+msgid ""
+"La suppression est définitive et possible à tout état du scrutin : le "
+"scrutin, ses propositions, ses bulletins, ses inscriptions et sa copie de la "
+"liste électorale sont effacés. Seule une ligne du journal d'audit rappelle "
+"qu'il a existé."
+msgstr ""
+"Deletion is permanent and possible in any state of the poll: the poll, its "
+"propositions, its ballots, its registrations and its copy of the electoral "
+"roll are erased. Only a line of the audit log records that it existed."
+
+#: src/templates/backoffice/poll_sandbox.html:53
+msgid "Supprimer le scrutin d'essai"
+msgstr "Delete the sandbox poll"
+
 #: src/templates/backoffice/registration_queue.html:5
+#: src/templates/backoffice/registration_queue.html:6
 msgid "Inscriptions en attente"
 msgstr "Pending registrations"
 
@@ -3477,85 +3946,126 @@ msgstr ""
 "One email address can be used only once. Two people sharing an address "
 "cannot both register online: their route is the paper ballot at the mairie."
 
-#: src/templates/backoffice/registration_queue.html:32
+#: src/templates/backoffice/registration_queue.html:25
+msgid "En attente d'examen"
+msgstr "Awaiting review"
+
+#: src/templates/backoffice/registration_queue.html:33
 msgid "Date de naissance déclarée"
 msgstr "Declared date of birth"
 
-#: src/templates/backoffice/registration_queue.html:33
+#: src/templates/backoffice/registration_queue.html:34
 msgid "non renseignée"
 msgstr "not given"
 
-#: src/templates/backoffice/registration_queue.html:36
+#: src/templates/backoffice/registration_queue.html:37
 msgid "Déclaration sur l'honneur"
 msgstr "Declaration on honour"
 
-#: src/templates/backoffice/registration_queue.html:37
+#: src/templates/backoffice/registration_queue.html:38
 msgid "signée"
 msgstr "signed"
 
-#: src/templates/backoffice/registration_queue.html:37
+#: src/templates/backoffice/registration_queue.html:38
 msgid "absente"
 msgstr "absent"
 
-#: src/templates/backoffice/registration_queue.html:38
+#: src/templates/backoffice/registration_queue.html:39
+#: src/templates/backoffice/registration_queue.html:172
 msgid "Demande reçue le"
 msgstr "Request received on"
 
-#: src/templates/backoffice/registration_queue.html:46
+#: src/templates/backoffice/registration_queue.html:47
 msgid "Entrées proches de la liste électorale"
 msgstr "Close entries in the electoral roll"
 
-#: src/templates/backoffice/registration_queue.html:57
+#: src/templates/backoffice/registration_queue.html:58
 msgid "Choisir l'entrée à rattacher, puis accepter"
 msgstr "Choose the entry to link, then accept"
 
-#: src/templates/backoffice/registration_queue.html:60
+#: src/templates/backoffice/registration_queue.html:61
 msgid "Rattacher"
 msgstr "Link"
 
-#: src/templates/backoffice/registration_queue.html:65
+#: src/templates/backoffice/registration_queue.html:66
 #: src/templates/backoffice/roll_import_review.html:91
 msgid "Listes"
 msgstr "Lists"
 
-#: src/templates/backoffice/registration_queue.html:87
+#: src/templates/backoffice/registration_queue.html:68
+msgid "Inscription existante"
+msgstr "Existing registration"
+
+#: src/templates/backoffice/registration_queue.html:89
 msgid "nom identique"
 msgstr "same last name"
 
-#: src/templates/backoffice/registration_queue.html:88
+#: src/templates/backoffice/registration_queue.html:90
 #, python-format
 msgid "%(n)s prénom commun"
 msgid_plural "%(n)s prénoms communs"
 msgstr[0] "%(n)s first name in common"
 msgstr[1] "%(n)s first names in common"
 
-#: src/templates/backoffice/registration_queue.html:96
+#: src/templates/backoffice/registration_queue.html:95
+msgid "déjà inscrite, n'a pas voté"
+msgstr "already registered, has not voted"
+
+#: src/templates/backoffice/registration_queue.html:104
 msgid "Aucune entrée proche. Vérifiez auprès de la personne, ou en mairie."
 msgstr "No close entry. Check with the person, or at the mairie."
 
-#: src/templates/backoffice/registration_queue.html:108
+#: src/templates/backoffice/registration_queue.html:116
 msgid ""
 "Conservée avec la demande et supprimée avec elle. N'apparaît pas dans le "
 "journal d'audit."
 msgstr ""
 "Kept with the request and deleted with it. Does not appear in the audit log."
 
-#: src/templates/backoffice/registration_queue.html:119
+#: src/templates/backoffice/registration_queue.html:127
 msgid "Accepter"
 msgstr "Accept"
 
-#: src/templates/backoffice/registration_queue.html:127
+#: src/templates/backoffice/registration_queue.html:135
 msgid "Accepter et envoyer le lien de vote"
 msgstr "Accept and send the voting link"
 
-#: src/templates/backoffice/registration_queue.html:131
 #: src/templates/backoffice/registration_queue.html:139
+#: src/templates/backoffice/registration_queue.html:147
 msgid "Refuser"
 msgstr "Refuse"
 
-#: src/templates/backoffice/registration_queue.html:144
+#: src/templates/backoffice/registration_queue.html:152
 msgid "Aucune inscription n'attend d'examen."
 msgstr "No registration is awaiting review."
+
+#: src/templates/backoffice/registration_queue.html:162
+msgid "En attente de confirmation"
+msgstr "Awaiting confirmation"
+
+#: src/templates/backoffice/registration_queue.html:163
+msgid ""
+"Ces électeurs n'ont pas encore suivi le lien reçu par courriel. Renvoyer un "
+"lien en crée un nouveau et invalide le précédent. Vérifiez l'adresse avec "
+"l'électeur avant de renvoyer : une adresse erronée ne peut pas être corrigée "
+"ici."
+msgstr ""
+"These voters have not yet followed the link they were emailed. Resending "
+"creates a new link and invalidates the previous one. Check the address with "
+"the voter before resending: a wrong address cannot be corrected here."
+
+#: src/templates/backoffice/registration_queue.html:167
+msgid "Inscriptions dont l'adresse électronique n'est pas confirmée"
+msgstr "Registrations whose email address is not confirmed"
+
+#: src/templates/backoffice/registration_queue.html:186
+#, python-format
+msgid "Renvoyer le lien à %(name)s"
+msgstr "Resend the link to %(name)s"
+
+#: src/templates/backoffice/registration_queue.html:195
+msgid "Aucune inscription n'attend de confirmation."
+msgstr "No registration is awaiting confirmation."
 
 #: src/templates/backoffice/results_publish.html:5
 #: src/templates/backoffice/results_publish.html:6
@@ -3631,12 +4141,12 @@ msgid "Clôturé le"
 msgstr "Closed on"
 
 #: src/templates/backoffice/results_publish.html:74
-#: src/templates/publicsite/results.html:125
+#: src/templates/publicsite/results.html:130
 msgid "Empreinte de clôture (SHA-256)"
 msgstr "Closure hash (SHA-256)"
 
 #: src/templates/backoffice/results_publish.html:75
-#: src/templates/publicsite/results.html:127
+#: src/templates/publicsite/results.html:132
 msgid "Graine d'ouverture"
 msgstr "Opening seed"
 
@@ -3662,65 +4172,65 @@ msgstr "Participation frozen at closure"
 msgid "Inscrits (inscriptions actives)"
 msgstr "Registered (active registrations)"
 
-#: src/templates/backoffice/results_publish.html:123
+#: src/templates/backoffice/results_publish.html:126
 msgid "Méthode"
 msgstr "Method"
 
-#: src/templates/backoffice/results_publish.html:124
+#: src/templates/backoffice/results_publish.html:127
 #: src/templates/publicsite/results.html:26
 msgid "Bulletins retenus"
 msgstr "Ballots in force"
 
-#: src/templates/backoffice/results_publish.html:125
+#: src/templates/backoffice/results_publish.html:128
 #: src/templates/publicsite/results.html:13
 msgid "Issue"
 msgstr "Outcome"
 
-#: src/templates/backoffice/results_publish.html:128
+#: src/templates/backoffice/results_publish.html:131
 msgid "égalité — départage requis"
 msgstr "tie — tie-break required"
 
-#: src/templates/backoffice/results_publish.html:129
+#: src/templates/backoffice/results_publish.html:132
 msgid "aucune (aucun bulletin)"
 msgstr "none (no ballots)"
 
-#: src/templates/backoffice/results_publish.html:135
+#: src/templates/backoffice/results_publish.html:138
 msgid "Matrice des préférences deux à deux — lignes battant colonnes"
 msgstr "Pairwise preference matrix — rows beating columns"
 
-#: src/templates/backoffice/results_publish.html:138
+#: src/templates/backoffice/results_publish.html:141
 msgid "battent"
 msgstr "beat"
 
-#: src/templates/backoffice/results_publish.html:158
+#: src/templates/backoffice/results_publish.html:161
 msgid "Récapitulatif par ordre de classement"
 msgstr "Summary by ranking order"
 
-#: src/templates/backoffice/results_publish.html:162
-#: src/templates/publicsite/results.html:91
+#: src/templates/backoffice/results_publish.html:165
+#: src/templates/publicsite/results.html:96
 msgid "Bulletins"
 msgstr "Ballots"
 
-#: src/templates/backoffice/results_publish.html:177
-#: src/templates/publicsite/results.html:104
+#: src/templates/backoffice/results_publish.html:180
+#: src/templates/publicsite/results.html:109
 msgid "Départage"
 msgstr "Tie-break"
 
-#: src/templates/backoffice/results_publish.html:179
+#: src/templates/backoffice/results_publish.html:182
 #, python-format
 msgid "Le dépouillement rapporte une égalité. Règle configurée : %(rule)s."
 msgstr "The tally reports a tie. Configured rule: %(rule)s."
 
-#: src/templates/backoffice/results_publish.html:182
-#: src/templates/publicsite/results.html:106
+#: src/templates/backoffice/results_publish.html:185
+#: src/templates/publicsite/results.html:111
 msgid "Propositions à égalité :"
 msgstr "Propositions tied:"
 
-#: src/templates/backoffice/results_publish.html:190
+#: src/templates/backoffice/results_publish.html:193
 msgid "Ordre de départage retenu :"
 msgstr "Tie-break order used:"
 
-#: src/templates/backoffice/results_publish.html:204
+#: src/templates/backoffice/results_publish.html:207
 msgid ""
 "Effectuez le tirage au sort physique, puis saisissez son résultat. La "
 "publication est bloquée tant qu'il n'est pas saisi."
@@ -3728,58 +4238,58 @@ msgstr ""
 "Carry out the physical draw of lots, then enter its result. Publication is "
 "blocked until it is entered."
 
-#: src/templates/backoffice/results_publish.html:209
+#: src/templates/backoffice/results_publish.html:212
 msgid "Ordre du tirage au sort (1 = gagnant)"
 msgstr "Draw order (1 = winner)"
 
-#: src/templates/backoffice/results_publish.html:212
+#: src/templates/backoffice/results_publish.html:215
 #, python-format
 msgid "Rang %(n)s"
 msgstr "Rank %(n)s"
 
-#: src/templates/backoffice/results_publish.html:222
+#: src/templates/backoffice/results_publish.html:225
 msgid "Enregistrer le résultat du tirage"
 msgstr "Save the draw result"
 
-#: src/templates/backoffice/results_publish.html:225
+#: src/templates/backoffice/results_publish.html:228
 msgid ""
 "Résultat du tirage au sort physique en attente de saisie par "
 "l'administrateur du scrutin."
 msgstr "Physical draw of lots result awaiting entry by the poll administrator."
 
-#: src/templates/backoffice/results_publish.html:232
+#: src/templates/backoffice/results_publish.html:235
 msgid "Publication"
 msgstr "Publication"
 
-#: src/templates/backoffice/results_publish.html:234
+#: src/templates/backoffice/results_publish.html:237
 msgid "Les résultats sont publiés."
 msgstr "The results are published."
 
-#: src/templates/backoffice/results_publish.html:236
+#: src/templates/backoffice/results_publish.html:239
 msgid "Page publique des résultats"
 msgstr "Public results page"
 
-#: src/templates/backoffice/results_publish.html:237
+#: src/templates/backoffice/results_publish.html:240
 msgid "Télécharger la liste des bulletins (CSV)"
 msgstr "Download the ballot list (CSV)"
 
-#: src/templates/backoffice/results_publish.html:238
+#: src/templates/backoffice/results_publish.html:241
 msgid "Télécharger le document de publication (JSON)"
 msgstr "Download the publication document (JSON)"
 
-#: src/templates/backoffice/results_publish.html:241
+#: src/templates/backoffice/results_publish.html:244
 msgid "Prévisualisez les artefacts avant publication :"
 msgstr "Preview the artefacts before publication:"
 
-#: src/templates/backoffice/results_publish.html:243
+#: src/templates/backoffice/results_publish.html:246
 msgid "Liste des bulletins (CSV)"
 msgstr "Ballot list (CSV)"
 
-#: src/templates/backoffice/results_publish.html:244
+#: src/templates/backoffice/results_publish.html:247
 msgid "Document de publication (JSON)"
 msgstr "Publication document (JSON)"
 
-#: src/templates/backoffice/results_publish.html:247
+#: src/templates/backoffice/results_publish.html:250
 msgid ""
 "Publication impossible : le résultat du tirage au sort physique n'est pas "
 "saisi."
@@ -3787,7 +4297,7 @@ msgstr ""
 "Publication not possible: the physical draw of lots result has not been "
 "entered."
 
-#: src/templates/backoffice/results_publish.html:252
+#: src/templates/backoffice/results_publish.html:255
 msgid ""
 "La publication est définitive et rend les résultats accessibles "
 "publiquement. Elle est inscrite au journal d'audit."
@@ -3795,11 +4305,7 @@ msgstr ""
 "Publication is final and makes the results publicly accessible. It is "
 "recorded in the audit log."
 
-#: src/templates/backoffice/results_publish.html:253
-msgid "Publier les résultats"
-msgstr "Publish the results"
-
-#: src/templates/backoffice/results_publish.html:256
+#: src/templates/backoffice/results_publish.html:259
 msgid "Publication en attente de l'administrateur du scrutin."
 msgstr "Publication awaiting the poll administrator."
 
@@ -3838,7 +4344,7 @@ msgstr "No poll matches."
 
 #: src/templates/backoffice/role_admin.html:78
 #: src/templates/backoffice/roll_import.html:95
-#: src/templates/backoffice/roll_status.html:84
+#: src/templates/backoffice/roll_status.html:96
 msgid "Pages de la liste"
 msgstr "List pages"
 
@@ -3942,7 +4448,7 @@ msgid "Rechercher dans la liste électorale"
 msgstr "Search the electoral roll"
 
 #: src/templates/backoffice/roll_import.html:61
-#: src/templates/backoffice/roll_status.html:50
+#: src/templates/backoffice/roll_status.html:60
 #, python-format
 msgid "%(total)s électeur inscrit"
 msgid_plural "%(total)s électeurs inscrits"
@@ -3950,12 +4456,12 @@ msgstr[0] "%(total)s registered elector"
 msgstr[1] "%(total)s registered electors"
 
 #: src/templates/backoffice/roll_import.html:83
-#: src/templates/backoffice/roll_status.html:72
+#: src/templates/backoffice/roll_status.html:83
 msgid "(incertaine)"
 msgstr "(uncertain)"
 
 #: src/templates/backoffice/roll_import.html:87
-#: src/templates/backoffice/roll_status.html:76
+#: src/templates/backoffice/roll_status.html:88
 msgid "Aucun électeur ne correspond."
 msgstr "No elector matches."
 
@@ -4094,6 +4600,16 @@ msgid ""
 msgstr ""
 "This roll's data was deleted on expiry of the two-month retention period."
 
+#: src/templates/backoffice/roll_status.html:54
+msgid ""
+"La colonne « Participation » indique si l'électeur s'est inscrit et s'il a "
+"voté, jamais ce qu'il a voté. Une inscription en attente d'examen n'apparaît "
+"pas encore ici : elle figure dans la file d'attente des inscriptions."
+msgstr ""
+"The “Participation” column shows whether the elector registered and whether "
+"they voted, never how they voted. A registration still under review does not "
+"appear here yet: it is in the registration queue."
+
 #: src/templates/backoffice/template_admin.html:16
 msgid ""
 "Un modèle porte la méthode de dépouillement et les règles de bulletin, "
@@ -4148,12 +4664,12 @@ msgstr ""
 msgid "Voter"
 msgstr "Vote"
 
-#: src/templates/ballots/cast.html:8
+#: src/templates/ballots/cast.html:9
 #, python-format
 msgid "Bulletin : « %(title)s »"
 msgstr "Ballot: “%(title)s”"
 
-#: src/templates/ballots/cast.html:20
+#: src/templates/ballots/cast.html:21
 msgid ""
 "Ce scrutin n'autorise pas la modification d'un bulletin. Une fois validé, "
 "votre vote est définitif."
@@ -4161,7 +4677,7 @@ msgstr ""
 "This poll does not permit modifying a ballot. Once submitted, your vote is "
 "final."
 
-#: src/templates/ballots/cast.html:27
+#: src/templates/ballots/cast.html:28
 msgid "Valider mon bulletin"
 msgstr "Submit my ballot"
 
@@ -4169,12 +4685,12 @@ msgstr "Submit my ballot"
 msgid "Modifier votre bulletin"
 msgstr "Modify your ballot"
 
-#: src/templates/ballots/modify.html:8
+#: src/templates/ballots/modify.html:9
 #, python-format
 msgid "Modifier votre bulletin : « %(title)s »"
 msgstr "Modify your ballot: “%(title)s”"
 
-#: src/templates/ballots/modify.html:10
+#: src/templates/ballots/modify.html:11
 msgid ""
 "Le classement ci-dessous est celui de votre bulletin actuel. En validant, "
 "vous le remplacez ; la version précédente est conservée mais n'est plus "
@@ -4183,7 +4699,7 @@ msgstr ""
 "The ranking below is your current ballot. Submitting replaces it; the "
 "previous version is kept but no longer counted."
 
-#: src/templates/ballots/modify.html:15
+#: src/templates/ballots/modify.html:16
 msgid "Enregistrer les modifications"
 msgstr "Save changes"
 
@@ -4191,23 +4707,23 @@ msgstr "Save changes"
 msgid "Bulletin enregistré"
 msgstr "Ballot recorded"
 
-#: src/templates/ballots/receipt.html:9
+#: src/templates/ballots/receipt.html:10
 msgid "Votre bulletin a été modifié"
 msgstr "Your ballot has been modified"
 
-#: src/templates/ballots/receipt.html:11
+#: src/templates/ballots/receipt.html:12
 msgid "Votre bulletin a été enregistré"
 msgstr "Your ballot has been recorded"
 
-#: src/templates/ballots/receipt.html:14
+#: src/templates/ballots/receipt.html:15
 msgid "Votre classement"
 msgstr "Your ranking"
 
-#: src/templates/ballots/receipt.html:19
+#: src/templates/ballots/receipt.html:20
 msgid "Votre code de suivi"
 msgstr "Your tracking code"
 
-#: src/templates/ballots/receipt.html:21
+#: src/templates/ballots/receipt.html:22
 msgid ""
 "Conservez ce code. Après la clôture, il vous permet de retrouver votre "
 "bulletin dans la liste publiée, sans révéler votre identité."
@@ -4215,11 +4731,11 @@ msgstr ""
 "Keep this code. After closure, it lets you find your ballot in the published "
 "list, without revealing your identity."
 
-#: src/templates/ballots/receipt.html:24
+#: src/templates/ballots/receipt.html:25
 msgid "Une copie de ce récapitulatif vous a été envoyée par courriel."
 msgstr "A copy of this summary was sent to you by email."
 
-#: src/templates/ballots/receipt.html:28
+#: src/templates/ballots/receipt.html:29
 msgid ""
 "Pour modifier votre bulletin avant la clôture, rouvrez le lien reçu lors de "
 "votre inscription. Personne d'autre ne peut le faire à votre place."
@@ -4239,193 +4755,9 @@ msgstr "Skip to content"
 msgid "Accueil"
 msgstr "Home"
 
-#: src/templates/publicsite/help.html:11
-msgid ""
-"Les réponses aux questions les plus courantes sur cette plateforme de "
-"consultation citoyenne."
-msgstr ""
-"Answers to the most common questions about this citizen consultation "
-"platform."
-
-#: src/templates/publicsite/help.html:14
-msgid "Qu'est-ce que ce site ?"
-msgstr "What is this site?"
-
-#: src/templates/publicsite/help.html:15
-msgid ""
-"Ce site permet à la commune de consulter ses habitants sur des sujets "
-"locaux. Chaque consultation est présentée avec les propositions soumises, un "
-"calendrier et, une fois close, son résultat."
-msgstr ""
-"This site lets the commune consult its residents on local matters. Each "
-"consultation is presented with the propositions submitted, a calendar and, "
-"once closed, its result."
-
-#: src/templates/publicsite/help.html:16
-msgid ""
-"Le résultat éclaire la décision du conseil municipal ; il ne la remplace pas."
-msgstr ""
-"The result informs the town council's decision; it does not replace it."
-
-#: src/templates/publicsite/help.html:20
-msgid "Comment participer à une consultation ?"
-msgstr "How do I take part in a consultation?"
-
-#: src/templates/publicsite/help.html:21
-msgid ""
-"Depuis la page d'une consultation ouverte, vous vous inscrivez avec votre "
-"nom, vos coordonnées et une adresse électronique. Cette inscription est "
-"vérifiée par rapport à la liste électorale de la commune : elle confirme que "
-"vous avez le droit de participer, sans que votre vote ne soit jamais relié à "
-"votre identité."
-msgstr ""
-"From an open consultation's page, you register with your name, your details "
-"and an email address. This registration is checked against the commune's "
-"electoral roll: it confirms your right to take part, without your vote ever "
-"being linked to your identity."
-
-#: src/templates/publicsite/help.html:22
-msgid ""
-"Vous recevez ensuite un courriel contenant un lien personnel. Ce lien ouvre "
-"votre bulletin, sur lequel vous classez les propositions selon vos "
-"préférences."
-msgstr ""
-"You then receive an email containing a personal link. That link opens your "
-"ballot, on which you rank the propositions by preference."
-
-#: src/templates/publicsite/help.html:26
-msgid "Je ne reçois pas le courriel de vote"
-msgstr "I am not receiving the voting email"
-
-#: src/templates/publicsite/help.html:27
-msgid ""
-"Vérifiez d'abord votre dossier de courriers indésirables. Si le courriel "
-"n'arrive toujours pas, assurez-vous d'avoir utilisé l'adresse indiquée à "
-"votre inscription ; en cas de doute, recommencez l'inscription avec la bonne "
-"adresse."
-msgstr ""
-"First check your junk mail folder. If the email still does not arrive, make "
-"sure you used the address given at registration; if in doubt, register again "
-"with the correct address."
-
-#: src/templates/publicsite/help.html:28
-msgid ""
-"Si votre nom n'a pas été retrouvé sur la liste électorale, votre inscription "
-"est mise en attente le temps qu'un agent de la mairie l'examine ; vous serez "
-"informé par courriel dès qu'une décision est prise."
-msgstr ""
-"If your name could not be matched on the electoral roll, your registration "
-"is held pending review by a mairie staff member; you will be informed by "
-"email as soon as a decision is made."
-
-#: src/templates/publicsite/help.html:32
-msgid "Puis-je voter autrement qu'en ligne ?"
-msgstr "Can I vote another way than online?"
-
-#: src/templates/publicsite/help.html:33
-msgid ""
-"Un bulletin papier peut être déposé en mairie ; il est saisi par un membre "
-"du conseil municipal dans la même consultation."
-msgstr ""
-"A paper ballot may be handed in at the mairie; it is entered by a member "
-"of the municipal council into the same consultation."
-
-#: src/templates/publicsite/help.html:37
-msgid "Puis-je modifier mon vote après l'avoir envoyé ?"
-msgstr "Can I change my vote after casting it?"
-
-#: src/templates/publicsite/help.html:38
-msgid ""
-"Cela dépend de la consultation : certaines autorisent le remplacement du "
-"bulletin tant que le vote en ligne reste ouvert, en revotant depuis le même "
-"lien reçu par courriel ; d'autres non. Le bulletin le plus récent est le "
-"seul compté ; les précédents sont conservés mais ne sont plus décomptés."
-msgstr ""
-"It depends on the consultation: some allow the ballot to be replaced while "
-"online voting remains open, by voting again from the same link received by "
-"email; others do not. Only the most recent ballot is counted; earlier ones "
-"are kept but no longer counted."
-
-#: src/templates/publicsite/help.html:42
-msgid "Comment fonctionne le classement des propositions ?"
-msgstr "How does ranking the propositions work?"
-
-#: src/templates/publicsite/help.html:43
-msgid ""
-"Sur votre bulletin, vous classez les propositions par ordre de préférence "
-"plutôt que de n'en choisir qu'une seule. Selon la consultation, un "
-"classement complet peut être exigé ou non, et deux propositions peuvent être "
-"placées à égalité. La méthode de dépouillement utilisée est rappelée sur la "
-"page de résultat de chaque consultation."
-msgstr ""
-"On your ballot, you rank the propositions in order of preference rather than "
-"choosing only one. Depending on the consultation, a complete ranking may or "
-"may not be required, and two propositions may be tied. The tally method used "
-"is stated on each consultation's result page."
-
-#: src/templates/publicsite/help.html:47
-msgid "Comment savoir si mon vote a été pris en compte ?"
-msgstr "How do I know my vote was counted?"
-
-#: src/templates/publicsite/help.html:48
-msgid ""
-"Au moment de voter, un code de suivi vous est remis. Une fois la "
-"consultation close et le résultat publié, ce code figure dans la liste des "
-"bulletins retenus, publiée avec le résultat : vous y retrouvez le vôtre pour "
-"confirmer qu'il a bien été enregistré tel que vous l'avez exprimé."
-msgstr ""
-"When you vote, you are given a tracking code. Once the consultation is "
-"closed and the result published, that code appears in the list of retained "
-"ballots published with the result: you can find yours there to confirm it "
-"was recorded exactly as you cast it."
-
-#: src/templates/publicsite/help.html:52
-msgid "Que deviennent mes données personnelles ?"
-msgstr "What happens to my personal data?"
-
-#: src/templates/publicsite/help.html:53
-msgid ""
-"Les informations transmises à l'inscription servent uniquement à vérifier "
-"votre droit de participer et à vous envoyer votre lien de vote ; elles sont "
-"supprimées deux mois après la clôture de la consultation. Votre bulletin "
-"n'est relié à votre identité par aucune donnée conservée : la plateforme "
-"sait que vous avez voté, jamais ce que vous avez voté."
-msgstr ""
-"The information given at registration is used only to check your right to "
-"take part and to send you your voting link; it is deleted two months after "
-"the consultation closes. No retained data links your ballot to your "
-"identity: the platform knows that you voted, never what you voted."
-
-#: src/templates/publicsite/help.html:55
-#, python-format
-msgid ""
-"Pour exercer vos droits d'accès, de rectification et d'effacement, adressez-"
-"vous à %(referent)s (%(contact)s)."
-msgstr ""
-"To exercise your rights of access, rectification and erasure, contact "
-"%(referent)s (%(contact)s)."
-
-#: src/templates/publicsite/help.html:57
-#: src/templates/registrations/register.html:52
-msgid ""
-"Pour exercer vos droits d'accès, de rectification et d'effacement, adressez-"
-"vous à la mairie."
-msgstr ""
-"To exercise your rights of access, rectification and erasure, contact the "
-"mairie."
-
-#: src/templates/publicsite/help.html:62
-msgid "Une autre question ?"
-msgstr "Another question?"
-
-#: src/templates/publicsite/help.html:64
-#, python-format
-msgid "Contactez la mairie (%(contact)s) ou rendez-vous sur place."
-msgstr "Contact the mairie (%(contact)s) or visit in person."
-
-#: src/templates/publicsite/help.html:66
-msgid "Contactez la mairie ou rendez-vous sur place."
-msgstr "Contact the mairie or visit in person."
+#: src/templates/publicsite/_sandbox_notice.html:5
+msgid "Scrutin d'essai : ce vote est un test, il ne compte pour rien."
+msgstr "Sandbox poll: this vote is a test and counts for nothing."
 
 #: src/templates/publicsite/poll_detail.html:23
 #, python-format
@@ -4465,59 +4797,77 @@ msgstr ""
 msgid "Les propositions soumises"
 msgstr "The propositions put to the vote"
 
-#: src/templates/publicsite/poll_detail.html:80
+#: src/templates/publicsite/poll_detail.html:86
+msgid "Lire la suite"
+msgstr "Read more"
+
+#: src/templates/publicsite/poll_detail.html:87
+msgid "Fermer"
+msgstr "Close"
+
+#: src/templates/publicsite/poll_detail.html:89
 msgid "Aucune description complémentaire pour cette proposition."
 msgstr "No further description for this proposition."
 
-#: src/templates/publicsite/poll_detail.html:94
+#: src/templates/publicsite/poll_detail.html:103
 msgid "Ouverture du vote"
 msgstr "Voting opens"
 
-#: src/templates/publicsite/poll_detail.html:99
+#: src/templates/publicsite/poll_detail.html:108
 msgid "Fin de la saisie des bulletins papier"
 msgstr "End of paper-ballot keying"
 
-#: src/templates/publicsite/poll_detail.html:109
+#: src/templates/publicsite/poll_detail.html:118
 msgid "Report de la clôture"
 msgstr "Extension of the closing date"
 
-#: src/templates/publicsite/poll_detail.html:113
+#: src/templates/publicsite/poll_detail.html:122
 #, python-format
 msgid "Clôture repoussée du %(old)s au %(new)s"
 msgstr "Closing date moved from %(old)s to %(new)s"
 
-#: src/templates/publicsite/poll_detail.html:114
+#: src/templates/publicsite/poll_detail.html:123
+#: src/templates/publicsite/poll_detail.html:136
 msgid "motif"
 msgstr "reason"
 
-#: src/templates/publicsite/poll_detail.html:115
+#: src/templates/publicsite/poll_detail.html:124
 #, python-format
 msgid "enregistré le %(when)s"
 msgstr "recorded on %(when)s"
 
-#: src/templates/publicsite/poll_detail.html:130
+#: src/templates/publicsite/poll_detail.html:133
+msgid "Clôture anticipée"
+msgstr "Early closure"
+
+#: src/templates/publicsite/poll_detail.html:135
+#, python-format
+msgid "Clôture prévue le %(planned)s, avancée au %(actual)s"
+msgstr "Closing planned for %(planned)s, brought forward to %(actual)s"
+
+#: src/templates/publicsite/poll_detail.html:149
 msgid "Bulletins déposés"
 msgstr "Ballots cast"
 
-#: src/templates/publicsite/poll_detail.html:131
+#: src/templates/publicsite/poll_detail.html:150
 msgid "dont en ligne"
 msgstr "of which online"
 
-#: src/templates/publicsite/poll_detail.html:132
+#: src/templates/publicsite/poll_detail.html:151
 msgid "dont sur papier"
 msgstr "of which on paper"
 
-#: src/templates/publicsite/poll_detail.html:133
+#: src/templates/publicsite/poll_detail.html:152
 msgid "Inscrits n'ayant pas encore voté"
 msgstr "Registered electors who have not yet voted"
 
-#: src/templates/publicsite/poll_detail.html:139
-#: src/templates/publicsite/results.html:140
+#: src/templates/publicsite/poll_detail.html:158
+#: src/templates/publicsite/results.html:145
 msgid "Portée de la consultation"
 msgstr "Standing of the poll"
 
-#: src/templates/publicsite/poll_detail.html:145
-#: src/templates/publicsite/results.html:144
+#: src/templates/publicsite/poll_detail.html:164
+#: src/templates/publicsite/results.html:149
 msgid ""
 "Cette consultation est consultative. Son résultat éclaire la délibération du "
 "conseil municipal sans la lier. Elle ne constitue pas une consultation des "
@@ -4529,12 +4879,12 @@ msgstr ""
 "des électeurs within the meaning of articles L1112-15 et seq. of the code "
 "général des collectivités territoriales."
 
-#: src/templates/publicsite/poll_detail.html:157
-#: src/templates/publicsite/poll_detail.html:159
+#: src/templates/publicsite/poll_detail.html:176
+#: src/templates/publicsite/poll_detail.html:178
 msgid "Participer"
 msgstr "Take part"
 
-#: src/templates/publicsite/poll_detail.html:158
+#: src/templates/publicsite/poll_detail.html:177
 msgid ""
 "Le vote se fait en ligne, après inscription vérifiée contre la liste "
 "électorale de la commune."
@@ -4542,13 +4892,13 @@ msgstr ""
 "Voting is done online, after registration checked against the commune's "
 "electoral roll."
 
-#: src/templates/publicsite/poll_detail.html:160
+#: src/templates/publicsite/poll_detail.html:179
 msgid ""
 "Un bulletin peut aussi être remis sur papier à la mairie, qui le saisit."
 msgstr ""
 "A ballot may also be handed in on paper at the mairie, which keys it in."
 
-#: src/templates/publicsite/poll_detail.html:171
+#: src/templates/publicsite/poll_detail.html:190
 msgid "Haut de page"
 msgstr "Back to top"
 
@@ -4644,6 +4994,17 @@ msgstr ""
 "pass it on to people you want to see this page. The poll is still a draft "
 "and its configuration may change before it is announced."
 
+#: src/templates/publicsite/poll_sandbox.html:13
+msgid ""
+"Scrutin d'essai : cette consultation sert à vérifier le bon fonctionnement "
+"de la plateforme. Elle n'est pas publique, les bulletins déposés ici ne "
+"comptent pour rien, et ce lien est confidentiel — ne le transmettez qu'aux "
+"personnes invitées à l'essayer."
+msgstr ""
+"Sandbox poll: this consultation exists to check that the platform works. It "
+"is not public, the ballots cast here count for nothing, and this link is "
+"confidential — pass it on only to the people invited to try it."
+
 #: src/templates/publicsite/results.html:10
 #, python-format
 msgid "Résultats : « %(title)s »"
@@ -4679,36 +5040,36 @@ msgstr "Participation, frozen at closure"
 msgid "Inscrits"
 msgstr "Registered electors"
 
-#: src/templates/publicsite/results.html:53
+#: src/templates/publicsite/results.html:58
 msgid "Le raisonnement"
 msgstr "The reasoning"
 
-#: src/templates/publicsite/results.html:61
+#: src/templates/publicsite/results.html:66
 msgid "Matrice des préférences deux à deux — la ligne bat la colonne"
 msgstr "Pairwise preference matrix — the row beats the column"
 
-#: src/templates/publicsite/results.html:64
+#: src/templates/publicsite/results.html:69
 msgid "bat"
 msgstr "beats"
 
-#: src/templates/publicsite/results.html:87
+#: src/templates/publicsite/results.html:92
 msgid "Nombre de bulletins par ordre de classement"
 msgstr "Number of ballots per distinct ordering"
 
-#: src/templates/publicsite/results.html:110
+#: src/templates/publicsite/results.html:115
 #, python-format
 msgid "Règle : %(rule)s. Ordre retenu :"
 msgstr "Rule: %(rule)s. Order applied:"
 
-#: src/templates/publicsite/results.html:119
+#: src/templates/publicsite/results.html:124
 msgid "Vérifier ce résultat"
 msgstr "Verify this result"
 
-#: src/templates/publicsite/results.html:131
+#: src/templates/publicsite/results.html:136
 msgid "Liste anonymisée des bulletins (CSV)"
 msgstr "Anonymised ballot list (CSV)"
 
-#: src/templates/publicsite/results.html:132
+#: src/templates/publicsite/results.html:137
 msgid ""
 "exactement les bulletins retenus ; l'empreinte de clôture se recalcule à "
 "partir de ce seul fichier."
@@ -4716,11 +5077,11 @@ msgstr ""
 "exactly the ballots in force; the closure hash recomputes from this file "
 "alone."
 
-#: src/templates/publicsite/results.html:133
+#: src/templates/publicsite/results.html:138
 msgid "Document de publication complet (JSON)"
 msgstr "Full publication document (JSON)"
 
-#: src/templates/publicsite/results.html:134
+#: src/templates/publicsite/results.html:139
 msgid ""
 "liste des bulletins, matrice, raisonnement, comptes figés, empreinte, "
 "graine, départage."
@@ -4728,7 +5089,7 @@ msgstr ""
 "ballot list, matrix, derivation, frozen counts, closure hash, seed, tie-"
 "break."
 
-#: src/templates/publicsite/results.html:136
+#: src/templates/publicsite/results.html:141
 msgid ""
 "Chaque bulletin porte un code de suivi remis à l'électeur au moment du vote. "
 "Retrouvez le vôtre dans la liste publiée pour confirmer qu'il a été "
@@ -4851,20 +5212,20 @@ msgstr "If you cannot find it, contact the mairie."
 msgid "Inscription"
 msgstr "Registration"
 
-#: src/templates/registrations/register.html:8
+#: src/templates/registrations/register.html:9
 #, python-format
 msgid "S'inscrire à « %(title)s »"
 msgstr "Register for “%(title)s”"
 
-#: src/templates/registrations/register.html:26
+#: src/templates/registrations/register.html:28
 msgid "S'inscrire"
 msgstr "Register"
 
-#: src/templates/registrations/register.html:35
+#: src/templates/registrations/register.html:38
 msgid "Vos données"
 msgstr "Your data"
 
-#: src/templates/registrations/register.html:36
+#: src/templates/registrations/register.html:39
 msgid ""
 "Les informations ci-dessus servent uniquement à vérifier que vous êtes "
 "inscrit sur la liste électorale de la commune et à vous envoyer votre lien "
@@ -4875,7 +5236,7 @@ msgstr ""
 "electoral roll and to send you your voting link. It is kept for two months "
 "after the poll closes, then deleted."
 
-#: src/templates/registrations/register.html:37
+#: src/templates/registrations/register.html:40
 msgid ""
 "Votre bulletin n'est relié à votre identité par aucune donnée : la "
 "plateforme sait que vous avez voté, jamais comment."
@@ -4883,7 +5244,7 @@ msgstr ""
 "No data links your ballot to your identity: the platform knows that you "
 "voted, never how."
 
-#: src/templates/registrations/register.html:43
+#: src/templates/registrations/register.html:46
 msgid ""
 "Base légale : l'exécution d'une mission d'intérêt public, l'organisation par "
 "la commune d'une consultation citoyenne de ses administrés (article 6.1.e du "
@@ -4893,7 +5254,7 @@ msgstr ""
 "commune's organisation of a citizen consultation of its residents (GDPR "
 "article 6.1.e)."
 
-#: src/templates/registrations/register.html:44
+#: src/templates/registrations/register.html:47
 msgid ""
 "Destinataires : les agents de la mairie habilités sur ce scrutin "
 "(administrateur du scrutin, opérateur de saisie des bulletins papier, "
@@ -4904,7 +5265,7 @@ msgstr ""
 "paper-ballot entry operator, auditor), each for the part that falls to their "
 "role. Your data is never shared with anyone outside the commune."
 
-#: src/templates/registrations/register.html:50
+#: src/templates/registrations/register.html:53
 #, python-format
 msgid ""
 "Responsable du traitement : %(name)s. Pour exercer vos droits d'accès, de "
@@ -4913,15 +5274,23 @@ msgstr ""
 "Data controller: %(name)s. To exercise your rights of access, rectification "
 "and erasure, contact %(referent)s (%(contact)s)."
 
+#: src/templates/registrations/register.html:55
+msgid ""
+"Pour exercer vos droits d'accès, de rectification et d'effacement, adressez-"
+"vous à la mairie."
+msgstr ""
+"To exercise your rights of access, rectification and erasure, contact the "
+"mairie."
+
 #: src/templates/registrations/submitted.html:5
 msgid "Demande enregistrée"
 msgstr "Request received"
 
-#: src/templates/registrations/submitted.html:9
+#: src/templates/registrations/submitted.html:10
 msgid "Vérifiez votre boîte aux lettres"
 msgstr "Check your inbox"
 
-#: src/templates/registrations/submitted.html:10
+#: src/templates/registrations/submitted.html:11
 msgid ""
 "Nous vous avons envoyé un message contenant votre lien de vote. Ouvrez-le "
 "pour confirmer votre inscription et voter."
@@ -4929,7 +5298,7 @@ msgstr ""
 "We have sent you a message containing your voting link. Open it to confirm "
 "your registration and vote."
 
-#: src/templates/registrations/submitted.html:11
+#: src/templates/registrations/submitted.html:12
 msgid ""
 "Si rien n'arrive dans les prochaines minutes, pensez à regarder dans les "
 "courriers indésirables, puis contactez la mairie."
@@ -4937,11 +5306,11 @@ msgstr ""
 "If nothing arrives within a few minutes, check your spam folder, then "
 "contact the mairie."
 
-#: src/templates/registrations/submitted.html:19
+#: src/templates/registrations/submitted.html:20
 msgid "Vous n'êtes pas concerné par cette consultation"
 msgstr "This consultation does not concern you"
 
-#: src/templates/registrations/submitted.html:20
+#: src/templates/registrations/submitted.html:21
 msgid ""
 "Vous figurez bien sur la liste électorale de la commune, mais sur une liste "
 "qui n'ouvre pas le droit de participer à cette consultation. Si vous pensez "
@@ -4951,11 +5320,11 @@ msgstr ""
 "confer the right to take part in this consultation. If you believe this is "
 "an error, contact the town hall."
 
-#: src/templates/registrations/submitted.html:29
+#: src/templates/registrations/submitted.html:30
 msgid "Votre demande sera examinée"
 msgstr "Your request will be reviewed"
 
-#: src/templates/registrations/submitted.html:30
+#: src/templates/registrations/submitted.html:31
 msgid ""
 "Nous n'avons pas pu rapprocher automatiquement votre demande de la liste "
 "électorale. Un agent de la mairie va l'examiner et vous recevrez ensuite "
@@ -4965,378 +5334,164 @@ msgstr ""
 "mairie officer will review it and you will then receive your voting link by "
 "email."
 
-#: src/templates/registrations/submitted.html:31
+#: src/templates/registrations/submitted.html:32
 msgid "Aucune démarche supplémentaire n'est nécessaire de votre part."
 msgstr "Nothing further is required of you."
 
-#: src/apps/audit/models.py:43
-msgid "scrutin d'essai supprimé"
-msgstr "sandbox poll deleted"
+#~ msgid ""
+#~ "Les réponses aux questions les plus courantes sur cette plateforme de "
+#~ "consultation citoyenne."
+#~ msgstr ""
+#~ "Answers to the most common questions about this citizen consultation "
+#~ "platform."
 
-#: src/apps/backoffice/views.py:721
-msgid "Lien d'essai généré."
-msgstr "Test link generated."
+#~ msgid "Qu'est-ce que ce site ?"
+#~ msgstr "What is this site?"
 
-#: src/apps/backoffice/views.py:724
-msgid "Lien d'essai révoqué."
-msgstr "Test link revoked."
+#~ msgid ""
+#~ "Ce site permet à la commune de consulter ses habitants sur des sujets "
+#~ "locaux. Chaque consultation est présentée avec les propositions soumises, "
+#~ "un calendrier et, une fois close, son résultat."
+#~ msgstr ""
+#~ "This site lets the commune consult its residents on local matters. Each "
+#~ "consultation is presented with the propositions submitted, a calendar "
+#~ "and, once closed, its result."
 
-#: src/apps/backoffice/views.py:732
-msgid "Scrutin d'essai supprimé."
-msgstr "Sandbox poll deleted."
+#~ msgid ""
+#~ "Le résultat éclaire la décision du conseil municipal ; il ne la remplace "
+#~ "pas."
+#~ msgstr ""
+#~ "The result informs the town council's decision; it does not replace it."
 
-#: src/templates/backoffice/dashboard.html:70
-msgid "Lien d'essai et suppression"
-msgstr "Test link and deletion"
+#~ msgid "Comment participer à une consultation ?"
+#~ msgstr "How do I take part in a consultation?"
 
-#: src/templates/backoffice/poll_sandbox.html:11
-msgid "Scrutin d'essai"
-msgstr "Sandbox poll"
+#~ msgid ""
+#~ "Depuis la page d'une consultation ouverte, vous vous inscrivez avec votre "
+#~ "nom, vos coordonnées et une adresse électronique. Cette inscription est "
+#~ "vérifiée par rapport à la liste électorale de la commune : elle confirme "
+#~ "que vous avez le droit de participer, sans que votre vote ne soit jamais "
+#~ "relié à votre identité."
+#~ msgstr ""
+#~ "From an open consultation's page, you register with your name, your "
+#~ "details and an email address. This registration is checked against the "
+#~ "commune's electoral roll: it confirms your right to take part, without "
+#~ "your vote ever being linked to your identity."
 
-#: src/templates/backoffice/poll_sandbox.html:15
-msgid "Lien d'essai"
-msgstr "Test link"
+#~ msgid ""
+#~ "Vous recevez ensuite un courriel contenant un lien personnel. Ce lien "
+#~ "ouvre votre bulletin, sur lequel vous classez les propositions selon vos "
+#~ "préférences."
+#~ msgstr ""
+#~ "You then receive an email containing a personal link. That link opens "
+#~ "your ballot, on which you rank the propositions by preference."
 
-#: src/templates/backoffice/poll_sandbox.html:16
-msgid "Ce scrutin est un essai : il n'apparaît dans aucune liste publique, aucun résultat publié ni aucune statistique. Il suit le cycle de vie d'un scrutin ordinaire, et les bulletins déposés ne comptent pour rien."
-msgstr "This poll is a rehearsal: it appears on no public list, no published result and no statistic. It follows the lifecycle of an ordinary poll, and the ballots cast in it count for nothing."
+#~ msgid "Je ne reçois pas le courriel de vote"
+#~ msgstr "I am not receiving the voting email"
 
-#: src/templates/backoffice/poll_sandbox.html:20
-msgid "Un lien impossible à deviner, à transmettre aux personnes invitées à essayer ce scrutin : il donne accès à la page du scrutin et à l'inscription, sans compte espace mairie, à tout état du scrutin. Les inscriptions se font contre la liste électorale comme pour un scrutin réel : chaque testeur doit y figurer. Régénérer le lien invalide aussitôt le précédent ; le révoquer coupe l'accès de ceux qui l'ont utilisé."
-msgstr "An unguessable link to pass to the people invited to try this poll: it gives access to the poll page and to registration, without an espace mairie account, in every state of the poll. Registration is checked against the electoral roll as for a real poll: each tester must be on it. Regenerating the link invalidates the previous one at once; revoking it cuts off everyone who used it."
+#~ msgid ""
+#~ "Vérifiez d'abord votre dossier de courriers indésirables. Si le courriel "
+#~ "n'arrive toujours pas, assurez-vous d'avoir utilisé l'adresse indiquée à "
+#~ "votre inscription ; en cas de doute, recommencez l'inscription avec la "
+#~ "bonne adresse."
+#~ msgstr ""
+#~ "First check your junk mail folder. If the email still does not arrive, "
+#~ "make sure you used the address given at registration; if in doubt, "
+#~ "register again with the correct address."
 
-#: src/templates/backoffice/poll_sandbox.html:39
-msgid "Générer un lien d'essai"
-msgstr "Generate a test link"
+#~ msgid ""
+#~ "Si votre nom n'a pas été retrouvé sur la liste électorale, votre "
+#~ "inscription est mise en attente le temps qu'un agent de la mairie "
+#~ "l'examine ; vous serez informé par courriel dès qu'une décision est prise."
+#~ msgstr ""
+#~ "If your name could not be matched on the electoral roll, your "
+#~ "registration is held pending review by a mairie staff member; you will be "
+#~ "informed by email as soon as a decision is made."
 
-#: src/templates/backoffice/poll_sandbox.html:42
-msgid "Aucun lien d'essai n'est actif."
-msgstr "No test link is active."
+#~ msgid "Puis-je voter autrement qu'en ligne ?"
+#~ msgstr "Can I vote another way than online?"
 
-#: src/templates/backoffice/poll_sandbox.html:48
-msgid "Supprimer ce scrutin"
-msgstr "Delete this poll"
+#~ msgid ""
+#~ "Un bulletin papier peut être déposé en mairie ; il est saisi par un "
+#~ "membre du conseil municipal dans la même consultation."
+#~ msgstr ""
+#~ "A paper ballot may be handed in at the mairie; it is entered by a member "
+#~ "of the municipal council into the same consultation."
 
-#: src/templates/backoffice/poll_sandbox.html:49
-msgid "La suppression est définitive et possible à tout état du scrutin : le scrutin, ses propositions, ses bulletins, ses inscriptions et sa copie de la liste électorale sont effacés. Seule une ligne du journal d'audit rappelle qu'il a existé."
-msgstr "Deletion is permanent and possible in any state of the poll: the poll, its propositions, its ballots, its registrations and its copy of the electoral roll are erased. Only a line of the audit log records that it existed."
+#~ msgid "Puis-je modifier mon vote après l'avoir envoyé ?"
+#~ msgstr "Can I change my vote after casting it?"
 
-#: src/templates/backoffice/poll_sandbox.html:57
-msgid "Supprimer le scrutin d'essai"
-msgstr "Delete the sandbox poll"
+#~ msgid ""
+#~ "Cela dépend de la consultation : certaines autorisent le remplacement du "
+#~ "bulletin tant que le vote en ligne reste ouvert, en revotant depuis le "
+#~ "même lien reçu par courriel ; d'autres non. Le bulletin le plus récent "
+#~ "est le seul compté ; les précédents sont conservés mais ne sont plus "
+#~ "décomptés."
+#~ msgstr ""
+#~ "It depends on the consultation: some allow the ballot to be replaced "
+#~ "while online voting remains open, by voting again from the same link "
+#~ "received by email; others do not. Only the most recent ballot is counted; "
+#~ "earlier ones are kept but no longer counted."
 
-#: src/templates/publicsite/_sandbox_notice.html:5
-msgid "Scrutin d'essai : ce vote est un test, il ne compte pour rien."
-msgstr "Sandbox poll: this vote is a test and counts for nothing."
+#~ msgid "Comment fonctionne le classement des propositions ?"
+#~ msgstr "How does ranking the propositions work?"
 
-#: src/templates/publicsite/poll_sandbox.html:13
-msgid "Scrutin d'essai : cette consultation sert à vérifier le bon fonctionnement de la plateforme. Elle n'est pas publique, les bulletins déposés ici ne comptent pour rien, et ce lien est confidentiel — ne le transmettez qu'aux personnes invitées à l'essayer."
-msgstr "Sandbox poll: this consultation exists to check that the platform works. It is not public, the ballots cast here count for nothing, and this link is confidential — pass it on only to the people invited to try it."
+#~ msgid ""
+#~ "Sur votre bulletin, vous classez les propositions par ordre de préférence "
+#~ "plutôt que de n'en choisir qu'une seule. Selon la consultation, un "
+#~ "classement complet peut être exigé ou non, et deux propositions peuvent "
+#~ "être placées à égalité. La méthode de dépouillement utilisée est rappelée "
+#~ "sur la page de résultat de chaque consultation."
+#~ msgstr ""
+#~ "On your ballot, you rank the propositions in order of preference rather "
+#~ "than choosing only one. Depending on the consultation, a complete ranking "
+#~ "may or may not be required, and two propositions may be tied. The tally "
+#~ "method used is stated on each consultation's result page."
 
-#: src/apps/audit/models.py
-msgid "lien de confirmation renvoyé"
-msgstr "confirmation link resent"
+#~ msgid "Comment savoir si mon vote a été pris en compte ?"
+#~ msgstr "How do I know my vote was counted?"
 
-#: src/apps/registrations/services.py
-msgid "Cette inscription n'attend plus de confirmation."
-msgstr "This registration is no longer awaiting confirmation."
+#~ msgid ""
+#~ "Au moment de voter, un code de suivi vous est remis. Une fois la "
+#~ "consultation close et le résultat publié, ce code figure dans la liste "
+#~ "des bulletins retenus, publiée avec le résultat : vous y retrouvez le "
+#~ "vôtre pour confirmer qu'il a bien été enregistré tel que vous l'avez "
+#~ "exprimé."
+#~ msgstr ""
+#~ "When you vote, you are given a tracking code. Once the consultation is "
+#~ "closed and the result published, that code appears in the list of "
+#~ "retained ballots published with the result: you can find yours there to "
+#~ "confirm it was recorded exactly as you cast it."
 
-#: src/apps/backoffice/views.py
-msgid "Un nouveau lien de confirmation a été envoyé."
-msgstr "A new confirmation link has been sent."
+#~ msgid "Que deviennent mes données personnelles ?"
+#~ msgstr "What happens to my personal data?"
 
-#: src/templates/backoffice/dashboard.html
-msgid "Inscriptions en attente de confirmation"
-msgstr "Registrations awaiting confirmation"
+#~ msgid ""
+#~ "Les informations transmises à l'inscription servent uniquement à vérifier "
+#~ "votre droit de participer et à vous envoyer votre lien de vote ; elles "
+#~ "sont supprimées deux mois après la clôture de la consultation. Votre "
+#~ "bulletin n'est relié à votre identité par aucune donnée conservée : la "
+#~ "plateforme sait que vous avez voté, jamais ce que vous avez voté."
+#~ msgstr ""
+#~ "The information given at registration is used only to check your right to "
+#~ "take part and to send you your voting link; it is deleted two months "
+#~ "after the consultation closes. No retained data links your ballot to your "
+#~ "identity: the platform knows that you voted, never what you voted."
 
-#: src/templates/backoffice/registration_queue.html
-msgid "En attente d'examen"
-msgstr "Awaiting review"
-
-#: src/templates/backoffice/registration_queue.html
-msgid "En attente de confirmation"
-msgstr "Awaiting confirmation"
-
-#: src/templates/backoffice/registration_queue.html
-msgid "Ces électeurs n'ont pas encore suivi le lien reçu par courriel. Renvoyer un lien en crée un nouveau et invalide le précédent. Vérifiez l'adresse avec l'électeur avant de renvoyer : une adresse erronée ne peut pas être corrigée ici."
-msgstr "These voters have not yet followed the link they were emailed. Resending creates a new link and invalidates the previous one. Check the address with the voter before resending: a wrong address cannot be corrected here."
-
-#: src/templates/backoffice/registration_queue.html
-msgid "Inscriptions dont l'adresse électronique n'est pas confirmée"
-msgstr "Registrations whose email address is not confirmed"
-
-#: src/templates/backoffice/registration_queue.html
-msgid "Aucune inscription n'attend de confirmation."
-msgstr "No registration is awaiting confirmation."
-
-#: src/templates/backoffice/registration_queue.html
 #, python-format
-msgid "Renvoyer le lien à %(name)s"
-msgstr "Resend the link to %(name)s"
+#~ msgid ""
+#~ "Pour exercer vos droits d'accès, de rectification et d'effacement, "
+#~ "adressez-vous à %(referent)s (%(contact)s)."
+#~ msgstr ""
+#~ "To exercise your rights of access, rectification and erasure, contact "
+#~ "%(referent)s (%(contact)s)."
 
-#: src/apps/backoffice/views.py
-msgid ""
-"Une entrée très proche de la liste a déjà voté. Vérifiez avec l'électeur "
-"présent qu'il s'agit bien de deux personnes, puis cochez la confirmation "
-"d'identité."
-msgstr ""
-"A very similar roll entry has already voted. Check with the elector present "
-"that these are two different people, then tick the identity confirmation."
+#~ msgid "Une autre question ?"
+#~ msgstr "Another question?"
 
-#: src/templates/backoffice/paper_entry.html
-msgid "Une entrée très proche a déjà voté"
-msgstr "A very similar entry has already voted"
-
-#: src/templates/backoffice/paper_entry.html
-msgid ""
-"Même date de naissance et un prénom en commun. S'il s'agit de la même "
-"personne inscrite deux fois sur la liste, elle a déjà voté et ne doit pas "
-"voter à nouveau."
-msgstr ""
-"Same date of birth and a first name in common. If this is the same person "
-"listed twice on the roll, they have already voted and must not vote again."
-
-#: src/templates/backoffice/paper_entry.html
-#: src/templates/backoffice/registration_queue.html
-msgid "a voté en ligne"
-msgstr "voted online"
-
-#: src/templates/backoffice/paper_entry.html
-#: src/templates/backoffice/registration_queue.html
-msgid "a un bulletin papier"
-msgstr "has a paper ballot"
-
-#: src/templates/backoffice/registration_queue.html
-msgid "Inscription existante"
-msgstr "Existing registration"
-
-#: src/templates/backoffice/registration_queue.html
-msgid "déjà inscrite, n'a pas voté"
-msgstr "already registered, has not voted"
-
-#: src/templates/backoffice/dashboard.html
-#: src/templates/backoffice/results_publish.html
-#: src/templates/publicsite/results.html
-msgid "Bulletins papier non contresignés, non décomptés"
-msgstr "Paper ballots not countersigned, not counted"
-
-#: src/apps/backoffice/views.py
-msgid "Bulletin rectifié ; il attend un nouveau contreseing."
-msgstr "Ballot corrected; it now awaits a new countersignature."
-
-#: src/templates/backoffice/dashboard.html
-msgid "L'ouverture planifiée n'a pas eu lieu"
-msgstr "The scheduled opening has not happened"
-
-#: src/templates/backoffice/dashboard.html
-msgid "L'heure d'ouverture est passée mais le scrutin est toujours annoncé : ni inscription ni vote ne sont possibles. Vérifiez les blocages ci-dessous et le planificateur des tâches, ou ouvrez le scrutin depuis l'écran de configuration."
-msgstr "The opening time has passed but the poll is still announced: neither registration nor voting is possible. Check the blockers below and the task scheduler, or open the poll from the configuration screen."
-
-#: src/templates/backoffice/dashboard.html
-msgid "La clôture planifiée n'a pas eu lieu"
-msgstr "The scheduled closure has not happened"
-
-#: src/templates/backoffice/dashboard.html
-msgid "La fin de saisie des bulletins papier est passée mais le scrutin est toujours ouvert. Plus aucun bulletin n'est accepté ; vérifiez les blocages ci-dessous et le planificateur des tâches."
-msgstr "The paper entry deadline has passed but the poll is still open. No more ballots are accepted; check the blockers below and the task scheduler."
-
-#: src/apps/audit/models.py
-msgid "clôture anticipée"
-msgstr "early closure"
-
-#: src/apps/elections/transitions.py
-msgid "Une clôture anticipée exige un motif."
-msgstr "An early closure requires a reason."
-
-#: src/apps/backoffice/forms.py
-msgid "Motif (obligatoire avant l'échéance, ou si des bulletins attendent un contreseing)"
-msgstr "Reason (required before the deadline, or if ballots await countersignature)"
-
-#: src/templates/backoffice/poll_config.html
-msgid "Clore le scrutin avant l'échéance met fin immédiatement aux inscriptions, au vote en ligne et à la saisie des bulletins papier. Les dates de clôture deviennent l'instant présent ; la clôture anticipée, avec son motif, est inscrite au journal d'audit et affichée sur la page publique du scrutin."
-msgstr "Closing the poll before its deadline immediately ends registration, online voting and paper-ballot entry. The closing dates become the present instant; the early closure and its reason are recorded in the audit log and shown on the poll's public page."
-
-#: src/templates/publicsite/poll_detail.html
-msgid "Clôture anticipée"
-msgstr "Early closure"
-
-#: src/templates/publicsite/poll_detail.html
 #, python-format
-msgid "Clôture prévue le %(planned)s, avancée au %(actual)s"
-msgstr "Closing planned for %(planned)s, brought forward to %(actual)s"
+#~ msgid "Contactez la mairie (%(contact)s) ou rendez-vous sur place."
+#~ msgstr "Contact the mairie (%(contact)s) or visit in person."
 
-#: src/apps/backoffice/confirmations.py
-msgid "Les inscriptions et le vote s'ouvrent immédiatement."
-msgstr "Registration and voting open immediately."
-
-#: src/apps/backoffice/confirmations.py
-msgid "La liste électorale en vigueur est figée pour ce scrutin."
-msgstr "The electoral roll currently in force is frozen for this poll."
-
-#: src/apps/backoffice/confirmations.py
-msgid "Plus aucune inscription, aucun vote en ligne ni aucune saisie de bulletin papier ne sera accepté."
-msgstr "No further registration, online vote or paper-ballot entry will be accepted."
-
-#: src/apps/backoffice/confirmations.py
-msgid "L'empreinte de clôture et les compteurs de participation sont figés."
-msgstr "The closure hash and the turnout counters are frozen."
-
-#: src/apps/backoffice/confirmations.py
-msgid "Le résultat, la liste anonymisée des bulletins et l'empreinte de clôture deviennent publics."
-msgstr "The result, the anonymised ballot list and the closure hash become public."
-
-#: src/apps/backoffice/confirmations.py
-msgid "Annoncer le scrutin ?"
-msgstr "Announce the poll?"
-
-#: src/apps/backoffice/confirmations.py
-msgid "Annoncer le scrutin"
-msgstr "Announce the poll"
-
-#: src/apps/backoffice/confirmations.py
-msgid "Ouvrir le scrutin ?"
-msgstr "Open the poll?"
-
-#: src/apps/backoffice/confirmations.py
-msgid "Ouvrir le scrutin"
-msgstr "Open the poll"
-
-#: src/apps/backoffice/confirmations.py
-msgid "Clore le scrutin ?"
-msgstr "Close the poll?"
-
-#: src/apps/backoffice/confirmations.py
-msgid "Clore le scrutin"
-msgstr "Close the poll"
-
-#: src/apps/backoffice/confirmations.py
-msgid "Reporter la clôture ?"
-msgstr "Extend the closing date?"
-
-#: src/apps/backoffice/confirmations.py
-msgid "Retirer le scrutin ?"
-msgstr "Withdraw the poll?"
-
-#: src/apps/backoffice/confirmations.py
-msgid "Publier les résultats ?"
-msgstr "Publish the results?"
-
-#: src/apps/backoffice/confirmations.py
-msgid "Signer le procès-verbal de rapprochement ?"
-msgstr "Sign the reconciliation record?"
-
-#: src/apps/backoffice/confirmations.py
-msgid "Signer le procès-verbal"
-msgstr "Sign the record"
-
-#: src/apps/backoffice/confirmations.py
-msgid "Supprimer ce scrutin d'essai ?"
-msgstr "Delete this test poll?"
-
-#: src/apps/backoffice/confirmations.py
-msgid "Supprimer définitivement"
-msgstr "Delete permanently"
-
-#: src/apps/backoffice/confirmations.py
-msgid "Le scrutin devient visible sur le site public : propositions et calendrier."
-msgstr "The poll becomes visible on the public site: propositions and calendar."
-
-#: src/apps/backoffice/confirmations.py
-msgid "La configuration est figée : elle ne pourra plus être modifiée."
-msgstr "The configuration is frozen: it can no longer be changed."
-
-#: src/apps/backoffice/confirmations.py
-msgid "Ni inscription ni vote ne sont possibles avant l'ouverture."
-msgstr "Neither registration nor voting is possible before opening."
-
-#: src/apps/backoffice/confirmations.py
-#, python-format
-msgid "Ouverture avancée : prévue le %(planned)s, elle devient l'instant présent."
-msgstr "Early opening: planned for %(planned)s, it becomes the present instant."
-
-#: src/apps/backoffice/confirmations.py
-#, python-format
-msgid "Clôture anticipée : la fin de saisie prévue le %(planned)s devient l'instant présent. Elle sera affichée sur la page publique avec le motif « %(reason)s »."
-msgstr "Early closure: the entry deadline planned for %(planned)s becomes the present instant. It will be shown on the public page with the reason “%(reason)s”."
-
-#: src/apps/backoffice/confirmations.py
-msgid "Plus rien du scrutin ne reste visible sur le site public, y compris son résultat s'il a été publié."
-msgstr "Nothing of the poll remains visible on the public site, including its result if it was published."
-
-#: src/apps/backoffice/confirmations.py
-msgid "Aucune inscription ni aucun vote n'est plus accepté."
-msgstr "No further registration or vote is accepted."
-
-#: src/apps/backoffice/confirmations.py
-msgid "Les bulletins et le journal d'audit sont conservés."
-msgstr "The ballots and the audit log are kept."
-
-#: src/apps/backoffice/confirmations.py
-#, python-format
-msgid "Proposition publiée comme gagnante : %(label)s."
-msgstr "Proposition published as the winner: %(label)s."
-
-#: src/apps/backoffice/confirmations.py
-msgid "Le procès-verbal est signé à votre nom et ne pourra plus être modifié."
-msgstr "The record is signed in your name and can no longer be changed."
-
-#: src/apps/backoffice/confirmations.py
-msgid "Le scrutin d'essai et tout ce qu'il contient — inscriptions, bulletins, liste figée, images — sont supprimés."
-msgstr "The test poll and everything it holds — registrations, ballots, frozen roll, images — are deleted."
-
-#: src/apps/backoffice/confirmations.py
-msgid "Le journal d'audit conserve la trace de la suppression."
-msgstr "The audit log keeps a record of the deletion."
-
-#: src/apps/backoffice/confirmations.py
-#, python-format
-msgid "La clôture passe du %(old)s au %(new)s ; la fin de saisie papier est décalée d'autant."
-msgstr "Closing moves from %(old)s to %(new)s; the paper-entry deadline moves by the same amount."
-
-#: src/apps/backoffice/confirmations.py
-#, python-format
-msgid "Le report est affiché sur la page publique avec le motif « %(reason)s »."
-msgstr "The extension is shown on the public page with the reason “%(reason)s”."
-
-#: src/apps/backoffice/confirmations.py
-#, python-format
-msgid "Motif enregistré : « %(reason)s »."
-msgstr "Reason recorded: “%(reason)s”."
-
-#: src/apps/backoffice/confirmations.py
-#, python-format
-msgid "%(forms)d formulaire(s) conservé(s) pour %(recorded)d bulletin(s) papier enregistré(s) : écart de %(gap)d."
-msgstr "%(forms)d form(s) retained for %(recorded)d paper ballot(s) recorded: a difference of %(gap)d."
-
-#: src/templates/backoffice/confirm.html
-msgid "Ce qui va se passer"
-msgstr "What will happen"
-
-#: src/templates/backoffice/confirm.html
-msgid "Cette action est définitive : elle ne pourra pas être annulée."
-msgstr "This action is final: it cannot be undone."
-
-#: src/templates/backoffice/confirm.html
-msgid "Annuler"
-msgstr "Cancel"
-
-#: src/apps/backoffice/confirmations.py
-#, python-format
-msgid "%(count)d inscription en attente d'examen ne pourra plus voter."
-msgid_plural "%(count)d inscriptions en attente d'examen ne pourront plus voter."
-msgstr[0] "%(count)d registration under review will no longer be able to vote."
-msgstr[1] "%(count)d registrations under review will no longer be able to vote."
-
-#: src/apps/backoffice/confirmations.py
-#, python-format
-msgid "%(count)d électeur n'a pas confirmé son adresse et ne pourra plus voter."
-msgid_plural "%(count)d électeurs n'ont pas confirmé leur adresse et ne pourront plus voter."
-msgstr[0] "%(count)d elector has not confirmed their address and will no longer be able to vote."
-msgstr[1] "%(count)d electors have not confirmed their address and will no longer be able to vote."
-
-#: src/apps/backoffice/confirmations.py
-#, python-format
-msgid "%(count)d bulletin papier non contresigné sera exclu du décompte et publié à part (motif « %(reason)s »)."
-msgid_plural "%(count)d bulletins papier non contresignés seront exclus du décompte et publiés à part (motif « %(reason)s »)."
-msgstr[0] "%(count)d paper ballot not countersigned will be left out of the count and published separately (reason “%(reason)s”)."
-msgstr[1] "%(count)d paper ballots not countersigned will be left out of the count and published separately (reason “%(reason)s”)."
+#~ msgid "Contactez la mairie ou rendez-vous sur place."
+#~ msgstr "Contact the mairie or visit in person."
