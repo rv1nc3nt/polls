@@ -300,6 +300,29 @@ def test_the_modify_form_is_prefilled_with_the_current_ranking(
     assert '<option value="3" selected>3</option>' in body
 
 
+def test_a_modification_spends_the_session_entry(client: Client, live_poll: Poll) -> None:
+    """Review note L10: after a modification the browser holds no ballot hash,
+    so the next person at a shared computer can neither read the ranking nor
+    change it. Modifying again goes through the mailed link, as the receipt
+    says."""
+    _registration, token = _register(live_poll)
+    client.get(_access_url(live_poll, token))
+    client.post(_access_url(live_poll, token), STRICT)
+
+    changed = {"order": "a,b,c", "rank_a": "2", "rank_b": "1", "rank_c": "3"}
+    assert _modify(client, live_poll, token, changed).status_code == 302
+    assert not any(key.startswith("ballot:") for key in client.session.keys())
+
+    after = client.get(f"/fr/bulletin/{live_poll.pk}/modifier/")
+    assert after.status_code == 302
+    assert "lien-invalide" in after["Location"]
+
+    # The mailed link still works: a second modification is one click away.
+    again = {"order": "a,b,c", "rank_a": "3", "rank_b": "2", "rank_c": "1"}
+    assert _modify(client, live_poll, token, again).status_code == 302
+    assert Ballot.live.get(poll=live_poll).ranking == [["c"], ["b"], ["a"]]
+
+
 def test_modifying_sends_no_mail(
     client: Client,
     live_poll: Poll,
