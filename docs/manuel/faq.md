@@ -131,8 +131,9 @@ Oui, depuis l'écran de configuration (écran 2) : *Annoncer maintenant*, *Ouvri
 maintenant* et *Clôturer maintenant*. *Ouvrir maintenant* est permis à
 tout moment, y compris par avance — la date d'ouverture est alors ramenée à
 l'instant présent : le scrutin est ouvert au vote et affiché comme tel sur le
-site public tout de suite. *Clôturer maintenant* n'apparaît qu'une fois l'échéance de saisie
-des bulletins papier atteinte.
+site public tout de suite. *Clôturer maintenant* est proposé à tout moment une
+fois le scrutin ouvert ; avant l'échéance de saisie des bulletins papier,
+c'est une clôture anticipée, et un motif est obligatoire.
 
 ### À quoi sert l'état « annoncé » ?
 À rendre un scrutin visible sur le site public — propositions et calendrier —

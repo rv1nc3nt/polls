@@ -133,7 +133,8 @@ Yes, from the configuration screen (screen 2): *Announce now*, *Open now*
 and *Close now*. *Open now* is allowed at any time, including ahead
 of schedule — the opening date is then brought back to the present moment: the
 poll is open to voting and shown as such on the public site straight away. *Close
-now* only appears once the paper-ballot keying deadline has been reached.
+now* is offered at any time once the poll is open; before the paper-ballot
+keying deadline it is an early closure, and a reason is mandatory.
 
 ### What is the "announced" state for?
 To make a poll visible on the public site — propositions and schedule —

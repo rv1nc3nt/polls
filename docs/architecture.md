@@ -103,13 +103,14 @@ stateDiagram-v2
   open --> withdrawn: withdraw_poll
   closed --> withdrawn: withdraw_poll
   published --> withdrawn: withdraw_poll
-  draft --> [*]: delete (sandbox only)
 ```
 
 Every arrow is a function in `elections/transitions.py`, the only module that
 assigns `Poll.state` (tested). The database trigger `poll_state_irreversible`
 is the actual enforcement. Configuration freezes when the poll leaves `draft`
 (INV-6): `Poll.save()` produces the error message and the triggers enforce it.
+A sandbox poll can also be deleted, from any state
+(`elections/sandbox.delete_poll`, R-3.7, decision log #26); no other poll can.
 
 **The clock refuses, the state admits** (decision log #33). Ballot and
 registration writes go through `elections/windows.py`, which requires the

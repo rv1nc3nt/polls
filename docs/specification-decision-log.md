@@ -15,6 +15,50 @@ where noted, the functional requirements (`cahier-des-charges.md` /
 `requirements-en.md`). Each keeps its context and carries the resolution
 inline.
 
+## Status at a glance
+
+Entries marked **open** still need a decision; the rest are kept for their
+reasoning.
+
+| # | Entry | Status |
+|---|---|---|
+| 1 | Retention purge on a poll that closed but was never published | settled |
+| 2 | Tracking code in the registration email (R-5.6) | settled |
+| 3 | Plurality with a tied first group | settled |
+| 4 | The registration window admits a channel change for the paper channel | settled |
+| 5 | Paper entry is refused outright when an online ballot exists | settled |
+| 6 | A ballot *modification* sends no confirmation email | settled |
+| 7 | The commune record is a model the domain model (§3) does not list | settled |
+| 8 | Option labels cannot be corrected after the poll leaves draft | settled |
+| 9 | TLS in the Ansible role is certbot only | recorded, no spec change — nginx-acme deferred until Debian packages a build |
+| 10 | No screen ever created a poll | **open in part** — creation and templates settled; direct duplication of a poll open |
+| 11 | Screen 3 (import de la liste électorale) was gated per poll | settled |
+| 12 | Nothing ever called `open_poll` or `close_poll` by hand | settled; superseded in part by #19, #33, #34 |
+| 13 | R-3.10's early preview is a state, not a flag | settled; its optional `announced` reversed by #19 |
+| 14 | The public page read "open" off `state`, not the clock | settled |
+| 15 | The back-office read the same "open" off `state`, and R-3.4's extension did not check the clock either | settled |
+| 16 | R-8.6's formal reconciliation has no described flow | settled; see #34 for manual closure |
+| 17 | R-8.2 bis's required content is not carried by the receipt as specified | **open in part** — receipt settled; signed-form layout unspecified |
+| 18 | Option images and commune branding are not yet in the backup/restore playbook | settled |
+| 19 | `announced` became mandatory, reversing item 13's "optional waypoint" | settled |
+| 20 | The draft-preview share link (R-3.10 bis) is deliberately not frozen | not a divergence; rationale recorded |
+| 21 | R-3.12's images moved from per-option to a shared per-poll library | settled |
+| 22 | `PollImage.alt_text` is a default, overridable per reference | settled |
+| 23 | `image:<n>` gained an optional display-size suffix | settled |
+| 24 | A poll opened by hand ahead of `opens_at` opened in the back-office only | settled |
+| 25 | Deleting a paper ballot re-opened online voting for nobody who had not registered | settled |
+| 26 | Sandbox polls became triable through their link, and deletable | settled |
+| 27 | Approving an application onto a cleared paper shell | settled |
+| 28 | Electors awaiting confirmation: resend, not confirm | settled |
+| 29 | A paper ballot keyed for an unconfirmed registration was not counted | **open question** for the requirements owner (R-5.5 wording) |
+| 30 | An elector listed twice on the roll is flagged, not blocked | settled |
+| 31 | Uncountersigned paper entries are published as their own figure | settled |
+| 32 | A corrected paper ballot is countersigned again | settled |
+| 33 | The clock refuses, the state admits | settled |
+| 34 | A poll may be closed early, by hand, with a reason | decided |
+| 35 | Definitive actions are confirmed on a separate page | decided |
+| 36 | A sandbox poll's result is reachable through its link | decided |
+
 ## 1. Retention purge on a poll that closed but was never published
 
 **Specification, §11.** Two statements that cannot both hold:
@@ -355,6 +399,36 @@ them at all — whether a sandbox poll may be a source, whether per-language
 content missing at the source should block the clone the way it blocks
 opening (§3.8) — and stays tracked here rather than folded into this item.
 
+## 11. Screen 3 (import de la liste électorale) was gated per poll
+
+**Requirements, R-2.1's role table.** "Commune administrator — Creates polls,
+assigns the roles specific to each poll, **imports the electoral roll**. This
+role does not of itself carry any access to ballots." The roll import is
+explicitly a commune administrator's action, not a poll administrator's.
+
+**Specification, §6.5.** The screen list read "Screens, gated by the per-poll
+roles of §3.7 — except 10, 11 and 12" — screen 3 among the nine gated per poll,
+contradicting R-2.1 directly.
+
+**What the code did.** `roll_import` and `roll_import_review` were
+`@require_poll_role(Role.POLL_ADMIN)`, reached from one poll's own menu at
+`scrutin/<poll_id>/liste-electorale/`. This was backwards on its own terms
+quite apart from R-2.1: `WorkingRollEntry` is commune-wide (§3.2), so an import
+started from one poll's back-office silently replaced what *every* poll still
+in `draft` would pick up at its opening — a poll submenu is exactly the wrong
+place to invite that confusion from, and a user of the back-office noticed the
+same thing from the UI side before this was traced to R-2.1.
+
+**Settled (2026-09-11).** The two screens moved to the general menu, gated by
+`require_commune_admin` like screens 10 and 12, at `liste-electorale/` and
+`liste-electorale/verification/` with no poll in the URL at all. A poll's own
+menu keeps a read-only entry, `roll_status` (`require_poll_role(POLL_ADMIN)`,
+`scrutin/<poll_id>/liste-electorale/`) — filename, row count, when it was
+imported and by whom, no form. §6.5's screen list and item 3 were corrected to
+match (screen 3 added to the commune-level exception, its description
+rewritten); `apps/elections/rollimport.py`'s module docstring, which had made
+the same "reached from one poll's back-office" claim, was corrected too.
+
 ## 12. Nothing ever called `open_poll` or `close_poll` by hand
 
 **Requirements, R-2.1.** The role table gives the *administrateur de scrutin*
@@ -403,6 +477,11 @@ and §12's acceptance tests (T-67, T-68) were updated to match. No requirements
 change was needed — R-2.1 already said this; the specification and the code
 were the two that had to catch up.
 
+**Superseded in part** by #19 (no opening from `draft`: a poll must be
+`announced` first), #33 (the window checks now require `state = open`) and #34
+(*Clôturer maintenant* is offered before the deadline too, as an early closure
+with a reason).
+
 ## 13. R-3.10's early preview is a state, not a flag
 
 Not a divergence discovered after the fact — recorded because the first
@@ -439,88 +518,6 @@ one is opt-in, unlisted, and reachable only by a link the poll admin
 generates and hands out deliberately. The one objection from this entry that
 does carry over — a viewer sees content that can still change — is accepted
 there explicitly, and the page says so, rather than solved by freezing.
-
-## 11. Screen 3 (import de la liste électorale) was gated per poll
-
-**Requirements, R-2.1's role table.** "Commune administrator — Creates polls,
-assigns the roles specific to each poll, **imports the electoral roll**. This
-role does not of itself carry any access to ballots." The roll import is
-explicitly a commune administrator's action, not a poll administrator's.
-
-**Specification, §6.5.** The screen list read "Screens, gated by the per-poll
-roles of §3.7 — except 10, 11 and 12" — screen 3 among the nine gated per poll,
-contradicting R-2.1 directly.
-
-**What the code did.** `roll_import` and `roll_import_review` were
-`@require_poll_role(Role.POLL_ADMIN)`, reached from one poll's own menu at
-`scrutin/<poll_id>/liste-electorale/`. This was backwards on its own terms
-quite apart from R-2.1: `WorkingRollEntry` is commune-wide (§3.2), so an import
-started from one poll's back-office silently replaced what *every* poll still
-in `draft` would pick up at its opening — a poll submenu is exactly the wrong
-place to invite that confusion from, and a user of the back-office noticed the
-same thing from the UI side before this was traced to R-2.1.
-
-**Settled (2026-09-11).** The two screens moved to the general menu, gated by
-`require_commune_admin` like screens 10 and 12, at `liste-electorale/` and
-`liste-electorale/verification/` with no poll in the URL at all. A poll's own
-menu keeps a read-only entry, `roll_status` (`require_poll_role(POLL_ADMIN)`,
-`scrutin/<poll_id>/liste-electorale/`) — filename, row count, when it was
-imported and by whom, no form. §6.5's screen list and item 3 were corrected to
-match (screen 3 added to the commune-level exception, its description
-rewritten); `apps/elections/rollimport.py`'s module docstring, which had made
-the same "reached from one poll's back-office" claim, was corrected too.
-
-## 18. Option images and commune branding are not yet in the backup/restore playbook
-
-**Specification, §14 (Backups).** "Since §3.1 bis, the database alone no
-longer reconstructs every public page: `DJANGO_MEDIA_ROOT` (option images,
-R-3.12; the commune logo and favicon, §6.5.14) needs the same nightly
-coverage and the same off-host replication as the database snapshot."
-
-**What the code does.** `ansible/roles/polls/tasks/backup.yml` and
-`polls-backup.sh.j2` still snapshot only `db.sqlite3` — `VACUUM INTO`,
-integrity check, retention window, optional `rsync` to
-`polls_backup_replicate_to`. `provision.yml` creates
-`{{ polls_state_dir }}/media`, `polls.env.j2` points `DJANGO_MEDIA_ROOT` at it
-and nginx serves it, so uploads work end to end — but nothing backs the
-directory up, and `restore.yml` restores the database alone. A restore today
-brings back every poll's configuration, including `PollOption.details_i18n`
-text that references images by id, with the images themselves gone: a broken
-reference, not a wrong one, since rendering drops a reference to a missing
-`OptionImage` row rather than erroring (§3.1 bis) — but broken all the same.
-Screen 14's logo and favicon (`Commune.logo`/`.favicon`) land in the same
-directory and are lost the same way, except there the database row still
-names the missing file directly (`Commune.logo.name`), so a restore serves a
-broken `<img>`/`<link rel="icon">` rather than a dropped reference.
-
-**Why this is recorded rather than fixed here.** Pairing a media snapshot with
-a database snapshot correctly needs a decision this file shouldn't make
-silently: whether a restore should refuse when the two don't correspond (a
-media directory older or newer than the chosen `db-*.sqlite3`), or accept the
-mismatch and report it, and how `molecule/restore` should assert either
-choice. That is a real piece of design, not a one-line addition to
-`polls-backup.sh.j2`.
-
-**Not settled.** Until this is done, an adopting commune's disaster-recovery
-story has a gap: instructions to any operator following R-3.12 or §6.5.14 in
-the field should say so, and `restore.yml`'s final report should probably say
-so too, until the fix lands.
-
-**Settled (2026-09-17).** `polls-backup.sh.j2` now writes `media-<stamp>.tar.gz`
-beside `db-<stamp>.sqlite3` in the same run, sharing the timestamp — the
-correspondence question above resolves by construction, since the two are
-never produced independently: a `db-<stamp>.sqlite3` and its `media-<stamp>.tar.gz`
-either both exist (one backup run) or the media side is simply absent (a
-snapshot from before this change, or a directory an operator deleted by hand).
-`restore.yml` derives the media archive's path from whichever snapshot it is
-restoring and, finding no match, restores the database anyway and reports the
-gap rather than failing the whole restore — reported, not refused, per the
-open question above, on the view that a database back with a stale-but-present
-media directory beats no restore at all. Retention and off-host replication
-apply to both files unchanged, since `polls-backup.sh.j2`'s retention `find`
-now matches either pattern and `rsync` already mirrors the whole backup
-directory. `molecule/restore` asserts the round trip with a marker file under
-`media/`.
 
 ## 14. The public page read "open" off `state`, not the clock
 
@@ -666,6 +663,9 @@ T-19/T-32 explicitly send into the publication, R-8.6 says only "signed and
 archived" — an internal record, visible to the poll admin and the auditor on
 screen 9, never on the public results page or in the CSV/JSON artefacts.
 
+**Since #34** the manual `close_poll` is no longer held back until
+`paper_entry_deadline`; recording the reconciliation still is.
+
 ## 17. R-8.2 bis's required content is not carried by the receipt as specified
 
 **Requirements, R-8.2 bis.** Where the signed paper form is required, it must
@@ -696,6 +696,58 @@ the place for either. **Not settled**: the signed-form path still has no
 described layout, so nothing yet specifies where on that form its four
 elements — ranking, honour declaration, identity, traceability mention —
 must appear.
+
+## 18. Option images and commune branding are not yet in the backup/restore playbook
+
+**Specification, §14 (Backups).** "Since §3.1 bis, the database alone no
+longer reconstructs every public page: `DJANGO_MEDIA_ROOT` (option images,
+R-3.12; the commune logo and favicon, §6.5.14) needs the same nightly
+coverage and the same off-host replication as the database snapshot."
+
+**What the code does.** `ansible/roles/polls/tasks/backup.yml` and
+`polls-backup.sh.j2` still snapshot only `db.sqlite3` — `VACUUM INTO`,
+integrity check, retention window, optional `rsync` to
+`polls_backup_replicate_to`. `provision.yml` creates
+`{{ polls_state_dir }}/media`, `polls.env.j2` points `DJANGO_MEDIA_ROOT` at it
+and nginx serves it, so uploads work end to end — but nothing backs the
+directory up, and `restore.yml` restores the database alone. A restore today
+brings back every poll's configuration, including `PollOption.details_i18n`
+text that references images by id, with the images themselves gone: a broken
+reference, not a wrong one, since rendering drops a reference to a missing
+`OptionImage` row rather than erroring (§3.1 bis) — but broken all the same.
+Screen 14's logo and favicon (`Commune.logo`/`.favicon`) land in the same
+directory and are lost the same way, except there the database row still
+names the missing file directly (`Commune.logo.name`), so a restore serves a
+broken `<img>`/`<link rel="icon">` rather than a dropped reference.
+
+**Why this is recorded rather than fixed here.** Pairing a media snapshot with
+a database snapshot correctly needs a decision this file shouldn't make
+silently: whether a restore should refuse when the two don't correspond (a
+media directory older or newer than the chosen `db-*.sqlite3`), or accept the
+mismatch and report it, and how `molecule/restore` should assert either
+choice. That is a real piece of design, not a one-line addition to
+`polls-backup.sh.j2`.
+
+**Not settled.** Until this is done, an adopting commune's disaster-recovery
+story has a gap: instructions to any operator following R-3.12 or §6.5.14 in
+the field should say so, and `restore.yml`'s final report should probably say
+so too, until the fix lands.
+
+**Settled (2026-09-17).** `polls-backup.sh.j2` now writes `media-<stamp>.tar.gz`
+beside `db-<stamp>.sqlite3` in the same run, sharing the timestamp — the
+correspondence question above resolves by construction, since the two are
+never produced independently: a `db-<stamp>.sqlite3` and its `media-<stamp>.tar.gz`
+either both exist (one backup run) or the media side is simply absent (a
+snapshot from before this change, or a directory an operator deleted by hand).
+`restore.yml` derives the media archive's path from whichever snapshot it is
+restoring and, finding no match, restores the database anyway and reports the
+gap rather than failing the whole restore — reported, not refused, per the
+open question above, on the view that a database back with a stale-but-present
+media directory beats no restore at all. Retention and off-host replication
+apply to both files unchanged, since `polls-backup.sh.j2`'s retention `find`
+now matches either pattern and `rsync` already mirrors the whole backup
+directory. `molecule/restore` asserts the round trip with a marker file under
+`media/`.
 
 ## 19. `announced` became mandatory, reversing item 13's "optional waypoint"
 
@@ -851,14 +903,14 @@ an implementation detail R-3.12 leaves unspecified, not a rule it states.
 
 ## 24. A poll opened by hand ahead of `opens_at` opened in the back-office only
 
-**Specification, §4 and item 5 above.** *Ouvrir maintenant* was offered at any
+**Specification, §4 and item 12 above.** *Ouvrir maintenant* was offered at any
 time once `announced`, including ahead of `opens_at`, on the grounds that the
 window checks read the clock against `opens_at` and never `state`, so opening
 early "admits no vote before the configured instant".
 
 **Why that is wrong.** It is safe but useless, and it misleads: the back-office
 and the public site disagreed about the same poll. The dashboard read `open`;
-the public listing (`_status_key`, item 15) rightly kept it under "à venir"
+the public listing (`_status_key`, item 14) rightly kept it under "à venir"
 until the clock reached `opens_at`, and neither votes nor registrations were
 accepted. A poll admin who forces the opening wants the poll open now.
 

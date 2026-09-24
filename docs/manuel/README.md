@@ -2,9 +2,7 @@
 
 # Manuel de la plateforme de consultation citoyenne
 
-Ce manuel accompagne le logiciel décrit par les [exigences
-fonctionnelles](../../cahier-des-charges.md) (règles `R-x.y`) et la
-[spécification](../../spec-plateforme-vote.md) (sections `§n`). Il est rédigé en
+Ce manuel accompagne la plateforme de consultation. Il est rédigé en
 français ; c'est la seule langue de référence.
 
 Il se lit selon le rôle que l'on tient :
@@ -37,11 +35,9 @@ public n'a par construction pas encore de compte espace mairie, et il lit ce
 guide dans le dépôt.
 
 Chacun des cinq documents servis existe aussi en anglais, dans un fichier
-jumeau suffixé `-en` (`guide-electeur-en.md`, etc.) — même convention que
-`requirements-en.md` à côté de `cahier-des-charges.md` à la racine du dépôt.
-Le français reste la seule langue de référence (ci-dessus) : la version
-anglaise est une traduction, à corriger pour suivre le français plutôt que
-l'inverse. La langue servie suit celle de la page (le sélecteur de langue
+jumeau suffixé `-en` (`guide-electeur-en.md`, etc.). Le français reste la
+seule langue de référence (ci-dessus) : la version anglaise est une
+traduction, à corriger pour suivre le français plutôt que l'inverse. La langue servie suit celle de la page (le sélecteur de langue
 déjà présent sur le site), pas un réglage séparé.
 
 ## À propos des captures d'écran

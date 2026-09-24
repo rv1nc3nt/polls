@@ -210,6 +210,12 @@ to the label on the results page):
 A `winner AGREES` line confirms that the verifier, starting from scratch
 from the public file alone, finds exactly the winner announced by the site.
 
+The verifier recomputes the winner under the Schulze method only. Use
+`--winner` only when the results page gives "Schulze" as the tally method:
+for a plurality or approval poll it would compare the announced winner with
+the Schulze one and could report a disagreement that is not one. The hash
+check, on the other hand, holds for every poll.
+
 #### In case of a tie (tie-break)
 
 If the results page states that a tie-break took place, it also publishes
@@ -244,6 +250,6 @@ The verifier's source code (`verifier/`) and the exact format of the CSV
 file it reads (`docs/canonical-serialisation.md`) are public: anyone can
 read exactly what this program does, or write their own version in another
 language to verify things even more independently. To understand exactly
-what the verifier recomputes — the Schulze, plurality or approval method,
-and the tie-break — see [Tally methods,
+what the verifier recomputes — the Schulze method and the tie-break — and
+the two other methods, see [Tally methods,
 explained](methodes-de-depouillement.md).

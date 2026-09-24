@@ -60,8 +60,12 @@ find a way round it.
 - **INV-1 / INV-5.** No column, view, index or query joins `Registration` to an
   online `Ballot`. "Has this person voted" is answered by
   `Registration.channel`, never by counting ballots. `Ballot` carries no voter,
-  registration or roll-entry reference, and the two apps' modules do not import
-  each other. `tests/integration/test_inv1_separation.py` asserts all of this.
+  registration or roll-entry reference. `registrations` never imports
+  `ballots`, and neither app's `models.py` imports the other; `ballots` reaches
+  `registrations` only through `registrations.services`, passing ids and plain
+  strings, never a `Registration`. `tests/integration/test_inv1_separation.py`
+  asserts the schema and the imports of both `models.py` files and
+  `registrations/services.py`; the rest is held by review.
 - **INV-3.** `AuditEvent` has no update or delete path, in the application or
   the database. Events store a reference plus non-identifying state — never a
   name, date of birth or email; `reason` is a code from `audit.models.Reason`, never

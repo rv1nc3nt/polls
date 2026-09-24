@@ -28,7 +28,7 @@ earlier.
 7. **`src/apps/elections/closure.py`, `src/apps/tally/`.** What is frozen,
    hashed, tallied and published.
 8. **`src/apps/elections/migrations/0002_invariant_triggers.py`** and the
-   later migrations that redefine triggers (0005–0013). The database-level
+   later migrations that redefine triggers (0005–0014). The database-level
    enforcement.
 9. **`src/apps/backoffice/access.py`**, then any screen in `views.py` via the
    screen map in `architecture.md`.
@@ -134,7 +134,7 @@ clear error message. A change that only touches one side is incomplete.
 
 ```sh
 uv sync
-uv run pytest -q                                          # ~800 tests, ~20 s, no network
+uv run pytest -q                                          # ~850 tests, ~20 s, no network
 uv run ruff check . && uv run ruff format --check .
 uv run mypy src tests                                     # --strict
 uv run python manage.py makemigrations --check --dry-run

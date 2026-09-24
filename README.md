@@ -226,9 +226,11 @@ Tests, lint et typage :
                            code (§14) — core/ la logique de vérification,
                            cli/ et gui/ deux interfaces
     ansible/               Déploiement (§15)
-    docs/                  Sérialisation canonique, écarts avec la
-                           spécification, manuel/ (manuel utilisateur
-                           français, les quatre rôles)
+    docs/                  Architecture, sérialisation canonique, écarts
+                           avec la spécification, glossaire, guide de
+                           relecture ; manuel/ (manuel utilisateur
+                           français, les quatre rôles) — index dans
+                           docs/README.md
 
 ## Propriétés à ne jamais rompre
 
