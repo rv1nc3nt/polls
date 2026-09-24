@@ -32,7 +32,8 @@ earlier.
    enforcement.
 9. **`src/apps/backoffice/access.py`**, then any screen in `views.py` via the
    screen map in `architecture.md`.
-10. **`verifier/core/src/`.** About 700 lines; compare against step 3.
+10. **`verifier/core/src/`.** About 1,600 lines, tests included; compare against
+    step 3 and against `docs/publication-format.md`, the JSON document it reads.
 
 Module docstrings are written to be read on their own. Most start by saying
 which section of the specification they implement.

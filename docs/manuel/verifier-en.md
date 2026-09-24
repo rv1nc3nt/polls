@@ -22,7 +22,8 @@ program:
   Python) and shares no code with it — a bug in the first cannot accidentally
   reappear in the second;
 - it connects to no database and needs no access to the mairie or its
-  server: it only reads the CSV file the public site publishes for everyone;
+  server: it only reads what the public site publishes for everyone — the
+  publication document or the CSV file;
 - it recomputes everything from scratch — the closure hash, the pairwise
   matrix, the winner and, where applicable, the tie-break — and tells you
   whether it finds exactly what the site announces.
@@ -34,14 +35,20 @@ below) rather than trusting either of the two computations.
 
 ## What you need
 
-Three things, all available from the consultation's results page (figure 20
-of the [voter's guide](guide-electeur.md#8-verify-after-closure)):
+Two things:
 
-1. the **CSV** file of the anonymised list of ballots — a "Anonymised list of
-   ballots (CSV)" link on that page;
-2. the **closure hash** shown on the same page (a string of hexadecimal
-   characters, e.g. `87694cf0…`);
-3. the **verifier**, a small program to download once — see below.
+1. the consultation's **publication document** — the "Full publication
+   document (JSON)" link on its results page (figure 20 of the [voter's
+   guide](guide-electeur.md#8-verify-after-closure)). It contains the
+   anonymised list of ballots and every value the site publishes: tally
+   method, options, closure hash, pairwise matrix, winner and, where
+   applicable, the tie-break;
+2. the **verifier**, a small program to download once — see below.
+
+The same page also offers the **"Anonymised ballot list (CSV)"**, which
+opens in a spreadsheet. The verifier reads it too, but it holds the ballots
+only: you then supply the values to compare yourself, copied from the results
+page (see below).
 
 The verifier comes in two forms, built from the same verification code: a
 **graphical application**, recommended for most people, and a **command
@@ -72,8 +79,8 @@ comfortable with a terminal, otherwise the command line:
 > `aarch64`) or "Intel" (choose `x86_64`). If in doubt, the Intel build also
 > runs on Apple Silicon Macs, just a little more slowly.
 
-Put the downloaded file somewhere easy to find — next to the CSV file you
-already downloaded, for instance.
+Put the downloaded file somewhere easy to find — next to the publication
+document you already downloaded, for instance.
 
 ## Using the graphical application (recommended)
 
@@ -110,27 +117,30 @@ it from a terminal):
 
 ### Verifying
 
-The "Independent verifier" window offers three steps:
+The "Independent verifier" window offers three steps; with the publication
+document, only the first and the last are needed:
 
-1. **Ballots CSV file** — click "Choose a file…" and select the downloaded
-   CSV, or drop it directly onto the window.
-2. **Values to compare** — choose the **tally method** the results page
-   gives (Schulze, majoritaire — plurality — or par assentiment —
-   approval), and, if you wish, the poll's **option identifiers**, separated
-   by commas; then paste the **expected closure hash** into the field of the
-   same name. In case of a tie (see below), also paste the
-   **opening seed**; to also check the announced winner, enter its
-   identifier in **announced winner**. These three fields are optional —
-   without them, the application still shows what it recomputed, simply
-   without comparing anything.
+1. **File** — click "Choose a file…" and select the downloaded publication
+   document (JSON), or drop it directly onto the window.
+2. **Values to compare** — leave empty with the publication document, which
+   contains them all. They are used with the CSV file only: the **tally
+   method** the results page gives (Schulze, majoritaire — plurality — or par
+   assentiment — approval), the **option identifiers** separated by commas,
+   the **expected closure hash**, the **opening seed** in case of a tie and
+   the **announced winner**. All are optional — without them, the
+   application still shows what it recomputed, simply without comparing
+   anything.
 3. Click **Verify**.
 
-The result is shown below: the number of ballots read, the recomputed hash,
-the pairwise matrix, each option's vote count for a plurality or approval
-poll, the winner(s) under the chosen method, and — for each
-value you filled in — a green "✓ … matches" or red "✗ … does NOT match"
-line. This is the exact equivalent of the `AGREES` / `DIFFERS` lines from the
-command-line version below; see ["What to do in case of
+With the publication document, the result starts with a green "✓ …
+matches" or red "✗ … does NOT match" line for each published value: number
+of ballots, pairwise matrix, votes per option (plurality or approval poll),
+tie-break if there was one, closure hash and winner. Then come the tally
+method, as the document states it — compare it with the one the
+consultation announced before it opened; it is the one value the verifier
+cannot recompute — and the recomputed matrix and winner(s). This is the exact
+equivalent of the `AGREES` / `DIFFERS` lines from the command-line version
+below; see ["What to do in case of
 disagreement"](#what-to-do-in-case-of-disagreement) if you get a mismatch.
 
 ## Using the command line
@@ -183,9 +193,43 @@ Open a terminal in the download folder and make the file executable:
 
 ### Running the check
 
-From a terminal opened in the folder holding the program and the CSV file,
-type (adapting the file names to what you downloaded, and the hash to the
-one shown on the results page):
+From a terminal opened in the folder holding the program and the
+publication document, type (adapting the file names to what you
+downloaded):
+
+**Windows (PowerShell):**
+
+    .\polls-verifier-windows-x86_64.exe publication.json
+
+**macOS or Linux:**
+
+    ./polls-verifier-macos-aarch64 publication.json
+
+No other value is needed: the document contains them all. The program shows
+the tally method the document states, the number of ballots read, the hash
+it recomputed itself, the list of options, the pairwise matrix, each
+option's vote count for a plurality or approval poll and the winner(s) —
+then one line per published value it checked:
+
+    closure hash    AGREES
+    ballot count    AGREES
+    matrix          AGREES
+    winner          AGREES
+
+`AGREES` means the value recomputed from the ballots alone is identical to
+the one the site publishes; `DIFFERS` would mean the opposite (see below).
+A `counts` line is added for a plurality or approval poll, and a `tie-break`
+line if a tie-break took place.
+
+The tally method is the one value the verifier cannot recompute, since it is
+what decides the winner: it shows it on its first line (`method`) so you can
+compare it with the one the consultation announced before it opened.
+
+#### With the CSV file
+
+The CSV file holds the ballots only: the values to compare are copied from
+the results page. Type (adapting the file names, and the hash to the one
+shown on the results page):
 
 **Windows (PowerShell):**
 
@@ -230,10 +274,16 @@ reported as an error: the list or the file is not the poll's.
 
 #### In case of a tie (tie-break)
 
-If the results page states that a tie-break took place, it also publishes
-the **opening seed** — a second hexadecimal string, distinct from the
-closure hash. Add it with `--opening-seed` so the verifier replays the
-tie-break itself:
+With the publication document, there is nothing to add: the verifier itself
+replays the computed tie-break from the opening seed the document contains,
+and compares it with the published one (`tie-break` line). If the
+consultation provided for a **physical drawing of lots**, held at the
+mairie, no program can replay it: the verifier only checks that the
+published draw covers exactly the tied options, and says so.
+
+With the CSV file, the results page also publishes the **opening seed** — a
+second hexadecimal string, distinct from the closure hash. Add it with
+`--opening-seed` so the verifier replays the tie-break itself:
 
     ./polls-verifier-macos-aarch64 ballots.csv --closure-hash 87694cf0... --method schulze --opening-seed a1b2c3... --winner option-b
 
@@ -247,10 +297,10 @@ detail of this computation.
 
 If a line shows `DIFFERS`:
 
-1. First check that you copied the hash (and, where relevant, the opening
-   seed) **with no space and no missing character**, and that the
-   downloaded CSV file is indeed complete (download it again from the
-   results page if in doubt).
+1. First check that the downloaded file is indeed complete (download it
+   again from the results page if in doubt) and, with the CSV file, that you
+   copied the hash (and, where relevant, the opening seed) **with no space
+   and no missing character**.
 2. If the disagreement persists, **do not keep it to yourself**: contact the
    mairie, stating the consultation concerned, the exact command you ran and
    its full output. This is exactly the kind of anomaly this verifiability
@@ -258,10 +308,11 @@ If a line shows `DIFFERS`:
 
 ## Going further
 
-The verifier's source code (`verifier/`) and the exact format of the CSV
-file it reads (`docs/canonical-serialisation.md`) are public: anyone can
-read exactly what this program does, or write their own version in another
-language to verify things even more independently. To understand exactly
+The verifier's source code (`verifier/`) and the exact format of the files
+it reads (`docs/publication-format.md` for the publication document,
+`docs/canonical-serialisation.md` for the ballots and the hash) are public:
+anyone can read exactly what this program does, or write their own version
+in another language to verify things even more independently. To understand exactly
 what the verifier recomputes — the Schulze, plurality or approval method,
 and the tie-break — see [Tally methods,
 explained](methodes-de-depouillement.md).

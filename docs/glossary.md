@@ -75,10 +75,11 @@ and the functional requirements are French.
 | `ballot_hash` | empreinte bulletin | `SHA256("ballot"‖salt‖token)`, on the ballot. Only when modification is allowed. |
 | closure hash | empreinte de clôture | SHA-256 of the canonical serialisation of the live set at closure (§9). |
 | canonical serialisation | sérialisation canonique | The exact byte format the closure hash covers (`docs/canonical-serialisation.md`). |
+| publication document | document de publication | The JSON a published poll serves (`?format=json`): ballots, method, matrix, derivation, tie-break. Layout in `docs/publication-format.md`. |
 | opening seed | graine d'ouverture | 32 random bytes drawn at `open`; combined with the closure hash for the computed tie-break (§8.3). |
 | computed / physical tie-break | tirage au sort calculé / physique | A hash-chain draw anyone can reproduce, or a human draw entered on screen 9. |
 | frozen counts | décompte figé | Participation figures stored at closure, since the registrations they come from are purged later (§9). |
-| verifier | vérificateur indépendant | The Rust program in `verifier/` that recomputes the hash and the result, under the method the caller names, from the CSV. |
+| verifier | vérificateur indépendant | The Rust program in `verifier/` that recomputes the hash and the result from the publication document (or the CSV) and checks every published value against them. |
 | Schulze / plurality / approval | Schulze / majoritaire / par assentiment | The three tally methods (R-10.3). |
 
 ## People and roles

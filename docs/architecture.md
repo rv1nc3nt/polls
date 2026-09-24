@@ -182,8 +182,8 @@ flowchart LR
   H --> P
   F --> P
   L --> CSV[closure.published_csv]
-  CSV -->|public download| V[Rust verifier]
-  P -->|closure hash, seed, winner| V
+  CSV -->|public download, hash only| V[Rust verifier]
+  P -->|public download: ballots, method, every claim| V
 ```
 
 `close_poll` computes and stores the closure hash and the participation
@@ -191,7 +191,10 @@ counts. The counts are stored because the registrations they come from are
 deleted two months later. The tally is not stored: it is recomputed from the
 live ballots each time it is needed and logged at publication. The byte format
 the hash covers is set out in `docs/canonical-serialisation.md`; Python, the
-CSV and the verifier all have to follow it.
+CSV and the verifier all have to follow it. The verifier's usual input is the
+JSON publication document, whose layout is `docs/publication-format.md`. It
+recomputes the hash, the matrix, the counts, the winner and the tie-break
+from the document's ballots and checks each value the document states.
 
 ### Retention
 
