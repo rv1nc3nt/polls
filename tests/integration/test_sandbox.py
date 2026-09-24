@@ -26,11 +26,12 @@ from django.db.utils import DatabaseError
 from django.test import Client
 from django.utils import timezone
 
-from apps.audit.models import Action, AuditEvent
+from apps.audit.models import Action, AuditEvent, Reason
 from apps.ballots.models import Ballot, PaperBallotLink
 from apps.core.models import PollRole, Role, User
 from apps.elections import sandbox, sharelink
 from apps.elections.models import Poll, PollOption, PollState, RollEntry, WorkingRollEntry
+from apps.elections.transitions import close_poll, publish_poll
 from apps.registrations.models import Registration
 from tests.conftest import force_announce, force_open
 
@@ -252,6 +253,57 @@ def test_a_wrong_voter_token_on_a_sandbox_poll_reveals_nothing(
     response = Client().get(f"/fr/bulletin/{sandbox_poll.pk}/acces/nope/")
     assert response.status_code == 404
     assert "Essai de la place" not in response.content.decode()
+
+
+# --- Its result (R-3.7, T-94) -------------------------------------------------
+
+
+def _published(poll: Poll, operator: User) -> Poll:
+    """``poll`` closed early and published, with no ballot: the result page
+    renders all the same, which is all these tests read."""
+    force_open(poll)
+    close_poll(Poll.objects.get(pk=poll.pk), early_reason=Reason.ADMINISTRATIVE_DECISION)
+    publish_poll(Poll.objects.get(pk=poll.pk), operator)
+    return Poll.objects.get(pk=poll.pk)
+
+
+def test_the_link_leads_to_the_published_result_and_its_files(
+    client: Client, operator: User
+) -> None:
+    """Trying a sandbox poll end to end includes reading its result: the
+    link's page offers it, and the page, CSV and JSON all answer."""
+    poll = _make_poll(sandbox_flag=True)
+    url = _link(poll, operator)
+    poll = _published(poll, operator)
+    results = f"/fr/scrutin/{poll.pk}/resultats/"
+
+    assert results in client.get(url).content.decode()
+    page = client.get(results)
+    assert page.status_code == 200
+    body = page.content.decode()
+    assert "ne compte pour rien" in body
+    # Back to the link, not to a public page that 404s for a sandbox poll.
+    assert url in body
+    assert f'href="/fr/scrutin/{poll.pk}/"' not in body
+    assert client.get(results, {"format": "csv"}).status_code == 200
+    assert client.get(results, {"format": "json"}).status_code == 200
+
+
+def test_without_the_link_a_sandbox_result_is_a_404(client: Client, operator: User) -> None:
+    """INV-8: published or not, nothing public names a sandbox poll."""
+    poll = _make_poll(sandbox_flag=True)
+    url = _link(poll, operator)
+    poll = _published(poll, operator)
+    results = f"/fr/scrutin/{poll.pk}/resultats/"
+
+    for fmt in ({}, {"format": "csv"}, {"format": "json"}):
+        assert client.get(results, fmt).status_code == 404
+    assert "Essai de la place" not in client.get("/fr/").content.decode()
+
+    # Nor with a link that has since been regenerated.
+    client.get(url)
+    _link(poll, operator)
+    assert client.get(results).status_code == 404
 
 
 # --- Deleting it (T-89, T-90) ------------------------------------------------

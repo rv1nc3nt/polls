@@ -14,7 +14,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: commune-polls\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-24 10:08+0200\n"
+"POT-Creation-Date: 2026-09-24 11:04+0200\n"
 "Language: en\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -671,7 +671,7 @@ msgstr "Poll's timezone"
 #: src/apps/backoffice/forms.py:105 src/templates/backoffice/dashboard.html:85
 #: src/templates/backoffice/poll_config.html:144
 #: src/templates/backoffice/template_admin.html:24
-#: src/templates/publicsite/results.html:24
+#: src/templates/publicsite/results.html:30
 msgid "Méthode de dépouillement"
 msgstr "Tally method"
 
@@ -1308,7 +1308,7 @@ msgid "Contreseing"
 msgstr "Countersignature"
 
 #: src/apps/backoffice/templatetags/backoffice_nav.py:170
-#: src/apps/publicsite/views.py:492
+#: src/apps/publicsite/views.py:505
 #: src/templates/backoffice/paper_entry.html:117
 #: src/templates/publicsite/results.html:5
 msgid "Résultats"
@@ -1404,7 +1404,7 @@ msgstr "Test link revoked."
 msgid "Scrutin d'essai supprimé."
 msgstr "Sandbox poll deleted."
 
-#: src/apps/backoffice/views.py:824 src/apps/backoffice/views.py:2051
+#: src/apps/backoffice/views.py:824 src/apps/backoffice/views.py:2048
 msgid "Choisissez une image."
 msgstr "Choose an image."
 
@@ -1457,11 +1457,11 @@ msgstr "No import in progress. Start again."
 msgid "Liste électorale importée : %(count)s inscrit(s)."
 msgstr "Electoral roll imported: %(count)s elector(s)."
 
-#: src/apps/backoffice/views.py:1270
+#: src/apps/backoffice/views.py:1267
 msgid "La saisie des bulletins papier n'est possible que pendant le scrutin."
 msgstr "Paper ballots can only be entered while the poll is open."
 
-#: src/apps/backoffice/views.py:1315
+#: src/apps/backoffice/views.py:1312
 msgid ""
 "Une entrée très proche de la liste a déjà voté. Vérifiez avec l'électeur "
 "présent qu'il s'agit bien de deux personnes, puis cochez la confirmation "
@@ -1470,141 +1470,141 @@ msgstr ""
 "A very similar roll entry has already voted. Check with the elector present "
 "that these are two different people, then tick the identity confirmation."
 
-#: src/apps/backoffice/views.py:1344
+#: src/apps/backoffice/views.py:1341
 msgid "Bulletin papier enregistré."
 msgstr "Paper ballot recorded."
 
-#: src/apps/backoffice/views.py:1427
+#: src/apps/backoffice/views.py:1424
 msgid "Bulletin rectifié ; il attend un nouveau contreseing."
 msgstr "Ballot corrected; it now awaits a new countersignature."
 
-#: src/apps/backoffice/views.py:1429
+#: src/apps/backoffice/views.py:1426
 msgid "Bulletin rectifié."
 msgstr "Ballot corrected."
 
-#: src/apps/backoffice/views.py:1435
+#: src/apps/backoffice/views.py:1432
 msgid "Un motif est obligatoire pour rectifier."
 msgstr "A reason is required to correct."
 
-#: src/apps/backoffice/views.py:1439
+#: src/apps/backoffice/views.py:1436
 msgid "Un motif est obligatoire pour supprimer."
 msgstr "A reason is required to delete."
 
-#: src/apps/backoffice/views.py:1445
+#: src/apps/backoffice/views.py:1442
 msgid ""
 "Bulletin supprimé ; le vote en ligne redevient possible pour cet électeur."
 msgstr "Ballot deleted; online voting becomes possible again for this elector."
 
-#: src/apps/backoffice/views.py:1500
+#: src/apps/backoffice/views.py:1497
 msgid "Bulletin contresigné."
 msgstr "Ballot countersigned."
 
-#: src/apps/backoffice/views.py:1574
+#: src/apps/backoffice/views.py:1571
 #: src/templates/backoffice/results_publish.html:42
 msgid "Rapprochement enregistré."
 msgstr "Reconciliation recorded."
 
-#: src/apps/backoffice/views.py:1581
+#: src/apps/backoffice/views.py:1578
 msgid "Rapprochement réservé à l'administrateur du scrutin."
 msgstr "Reconciliation is reserved to the poll administrator."
 
-#: src/apps/backoffice/views.py:1604
+#: src/apps/backoffice/views.py:1601
 msgid "Publication réservée à l'administrateur du scrutin."
 msgstr "Publication is reserved to the poll administrator."
 
-#: src/apps/backoffice/views.py:1613
+#: src/apps/backoffice/views.py:1610
 msgid "Résultat du tirage au sort enregistré."
 msgstr "Draw of lots result recorded."
 
-#: src/apps/backoffice/views.py:1625
+#: src/apps/backoffice/views.py:1622
 msgid "Résultats publiés."
 msgstr "Results published."
 
-#: src/apps/backoffice/views.py:1628 src/apps/backoffice/views.py:1712
-#: src/apps/backoffice/views.py:1827 src/apps/backoffice/views.py:1948
+#: src/apps/backoffice/views.py:1625 src/apps/backoffice/views.py:1709
+#: src/apps/backoffice/views.py:1824 src/apps/backoffice/views.py:1945
 msgid "Action inconnue."
 msgstr "Unknown action."
 
-#: src/apps/backoffice/views.py:1684
+#: src/apps/backoffice/views.py:1681
 #, python-format
 msgid "Compte créé : %(name)s."
 msgstr "Account created: %(name)s."
 
-#: src/apps/backoffice/views.py:1693
+#: src/apps/backoffice/views.py:1690
 msgid "Compte réactivé."
 msgstr "Account reactivated."
 
-#: src/apps/backoffice/views.py:1695
+#: src/apps/backoffice/views.py:1692
 msgid "Compte désactivé : l'accès cesse à la prochaine requête."
 msgstr "Account deactivated: access ends on the next request."
 
-#: src/apps/backoffice/views.py:1700
+#: src/apps/backoffice/views.py:1697
 msgid "Rôle d'administration de la commune mis à jour."
 msgstr "Commune-administrator role updated."
 
-#: src/apps/backoffice/views.py:1710
+#: src/apps/backoffice/views.py:1707
 msgid "Mot de passe réinitialisé."
 msgstr "Password reset."
 
-#: src/apps/backoffice/views.py:1825
+#: src/apps/backoffice/views.py:1822
 msgid "Rôles mis à jour."
 msgstr "Roles updated."
 
-#: src/apps/backoffice/views.py:1874
+#: src/apps/backoffice/views.py:1871
 msgid "Enregistrez d'abord les paramètres avant de les tester."
 msgstr "Save the settings first, before testing them."
 
-#: src/apps/backoffice/views.py:1882
+#: src/apps/backoffice/views.py:1879
 #, python-format
 msgid "Échec de l'envoi : %(error)s"
 msgstr "Send failed: %(error)s"
 
-#: src/apps/backoffice/views.py:1887
+#: src/apps/backoffice/views.py:1884
 #, python-format
 msgid "Message de test envoyé à %(to)s."
 msgstr "Test message sent to %(to)s."
 
-#: src/apps/backoffice/views.py:1900
+#: src/apps/backoffice/views.py:1897
 msgid "Paramètres de messagerie enregistrés."
 msgstr "Mail settings saved."
 
-#: src/apps/backoffice/views.py:1939
+#: src/apps/backoffice/views.py:1936
 msgid "Modèle renommé."
 msgstr "Template renamed."
 
-#: src/apps/backoffice/views.py:1941
+#: src/apps/backoffice/views.py:1938
 msgid "Donnez un nom au modèle."
 msgstr "Give the template a name."
 
-#: src/apps/backoffice/views.py:1945
+#: src/apps/backoffice/views.py:1942
 msgid "Modèle supprimé."
 msgstr "Template deleted."
 
-#: src/apps/backoffice/views.py:1988
+#: src/apps/backoffice/views.py:1985
 msgid "Paramètres de la commune enregistrés."
 msgstr "Commune settings saved."
 
-#: src/apps/backoffice/views.py:2025
+#: src/apps/backoffice/views.py:2022
 msgid "Logo mis à jour."
 msgstr "Logo updated."
 
-#: src/apps/backoffice/views.py:2026
+#: src/apps/backoffice/views.py:2023
 msgid "Logo supprimé."
 msgstr "Logo removed."
 
-#: src/apps/backoffice/views.py:2032
+#: src/apps/backoffice/views.py:2029
 msgid "Logo (thème sombre) mis à jour."
 msgstr "Logo (dark theme) updated."
 
-#: src/apps/backoffice/views.py:2033
+#: src/apps/backoffice/views.py:2030
 msgid "Logo (thème sombre) supprimé."
 msgstr "Logo (dark theme) removed."
 
-#: src/apps/backoffice/views.py:2039
+#: src/apps/backoffice/views.py:2036
 msgid "Favicon mis à jour."
 msgstr "Favicon updated."
 
-#: src/apps/backoffice/views.py:2040
+#: src/apps/backoffice/views.py:2037
 msgid "Favicon supprimé."
 msgstr "Favicon removed."
 
@@ -3101,25 +3101,25 @@ msgstr "Figures frozen at closure."
 
 #: src/templates/backoffice/dashboard.html:105
 #: src/templates/backoffice/results_publish.html:114
-#: src/templates/publicsite/results.html:46
+#: src/templates/publicsite/results.html:52
 msgid "Votes en ligne"
 msgstr "Online votes"
 
 #: src/templates/backoffice/dashboard.html:106
 #: src/templates/backoffice/results_publish.html:115
-#: src/templates/publicsite/results.html:47
+#: src/templates/publicsite/results.html:53
 msgid "Votes papier"
 msgstr "Paper votes"
 
 #: src/templates/backoffice/dashboard.html:108
 #: src/templates/backoffice/results_publish.html:117
-#: src/templates/publicsite/results.html:51
+#: src/templates/publicsite/results.html:57
 msgid "Bulletins papier non contresignés, non décomptés"
 msgstr "Paper ballots not countersigned, not counted"
 
 #: src/templates/backoffice/dashboard.html:110
 #: src/templates/backoffice/results_publish.html:119
-#: src/templates/publicsite/results.html:53
+#: src/templates/publicsite/results.html:59
 msgid "N'ont pas voté"
 msgstr "Did not vote"
 
@@ -3425,7 +3425,7 @@ msgstr "has a paper ballot"
 
 #: src/templates/backoffice/paper_entry.html:77
 #: src/templates/backoffice/results_publish.html:164
-#: src/templates/publicsite/results.html:95
+#: src/templates/publicsite/results.html:101
 msgid "Classement"
 msgstr "Ordering"
 
@@ -3871,13 +3871,15 @@ msgstr "Test link"
 
 #: src/templates/backoffice/poll_sandbox.html:16
 msgid ""
-"Ce scrutin est un essai : il n'apparaît dans aucune liste publique, aucun "
-"résultat publié ni aucune statistique. Il suit le cycle de vie d'un scrutin "
-"ordinaire, et les bulletins déposés ne comptent pour rien."
+"Ce scrutin est un essai : il n'apparaît dans aucune liste publique ni aucune "
+"statistique, et son résultat, une fois publié, n'est visible que par le lien "
+"d'essai. Il suit le cycle de vie d'un scrutin ordinaire, et les bulletins "
+"déposés ne comptent pour rien."
 msgstr ""
-"This poll is a rehearsal: it appears on no public list, no published result "
-"and no statistic. It follows the lifecycle of an ordinary poll, and the "
-"ballots cast in it count for nothing."
+"This poll is a rehearsal: it appears on no public list and in no statistic, "
+"and its result, once published, is visible only through the test link. It "
+"follows the lifecycle of an ordinary poll, and the ballots cast in it count "
+"for nothing."
 
 #: src/templates/backoffice/poll_sandbox.html:20
 msgid ""
@@ -4141,12 +4143,12 @@ msgid "Clôturé le"
 msgstr "Closed on"
 
 #: src/templates/backoffice/results_publish.html:74
-#: src/templates/publicsite/results.html:130
+#: src/templates/publicsite/results.html:136
 msgid "Empreinte de clôture (SHA-256)"
 msgstr "Closure hash (SHA-256)"
 
 #: src/templates/backoffice/results_publish.html:75
-#: src/templates/publicsite/results.html:132
+#: src/templates/publicsite/results.html:138
 msgid "Graine d'ouverture"
 msgstr "Opening seed"
 
@@ -4177,12 +4179,12 @@ msgid "Méthode"
 msgstr "Method"
 
 #: src/templates/backoffice/results_publish.html:127
-#: src/templates/publicsite/results.html:26
+#: src/templates/publicsite/results.html:32
 msgid "Bulletins retenus"
 msgstr "Ballots in force"
 
 #: src/templates/backoffice/results_publish.html:128
-#: src/templates/publicsite/results.html:13
+#: src/templates/publicsite/results.html:19
 msgid "Issue"
 msgstr "Outcome"
 
@@ -4207,12 +4209,12 @@ msgid "Récapitulatif par ordre de classement"
 msgstr "Summary by ranking order"
 
 #: src/templates/backoffice/results_publish.html:165
-#: src/templates/publicsite/results.html:96
+#: src/templates/publicsite/results.html:102
 msgid "Bulletins"
 msgstr "Ballots"
 
 #: src/templates/backoffice/results_publish.html:180
-#: src/templates/publicsite/results.html:109
+#: src/templates/publicsite/results.html:115
 msgid "Départage"
 msgstr "Tie-break"
 
@@ -4222,7 +4224,7 @@ msgid "Le dépouillement rapporte une égalité. Règle configurée : %(rule)s."
 msgstr "The tally reports a tie. Configured rule: %(rule)s."
 
 #: src/templates/backoffice/results_publish.html:185
-#: src/templates/publicsite/results.html:111
+#: src/templates/publicsite/results.html:117
 msgid "Propositions à égalité :"
 msgstr "Propositions tied:"
 
@@ -4862,12 +4864,12 @@ msgid "Inscrits n'ayant pas encore voté"
 msgstr "Registered electors who have not yet voted"
 
 #: src/templates/publicsite/poll_detail.html:158
-#: src/templates/publicsite/results.html:145
+#: src/templates/publicsite/results.html:151
 msgid "Portée de la consultation"
 msgstr "Standing of the poll"
 
 #: src/templates/publicsite/poll_detail.html:164
-#: src/templates/publicsite/results.html:149
+#: src/templates/publicsite/results.html:155
 msgid ""
 "Cette consultation est consultative. Son résultat éclaire la délibération du "
 "conseil municipal sans la lier. Elle ne constitue pas une consultation des "
@@ -5005,25 +5007,34 @@ msgstr ""
 "is not public, the ballots cast here count for nothing, and this link is "
 "confidential — pass it on only to the people invited to try it."
 
-#: src/templates/publicsite/results.html:10
+#: src/templates/publicsite/results.html:12
+msgid ""
+"Scrutin d'essai : ce résultat n'est pas public et ne compte pour rien. Il "
+"sert à vérifier le bon fonctionnement de la plateforme, jusqu'au "
+"dépouillement et aux fichiers publiés."
+msgstr ""
+"Test poll: this result is not public and counts for nothing. It is there to "
+"check that the platform works, up to the tally and the published files."
+
+#: src/templates/publicsite/results.html:16
 #, python-format
 msgid "Résultats : « %(title)s »"
 msgstr "Results: \"%(title)s\""
 
-#: src/templates/publicsite/results.html:16
+#: src/templates/publicsite/results.html:22
 #, python-format
 msgid "Proposition retenue : %(label)s."
 msgstr "Proposition carried: %(label)s."
 
-#: src/templates/publicsite/results.html:18
+#: src/templates/publicsite/results.html:24
 msgid "Le dépouillement rapporte une égalité."
 msgstr "The count reports a tie."
 
-#: src/templates/publicsite/results.html:20
+#: src/templates/publicsite/results.html:26
 msgid "Aucun bulletin retenu : la consultation n'a pas produit de résultat."
 msgstr "No ballots in force: the poll produced no result."
 
-#: src/templates/publicsite/results.html:34
+#: src/templates/publicsite/results.html:40
 #, python-format
 msgid ""
 "Clôture forcée par l'administration ; motif : %(reason)s. Les bulletins en "
@@ -5032,44 +5043,44 @@ msgstr ""
 "Closure forced by the administration; reason: %(reason)s. Ballots awaiting "
 "countersignature at that moment are not counted."
 
-#: src/templates/publicsite/results.html:39
+#: src/templates/publicsite/results.html:45
 msgid "Participation, figée à la clôture"
 msgstr "Participation, frozen at closure"
 
-#: src/templates/publicsite/results.html:45
+#: src/templates/publicsite/results.html:51
 msgid "Inscrits"
 msgstr "Registered electors"
 
-#: src/templates/publicsite/results.html:58
+#: src/templates/publicsite/results.html:64
 msgid "Le raisonnement"
 msgstr "The reasoning"
 
-#: src/templates/publicsite/results.html:66
+#: src/templates/publicsite/results.html:72
 msgid "Matrice des préférences deux à deux — la ligne bat la colonne"
 msgstr "Pairwise preference matrix — the row beats the column"
 
-#: src/templates/publicsite/results.html:69
+#: src/templates/publicsite/results.html:75
 msgid "bat"
 msgstr "beats"
 
-#: src/templates/publicsite/results.html:92
+#: src/templates/publicsite/results.html:98
 msgid "Nombre de bulletins par ordre de classement"
 msgstr "Number of ballots per distinct ordering"
 
-#: src/templates/publicsite/results.html:115
+#: src/templates/publicsite/results.html:121
 #, python-format
 msgid "Règle : %(rule)s. Ordre retenu :"
 msgstr "Rule: %(rule)s. Order applied:"
 
-#: src/templates/publicsite/results.html:124
+#: src/templates/publicsite/results.html:130
 msgid "Vérifier ce résultat"
 msgstr "Verify this result"
 
-#: src/templates/publicsite/results.html:136
+#: src/templates/publicsite/results.html:142
 msgid "Liste anonymisée des bulletins (CSV)"
 msgstr "Anonymised ballot list (CSV)"
 
-#: src/templates/publicsite/results.html:137
+#: src/templates/publicsite/results.html:143
 msgid ""
 "exactement les bulletins retenus ; l'empreinte de clôture se recalcule à "
 "partir de ce seul fichier."
@@ -5077,11 +5088,11 @@ msgstr ""
 "exactly the ballots in force; the closure hash recomputes from this file "
 "alone."
 
-#: src/templates/publicsite/results.html:138
+#: src/templates/publicsite/results.html:144
 msgid "Document de publication complet (JSON)"
 msgstr "Full publication document (JSON)"
 
-#: src/templates/publicsite/results.html:139
+#: src/templates/publicsite/results.html:145
 msgid ""
 "liste des bulletins, matrice, raisonnement, comptes figés, empreinte, "
 "graine, départage."
@@ -5089,7 +5100,7 @@ msgstr ""
 "ballot list, matrix, derivation, frozen counts, closure hash, seed, tie-"
 "break."
 
-#: src/templates/publicsite/results.html:141
+#: src/templates/publicsite/results.html:147
 msgid ""
 "Chaque bulletin porte un code de suivi remis à l'électeur au moment du vote. "
 "Retrouvez le vôtre dans la liste publiée pour confirmer qu'il a été "

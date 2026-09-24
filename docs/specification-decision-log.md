@@ -949,7 +949,8 @@ INV-8, §6.6, §11 bis, T-15, T-87–T-90). A tester on a sandbox poll registers
 against the real roll and so must be on it; a sandbox-only roll bypass was
 rejected because it would test a different path than the one being rehearsed.
 Sandbox results are not shown on the public site (R-3.7) and there is no
-sandbox-specific results page: the operator reads them on screen 9.
+sandbox-specific results page: the operator reads them on screen 9. (Since
+#36 the ordinary results page also answers a browser holding the link.)
 
 ## 27. Approving an application onto a cleared paper shell
 
@@ -1208,3 +1209,22 @@ fields with `confirmed=1`, or offers Cancel. Nothing is written on the first
 POST. The role and state checks run on both POSTs.
 
 **Requirements.** R-2.4 gains the rule, in both languages.
+
+## 36. A sandbox poll's result is reachable through its link
+
+**Decided (2026-09-24).** Once a sandbox poll is published, its results page,
+CSV and JSON answer a browser holding the share link or a voter token of its
+own. Before this they 404ed for everyone, while the sandbox poll page, which
+reuses the public template, still offered "Voir les résultats": a link to a
+404, and no way to try the tally, the publication or the verifier end to end.
+
+**What the code does.** `publicsite.results` looks the poll up in any
+`published` poll and refuses it unless `sandbox.may_reach` allows it, the same
+gate as the sandbox poll page and ballot routes. A browser without the grant
+gets the bare 404 a never-published poll gets. The page carries the rehearsal
+notice and its breadcrumb leads to the share link, or to nothing for a
+browser holding only a voter token. Nothing lists the poll (INV-8).
+
+**Requirements.** R-3.7 no longer excludes the test poll from "published
+results" as such: its result appears on no public page, and "tried end to
+end" now includes the published result. Both languages. T-94.
