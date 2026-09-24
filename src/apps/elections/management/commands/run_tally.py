@@ -19,7 +19,7 @@ from apps.elections.models import Poll, PollState
 
 
 class Command(BaseCommand):
-    help = "Dépouille un scrutin clos et écrit les artefacts de publication."
+    help = "Dépouille un scrutin clos et affiche le document de publication (JSON) sur stdout."
 
     def add_arguments(self, parser: Any) -> None:
         parser.add_argument("poll_id")
