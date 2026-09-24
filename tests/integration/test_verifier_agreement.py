@@ -42,6 +42,17 @@ CLEAR = [
     ("BBBBBBBBBB", [["a"], ["c"], ["b"]]),
     ("CCCCCCCCCC", [["b"], ["a"], ["c"]]),
 ]
+# Plurality elects a, Schulze b, approval ties all three: a verifier checking
+# every poll against Schulze (review note M2) disagrees on two of the three.
+DIVERGENT = [
+    ("AAAAAAAAAA", [["a"], ["b"], ["c"]]),
+    ("BBBBBBBBBB", [["a"], ["b"], ["c"]]),
+    ("CCCCCCCCCC", [["a"], ["b"], ["c"]]),
+    ("DDDDDDDDDD", [["b"], ["c"], ["a"]]),
+    ("EEEEEEEEEE", [["b"], ["c"], ["a"]]),
+    ("FFFFFFFFFF", [["c"], ["b"], ["a"]]),
+    ("GGGGGGGGGG", [["c"], ["b"], ["a"]]),
+]
 
 
 @pytest.fixture(scope="module")
@@ -64,9 +75,15 @@ def write_csv(rows: list[tuple[str, list[list[str]]]], path: Path) -> None:
     path.write_text(buffer.getvalue(), encoding="utf-8")
 
 
-@pytest.mark.parametrize("rows", [CYCLIC, CLEAR], ids=["cyclic-t9", "clear-winner"])
+@pytest.mark.parametrize("method", list(Method), ids=lambda m: str(m))
+@pytest.mark.parametrize(
+    "rows", [CYCLIC, CLEAR, DIVERGENT], ids=["cyclic-t9", "clear-winner", "divergent"]
+)
 def test_t10_verifier_agrees_with_the_python_tally(
-    rows: list[tuple[str, list[list[str]]]], verifier_binary: Path, tmp_path: Path
+    rows: list[tuple[str, list[list[str]]]],
+    method: Method,
+    verifier_binary: Path,
+    tmp_path: Path,
 ) -> None:
     csv_path = tmp_path / "ballots.csv"
     write_csv(rows, csv_path)
@@ -77,7 +94,7 @@ def test_t10_verifier_agrees_with_the_python_tally(
     ]
     options = [OptionId("a"), OptionId("b"), OptionId("c")]
     expected_hash = closure_hash(ballots)
-    result = tally([b.ranking for b in ballots], options, Method.SCHULZE)
+    result = tally([b.ranking for b in ballots], options, method)
 
     opening_seed = bytes(range(32))
     winner = result.winner or break_tie(result.tied, opening_seed, expected_hash)
@@ -86,6 +103,8 @@ def test_t10_verifier_agrees_with_the_python_tally(
         [
             str(verifier_binary),
             str(csv_path),
+            "--method",
+            str(method),
             "--closure-hash",
             expected_hash.hex(),
             "--opening-seed",

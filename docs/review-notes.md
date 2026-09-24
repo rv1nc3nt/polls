@@ -48,7 +48,15 @@ dashboard and by `/sante`. The analysis below is kept as found.
   `tests/conftest.py::open_window_poll` relies on the current behaviour: it
   registers against a `draft` poll.
 
-### M2. The verifier's winner check is Schulze-only, but the manual says otherwise
+### M2. The verifier's winner check is Schulze-only, but the manual says otherwise — resolved
+
+**Resolved:** the verifier implements plurality and approval
+(`verifier/core/src/counted.rs`) and takes the method from the caller —
+`--method` on the CLI, a choice in the GUI — since the CSV does not carry it;
+Schulze stays the default, and the report names the method it applied. The
+manual says to pass the method the results page shows.
+`test_verifier_agreement.py` checks Python and Rust agree under all three
+methods. The analysis below is kept as found.
 
 * **Where:** `verifier/core/src/report.rs` (`verify`);
   `docs/manuel/verifier.md:264-266` and `docs/manuel/verifier-en.md:247`.

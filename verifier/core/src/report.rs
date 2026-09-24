@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: 0BSD
 //! The verification workflow shared by the CLI and the GUI: parse the
-//! published CSV, recompute the closure hash and the Schulze result, and
-//! compare against whatever the caller expects. Neither binary re-derives
-//! this logic; both call [`verify`] and differ only in how they render the
-//! resulting [`Report`].
+//! published CSV, recompute the closure hash and the result, and compare
+//! against whatever the caller expects. Neither binary re-derives this logic;
+//! both call [`verify`] and differ only in how they render the resulting
+//! [`Report`].
 //!
-//! Schulze only. The published CSV does not say which method the poll used,
-//! and nothing here implements plurality or approval (R-10.3), so for a poll
-//! counted by either of those the recomputed winner is the Schulze winner and
-//! a `winner` comparison is not meaningful. The closure-hash check is
-//! method-independent.
+//! The published CSV does not say which method the poll used (R-10.3), so the
+//! caller says, from the results page; Schulze when it does not. The winner
+//! is only as meaningful as that choice, which the report therefore restates.
+//! The closure-hash check is method-independent.
 
 use crate::canonical::{canonical_serialisation, options_in, parse_csv, parse_hex};
+use crate::counted::{self, Method};
 use crate::schulze;
 use crate::sha256::{hex, sha256};
 
@@ -19,6 +19,8 @@ use crate::sha256::{hex, sha256};
 /// page, to be checked against the recomputation.
 #[derive(Default)]
 pub struct Expected<'a> {
+    /// The poll's tally method, as its results page states it.
+    pub method: Method,
     pub closure_hash: Option<&'a str>,
     pub opening_seed: Option<&'a str>,
     pub winner: Option<&'a str>,
@@ -27,11 +29,15 @@ pub struct Expected<'a> {
 /// Everything [`verify`] recomputed, plus the outcome of each comparison
 /// the caller asked for.
 pub struct Report {
+    pub method: Method,
     pub ballot_count: usize,
     pub closure_hash: String,
     pub options: Vec<String>,
     pub matrix: Vec<Vec<u32>>,
-    pub schulze_winners: Vec<String>,
+    /// Votes per option, in `options` order; `None` under Schulze.
+    pub counts: Option<Vec<u32>>,
+    /// The method's winners, in `options` order; more than one is a tie.
+    pub winners: Vec<String>,
     /// `Some` only once an opening seed resolved a tie (§8.3).
     pub tiebreak_order: Option<Vec<String>>,
     pub final_winner: Option<String>,
@@ -49,9 +55,9 @@ pub enum VerifyError {
     OpeningSeedNotHex,
 }
 
-/// Recompute the closure hash and the Schulze result from the published CSV
-/// alone, then compare them with whatever `expected` supplies. The opening
-/// seed is only used when the Schulze winners are tied. Pure: no I/O.
+/// Recompute the closure hash and the result under `expected.method` from the
+/// published CSV alone, then compare them with whatever `expected` supplies.
+/// The opening seed is only used when the winners are tied. Pure: no I/O.
 pub fn verify(csv_text: &str, expected: &Expected) -> Result<Report, VerifyError> {
     let ballots = parse_csv(csv_text).map_err(VerifyError::Csv)?;
     let serialised = canonical_serialisation(&ballots);
@@ -59,23 +65,34 @@ pub fn verify(csv_text: &str, expected: &Expected) -> Result<Report, VerifyError
     let closure_hash = hex(&hash);
     let options = options_in(&ballots);
     let rankings: Vec<Vec<Vec<String>>> = ballots.iter().map(|b| b.ranking.clone()).collect();
+    // The pairwise matrix is published for every method, so it is recomputed
+    // for every method too.
     let matrix = schulze::pairwise(&rankings, &options);
-    let paths = schulze::strongest_paths(&matrix, &options);
-    let schulze_winners = schulze::winners(&paths, &options);
+    let (counts, winners) = match expected.method {
+        Method::Schulze => {
+            let paths = schulze::strongest_paths(&matrix, &options);
+            (None, schulze::winners(&paths, &options))
+        }
+        method => {
+            let counts = counted::counts(&rankings, &options, method);
+            let winners = counted::winners(&counts, &options, ballots.len());
+            (Some(counts), winners)
+        }
+    };
 
     // A tie with no opening seed has no resolved winner (§8.3): leaving
     // `final_winner` at an arbitrary tied option here would let a `winner`
     // comparison agree or disagree with it by chance, which is worse than
     // refusing to judge. `tiebreak_order.is_none()` alongside a multi-winner
-    // `schulze_winners` is how callers present that — the CLI's "tie among N
+    // `winners` is how callers present that — the CLI's "tie among N
     // options; pass --opening-seed to resolve".
     let mut final_winner =
-        if schulze_winners.len() == 1 { schulze_winners.first().cloned() } else { None };
+        if winners.len() == 1 { winners.first().cloned() } else { None };
     let mut tiebreak_order = None;
-    if schulze_winners.len() > 1 {
+    if winners.len() > 1 {
         if let Some(seed_hex) = expected.opening_seed {
             let seed = parse_hex(seed_hex).ok_or(VerifyError::OpeningSeedNotHex)?;
-            let drawn = schulze::tiebreak(&schulze_winners, &seed, &hash);
+            let drawn = schulze::tiebreak(&winners, &seed, &hash);
             final_winner = drawn.first().cloned();
             tiebreak_order = Some(drawn);
         }
@@ -86,11 +103,13 @@ pub fn verify(csv_text: &str, expected: &Expected) -> Result<Report, VerifyError
     let winner_agrees = expected.winner.map(|expected| final_winner.as_deref() == Some(expected));
 
     Ok(Report {
+        method: expected.method,
         ballot_count: ballots.len(),
         closure_hash,
         options,
         matrix,
-        schulze_winners,
+        counts,
+        winners,
         tiebreak_order,
         final_winner,
         closure_hash_agrees,
@@ -115,7 +134,7 @@ mod tests {
         let report = verify(CYCLIC, &Expected { winner: Some("a"), ..Default::default() })
             .ok()
             .expect("parses");
-        assert_eq!(report.schulze_winners.len(), 3);
+        assert_eq!(report.winners.len(), 3);
         assert!(report.tiebreak_order.is_none());
         assert!(report.final_winner.is_none());
         assert_eq!(report.winner_agrees, Some(false));
@@ -129,9 +148,55 @@ mod tests {
             opening_seed: Some(&opening_seed),
             winner: None,
             closure_hash: Some(&closure_hash),
+            ..Default::default()
         };
         let report = verify(CYCLIC, &expected).ok().expect("parses");
         let drawn = report.tiebreak_order.expect("tie resolved");
         assert_eq!(report.final_winner.as_deref(), drawn.first().map(String::as_str));
+    }
+
+    /// Three `a > b > c`, two `b > c > a`, two `c > b > a`: plurality elects
+    /// `a` (three first places), Schulze elects `b` (beats `a` 4–3 and `c`
+    /// 5–2), and approval over complete rankings is a three-way tie.
+    const DIVERGENT: &str = "tracking_code,ranking\n\
+        AAAAAAAAAA,\"[[\"\"a\"\"],[\"\"b\"\"],[\"\"c\"\"]]\"\n\
+        BBBBBBBBBB,\"[[\"\"a\"\"],[\"\"b\"\"],[\"\"c\"\"]]\"\n\
+        CCCCCCCCCC,\"[[\"\"a\"\"],[\"\"b\"\"],[\"\"c\"\"]]\"\n\
+        DDDDDDDDDD,\"[[\"\"b\"\"],[\"\"c\"\"],[\"\"a\"\"]]\"\n\
+        EEEEEEEEEE,\"[[\"\"b\"\"],[\"\"c\"\"],[\"\"a\"\"]]\"\n\
+        FFFFFFFFFF,\"[[\"\"c\"\"],[\"\"b\"\"],[\"\"a\"\"]]\"\n\
+        GGGGGGGGGG,\"[[\"\"c\"\"],[\"\"b\"\"],[\"\"a\"\"]]\"\n";
+
+    #[test]
+    fn the_winner_is_checked_under_the_method_the_poll_used() {
+        // Review note M2: an honest plurality result used to read DIFFERS,
+        // because it was compared with the Schulze winner.
+        let plurality = Expected { method: Method::Plurality, winner: Some("a"), ..Default::default() };
+        let report = verify(DIVERGENT, &plurality).ok().expect("parses");
+        assert_eq!(report.method, Method::Plurality);
+        assert_eq!(report.counts, Some(vec![3, 2, 2]));
+        assert_eq!(report.winner_agrees, Some(true));
+
+        let schulze = Expected { winner: Some("a"), ..Default::default() };
+        let report = verify(DIVERGENT, &schulze).ok().expect("parses");
+        assert_eq!(report.method, Method::Schulze);
+        assert_eq!(report.counts, None);
+        assert_eq!(report.final_winner.as_deref(), Some("b"));
+        assert_eq!(report.winner_agrees, Some(false));
+    }
+
+    #[test]
+    fn an_approval_tie_goes_to_the_tie_break_like_any_other() {
+        let seed = "00".repeat(32);
+        let approval = Expected { method: Method::Approval, ..Default::default() };
+        let report = verify(DIVERGENT, &approval).ok().expect("parses");
+        assert_eq!(report.counts, Some(vec![7, 7, 7]));
+        assert_eq!(report.winners.len(), 3);
+        assert!(report.final_winner.is_none());
+
+        let seeded = Expected { method: Method::Approval, opening_seed: Some(&seed), ..Default::default() };
+        let report = verify(DIVERGENT, &seeded).ok().expect("parses");
+        assert!(report.tiebreak_order.is_some());
+        assert!(report.final_winner.is_some());
     }
 }

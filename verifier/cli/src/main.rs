@@ -2,11 +2,11 @@
 //! Independent verifier for the commune polling platform (§8, §9, §14).
 //!
 //! It reads only the published CSV, never the database, and recomputes the
-//! canonical serialisation, the closure hash, the pairwise matrix, the Schulze
-//! winner and the tie-break. It was written from
-//! `docs/canonical-serialisation.md` and §8 of the specification, and shares
-//! no code with the Python implementation — a property the language boundary
-//! enforces structurally.
+//! canonical serialisation, the closure hash, the pairwise matrix, the winner
+//! under the poll's tally method (Schulze, plurality or approval) and the
+//! tie-break. It was written from `docs/canonical-serialisation.md` and §8 of
+//! the specification, and shares no code with the Python implementation — a
+//! property the language boundary enforces structurally.
 //!
 //! When the two disagree, the resolution is to return to the specification and
 //! determine which is wrong, never to adjust this binary until it matches.
@@ -14,9 +14,12 @@
 //! Usage:
 //!
 //! ```text
-//! polls-verifier ballots.csv \
+//! polls-verifier ballots.csv [--method schulze|plurality|approval] \
 //!     [--closure-hash <hex>] [--opening-seed <hex>] [--winner <option_id>]
 //! ```
+//!
+//! `--method` is the one the results page states (its French label is
+//! accepted too); the CSV does not carry it. Without it, Schulze.
 //!
 //! Exit codes: 0 agreement, 1 disagreement, 2 usage or input error.
 //!
@@ -25,6 +28,7 @@
 
 use std::process::ExitCode;
 
+use polls_verifier_core::counted::Method;
 use polls_verifier_core::report::{verify, Expected, VerifyError};
 
 fn arg_value(args: &[String], flag: &str) -> Option<String> {
@@ -34,7 +38,7 @@ fn arg_value(args: &[String], flag: &str) -> Option<String> {
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let Some(path) = args.first().filter(|a| !a.starts_with("--")) else {
-        eprintln!("usage: polls-verifier <ballots.csv> [--closure-hash <hex>] [--opening-seed <hex>] [--winner <option_id>]");
+        eprintln!("usage: polls-verifier <ballots.csv> [--method schulze|plurality|approval] [--closure-hash <hex>] [--opening-seed <hex>] [--winner <option_id>]");
         return ExitCode::from(2);
     };
 
@@ -46,10 +50,21 @@ fn main() -> ExitCode {
         }
     };
 
+    let method = match arg_value(&args, "--method") {
+        None => Method::Schulze,
+        Some(text) => match Method::parse(&text) {
+            Some(method) => method,
+            None => {
+                eprintln!("--method must be schulze, plurality or approval");
+                return ExitCode::from(2);
+            }
+        },
+    };
     let closure_hash = arg_value(&args, "--closure-hash");
     let opening_seed = arg_value(&args, "--opening-seed");
     let winner = arg_value(&args, "--winner");
     let expected = Expected {
+        method,
         closure_hash: closure_hash.as_deref(),
         opening_seed: opening_seed.as_deref(),
         winner: winner.as_deref(),
@@ -67,6 +82,7 @@ fn main() -> ExitCode {
         }
     };
 
+    println!("method         {}", report.method.id());
     println!("ballots        {}", report.ballot_count);
     println!("closure_hash   {}", report.closure_hash);
     println!("options        {}", report.options.join(", "));
@@ -74,7 +90,13 @@ fn main() -> ExitCode {
     for (i, row) in report.matrix.iter().enumerate() {
         println!("  {:>10} {:?}", report.options[i], row);
     }
-    println!("schulze winners {}", report.schulze_winners.join(", "));
+    if let Some(counts) = &report.counts {
+        println!("counts");
+        for (option, count) in report.options.iter().zip(counts) {
+            println!("  {option:>10} {count}");
+        }
+    }
+    println!("winners         {}", report.winners.join(", "));
 
     let mut ok = true;
 
@@ -83,12 +105,12 @@ fn main() -> ExitCode {
         ok &= matched;
     }
 
-    if report.schulze_winners.len() > 1 {
+    if report.winners.len() > 1 {
         match &report.tiebreak_order {
             Some(drawn) => println!("tie-break order {}", drawn.join(", ")),
             None => println!(
                 "tie among {} options; pass --opening-seed to resolve",
-                report.schulze_winners.len()
+                report.winners.len()
             ),
         }
     }

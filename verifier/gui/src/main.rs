@@ -11,6 +11,7 @@
 use std::path::PathBuf;
 
 use eframe::egui;
+use polls_verifier_core::counted::Method;
 use polls_verifier_core::report::{self, Expected, Report, VerifyError};
 
 fn main() -> eframe::Result<()> {
@@ -29,6 +30,7 @@ fn main() -> eframe::Result<()> {
 struct VerifierApp {
     csv_path: Option<PathBuf>,
     file_error: Option<String>,
+    method: Method,
     expected_closure_hash: String,
     expected_opening_seed: String,
     expected_winner: String,
@@ -77,7 +79,7 @@ impl VerifierApp {
         let closure_hash = non_empty(&self.expected_closure_hash);
         let opening_seed = non_empty(&self.expected_opening_seed);
         let winner = non_empty(&self.expected_winner);
-        let expected = Expected { closure_hash, opening_seed, winner };
+        let expected = Expected { method: self.method, closure_hash, opening_seed, winner };
 
         self.outcome = Some(match report::verify(&text, &expected) {
             Ok(report) => Outcome::Report(report),
@@ -116,7 +118,7 @@ impl eframe::App for VerifierApp {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Vérificateur indépendant");
             ui.label(
-                "Recalcule l'empreinte de clôture et le vainqueur Schulze à partir du seul \
+                "Recalcule l'empreinte de clôture et le vainqueur à partir du seul \
                  fichier CSV publié, sans faire confiance ni au site, ni à la mairie \
                  (docs/manuel/verifier.md).",
             );
@@ -149,6 +151,16 @@ impl eframe::App for VerifierApp {
                 egui::Grid::new("expected-values").num_columns(2).spacing([8.0, 6.0]).show(
                     ui,
                     |ui| {
+                        // The CSV does not say which method the poll used; the
+                        // results page does, as "Méthode de dépouillement".
+                        ui.label("Méthode de dépouillement");
+                        ui.horizontal(|ui| {
+                            ui.radio_value(&mut self.method, Method::Schulze, "Schulze");
+                            ui.radio_value(&mut self.method, Method::Plurality, "majoritaire");
+                            ui.radio_value(&mut self.method, Method::Approval, "par assentiment");
+                        });
+                        ui.end_row();
+
                         ui.label("Empreinte de clôture attendue");
                         ui.add(
                             egui::TextEdit::singleline(&mut self.expected_closure_hash)
@@ -200,8 +212,17 @@ impl eframe::App for VerifierApp {
     }
 }
 
+fn method_label(method: Method) -> &'static str {
+    match method {
+        Method::Schulze => "Schulze",
+        Method::Plurality => "majoritaire",
+        Method::Approval => "par assentiment",
+    }
+}
+
 fn show_report(ui: &mut egui::Ui, report: &Report) {
     egui::ScrollArea::vertical().show(ui, |ui| {
+        ui.label(format!("Méthode de dépouillement : {}", method_label(report.method)));
         ui.label(format!("Bulletins lus : {}", report.ballot_count));
 
         ui.horizontal(|ui| {
@@ -239,12 +260,25 @@ fn show_report(ui: &mut egui::Ui, report: &Report) {
             }
         });
 
+        if let Some(counts) = &report.counts {
+            ui.add_space(6.0);
+            ui.label("Voix par option :");
+            egui::Grid::new("counts").striped(true).show(ui, |ui| {
+                for (option, count) in report.options.iter().zip(counts) {
+                    ui.monospace(option);
+                    ui.label(count.to_string());
+                    ui.end_row();
+                }
+            });
+        }
+
         ui.add_space(6.0);
-        if report.schulze_winners.len() > 1 {
+        let method = method_label(report.method);
+        if report.winners.len() > 1 {
             ui.label(format!(
-                "Égalité entre {} options selon la méthode Schulze : {}",
-                report.schulze_winners.len(),
-                report.schulze_winners.join(", ")
+                "Égalité entre {} options selon la méthode {method} : {}",
+                report.winners.len(),
+                report.winners.join(", ")
             ));
             match &report.tiebreak_order {
                 Some(drawn) => {
@@ -257,7 +291,7 @@ fn show_report(ui: &mut egui::Ui, report: &Report) {
                 }
             }
         } else {
-            ui.label(format!("Vainqueur Schulze : {}", report.schulze_winners.join(", ")));
+            ui.label(format!("Vainqueur ({method}) : {}", report.winners.join(", ")));
         }
 
         if let Some(winner) = &report.final_winner {

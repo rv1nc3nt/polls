@@ -125,8 +125,9 @@ La fenêtre « Vérificateur indépendant » propose trois étapes :
 1. **Fichier CSV des bulletins** — cliquez sur « Choisir un fichier… » et
    sélectionnez le CSV téléchargé, ou déposez-le directement dans la
    fenêtre.
-2. **Valeurs à comparer** — collez l'**empreinte de clôture attendue** dans
-   le champ du même nom. En cas d'égalité (voir plus bas), collez aussi la
+2. **Valeurs à comparer** — choisissez la **méthode de dépouillement** que
+   la page de résultats indique (Schulze, majoritaire ou par assentiment),
+   puis collez l'**empreinte de clôture attendue** dans le champ du même nom. En cas d'égalité (voir plus bas), collez aussi la
    **graine d'ouverture** ; pour vérifier également le vainqueur annoncé,
    renseignez son identifiant dans **vainqueur annoncé**. Ces trois champs
    sont facultatifs — sans eux, l'application affiche quand même ce qu'elle a
@@ -134,8 +135,9 @@ La fenêtre « Vérificateur indépendant » propose trois étapes :
 3. Cliquez sur **Vérifier**.
 
 Le résultat s'affiche en dessous : le nombre de bulletins lus, l'empreinte
-recalculée, la matrice des duels, le ou les vainqueurs selon la méthode
-Schulze, et — pour chaque valeur que vous avez renseignée — une ligne verte
+recalculée, la matrice des duels, le nombre de voix de chaque option pour un
+scrutin majoritaire ou par assentiment, le ou les vainqueurs selon la
+méthode choisie, et — pour chaque valeur que vous avez renseignée — une ligne verte
 « ✓ … concorde » ou rouge « ✗ … NE concorde PAS ». C'est l'équivalent exact
 des lignes `AGREES` / `DIFFERS` de la version en ligne de commande ci-dessous ;
 voir [« Que faire en cas de désaccord »](#que-faire-en-cas-de-désaccord) si
@@ -209,7 +211,7 @@ téléchargé, et l'empreinte à celle affichée sur la page de résultats) :
 
 Le programme affiche le nombre de bulletins lus, l'empreinte qu'il a
 lui-même recalculée, la liste des options, la matrice des duels et le ou les
-vainqueurs selon la méthode Schulze — puis, en dernière ligne utile :
+vainqueurs — puis, en dernière ligne utile :
 
     closure hash    AGREES
 
@@ -219,20 +221,22 @@ calcul de clôture. `DIFFERS` signifierait le contraire (voir plus bas).
 
 Pour vérifier également le vainqueur annoncé, ajoutez `--winner` suivi de
 l'identifiant de l'option retenue (visible dans la matrice, entre
-parenthèses à côté du libellé sur la page de résultats) :
+parenthèses à côté du libellé sur la page de résultats), et `--method` suivi
+de la méthode de dépouillement que la page de résultats indique :
+`schulze`, `majoritaire` ou `assentiment` :
 
-    ./polls-verifier-macos-aarch64 ballots.csv --closure-hash 87694cf0... --winner option-b
+    ./polls-verifier-macos-aarch64 ballots.csv --closure-hash 87694cf0... --method majoritaire --winner option-b
 
 Une ligne `winner AGREES` confirme que le vérificateur, en repartant de zéro
 à partir du seul fichier public, retrouve exactement le vainqueur annoncé
 par le site.
 
-Le vérificateur ne recalcule le vainqueur que selon la méthode de Schulze.
-N'utilisez `--winner` que si la page de résultats indique « Schulze » comme
-méthode de dépouillement : pour un scrutin majoritaire ou par assentiment, il
-comparerait le vainqueur annoncé à celui de Schulze et pourrait signaler un
-désaccord qui n'en est pas un. La vérification de l'empreinte, elle, vaut pour
-tous les scrutins.
+Le fichier CSV ne dit pas quelle méthode le scrutin a employée : c'est à vous
+de la donner. Sans `--method`, le vérificateur compte selon la méthode de
+Schulze, et il indique en première ligne (`method`) la méthode qu'il a
+appliquée. Un vainqueur recalculé selon une autre méthode que celle du scrutin
+peut différer sans que rien ne soit faux. La vérification de l'empreinte,
+elle, vaut quelle que soit la méthode.
 
 #### En cas d'égalité (départage)
 
@@ -241,7 +245,7 @@ la **graine d'ouverture** — une seconde suite hexadécimale, distincte de
 l'empreinte de clôture. Ajoutez-la avec `--opening-seed` pour que le
 vérificateur rejoue le départage lui-même :
 
-    ./polls-verifier-macos-aarch64 ballots.csv --closure-hash 87694cf0... --opening-seed a1b2c3... --winner option-b
+    ./polls-verifier-macos-aarch64 ballots.csv --closure-hash 87694cf0... --method schulze --opening-seed a1b2c3... --winner option-b
 
 Le départage n'utilise ni tirage au sort, ni fonction du langage de
 programmation : il est entièrement déterminé par l'empreinte de clôture et
@@ -269,5 +273,5 @@ CSV qu'il lit (`docs/canonical-serialisation.md`) sont publics : n'importe
 qui peut relire ce que fait exactement ce programme, ou écrire sa propre
 version dans un autre langage pour vérifier de manière encore plus
 indépendante. Pour comprendre ce que le vérificateur recalcule au juste — la
-méthode de Schulze et le départage — et les deux autres méthodes, voir
+méthode de Schulze, majoritaire ou par assentiment, et le départage — voir
 [Les méthodes de dépouillement, expliquées](methodes-de-depouillement.md).

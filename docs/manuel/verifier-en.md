@@ -114,8 +114,10 @@ The "Independent verifier" window offers three steps:
 
 1. **Ballots CSV file** — click "Choose a file…" and select the downloaded
    CSV, or drop it directly onto the window.
-2. **Values to compare** — paste the **expected closure hash** into the
-   field of the same name. In case of a tie (see below), also paste the
+2. **Values to compare** — choose the **tally method** the results page
+   gives (Schulze, majoritaire — plurality — or par assentiment —
+   approval), then paste the **expected closure hash** into the field of the
+   same name. In case of a tie (see below), also paste the
    **opening seed**; to also check the announced winner, enter its
    identifier in **announced winner**. These three fields are optional —
    without them, the application still shows what it recomputed, simply
@@ -123,7 +125,8 @@ The "Independent verifier" window offers three steps:
 3. Click **Verify**.
 
 The result is shown below: the number of ballots read, the recomputed hash,
-the pairwise matrix, the winner(s) under the Schulze method, and — for each
+the pairwise matrix, each option's vote count for a plurality or approval
+poll, the winner(s) under the chosen method, and — for each
 value you filled in — a green "✓ … matches" or red "✗ … does NOT match"
 line. This is the exact equivalent of the `AGREES` / `DIFFERS` lines from the
 command-line version below; see ["What to do in case of
@@ -192,8 +195,8 @@ one shown on the results page):
     ./polls-verifier-macos-aarch64 ballots.csv --closure-hash 87694cf0...
 
 The program shows the number of ballots read, the hash it recomputed itself,
-the list of options, the pairwise matrix and the winner(s) under the Schulze
-method — then, on the last useful line:
+the list of options, the pairwise matrix and the winner(s) — then, on the
+last useful line:
 
     closure hash    AGREES
 
@@ -203,18 +206,19 @@ the site: the CSV file has not been altered since the closure computation.
 
 To also check the announced winner, add `--winner` followed by the
 identifier of the retained option (shown in the matrix, in parentheses next
-to the label on the results page):
+to the label on the results page), and `--method` followed by the tally
+method the results page gives: `schulze`, `plurality` or `approval`:
 
-    ./polls-verifier-macos-aarch64 ballots.csv --closure-hash 87694cf0... --winner option-b
+    ./polls-verifier-macos-aarch64 ballots.csv --closure-hash 87694cf0... --method plurality --winner option-b
 
 A `winner AGREES` line confirms that the verifier, starting from scratch
 from the public file alone, finds exactly the winner announced by the site.
 
-The verifier recomputes the winner under the Schulze method only. Use
-`--winner` only when the results page gives "Schulze" as the tally method:
-for a plurality or approval poll it would compare the announced winner with
-the Schulze one and could report a disagreement that is not one. The hash
-check, on the other hand, holds for every poll.
+The CSV file does not say which method the poll used: you supply it.
+Without `--method`, the verifier counts under the Schulze method, and its
+first line (`method`) states which method it applied. A winner recomputed
+under a different method from the poll's may differ without anything being
+wrong. The hash check, on the other hand, holds whatever the method.
 
 #### In case of a tie (tie-break)
 
@@ -223,7 +227,7 @@ the **opening seed** — a second hexadecimal string, distinct from the
 closure hash. Add it with `--opening-seed` so the verifier replays the
 tie-break itself:
 
-    ./polls-verifier-macos-aarch64 ballots.csv --closure-hash 87694cf0... --opening-seed a1b2c3... --winner option-b
+    ./polls-verifier-macos-aarch64 ballots.csv --closure-hash 87694cf0... --method schulze --opening-seed a1b2c3... --winner option-b
 
 The tie-break uses no drawing of lots and no programming-language function:
 it is entirely determined by the closure hash and the opening seed, which is
@@ -250,6 +254,6 @@ The verifier's source code (`verifier/`) and the exact format of the CSV
 file it reads (`docs/canonical-serialisation.md`) are public: anyone can
 read exactly what this program does, or write their own version in another
 language to verify things even more independently. To understand exactly
-what the verifier recomputes — the Schulze method and the tie-break — and
-the two other methods, see [Tally methods,
+what the verifier recomputes — the Schulze, plurality or approval method,
+and the tie-break — see [Tally methods,
 explained](methodes-de-depouillement.md).

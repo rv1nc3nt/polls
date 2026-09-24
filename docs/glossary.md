@@ -78,7 +78,7 @@ and the functional requirements are French.
 | opening seed | graine d'ouverture | 32 random bytes drawn at `open`; combined with the closure hash for the computed tie-break (§8.3). |
 | computed / physical tie-break | tirage au sort calculé / physique | A hash-chain draw anyone can reproduce, or a human draw entered on screen 9. |
 | frozen counts | décompte figé | Participation figures stored at closure, since the registrations they come from are purged later (§9). |
-| verifier | vérificateur indépendant | The Rust program in `verifier/` that recomputes the hash and Schulze result from the CSV. |
+| verifier | vérificateur indépendant | The Rust program in `verifier/` that recomputes the hash and the result, under the method the caller names, from the CSV. |
 | Schulze / plurality / approval | Schulze / majoritaire / par assentiment | The three tally methods (R-10.3). |
 
 ## People and roles
