@@ -55,6 +55,8 @@ class Participation:
 
 
 def participation(poll: Poll) -> Participation:
+    """Screen 1's turnout panel: the frozen §9 counts once the poll has them,
+    else a live count from ``Registration`` (``PARTICIPATING``, INV-5)."""
     # A poll withdrawn (R-3.11) after passing through `closed` already has
     # `frozen_counts`; one withdrawn straight from `announced` or `open` never
     # closed and falls to the live count below, same as `draft` or `open`.

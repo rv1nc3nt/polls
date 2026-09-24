@@ -23,6 +23,7 @@ from apps.core.types import OptionId
 
 
 def tiebreak_seed(opening_seed: bytes, closure_hash: bytes) -> bytes:
+    """The first line of the formula above; both inputs as raw bytes."""
     return hashlib.sha256(opening_seed + closure_hash).digest()
 
 

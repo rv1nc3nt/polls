@@ -16,4 +16,8 @@ from .models import Commune
 
 
 def commune(request: HttpRequest) -> dict[str, Commune | None]:
+    """Expose ``Commune.current()`` as ``{{ commune }}``; one query per render.
+
+    Registered in ``settings.TEMPLATES``' context processors.
+    """
     return {"commune": Commune.current()}

@@ -60,12 +60,22 @@ def default_eligible_list_types() -> list[str]:
 
 
 class TallyMethod(models.TextChoices):
+    """R-10.3's methods. Values match ``apps.tally.methods.Method``, which
+    ``elections.closure.tallied`` builds from this field."""
+
     SCHULZE = "schulze", _("Schulze")
     PLURALITY = "plurality", _("majoritaire")
     APPROVAL = "approval", _("par assentiment")
 
 
 class TiebreakRule(models.TextChoices):
+    """How a tie reported by the tally is broken (§8.3, R-10.5).
+
+    ``computed``: the hash-chain draw of ``apps.tally.tiebreak``, reproducible
+    by the verifier. ``physical``: a human draw, entered on screen 9
+    (``closure.record_physical_tiebreak``); publication waits for it.
+    """
+
     COMPUTED = "computed", _("tirage au sort calculé")
     PHYSICAL = "physical", _("tirage au sort physique")
 
@@ -103,6 +113,26 @@ FROZEN_CONFIG_FIELDS: frozenset[str] = frozenset(
 
 
 class Poll(models.Model):
+    """One consultation, from draft to publication (§3.1).
+
+    The fields fall into three groups, and the distinction governs who may
+    write them:
+
+    * **configuration** — ``FROZEN_CONFIG_FIELDS`` above, editable only in
+      ``draft`` (INV-6; ``save()`` below and the triggers). ``closes_at`` and
+      ``paper_entry_deadline`` move only through
+      ``transitions.extend_closes_at``;
+    * **lifecycle** — ``state``, ``opening_seed``, ``closure_hash``,
+      ``closed_at``, ``withdrawn_at``, ``frozen_counts``,
+      ``closure_override_reason``, written only by ``transitions`` (and
+      ``physical_tiebreak_order`` by ``closure``);
+    * **access** — ``preview_token``, written by ``sharelink``.
+
+    ``token_salt`` is the secret of the §7 anonymity scheme and never leaves
+    the server. Deletion is refused by trigger except for a sandbox poll
+    (R-3.7, ``sandbox.delete_poll``).
+    """
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     # §3.8: poll content is per-poll data, stored as {language_code: text}.

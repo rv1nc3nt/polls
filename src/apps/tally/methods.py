@@ -22,6 +22,8 @@ Ranking = Sequence[Sequence[OptionId]]
 
 
 class Method(StrEnum):
+    """The counting methods of R-10.3; values match ``Poll.tally_method``."""
+
     SCHULZE = "schulze"
     PLURALITY = "plurality"
     APPROVAL = "approval"
@@ -32,8 +34,11 @@ class TallyResult:
     """What the back-office publishes (§9).
 
     ``winner`` is ``None`` in exactly two cases, which the caller must
-    distinguish: no ballots at all (T-39), and a tie the poll's ``physical``
-    tie-break rule sends to a human (§8.3). ``tied`` says which.
+    distinguish: no ballots at all (T-39), and a tie (§8.3). ``tied`` says
+    which. The tally does not know the poll's tie-break rule and never breaks
+    a tie itself: the caller either draws with ``tiebreak.tiebreak_order``
+    (``computed``) or waits for a human entry (``physical``,
+    ``elections.closure``).
     """
 
     method: Method

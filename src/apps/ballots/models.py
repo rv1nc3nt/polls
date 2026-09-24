@@ -28,11 +28,29 @@ from django.utils.translation import gettext_lazy as _
 
 
 class BallotSource(models.TextChoices):
+    """The channel a ballot came in by. Decides its window (INV-2:
+    ``closes_at`` for online, ``paper_entry_deadline`` for paper) and whether
+    a ``PaperBallotLink`` exists."""
+
     ONLINE = "online", _("en ligne")
     PAPER = "paper", _("papier")
 
 
 class BallotStatus(models.TextChoices):
+    """A ballot version's status (§3.4), written only by ``services``:
+
+    * online: created ``live``; a modification marks it ``superseded`` and
+      inserts the next version ``live``;
+    * paper: created ``pending_countersign`` where the poll requires a
+      countersignature, else ``live``; ``countersign`` takes it to ``live``;
+      a correction supersedes it with a new version (back to
+      ``pending_countersign`` where countersignature is required); a deletion
+      marks it ``deleted``.
+
+    ``superseded`` and ``deleted`` are terminal (INV-3 trigger). Only ``live``
+    is tallied, hashed and published.
+    """
+
     LIVE = "live", _("courant")
     SUPERSEDED = "superseded", _("remplacé")
     DELETED = "deleted", _("supprimé")
@@ -52,6 +70,12 @@ class LiveBallotManager(models.Manager["Ballot"]):
 
 
 class Ballot(models.Model):
+    """One version of one ballot. A chain of versions shares a
+    ``tracking_code``; at most one of them is in force (``live`` or
+    ``pending_countersign``). Anonymous by construction: see the module
+    docstring for what must never be added here.
+    """
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     poll = models.ForeignKey("elections.Poll", on_delete=models.CASCADE, related_name="ballots")
 
@@ -195,4 +219,6 @@ class ReconciliationRecord(models.Model):
 
     @property
     def discrepancy(self) -> int:
+        """Forms counted minus ballots recorded; negative means more ballots
+        than forms."""
         return self.forms_retained_count - self.recorded_ballots_count

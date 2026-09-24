@@ -4,6 +4,12 @@
 //! compare against whatever the caller expects. Neither binary re-derives
 //! this logic; both call [`verify`] and differ only in how they render the
 //! resulting [`Report`].
+//!
+//! Schulze only. The published CSV does not say which method the poll used,
+//! and nothing here implements plurality or approval (R-10.3), so for a poll
+//! counted by either of those the recomputed winner is the Schulze winner and
+//! a `winner` comparison is not meaningful. The closure-hash check is
+//! method-independent.
 
 use crate::canonical::{canonical_serialisation, options_in, parse_csv, parse_hex};
 use crate::schulze;
@@ -18,6 +24,8 @@ pub struct Expected<'a> {
     pub winner: Option<&'a str>,
 }
 
+/// Everything [`verify`] recomputed, plus the outcome of each comparison
+/// the caller asked for.
 pub struct Report {
     pub ballot_count: usize,
     pub closure_hash: String,
@@ -32,11 +40,18 @@ pub struct Report {
     pub winner_agrees: Option<bool>,
 }
 
+/// Input the verifier cannot work from. Disagreement is not an error: it is
+/// reported through the `*_agrees` fields of [`Report`].
 pub enum VerifyError {
+    /// The CSV did not parse; the message names the line.
     Csv(String),
+    /// `Expected::opening_seed` was given but is not hexadecimal.
     OpeningSeedNotHex,
 }
 
+/// Recompute the closure hash and the Schulze result from the published CSV
+/// alone, then compare them with whatever `expected` supplies. The opening
+/// seed is only used when the Schulze winners are tied. Pure: no I/O.
 pub fn verify(csv_text: &str, expected: &Expected) -> Result<Report, VerifyError> {
     let ballots = parse_csv(csv_text).map_err(VerifyError::Csv)?;
     let serialised = canonical_serialisation(&ballots);

@@ -93,6 +93,9 @@ class RankingForm(forms.Form):
         return [(option_id, self[f"rank_{option_id}"]) for option_id in self._display_order]
 
     def clean(self) -> dict[str, Any]:
+        """Assemble the per-option rank fields into a ranking (groups ordered
+        by rank number, options sharing a number tied) and validate it
+        against the poll's rules; exposes it as ``cleaned_data["ranking"]``."""
         cleaned: dict[str, Any] = super().clean() or {}
         by_rank: dict[int, list[str]] = {}
         for option_id in self._display_order:

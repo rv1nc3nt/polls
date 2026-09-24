@@ -55,6 +55,8 @@ pub fn strongest_paths(d: &[Vec<u32>], options: &[String]) -> Vec<Vec<u32>> {
     p
 }
 
+/// The options not beaten by any other on strongest paths, in `options`
+/// order. More than one means a tie for [`tiebreak`].
 pub fn winners(p: &[Vec<u32>], options: &[String]) -> Vec<String> {
     let n = options.len();
     (0..n)

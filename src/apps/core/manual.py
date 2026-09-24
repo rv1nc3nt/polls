@@ -105,6 +105,9 @@ class ManualDoc:
 
 @dataclass(frozen=True)
 class ManualPage:
+    """One rendered manual page: ``title`` as ``read`` derives it and the
+    nh3-sanitised body as ``html``, safe to insert into a template unescaped."""
+
     title: str
     html: SafeString
 

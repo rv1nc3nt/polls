@@ -15,7 +15,7 @@ claim that the token never reaches a log is false the moment one is missing:
 **The open question of §6.3 is settled here.** Modifying a ballot needs
 ``ballot_hash``, which needs the token; a session holding a registration id
 *and* a ballot hash would join a voter to their ballot for the session's life
-(INV-1). The resolution has two halves:
+(INV-1). The resolution has three parts:
 
 - **Nothing in the session identifies a voter.** Retiring the standalone
   mailbox-confirmation route removed the only writer of a registration id to the
@@ -73,6 +73,7 @@ def load_ballot(request: HttpRequest, poll_id: str) -> str | None:
 
 
 def clear_ballot(request: HttpRequest, poll_id: str) -> None:
+    """Forget this poll's ballot hash; a no-op if none was stored."""
     request.session.pop(_ballot_key(poll_id), None)
 
 
@@ -88,6 +89,8 @@ def store_receipt(request: HttpRequest, poll_id: str, receipt: dict[str, Any]) -
 
 
 def load_receipt(request: HttpRequest, poll_id: str) -> dict[str, Any] | None:
+    """The receipt stashed by ``store_receipt``, or ``None``. Not popped: a
+    reload of the receipt page shows it again."""
     value = request.session.get(_receipt_key(poll_id))
     return value if isinstance(value, dict) else None
 

@@ -1,4 +1,7 @@
 # SPDX-License-Identifier: 0BSD
+"""Local development: ``manage.py`` defaults to these. SQLite under ``var/``,
+mail printed to the console, a fixed non-secret key."""
+
 from .base import *
 from .base import BASE_DIR
 

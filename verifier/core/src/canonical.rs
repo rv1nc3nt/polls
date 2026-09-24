@@ -100,6 +100,9 @@ pub fn canonical_serialisation(ballots: &[Ballot]) -> Vec<u8> {
     out
 }
 
+/// Every option id that appears on at least one ballot, sorted. The CSV
+/// carries no option list, so an option no ballot ranks is absent here and
+/// from the matrix the verifier prints, although the published matrix has it.
 pub fn options_in(ballots: &[Ballot]) -> Vec<String> {
     let mut set = BTreeSet::new();
     for ballot in ballots {
@@ -112,6 +115,8 @@ pub fn options_in(ballots: &[Ballot]) -> Vec<String> {
     set.into_iter().collect()
 }
 
+/// Decode a hexadecimal string (surrounding whitespace ignored); `None` on
+/// odd length or a non-hex pair.
 pub fn parse_hex(text: &str) -> Option<Vec<u8>> {
     let text = text.trim();
     if text.len() % 2 != 0 {

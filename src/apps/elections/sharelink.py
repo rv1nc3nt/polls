@@ -35,6 +35,8 @@ def generate(poll: Poll, *, actor: User) -> None:
 
 
 def revoke(poll: Poll, *, actor: User) -> None:
+    """Remove the link. Browsers admitted through it lose access to a sandbox
+    poll at once (``sandbox.link_granted`` compares against the current value)."""
     poll.preview_token = ""
     poll.save(update_fields=["preview_token"])
     audit.record(
