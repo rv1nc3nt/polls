@@ -160,3 +160,8 @@ commits. They are listed so a reviewer can check the new wording.
   there another hop that would change which `X-Forwarded-For` entry is
   trustworthy? *Answered by configuration:* `polls_trusted_proxy_hops`, documented
   in the instance administrator's guide.
+* **There is no threat-model document.** The receipt-mail question above asks
+  whether that linkage is stated "in the threat model", and there is none. Its
+  substance is spread over spec §5 and §7, `review-guide.md`
+  ("Security- and privacy-sensitive areas") and this file. Writing one is new
+  work, not yet agreed.

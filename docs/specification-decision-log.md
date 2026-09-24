@@ -59,6 +59,7 @@ reasoning.
 | 35 | Definitive actions are confirmed on a separate page | decided |
 | 36 | A sandbox poll's result is reachable through its link | decided |
 | 37 | The verifier reads the publication document, and every method | decided |
+| 38 | A poll requiring reconciliation cannot be closed early | **open question** for the requirements owner (R-3.4 and R-8.6) |
 
 ## 1. Retention purge on a poll that closed but was never published
 
@@ -1309,4 +1310,25 @@ time the poll is announced. The verifier restates the method so the reader can
 compare it with what was announced. No requirements change: R-11.4 asks that
 anyone can recompute the result "from the published data", which the document
 is. §14 and §9 were updated to match.
+
+## 38. A poll requiring reconciliation cannot be closed early
+
+**Found in review (2026-09-24).** #34 lets the poll administrator close an
+open poll before its deadline, "the countersignature and reconciliation guards
+unchanged". On a poll with `paper_requires_reconciliation`, those two
+unchanged rules add up to no early closure at all:
+`ballots.services.record_reconciliation` refuses before
+`paper_entry_deadline` (#16: a count taken earlier could be made stale by a
+paper entry the window still admits), and `transitions.closing_blockers`
+refuses closure while `reconciliation_pending`, with no override (R-8.6 offers
+none). Screen 2 still offers *Clôturer maintenant*, and the espace mairie
+guide says it is available "à tout moment une fois le scrutin ouvert"; on such
+a poll it can only be refused.
+
+**Open question.** Either the manual and screen 2 say that early closure is
+unavailable when reconciliation is required, or recording the reconciliation
+follows the early-closure instant: an early closure moves
+`paper_entry_deadline` to the moment of closing, so the count could be taken
+at that moment, in the same confirmed action. The second changes what R-8.6's
+record attests to, and is for the requirements owner to decide.
 
