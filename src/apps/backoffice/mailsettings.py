@@ -55,6 +55,7 @@ class MailSettingsDraft:
 
 
 def current() -> MailSettings | None:
+    """Screen 12's read model: the saved row, or ``None`` before any save."""
     return MailSettings.current()
 
 

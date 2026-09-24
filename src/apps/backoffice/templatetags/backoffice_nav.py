@@ -77,6 +77,7 @@ class _Item:
     icon: str = ""
 
     def lit_by(self, url_name: str) -> bool:
+        """Whether this entry is highlighted on the page named ``url_name``."""
         return url_name == self.url_name or url_name in self.owns
 
 

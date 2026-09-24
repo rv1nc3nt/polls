@@ -1,10 +1,15 @@
 # SPDX-License-Identifier: 0BSD
 """The espace mairie (§6.5).
 
-Purpose-built, not Django admin, which is not routed in production at all
-(§14). Eleven screens, all scoped to a poll and gated by the per-poll roles of
-§3.7; this is the majority of the build and is scheduled first, before the
-tally, the verifier and the publication artefacts.
+Purpose-built, not Django admin, which is not installed in any environment
+(§14). Poll-scoped screens go through ``access.require_poll_role`` and the
+per-poll roles of §3.7; commune-level screens (3, 10, 12–14 and poll
+creation) go through ``access.require_commune_admin``, screen 11 through
+``access.require_first_run``, and the manual pages through
+``access.require_operator``. ``urls.py`` lists every route;
+``docs/architecture.md`` maps each screen to its view, gate, read model and
+write path. The paragraphs below were added screen by screen as the build
+progressed.
 
 Two rules govern every screen and are not negotiable per-view:
 
@@ -187,6 +192,7 @@ class OperatorLoginView(LoginView):
     template_name = "backoffice/login.html"
 
     def dispatch(self, request: HttpRequest, *args: object, **kwargs: object) -> HttpResponseBase:
+        """Redirect to the first-run wizard while no account exists."""
         if firstrun.is_open():
             return redirect("backoffice:first_run")
         return super().dispatch(request, *args, **kwargs)

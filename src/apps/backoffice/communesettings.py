@@ -62,6 +62,7 @@ class CommuneSettingsDraft:
 
 
 def current() -> Commune | None:
+    """Screen 14's read model: the commune row, ``None`` only before first-run."""
     return Commune.current()
 
 
@@ -183,6 +184,7 @@ def set_logo(commune: Commune, upload: UploadedFile[bytes], *, actor: User) -> C
 
 @transaction.atomic
 def remove_logo(commune: Commune, *, actor: User) -> Commune:
+    """Screen 14's remove action for ``logo``; see ``_remove_branding``."""
     return _remove_branding(commune, field="logo", actor=actor)
 
 
@@ -206,6 +208,7 @@ def set_logo_dark(commune: Commune, upload: UploadedFile[bytes], *, actor: User)
 
 @transaction.atomic
 def remove_logo_dark(commune: Commune, *, actor: User) -> Commune:
+    """Screen 14's remove action for ``logo_dark``; see ``_remove_branding``."""
     return _remove_branding(commune, field="logo_dark", actor=actor)
 
 
@@ -227,4 +230,5 @@ def set_favicon(commune: Commune, upload: UploadedFile[bytes], *, actor: User) -
 
 @transaction.atomic
 def remove_favicon(commune: Commune, *, actor: User) -> Commune:
+    """Screen 14's remove action for ``favicon``; see ``_remove_branding``."""
     return _remove_branding(commune, field="favicon", actor=actor)
