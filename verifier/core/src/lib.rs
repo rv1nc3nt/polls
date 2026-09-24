@@ -13,6 +13,8 @@
 
 pub mod canonical;
 pub mod counted;
+pub mod json;
+pub mod publication;
 pub mod report;
 pub mod schulze;
 pub mod sha256;
