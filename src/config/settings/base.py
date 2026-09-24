@@ -80,6 +80,12 @@ DATABASES = {
                 "PRAGMA synchronous=NORMAL;"
                 "PRAGMA busy_timeout=5000;"
             ),
+            # Load-bearing: every atomic block takes the write lock at BEGIN,
+            # so writers serialise. SQLite ignores ``select_for_update()``, and
+            # ``ballots.services.cast_online`` reads the elector's channel
+            # without it; this setting is what makes a concurrent second cast
+            # see the first one's channel flip (INV-5). A different backend
+            # would need explicit row locks there.
             "transaction_mode": "IMMEDIATE",
         },
     }
