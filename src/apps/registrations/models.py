@@ -21,6 +21,24 @@ from django.utils.translation import gettext_lazy as _
 
 
 class RegistrationState(models.TextChoices):
+    """The registration lifecycle of §6.2 (R-5.4, R-5.5), written only by
+    ``services``:
+
+    * created ``pending_email`` (single eligible match; a token is minted),
+      ``pending_review`` (no, several or uncertain matches) or ``rejected``
+      (single match on an ineligible list type, R-4.7);
+    * ``pending_review → pending_email`` (``approve``) or ``→ rejected``
+      (``reject``);
+    * ``pending_email → active`` when the token is presented (``arrive``,
+      ``confirm_mailbox``);
+    * a paper-keying shell is created ``active`` (``ensure_paper_registration``)
+      and, once its paper ballot is deleted, is either completed in place by
+      ``register`` or retired ``→ rejected`` when ``approve`` binds another
+      registration to its roll entry.
+
+    Only ``active`` may vote online; ``PARTICIPATING`` below is what counts.
+    """
+
     PENDING_EMAIL = "pending_email", _("en attente de confirmation")
     PENDING_REVIEW = "pending_review", _("en attente d'examen")
     ACTIVE = "active", _("active")
@@ -50,6 +68,15 @@ PARTICIPATING = models.Q(state=RegistrationState.ACTIVE) | (
 
 
 class Registration(models.Model):
+    """One person's registration for one poll: identity as declared, the roll
+    entry it is bound to, ``voter_hash`` and the voting ``channel``.
+
+    The only identity-bearing row of the voting path. It holds no reference to
+    a ballot and no ballot holds one to it (INV-1); the retention purge deletes
+    it two months after closure (§11), and the INV-2 triggers freeze it outside
+    the voting window.
+    """
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     poll = models.ForeignKey(
         "elections.Poll", on_delete=models.CASCADE, related_name="registrations"
