@@ -64,8 +64,7 @@ find a way round it.
   `ballots`, and neither app's `models.py` imports the other; `ballots` reaches
   `registrations` only through `registrations.services`, passing ids and plain
   strings, never a `Registration`. `tests/integration/test_inv1_separation.py`
-  asserts the schema and the imports of both `models.py` files and
-  `registrations/services.py`; the rest is held by review.
+  asserts all of this, over every module of both apps.
 - **INV-3.** `AuditEvent` has no update or delete path, in the application or
   the database. Events store a reference plus non-identifying state — never a
   name, date of birth or email; `reason` is a code from `audit.models.Reason`, never
