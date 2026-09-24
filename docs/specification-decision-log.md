@@ -1127,3 +1127,49 @@ entry.
 
 **Settled (2026-09-24).** No requirements change: this is R-8.7 applied to
 corrections.
+
+## 33. The clock refuses, the state admits
+
+**Found in review.** The window checks of §5.1 never read `state`, so that a
+scheduled transition running late, twice or not at all cannot admit a write
+outside the window. At the closing end that is exactly right. At the opening
+end it admitted too much: a `draft` poll, or an `announced` one whose
+`open_poll` had not run, accepted a registration posted to its URL once
+`opens_at` had passed. With no snapshot to match against, every such
+applicant landed in `pending_review`, identity data was collected for a poll
+that was not open, and R-3.10 ("neither registration nor voting is offered"
+while `announced`; a `draft` "appears on no public page") was not met.
+
+Nothing was gained in exchange. Opening is the transition whose side effects
+the write paths depend on — the snapshot every match, approval and paper entry
+reads, and the `opening_seed` — so until it runs no vote is possible on either
+channel, whatever the clock says. The public page already followed `state` at
+this end (`announced` shows as a preview).
+
+**Position.** Time bounds a window; the state admits to it. A ballot or
+registration write is accepted only when the poll is `open` **and** the clock
+is inside the window for its source. The rule behind §5.1 is kept in the form
+its reason actually needs: nothing relies on `state` to *refuse* a write past a
+deadline — `closes_at` and `paper_entry_deadline` are still enforced on the
+clock alone, so a `close_poll` that runs late still admits nothing late.
+Requiring `state = open` can only refuse more, never less, so a late
+`open_poll` delays the start of voting and cannot admit anything outside the
+window. The `withdrawn` exception of R-3.11 becomes a case of the general rule.
+
+The two ends are asymmetric because the transitions are: closing's side
+effects consume the writes (hash, counts), so the state may lag the clock;
+opening's side effects enable them, so it may not.
+
+**What the code does.** `elections.windows.check_ballot_window` and
+`check_registration_window` refuse unless `state = open`, then check the clock
+as before. The INV-2 `INSERT`/`UPDATE` triggers refuse any write to a poll not
+`open` (migration 0014), replacing their `withdrawn`-only short-circuit. The
+registration page answers 404 for a `draft` poll and shows no form while
+registrations are not accepted. Because a missed opening now visibly delays
+voting rather than silently doing nothing useful, it is surfaced: the
+dashboard flags an `announced` poll past `opens_at` or an `open` poll past
+`paper_entry_deadline`, and `/sante` reports `transitions_overdue` for
+monitoring.
+
+**Settled (2026-09-24).** No requirements change: R-3.10 already requires it.
+§4, §5.1, INV-2, T-52 and T-78 are reworded to match.
