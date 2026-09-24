@@ -83,7 +83,14 @@ second proxy. The analysis below is kept as found.
   entry. The docstring's claim that "the first entry is the client where nginx
   sets it" is inaccurate for this nginx configuration.
 
-### M4. One vote per elector under concurrency depends on SQLite's `IMMEDIATE` mode
+### M4. One vote per elector under concurrency depends on SQLite's `IMMEDIATE` mode — resolved
+
+**Resolved:** `registrations.services.mark_voted` only moves `channel` off
+`none` (`UPDATE … WHERE channel = 'none'`) and reports whether it did;
+`cast_online` refuses before inserting and `enter_paper` refuses and rolls
+back when it did not. That holds on any backend. `settings/dev.py` now keeps
+base's database options. Covered by the "concurrent casts" tests in
+`test_ballot_services.py`. The analysis below is kept as found.
 
 * **Where:** `src/config/settings/base.py` (`transaction_mode: IMMEDIATE`, now
   commented); `src/apps/ballots/services.py`, `cast_online`;

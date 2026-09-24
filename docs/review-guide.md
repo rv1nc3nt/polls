@@ -115,8 +115,11 @@ clear error message. A change that only touches one side is incomplete.
   reason the public page (`_status_key`) and the dashboard read the clock at
   the closing end. Code that treats `poll.state == OPEN` as enough to accept a
   vote is wrong.
-* **Concurrency relies on SQLite `IMMEDIATE`** (review note M4).
-  `select_for_update()` does nothing on SQLite.
+* **Row locks rely on SQLite `IMMEDIATE`.** `select_for_update()` does
+  nothing on SQLite; the write lock taken at `BEGIN` is what serialises, e.g.,
+  two concurrent modifications (T-35). One vote per elector does not depend
+  on it: `registrations.services.mark_voted` is a compare-and-set, and a
+  cast or paper entry that loses it refuses (review note M4).
 * **Audit events inside a transaction that raises are lost.** Refusals are
   logged after the rollback (`transitions._run_transition`,
   `registrations.services.register`).

@@ -536,19 +536,31 @@ def confirm_mailbox(registration: Registration) -> Registration:
 
 
 @transaction.atomic
-def mark_voted(registration_id: str, channel: Channel | str) -> None:
-    """Set ``channel`` in the same transaction as the ballot insert (INV-5, §7).
+def mark_voted(registration_id: str, channel: Channel | str) -> bool:
+    """Move ``channel`` off ``none``, in the same transaction as the ballot
+    insert (INV-5, §7), and say whether this call did it.
 
     This is how "has this person voted" is answered, always. Counting ballots
     to answer it is not available and must not be made available.
 
-    Takes an **id** rather than a registration, and returns nothing: the ballot
-    service is the caller, and giving it a ``Registration`` to hold would put a
-    voter and a ballot in one scope, which is where a join gets written. It
-    accepts a bare channel string too, so ``ballots.services`` need not import
-    the ``Channel`` enum.
+    A compare-and-set, not a plain write: the caller read ``none`` a moment
+    earlier, and a concurrent cast or paper entry may have flipped it since.
+    The ``WHERE channel = 'none'`` makes the second of two racing writers
+    update nothing on any backend — PostgreSQL re-checks the condition after
+    waiting on the row — so one vote per elector no longer rests on SQLite's
+    ``IMMEDIATE`` transactions alone (review note M4). ``False`` means the
+    caller lost and must refuse, rolling its ballot back.
+
+    Takes an **id** rather than a registration, and returns only a bool: the
+    ballot service is the caller, and giving it a ``Registration`` to hold
+    would put a voter and a ballot in one scope, which is where a join gets
+    written. It accepts a bare channel string too, so ``ballots.services``
+    need not import the ``Channel`` enum.
     """
-    Registration.objects.filter(pk=registration_id).update(channel=channel)
+    updated = Registration.objects.filter(pk=registration_id, channel=Channel.NONE).update(
+        channel=channel
+    )
+    return updated == 1
 
 
 @transaction.atomic

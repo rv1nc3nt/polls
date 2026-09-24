@@ -82,10 +82,10 @@ DATABASES = {
             ),
             # Load-bearing: every atomic block takes the write lock at BEGIN,
             # so writers serialise. SQLite ignores ``select_for_update()``, and
-            # ``ballots.services.cast_online`` reads the elector's channel
-            # without it; this setting is what makes a concurrent second cast
-            # see the first one's channel flip (INV-5). A different backend
-            # would need explicit row locks there.
+            # this is what gives it effect here — ``ballots.services.modify``
+            # locks the live row so two concurrent modifications leave one live
+            # version (T-35). One vote per elector (INV-5) does not rest on it:
+            # ``registrations.services.mark_voted`` is a compare-and-set.
             "transaction_mode": "IMMEDIATE",
         },
     }

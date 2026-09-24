@@ -467,15 +467,21 @@ def test_registration_is_refused_before_opening(db: None) -> None:
         _register(future)
 
 
-def test_marking_voted_writes_the_channel_and_returns_nothing(live_poll: Poll) -> None:
-    """INV-5: this is how "has this person voted" is answered, always."""
+def test_marking_voted_writes_the_channel_once(live_poll: Poll) -> None:
+    """INV-5: this is how "has this person voted" is answered, always. Only the
+    first write succeeds (review note M4); a second, as from a racing request,
+    changes nothing and says so."""
     registration, _ = _register(live_poll)
     services.confirm_mailbox(registration)
-    assert services.mark_voted(str(registration.pk), Channel.ONLINE) is None
+    assert services.mark_voted(str(registration.pk), Channel.ONLINE) is True
 
     registration.refresh_from_db()
     assert registration.channel == Channel.ONLINE
     assert registration.has_voted
+
+    assert services.mark_voted(str(registration.pk), Channel.PAPER) is False
+    registration.refresh_from_db()
+    assert registration.channel == Channel.ONLINE
 
 
 # --- §6.4: the paper channel's registration binding -------------------------
