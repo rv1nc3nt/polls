@@ -2107,7 +2107,7 @@ def commune_favicon_remove(request: HttpRequest) -> HttpResponse:
 
 # --- Documentation (mairie-area guide, mairie-audience FAQ) ----------------
 #
-# Not one of the eleven numbered screens: reading the manual is not itself an
+# Not one of the fourteen numbered screens: reading the manual is not itself an
 # access to any poll's data, so it goes through ``require_operator`` — any
 # signed-in, active account — rather than ``require_poll_role`` or
 # ``require_commune_admin``. Kept in sync with ``docs/manuel/`` the same way

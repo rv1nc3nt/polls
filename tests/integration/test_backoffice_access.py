@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: 0BSD
 """The back-office gate (§6.5, §3.7).
 
-§6.5 gates all eleven screens on the per-poll roles of §3.7. These tests pin the
+§6.5 gates its poll-scoped screens on the per-poll roles of §3.7. These tests pin the
 two things that are easy to get wrong and expensive to discover: that a role on
 one poll is not a role on another, and that ``commune_admin`` is a commune-level
 flag rather than a superuser.

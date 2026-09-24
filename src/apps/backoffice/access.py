@@ -1,15 +1,16 @@
 # SPDX-License-Identifier: 0BSD
 """The gate on every back-office screen (§6.5, §3.7).
 
-§6.5 requires all eleven screens to be "scoped to a poll and gated by the
-per-poll roles of §3.7". That is one decision, made here, rather than eleven
-ad-hoc checks in eleven views: a screen that forgets the check is a screen that
-shows ballots to whoever has the URL, and the failure is silent.
+§6.5's numbered screens — fourteen — are either scoped to a poll and "gated by
+the per-poll roles of §3.7", or commune-level (3, 10, 12, 13 and 14; 11, the
+first run, only while no account exists). That is one decision, made here,
+rather than an ad-hoc check in every view: a screen that forgets the check is
+a screen that shows ballots to whoever has the URL, and the failure is silent.
 
 **`commune_admin` is not a superuser.** §3.7 makes `poll_admin`,
 `entry_operator` and `auditor` per-poll assignments and `commune_admin` a
 commune-level flag — "gère les comptes et crée les scrutins". So the flag opens
-the commune-level screens (§6.5.10, §6.5.11) and the poll index, and grants
+the commune-level screens (3, 10, 12, 13 and 14) and the poll index, and grants
 nothing on any individual poll. A commune admin who needs to key a paper ballot
 grants themselves `entry_operator` first, which writes a `ROLE_ASSIGNED` event
 (§10). That is the point: screen 5 is the one place where a voter's identity

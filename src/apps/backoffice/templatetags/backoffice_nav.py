@@ -108,7 +108,7 @@ _GLOBAL_ITEMS: tuple[_Item, ...] = (
     _Item(_("Messagerie"), "mail_settings", (_COMMUNE,), icon="mail"),
     _Item(_("Modèles de scrutin"), "template_admin", (_COMMUNE,), icon="templates"),
     _Item(_("Paramètres de la commune"), "commune_settings", (_COMMUNE,), icon="commune"),
-    # Documentation, not one of the eleven numbered screens (views.py):
+    # Documentation, not one of the fourteen numbered screens (views.py):
     # open to every signed-in operator, like "Scrutins" above — no _COMMUNE
     # sentinel, since require_operator is the gate, not require_commune_admin.
     _Item(_("Aide"), "manual_index", owns=("manual_page", "manual_image"), icon="help"),

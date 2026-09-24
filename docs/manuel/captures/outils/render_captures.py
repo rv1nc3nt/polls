@@ -1,4 +1,4 @@
-"""Render the real screens to self-contained HTML captures under docs/captures/.
+"""Render the real screens to self-contained HTML captures under docs/manuel/captures/.
 
 No browser is available in this environment to rasterise them; each file is the
 genuine page markup with the stylesheet inlined, so it opens stand-alone and can
