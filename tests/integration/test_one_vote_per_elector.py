@@ -2,7 +2,7 @@
 """Every ordering of what can happen to one elector leaves them one vote at most.
 
 The journeys elsewhere each pin one path through register, confirm, cast,
-modify, key on paper, countersign, delete, and review. The double-vote
+modify, key on paper, countersign, correct, delete, and review. The double-vote
 question (INV-5, R-9.2, R-9.3, R-9.4) is about the paths nobody thought to
 write down, so this walks all of them: every sequence of those actions up to
 ``DEPTH`` long, against one roll entry, each action attempted whether or not it
@@ -13,6 +13,8 @@ step the invariants must hold:
   or the online vote its one registration's channel records (INV-4, INV-5);
 * the ballots in force match the channel indicators, source for source, so the
   closure counts agree with the hash (§9).
+* no paper version counts without a countersignature of that very version by
+  an operator other than its author (R-8.7, decision log #32).
 
 The tree is explored depth-first with a savepoint per node, rolled back on the
 way up, so each branch starts from exactly the state its prefix produced.
@@ -30,7 +32,8 @@ from django.db import transaction
 from django.db.models import Count, Q
 from django.utils import timezone
 
-from apps.audit.models import Reason
+from apps.audit import services as audit
+from apps.audit.models import Action, AuditEvent, Reason
 from apps.ballots import services as ballots
 from apps.ballots.models import Ballot, BallotSource, BallotStatus, PaperBallotLink
 from apps.core.models import User
@@ -154,6 +157,13 @@ def countersign(c: Cast, w: World) -> World:
     return w
 
 
+def correct_paper(c: Cast, w: World) -> World:
+    ballots.correct_paper(
+        _paper_in_force(c), [["b"], ["a"], ["c"]], str(c.keyer.pk), Reason.KEYING_ERROR, ""
+    )
+    return w
+
+
 def delete_paper(c: Cast, w: World) -> World:
     ballots.delete_paper(_paper_in_force(c), str(c.signer.pk), Reason.VOTER_REQUEST, "")
     return w
@@ -168,6 +178,7 @@ ACTIONS: dict[str, Callable[[Cast, World], World]] = {
     "modify": modify,
     "key": key_paper,
     "countersign": countersign,
+    "correct": correct_paper,
     "delete": delete_paper,
 }
 
@@ -194,6 +205,13 @@ def _check(c: Cast, path: tuple[str, ...]) -> None:
     in_force = Ballot.objects.filter(poll=c.poll, status__in=IN_FORCE)
     assert in_force.filter(source=BallotSource.ONLINE).count() == by_channel["online"], path
     assert in_force.filter(source=BallotSource.PAPER).count() == by_channel["paper"], path
+    # R-8.7: no paper version is counted unless a second operator countersigned
+    # *that version* — a name carried over from an earlier ranking does not count.
+    for link in PaperBallotLink.objects.filter(poll=c.poll, ballot__status=BallotStatus.LIVE):
+        signed = AuditEvent.objects.filter(
+            action=Action.PAPER_BALLOT_COUNTERSIGNED, object_ref=audit.ref(link.ballot)
+        ).exclude(actor_id=link.operator_id)
+        assert signed.exists(), path
     # One person: never more than one online ballot chain live at once.
     assert Ballot.live.filter(poll=c.poll, source=BallotSource.ONLINE).count() <= 1, path
 

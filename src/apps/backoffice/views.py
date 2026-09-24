@@ -1345,7 +1345,12 @@ def paper_ballot(request: HttpRequest, poll: Poll, ballot_id: str) -> HttpRespon
                     new = ballots.correct_paper(
                         ballot, form.cleaned_data["ranking"], operator_id, reason, note
                     )
-                    messages.success(request, _("Bulletin rectifié."))
+                    messages.success(
+                        request,
+                        _("Bulletin rectifié ; il attend un nouveau contreseing.")
+                        if new.status == BallotStatus.PENDING_COUNTERSIGN
+                        else _("Bulletin rectifié."),
+                    )
                     return redirect(
                         "backoffice:paper_ballot", poll_id=str(poll.pk), ballot_id=str(new.pk)
                     )

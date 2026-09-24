@@ -646,6 +646,12 @@ modifier leur vote : réparer une erreur de saisie n'est pas le même acte qu'un
 électeur qui change d'avis. La **suppression** efface l'indicateur de canal et
 **rouvre le vote en ligne** pour l'électeur concerné.
 
+Si le scrutin exige un contreseing, un bulletin corrigé **repasse en attente de
+contreseing**, même s'il avait déjà été contresigné : le second opérateur avait
+validé un classement qui n'existe plus. Il n'est plus compté tant qu'un autre
+opérateur que celui qui l'a corrigé ne l'a pas contresigné à nouveau (écran 7).
+Corriger peu avant l'échéance de saisie peut donc bloquer la clôture.
+
 **Figure 16d — Liste des bulletins papier saisis.**
 
 ![Liste des bulletins papier saisis](captures/img/16d-mairie-bulletins-papier-liste.png)
@@ -665,8 +671,9 @@ mauvaise mine quand on le découvre au lieu de l'annoncer.
 
 Présent **uniquement** si `paper_requires_countersign` est activé. File des
 saisies en attente d'un second opérateur nommé. Tant qu'une saisie attend, elle
-**n'est pas comptée**. Le contreseing est lui-même une écriture sur le bulletin
-et reste permis dans la même fenêtre que la saisie.
+**n'est pas comptée**. Une saisie corrigée y revient. Le contreseing est
+lui-même une écriture sur le bulletin et reste permis dans la même fenêtre que
+la saisie.
 
 ## 8. Clôture et publication (écran 9)
 

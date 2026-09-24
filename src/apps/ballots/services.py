@@ -315,8 +315,15 @@ def correct_paper(
     permits electors to modify their votes.
 
     Inserts ``version + 1`` keeping the tracking code, marks the prior row
-    ``superseded``, and gives the new version its own ``PaperBallotLink``
-    inheriting the countersignature (D5): a typo fix does not re-enter screen 7.
+    ``superseded``, and gives the new version its own ``PaperBallotLink`` naming
+    the correcting operator.
+
+    Where the poll requires countersignature (R-8.7), the new version goes back
+    to ``pending_countersign`` with no countersignature, whatever the old one
+    had: the second operator validated a ranking that no longer exists, and
+    carrying their name over would let one operator rewrite a countersigned
+    ballot alone (decision log #32). The corrector is the version's operator,
+    so ``countersign`` refuses them; any other operator may validate it.
     """
     check_ballot_window(ballot.poll, BallotSource.PAPER)
     if not reason:
@@ -339,13 +346,13 @@ def correct_paper(
     # new one lands.
     locked.status = BallotStatus.SUPERSEDED
     locked.save(update_fields=["status"])
-    new = _insert(poll, ranking, in_force, version=prior_version + 1, tracking_code=prior_code)
+    status = BallotStatus.PENDING_COUNTERSIGN if poll.paper_requires_countersign else in_force
+    new = _insert(poll, ranking, status, version=prior_version + 1, tracking_code=prior_code)
     PaperBallotLink.objects.create(
         poll=poll,
         ballot=new,
         roll_entry=prior_link.roll_entry,
         operator=operator,
-        countersigned_by=prior_link.countersigned_by,
         language=prior_link.language,
         note=note,
     )
@@ -354,8 +361,8 @@ def correct_paper(
         poll=poll,
         actor=operator,
         object_ref=audit.ref(new),
-        before={"ranking": before, "version": prior_version},
-        after={"ranking": ranking, "version": new.version},
+        before={"ranking": before, "version": prior_version, "status": in_force},
+        after={"ranking": ranking, "version": new.version, "status": new.status},
         reason=reason,
     )
     return new

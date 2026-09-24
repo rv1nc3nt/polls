@@ -1102,3 +1102,28 @@ the paper count is a subtraction of two totals, never a join.
 **Settled (2026-09-24).** Spec §9 lists the figure. No requirements change:
 R-8.7 bis already requires that uncountersigned entries be neither counted nor
 dropped in silence.
+
+## 32. A corrected paper ballot is countersigned again
+
+**Found in review.** A correction (R-8.5) carried the previous version's
+countersignature over to the new one, which stayed live. On a poll requiring
+countersignature (R-8.7), one operator could therefore key a ballot, have it
+countersigned, then correct it to any ranking — counted, and shown as validated
+by a second operator who never saw that ranking. The before/after audit event
+was the only trace.
+
+**What the code does.** On such a poll, `correct_paper` writes the new version
+`pending_countersign`, with no countersignature, whatever the previous status.
+The corrector is the new version's operator, so `countersign` refuses them;
+another operator validates it on screen 7. The audit event records the status
+before and after. On a poll without countersignature nothing changes.
+
+**Consequence.** A correction shortly before `paper_entry_deadline` puts the
+ballot back in the queue, and closure is refused until it is countersigned or
+the poll admin overrides with a reason (R-8.7 bis) — in which case it is
+published as uncountersigned (#31). That is the intended cost: the requirement
+is that no entry counts without a second operator, and a correction is an
+entry.
+
+**Settled (2026-09-24).** No requirements change: this is R-8.7 applied to
+corrections.

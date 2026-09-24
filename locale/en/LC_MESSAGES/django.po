@@ -5148,3 +5148,7 @@ msgstr "already registered, has not voted"
 #: src/templates/publicsite/results.html
 msgid "Bulletins papier non contresignés, non décomptés"
 msgstr "Paper ballots not countersigned, not counted"
+
+#: src/apps/backoffice/views.py
+msgid "Bulletin rectifié ; il attend un nouveau contreseing."
+msgstr "Ballot corrected; it now awaits a new countersignature."
