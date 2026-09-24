@@ -21,6 +21,10 @@ use crate::sha256::{hex, sha256};
 pub struct Expected<'a> {
     /// The poll's tally method, as its results page states it.
     pub method: Method,
+    /// The poll's option ids, from its results page. Without them the options
+    /// are those some ballot ranks, so one nobody ranked is missing from the
+    /// matrix and the counts (it cannot win: every ballot ranks something).
+    pub options: Option<&'a [String]>,
     pub closure_hash: Option<&'a str>,
     pub opening_seed: Option<&'a str>,
     pub winner: Option<&'a str>,
@@ -53,6 +57,9 @@ pub enum VerifyError {
     Csv(String),
     /// `Expected::opening_seed` was given but is not hexadecimal.
     OpeningSeedNotHex,
+    /// A ballot ranks an option absent from `Expected::options`: the list or
+    /// the file is not this poll's.
+    UnknownOption(String),
 }
 
 /// Recompute the closure hash and the result under `expected.method` from the
@@ -63,7 +70,16 @@ pub fn verify(csv_text: &str, expected: &Expected) -> Result<Report, VerifyError
     let serialised = canonical_serialisation(&ballots);
     let hash = sha256(&serialised);
     let closure_hash = hex(&hash);
-    let options = options_in(&ballots);
+    let ranked = options_in(&ballots);
+    let options = match expected.options {
+        None => ranked,
+        Some(listed) => {
+            if let Some(unknown) = ranked.iter().find(|o| !listed.contains(o)) {
+                return Err(VerifyError::UnknownOption(unknown.clone()));
+            }
+            listed.to_vec()
+        }
+    };
     let rankings: Vec<Vec<Vec<String>>> = ballots.iter().map(|b| b.ranking.clone()).collect();
     // The pairwise matrix is published for every method, so it is recomputed
     // for every method too.
@@ -198,5 +214,28 @@ mod tests {
         let report = verify(DIVERGENT, &seeded).ok().expect("parses");
         assert!(report.tiebreak_order.is_some());
         assert!(report.final_winner.is_some());
+    }
+
+    #[test]
+    fn a_listed_option_nobody_ranked_is_in_the_matrix_and_the_counts() {
+        // Review note L5: the CSV alone cannot show an unranked option.
+        let listed: Vec<String> = ["a", "b", "c", "d"].iter().map(|s| s.to_string()).collect();
+        let expected =
+            Expected { method: Method::Plurality, options: Some(&listed), ..Default::default() };
+        let report = verify(DIVERGENT, &expected).ok().expect("parses");
+        assert_eq!(report.options, listed);
+        assert_eq!(report.matrix.len(), 4);
+        assert_eq!(report.counts, Some(vec![3, 2, 2, 0]));
+        assert_eq!(report.winners, vec!["a".to_string()]);
+    }
+
+    #[test]
+    fn a_ranked_option_missing_from_the_list_is_refused() {
+        let listed: Vec<String> = ["a", "b"].iter().map(|s| s.to_string()).collect();
+        let expected = Expected { options: Some(&listed), ..Default::default() };
+        match verify(DIVERGENT, &expected) {
+            Err(VerifyError::UnknownOption(option)) => assert_eq!(option, "c"),
+            _ => panic!("expected UnknownOption"),
+        }
     }
 }

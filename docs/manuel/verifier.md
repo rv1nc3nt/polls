@@ -127,7 +127,9 @@ La fenêtre « Vérificateur indépendant » propose trois étapes :
    fenêtre.
 2. **Valeurs à comparer** — choisissez la **méthode de dépouillement** que
    la page de résultats indique (Schulze, majoritaire ou par assentiment),
-   puis collez l'**empreinte de clôture attendue** dans le champ du même nom. En cas d'égalité (voir plus bas), collez aussi la
+   et, si vous le souhaitez, les **identifiants des options** du scrutin,
+   séparés par des virgules ; puis collez l'**empreinte de clôture attendue**
+   dans le champ du même nom. En cas d'égalité (voir plus bas), collez aussi la
    **graine d'ouverture** ; pour vérifier également le vainqueur annoncé,
    renseignez son identifiant dans **vainqueur annoncé**. Ces trois champs
    sont facultatifs — sans eux, l'application affiche quand même ce qu'elle a
@@ -237,6 +239,14 @@ Schulze, et il indique en première ligne (`method`) la méthode qu'il a
 appliquée. Un vainqueur recalculé selon une autre méthode que celle du scrutin
 peut différer sans que rien ne soit faux. La vérification de l'empreinte,
 elle, vaut quelle que soit la méthode.
+
+Le fichier CSV ne dit pas non plus quelles options le scrutin proposait : il
+ne connaît que celles qu'un bulletin au moins a classées. Pour retrouver
+toutes les lignes de la matrice publiée, y compris celle d'une option que
+personne n'a classée, ajoutez `--options` suivi des identifiants des options,
+séparés par des virgules (`--options option-a,option-b,option-c`). Une option
+absente de la liste mais classée par un bulletin est signalée comme une
+erreur : la liste ou le fichier n'est pas celui du scrutin.
 
 #### En cas d'égalité (départage)
 

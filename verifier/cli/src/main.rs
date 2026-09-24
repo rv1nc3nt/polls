@@ -15,11 +15,15 @@
 //!
 //! ```text
 //! polls-verifier ballots.csv [--method schulze|plurality|approval] \
-//!     [--closure-hash <hex>] [--opening-seed <hex>] [--winner <option_id>]
+//!     [--options <id,id,…>] [--closure-hash <hex>] [--opening-seed <hex>] \
+//!     [--winner <option_id>]
 //! ```
 //!
 //! `--method` is the one the results page states (its French label is
 //! accepted too); the CSV does not carry it. Without it, Schulze.
+//! `--options` lists the poll's option ids, also from the results page, so an
+//! option no ballot ranked still gets its row; without it, only ranked
+//! options appear.
 //!
 //! Exit codes: 0 agreement, 1 disagreement, 2 usage or input error.
 //!
@@ -38,7 +42,7 @@ fn arg_value(args: &[String], flag: &str) -> Option<String> {
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let Some(path) = args.first().filter(|a| !a.starts_with("--")) else {
-        eprintln!("usage: polls-verifier <ballots.csv> [--method schulze|plurality|approval] [--closure-hash <hex>] [--opening-seed <hex>] [--winner <option_id>]");
+        eprintln!("usage: polls-verifier <ballots.csv> [--method schulze|plurality|approval] [--options <id,id,…>] [--closure-hash <hex>] [--opening-seed <hex>] [--winner <option_id>]");
         return ExitCode::from(2);
     };
 
@@ -60,11 +64,15 @@ fn main() -> ExitCode {
             }
         },
     };
+    let options: Option<Vec<String>> = arg_value(&args, "--options").map(|list| {
+        list.split(',').map(str::trim).filter(|o| !o.is_empty()).map(String::from).collect()
+    });
     let closure_hash = arg_value(&args, "--closure-hash");
     let opening_seed = arg_value(&args, "--opening-seed");
     let winner = arg_value(&args, "--winner");
     let expected = Expected {
         method,
+        options: options.as_deref(),
         closure_hash: closure_hash.as_deref(),
         opening_seed: opening_seed.as_deref(),
         winner: winner.as_deref(),
@@ -78,6 +86,10 @@ fn main() -> ExitCode {
         }
         Err(VerifyError::OpeningSeedNotHex) => {
             eprintln!("--opening-seed must be hex");
+            return ExitCode::from(2);
+        }
+        Err(VerifyError::UnknownOption(option)) => {
+            eprintln!("a ballot ranks {option}, which --options does not list");
             return ExitCode::from(2);
         }
     };

@@ -116,7 +116,8 @@ The "Independent verifier" window offers three steps:
    CSV, or drop it directly onto the window.
 2. **Values to compare** — choose the **tally method** the results page
    gives (Schulze, majoritaire — plurality — or par assentiment —
-   approval), then paste the **expected closure hash** into the field of the
+   approval), and, if you wish, the poll's **option identifiers**, separated
+   by commas; then paste the **expected closure hash** into the field of the
    same name. In case of a tie (see below), also paste the
    **opening seed**; to also check the announced winner, enter its
    identifier in **announced winner**. These three fields are optional —
@@ -219,6 +220,13 @@ Without `--method`, the verifier counts under the Schulze method, and its
 first line (`method`) states which method it applied. A winner recomputed
 under a different method from the poll's may differ without anything being
 wrong. The hash check, on the other hand, holds whatever the method.
+
+Nor does the CSV file say which options the poll offered: it knows only
+those at least one ballot ranked. To get every row of the published matrix,
+including that of an option nobody ranked, add `--options` followed by the
+option identifiers, separated by commas (`--options
+option-a,option-b,option-c`). An option a ballot ranks but the list omits is
+reported as an error: the list or the file is not the poll's.
 
 #### In case of a tie (tie-break)
 

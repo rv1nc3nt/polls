@@ -31,6 +31,7 @@ struct VerifierApp {
     csv_path: Option<PathBuf>,
     file_error: Option<String>,
     method: Method,
+    expected_options: String,
     expected_closure_hash: String,
     expected_opening_seed: String,
     expected_winner: String,
@@ -79,7 +80,16 @@ impl VerifierApp {
         let closure_hash = non_empty(&self.expected_closure_hash);
         let opening_seed = non_empty(&self.expected_opening_seed);
         let winner = non_empty(&self.expected_winner);
-        let expected = Expected { method: self.method, closure_hash, opening_seed, winner };
+        let options: Option<Vec<String>> = non_empty(&self.expected_options).map(|list| {
+            list.split(',').map(str::trim).filter(|o| !o.is_empty()).map(String::from).collect()
+        });
+        let expected = Expected {
+            method: self.method,
+            options: options.as_deref(),
+            closure_hash,
+            opening_seed,
+            winner,
+        };
 
         self.outcome = Some(match report::verify(&text, &expected) {
             Ok(report) => Outcome::Report(report),
@@ -90,6 +100,10 @@ impl VerifierApp {
                 "La graine d'ouverture doit être une suite hexadécimale (par exemple a1b2c3…)."
                     .to_string(),
             ),
+            Err(VerifyError::UnknownOption(option)) => Outcome::Error(format!(
+                "Un bulletin classe l'option {option}, absente de la liste des options saisie : \
+                 la liste ou le fichier n'est pas celui de ce scrutin."
+            )),
         });
     }
 }
@@ -159,6 +173,14 @@ impl eframe::App for VerifierApp {
                             ui.radio_value(&mut self.method, Method::Plurality, "majoritaire");
                             ui.radio_value(&mut self.method, Method::Approval, "par assentiment");
                         });
+                        ui.end_row();
+
+                        ui.label("Identifiants des options");
+                        ui.add(
+                            egui::TextEdit::singleline(&mut self.expected_options)
+                                .hint_text("séparés par des virgules, ex. option-a, option-b")
+                                .desired_width(400.0),
+                        );
                         ui.end_row();
 
                         ui.label("Empreinte de clôture attendue");

@@ -92,7 +92,9 @@ def test_t10_verifier_agrees_with_the_python_tally(
         CanonicalBallot(TrackingCode(code), [[OptionId(o) for o in g] for g in ranking])
         for code, ranking in rows
     ]
-    options = [OptionId("a"), OptionId("b"), OptionId("c")]
+    # "d" is an option no ballot ranks: passed with --options, the verifier
+    # must still agree (review note L5).
+    options = [OptionId("a"), OptionId("b"), OptionId("c"), OptionId("d")]
     expected_hash = closure_hash(ballots)
     result = tally([b.ranking for b in ballots], options, method)
 
@@ -105,6 +107,8 @@ def test_t10_verifier_agrees_with_the_python_tally(
             str(csv_path),
             "--method",
             str(method),
+            "--options",
+            ",".join(options),
             "--closure-hash",
             expected_hash.hex(),
             "--opening-seed",
