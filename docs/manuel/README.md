@@ -35,9 +35,9 @@ public n'a par construction pas encore de compte espace mairie, et il lit ce
 guide dans le dépôt.
 
 Chacun des cinq documents servis existe aussi en anglais, dans un fichier
-jumeau suffixé `-en` (`guide-electeur-en.md`, etc.). Le français reste la seule langue de référence (ci-dessus) : la version
-anglaise est une traduction, à corriger pour suivre le français plutôt que
-l'inverse. La langue servie suit celle de la page (le sélecteur de langue
+jumeau suffixé `-en` (`guide-electeur-en.md`, etc.). Le français reste la
+seule langue de référence (ci-dessus) : la version anglaise est une
+traduction, à corriger pour suivre le français plutôt que l'inverse. La langue servie suit celle de la page (le sélecteur de langue
 déjà présent sur le site), pas un réglage séparé.
 
 ## À propos des captures d'écran
