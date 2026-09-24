@@ -107,6 +107,9 @@
       <dt>{% translate "Inscrits (inscriptions actives)" %}</dt><dd>{{ screen9.document.counts.registered }}</dd>
       <dt>{% translate "Votes en ligne" %}</dt><dd>{{ screen9.document.counts.ballots_online }}</dd>
       <dt>{% translate "Votes papier" %}</dt><dd>{{ screen9.document.counts.ballots_paper }}</dd>
+      {% if screen9.document.counts.paper_uncountersigned %}
+        <dt>{% translate "Bulletins papier non contresignés, non décomptés" %}</dt><dd>{{ screen9.document.counts.paper_uncountersigned }}</dd>
+      {% endif %}
       <dt>{% translate "N'ont pas voté" %}</dt><dd>{{ screen9.document.counts.non_voters }}</dd>
     </dl>
   </section>

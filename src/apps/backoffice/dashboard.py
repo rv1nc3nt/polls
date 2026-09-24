@@ -45,6 +45,10 @@ class Participation:
     voted_online: int
     voted_paper: int
     not_voted: int
+    #: At closure only: paper entries a countersignature override left out of
+    #: the tally (R-8.7 bis, decision log #31). Zero while the poll is open,
+    #: where a pending entry may yet be countersigned and counts as a vote.
+    paper_uncountersigned: int = 0
     #: Unavailable on a closed poll: §9 freezes turnout, not the review queue.
     pending_review: int | None = None
     pending_email: int | None = None
@@ -61,6 +65,7 @@ def participation(poll: Poll) -> Participation:
             registered=counts.get("registered", 0),
             voted_online=counts.get("ballots_online", 0),
             voted_paper=counts.get("ballots_paper", 0),
+            paper_uncountersigned=counts.get("paper_uncountersigned", 0),
             not_voted=counts.get("non_voters", 0),
         )
 

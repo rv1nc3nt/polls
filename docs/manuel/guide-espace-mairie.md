@@ -687,7 +687,9 @@ La clôture est **refusée** tant qu'une saisie attend un contreseing. L'adminis
 du scrutin soit obtient les contreseings, soit **passe outre avec un motif
 obligatoire**, qui est enregistré et **apparaît dans la publication**. Les
 saisies non contresignées ne sont pas comptées, et l'abandon silencieux de
-bulletins à la clôture n'est pas permis.
+bulletins à la clôture n'est pas permis : la publication indique leur nombre à
+part (« Bulletins papier non contresignés, non décomptés »), distinct des votes
+papier, qui correspondent exactement aux bulletins publiés.
 
 ### Rapprochement des bulletins papier
 

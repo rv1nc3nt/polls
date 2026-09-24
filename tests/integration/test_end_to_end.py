@@ -494,6 +494,7 @@ def test_a_poll_from_roll_import_to_independent_re_tally(
         "registered": 7,  # Dupont, Leroy, Bernard, Durand, Martin, Petit, Roux
         "ballots_online": 3,
         "ballots_paper": 3,
+        "paper_uncountersigned": 0,
         "non_voters": 1,
     }
     assert document["ballot_count"] == counts["ballots_online"] + counts["ballots_paper"] == 6

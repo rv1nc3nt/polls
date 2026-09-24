@@ -294,7 +294,13 @@ def test_a_paper_ballot_keyed_for_an_unconfirmed_registration_is_counted(
         "not_voted": 0,
     }
     counts = closure.frozen_counts(poll)
-    assert counts == {"registered": 1, "ballots_online": 0, "ballots_paper": 1, "non_voters": 0}
+    assert counts == {
+        "registered": 1,
+        "ballots_online": 0,
+        "ballots_paper": 1,
+        "paper_uncountersigned": 0,
+        "non_voters": 0,
+    }
     assert counts["ballots_paper"] == Ballot.live.filter(poll=poll).count()
 
 

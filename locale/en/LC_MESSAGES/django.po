@@ -5142,3 +5142,9 @@ msgstr "Existing registration"
 #: src/templates/backoffice/registration_queue.html
 msgid "déjà inscrite, n'a pas voté"
 msgstr "already registered, has not voted"
+
+#: src/templates/backoffice/dashboard.html
+#: src/templates/backoffice/results_publish.html
+#: src/templates/publicsite/results.html
+msgid "Bulletins papier non contresignés, non décomptés"
+msgstr "Paper ballots not countersigned, not counted"

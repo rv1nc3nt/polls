@@ -1077,3 +1077,28 @@ shown as taken.
 exist, and only the person at the counter can tell them apart (R-8.3). A
 refusal would turn a rare false alarm into a lost vote; the confirmation puts
 the judgement where R-8.3 puts it and leaves a trace. No requirements change.
+
+## 31. Uncountersigned paper entries are published as their own figure
+
+**Request.** When a poll admin closes past outstanding countersignatures
+(R-8.7 bis), the entries still awaiting one are left out of the tally, the hash
+and the ballot list — but their electors are on the paper channel, so
+`ballots_paper` counted them. The published counts then exceeded the ballot
+list, with only the override reason to explain it.
+
+**What the code does.** `frozen_counts` publishes `ballots_paper` as the paper
+ballots actually counted and adds `paper_uncountersigned`, the entries set
+aside. `ballots_online + ballots_paper` is the ballot count, and `registered =
+ballots_online + ballots_paper + paper_uncountersigned + non_voters`. Those
+electors are not non-voters: they voted, and their ballot was not validated.
+The figure is always present in a new publication (zero, usually), and shown on
+screens 1 and 9 and the public results page only when non-zero. Counts frozen
+before this change keep their stored shape and are not recomputed (T-58).
+
+**Why no INV-1 concern.** The new figure is a bare count of `pending_countersign`
+paper ballots. Each hangs off one paper-channel registration (INV-4, INV-5), so
+the paper count is a subtraction of two totals, never a join.
+
+**Settled (2026-09-24).** Spec §9 lists the figure. No requirements change:
+R-8.7 bis already requires that uncountersigned entries be neither counted nor
+dropped in silence.
