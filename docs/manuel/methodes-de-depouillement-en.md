@@ -312,12 +312,6 @@ def tiebreak_order(
     ]
     drawn.sort(key=lambda pair: pair[1])
     return drawn
-
-
-def break_tie(tied: Sequence[OptionId], opening_seed: bytes, closure_hash: bytes) -> OptionId:
-    if not tied:
-        raise ValueError("break_tie called with no tied options")
-    return tiebreak_order(tied, opening_seed, closure_hash)[0][0]
 ```
 
 No pseudo-random generator, no sort keyed by a seed: only SHA-256 hashes,

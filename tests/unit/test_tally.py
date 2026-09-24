@@ -7,7 +7,7 @@ import pytest
 
 from apps.core.types import OptionId
 from apps.tally.methods import Method, pairwise_matrix, tally
-from apps.tally.tiebreak import break_tie, tiebreak_order
+from apps.tally.tiebreak import tiebreak_order
 
 A, B, C = OptionId("a"), OptionId("b"), OptionId("c")
 OPTIONS = [A, B, C]
@@ -25,9 +25,10 @@ def test_t9_cyclic_majority_ties_and_the_tiebreak_resolves_it() -> None:
     assert result.winner is None
     assert set(result.tied) == {A, B, C}
 
-    first = break_tie(result.tied, b"\x01" * 32, b"\x02" * 32)
-    again = break_tie(result.tied, b"\x01" * 32, b"\x02" * 32)
+    first = tiebreak_order(result.tied, b"\x01" * 32, b"\x02" * 32)
+    again = tiebreak_order(result.tied, b"\x01" * 32, b"\x02" * 32)
     assert first == again
+    assert {option for option, _ in first} == {A, B, C}
 
 
 def test_t39_empty_ballot_set_reports_absence_rather_than_failing() -> None:

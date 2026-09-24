@@ -25,7 +25,7 @@ import pytest
 from apps.core.canonical import CanonicalBallot, closure_hash
 from apps.core.types import OptionId, TrackingCode
 from apps.tally.methods import Method, tally
-from apps.tally.tiebreak import break_tie
+from apps.tally.tiebreak import tiebreak_order
 
 VERIFIER_DIR = Path(__file__).resolve().parents[2] / "verifier"
 pytestmark = pytest.mark.skipif(
@@ -97,7 +97,7 @@ def test_t10_verifier_agrees_with_the_python_tally(
     result = tally([b.ranking for b in ballots], options, method)
 
     opening_seed = bytes(range(32))
-    winner = result.winner or break_tie(result.tied, opening_seed, expected_hash)
+    winner = result.winner or tiebreak_order(result.tied, opening_seed, expected_hash)[0][0]
 
     completed = subprocess.run(  # noqa: S603
         [
