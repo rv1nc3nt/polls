@@ -433,6 +433,11 @@ and §12's acceptance tests (T-67, T-68) were updated to match. No requirements
 change was needed — R-2.1 already said this; the specification and the code
 were the two that had to catch up.
 
+**Superseded in part** by #19 (no opening from `draft`: a poll must be
+`announced` first), #33 (the window checks now require `state = open`) and #34
+(*Clôturer maintenant* is offered before the deadline too, as an early closure
+with a reason).
+
 ## 13. R-3.10's early preview is a state, not a flag
 
 Not a divergence discovered after the fact — recorded because the first
@@ -613,6 +618,9 @@ Not published: unlike the countersignature override, which R-8.7 bis and
 T-19/T-32 explicitly send into the publication, R-8.6 says only "signed and
 archived" — an internal record, visible to the poll admin and the auditor on
 screen 9, never on the public results page or in the CSV/JSON artefacts.
+
+**Since #34** the manual `close_poll` is no longer held back until
+`paper_entry_deadline`; recording the reconciliation still is.
 
 ## 17. R-8.2 bis's required content is not carried by the receipt as specified
 
@@ -851,14 +859,14 @@ an implementation detail R-3.12 leaves unspecified, not a rule it states.
 
 ## 24. A poll opened by hand ahead of `opens_at` opened in the back-office only
 
-**Specification, §4 and item 5 above.** *Ouvrir maintenant* was offered at any
+**Specification, §4 and item 12 above.** *Ouvrir maintenant* was offered at any
 time once `announced`, including ahead of `opens_at`, on the grounds that the
 window checks read the clock against `opens_at` and never `state`, so opening
 early "admits no vote before the configured instant".
 
 **Why that is wrong.** It is safe but useless, and it misleads: the back-office
 and the public site disagreed about the same poll. The dashboard read `open`;
-the public listing (`_status_key`, item 15) rightly kept it under "à venir"
+the public listing (`_status_key`, item 14) rightly kept it under "à venir"
 until the clock reached `opens_at`, and neither votes nor registrations were
 accepted. A poll admin who forces the opening wants the poll open now.
 

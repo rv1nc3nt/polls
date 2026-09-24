@@ -20,7 +20,7 @@ and the functional requirements are French.
 | `withdrawn` | retiré | Terminal. The poll is hidden from the public and every write is refused (R-3.11). |
 | sandbox poll (`is_sandbox`) | scrutin d'essai | A rehearsal poll that runs the full lifecycle, is never listed or counted, and is the only kind that can be deleted (R-3.7). |
 | share link (`preview_token`) | lien d'aperçu | Unguessable URL for previewing a draft or reaching a sandbox poll (`elections/sharelink.py`). |
-| window | fenêtre de vote | The interval in which a write is accepted: `opens_at` to `closes_at` online, to `paper_entry_deadline` for paper. Checked on the clock, not on `state` (INV-2, `elections/windows.py`). |
+| window | fenêtre de vote | The interval in which a write is accepted: `opens_at` to `closes_at` online, to `paper_entry_deadline` for paper. Admitted only while the poll is `open`, and bounded by the clock, never by `state` alone (INV-2, `elections/windows.py`, decision log #33). |
 | paper entry deadline | fin de saisie des bulletins papier | Instant after `closes_at` until which paper ballots may still be keyed in (§6.4). `close_poll` runs at this instant. |
 | extension | report de la clôture | Moving `closes_at` later while open, with a reason; `paper_entry_deadline` moves with it (R-3.4). |
 | template (`PollTemplate`) | modèle de scrutin | A saved set of tally and ballot rules used to create new polls (screen 13). |
