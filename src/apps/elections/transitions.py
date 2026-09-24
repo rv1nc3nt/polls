@@ -315,6 +315,7 @@ def close_poll(
     actor: User | None = None,
     override_reason: Reason | str = "",
     now: datetime | None = None,
+    early_reason: Reason | str = "",
 ) -> Poll:
     """``open → closed``.
 
@@ -329,26 +330,44 @@ def close_poll(
     ``pending_countersign`` ballots outstanding; it is logged and appears in the
     publication (T-19, T-32). It cannot be supplied by a scheduled command — it
     is exactly the parameter the poll admin's manual trigger on screen 2
-    exists to supply (R-2.1). Unlike ``open_poll``, that screen offers the
-    manual call only once ``paper_entry_deadline`` has passed: an earlier
-    close would cut the window short of its advertised deadline — the window
-    checks of §5.1 admit only an ``open`` poll (decision log #33) — and freeze
-    ``closure_hash`` and the counts at that point (T-68).
+    exists to supply (R-2.1).
+
+    Called before ``paper_entry_deadline`` this is an **early closure**
+    (R-3.4, decision log #34), the mirror of an early opening: ``early_reason``
+    is then mandatory, and ``closes_at`` (if still ahead) and
+    ``paper_entry_deadline`` are brought back to the instant of closure, logged
+    as ``POLL_CLOSED_EARLY`` with both instants and shown on the public page.
+    Nothing admitted after that instant can exist, since every write requires
+    ``state = open`` (decision log #33), so the hash and counts cover exactly
+    what the window admitted. The scheduled command selects on
+    ``paper_entry_deadline ≤ now`` and so never closes early (T-68).
     """
-    return _run_transition("close_poll", _close_poll_locked, poll, actor, override_reason, now)
+    return _run_transition(
+        "close_poll", _close_poll_locked, poll, actor, override_reason, now, early_reason
+    )
 
 
 @transaction.atomic
 def _close_poll_locked(
-    poll: Poll, actor: User | None, override_reason: Reason | str, now: datetime | None
+    poll: Poll,
+    actor: User | None,
+    override_reason: Reason | str,
+    now: datetime | None,
+    early_reason: Reason | str,
 ) -> Poll:
     from .closure import compute_closure  # local: closure imports the tally
 
     poll = Poll.objects.select_for_update().get(pk=poll.pk)
+    closed_at = now or timezone.now()
+    early = poll.state == PollState.OPEN and closed_at < poll.paper_entry_deadline
     blockers = closing_blockers(poll)
     overridable = all(b.startswith("pending_countersign:") for b in blockers)
     if blockers and not (override_reason and overridable):
         raise TransitionRefused(_("Clôture refusée."), blockers)
+    if early and not early_reason:
+        raise TransitionRefused(
+            _("Une clôture anticipée exige un motif."), ["early_closure_reason_required"]
+        )
 
     if blockers:
         audit.record(
@@ -364,17 +383,40 @@ def _close_poll_locked(
     closure = compute_closure(poll)
     poll.closure_hash = closure.closure_hash
     poll.frozen_counts = closure.counts
-    poll.closed_at = now or timezone.now()
+    poll.closed_at = closed_at
     poll.state = PollState.CLOSED
-    poll.save(
-        update_fields=[
-            "closure_hash",
-            "frozen_counts",
-            "closed_at",
-            "state",
-            "closure_override_reason",
-        ]
-    )
+    update_fields = [
+        "closure_hash",
+        "frozen_counts",
+        "closed_at",
+        "state",
+        "closure_override_reason",
+    ]
+    if early:
+        # R-3.4: the dates published with the poll say when it actually
+        # closed. ``closes_at`` stays put if online voting had already stopped
+        # by the clock, which is where it really stopped.
+        planned = {
+            "closes_at": poll.closes_at.isoformat(),
+            "paper_entry_deadline": poll.paper_entry_deadline.isoformat(),
+        }
+        poll.closes_at = min(poll.closes_at, closed_at)
+        poll.paper_entry_deadline = closed_at
+        update_fields += ["closes_at", "paper_entry_deadline"]
+    poll.save(update_fields=update_fields)
+    if early:
+        audit.record(
+            action=Action.POLL_CLOSED_EARLY,
+            poll=poll,
+            actor=actor,
+            object_ref=audit.ref(poll),
+            before=planned,
+            after={
+                "closes_at": poll.closes_at.isoformat(),
+                "paper_entry_deadline": poll.paper_entry_deadline.isoformat(),
+            },
+            reason=early_reason,
+        )
     audit.record(
         action=Action.POLL_STATE_CHANGED,
         poll=poll,

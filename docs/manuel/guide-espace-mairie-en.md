@@ -195,9 +195,11 @@ two origins:
   dashboard.
 - **open → closed**: computes the **closure hash** over the whole set of
   retained ballots and **freezes the turnout counters**. Does not tally.
-  *Close now* only appears once the paper-ballot keying deadline has been
-  reached — closing earlier would freeze the hash and the counters ahead of
-  ballots the write window would still legitimately accept.
+  *Close now* is offered at any time once the poll is open. Before the
+  paper-ballot keying deadline it is an **early closure**: a reason is
+  required, registration, online voting and paper entry stop at that very
+  instant, the closing dates become that instant, and the poll's public page
+  shows the early closure and its reason, as it shows an extension.
 - **closed → published**: the tally (a pure function) is run and these
   artefacts become public.
 - **announced, open, closed or published → withdrawn** (at any

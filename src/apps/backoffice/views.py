@@ -392,11 +392,10 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
       now (R-3.4): the window checks of §5.1 read the clock and never
       ``state``, so the poll would otherwise read open here and not on the
       public site.
-    - *Clôturer maintenant* (``open → closed``) — offered only once
-      ``paper_entry_deadline`` has passed: closing early would freeze
-      ``closure_hash`` and the §9 counts ahead of ballots the write path would
-      still legitimately accept, and would hide screens 5–7 from the entry
-      operator before the window they cover has actually closed.
+    - *Clôturer maintenant* (``open → closed``) — at any time once open.
+      Before ``paper_entry_deadline`` it is an early closure (R-3.4, decision
+      log #34): a reason is mandatory, and the closing dates are brought back
+      to now, logged and shown on the public page.
     - *Retirer le scrutin* (``announced``/``open``/``closed``/``published`` →
       ``withdrawn``, R-3.11) — at any time from any of those four, with a
       mandatory reason; unlike the other three this one has no scheduled
@@ -479,18 +478,16 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
     closing = action == "close_poll"
     closing_form = ClosureOverrideForm(request.POST if closing else None)
     if closing:
-        # As above: the form only ever renders on an ``open`` poll whose
-        # ``paper_entry_deadline`` has passed.
+        # As above: the form only ever renders on an ``open`` poll.
         if poll.state != PollState.OPEN:
             raise PermissionDenied(_("Le scrutin n'est pas ouvert."))
-        if poll.paper_entry_deadline > timezone.now():
-            raise PermissionDenied(
-                _("La clôture manuelle n'est possible qu'une fois l'échéance atteinte.")
-            )
         if closing_form.is_valid():
+            # One reason field serves both guards that need one: the
+            # countersignature override (R-8.7 bis) and the early closure
+            # (R-3.4). ``close_poll`` uses each only where it applies.
             reason = closing_form.cleaned_data["reason"]
             try:
-                close_poll(poll, actor=operator, override_reason=reason)
+                close_poll(poll, actor=operator, override_reason=reason, early_reason=reason)
             except TransitionRefused as refused:
                 messages.error(request, str(refused))
             else:
@@ -618,11 +615,7 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
             "closing_form": (
                 closing_form if has_admin_role and poll.state == PollState.OPEN else None
             ),
-            "can_close_now": (
-                has_admin_role
-                and poll.state == PollState.OPEN
-                and poll.paper_entry_deadline <= timezone.now()
-            ),
+            "closing_early": poll.paper_entry_deadline > timezone.now(),
             "can_withdraw": can_withdraw,
             "withdrawal_form": withdrawal_form if can_withdraw else None,
             "withdrawal_event": withdrawal_event,

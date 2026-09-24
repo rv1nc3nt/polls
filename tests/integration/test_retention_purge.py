@@ -232,7 +232,7 @@ def test_t14_purge_keeps_everything_but_identity(db: None) -> None:
             language="fr",
         )
 
-    close_poll(poll)
+    close_poll(poll, early_reason=Reason.ADMINISTRATIVE_DECISION)
     poll = Poll.objects.get(pk=poll.pk)
     assert poll.closure_hash is not None
     closure_hash = bytes(poll.closure_hash)
@@ -307,7 +307,7 @@ def test_t54_purge_on_a_published_poll_leaves_inv2_in_force(db: None) -> None:
         _form("Dupont", "Émile", "12/05/1970", "emile.dupont@example.fr"),
         language="fr",
     )
-    close_poll(published)
+    close_poll(published, early_reason=Reason.ADMINISTRATIVE_DECISION)
     publish_poll(Poll.objects.get(pk=published.pk), operator)
     published = Poll.objects.get(pk=published.pk)
     assert published.state == PollState.PUBLISHED
@@ -331,7 +331,7 @@ def test_t54_purge_on_a_published_poll_leaves_inv2_in_force(db: None) -> None:
         _form("Dupont", "Émile", "12/05/1970", "emile.dupont@example.fr"),
         language="fr",
     )
-    close_poll(closed)
+    close_poll(closed, early_reason=Reason.ADMINISTRATIVE_DECISION)
     _age_past_retention(closed)
 
     now = timezone.now()
@@ -439,7 +439,7 @@ def test_t55_no_audit_event_carries_identity_before_or_after_the_purge(db: None)
         note="interversion b/c relevée sur le formulaire signé de Nguyen",
     )
 
-    close_poll(poll)
+    close_poll(poll, early_reason=Reason.ADMINISTRATIVE_DECISION)
     publish_poll(Poll.objects.get(pk=poll.pk), operator)
     poll = Poll.objects.get(pk=poll.pk)
 
@@ -566,7 +566,7 @@ def test_t76_a_poll_withdrawn_after_closure_keeps_the_closure_anchor(db: None) -
     _roll_entry("Dupont", "Émile", "12/05/1970", "1970-05-12")
     force_open(poll)
     poll = Poll.objects.get(pk=poll.pk)
-    close_poll(poll)
+    close_poll(poll, early_reason=Reason.ADMINISTRATIVE_DECISION)
     poll = Poll.objects.get(pk=poll.pk)
     published = publish_poll(poll, operator)
     withdrawn = withdraw_poll(published, reason=Reason.ADMINISTRATIVE_DECISION)

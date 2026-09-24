@@ -106,7 +106,7 @@ def published_poll(db: None) -> Poll:
     force_open(poll)
     _register(poll, "voter1", channel=Channel.ONLINE)
     _cast(poll, [[["a"], ["b"], ["c"]], [["a"], ["b"], ["c"]]])
-    close_poll(poll)
+    close_poll(poll, early_reason=Reason.ADMINISTRATIVE_DECISION)
     publish_poll(poll, User.objects.create_user(username="p.admin", password="x"))
     return Poll.objects.get(pk=poll.pk)
 
@@ -208,7 +208,7 @@ def test_a_poll_forced_open_in_the_database_ahead_of_its_date_is_still_not_adver
 def test_a_closed_unpublished_poll_says_the_tally_is_under_way(client: Client, db: None) -> None:
     poll = _make_poll()
     force_open(poll)
-    close_poll(poll)
+    close_poll(poll, early_reason=Reason.ADMINISTRATIVE_DECISION)
     body = client.get(f"/fr/scrutin/{poll.pk}/").content.decode()
     assert "dépouillement" in body.lower()
     assert f"/fr/scrutin/{poll.pk}/resultats/" not in body
@@ -294,7 +294,7 @@ def test_no_running_count_leaks_once_the_poll_is_closed(client: Client, db: None
     poll = _make_poll(show_live=True)
     force_open(poll)
     _register(poll, "v1", channel=Channel.ONLINE)
-    close_poll(poll)
+    close_poll(poll, early_reason=Reason.ADMINISTRATIVE_DECISION)
     body = client.get(f"/fr/scrutin/{poll.pk}/").content.decode()
     assert "Bulletins déposés" not in body
 
@@ -364,7 +364,7 @@ def test_a_logged_extension_appears_on_the_page(client: Client, db: None) -> Non
 def test_results_are_404_until_published(client: Client, db: None) -> None:
     poll = _make_poll()
     force_open(poll)
-    close_poll(poll)
+    close_poll(poll, early_reason=Reason.ADMINISTRATIVE_DECISION)
     assert client.get(f"/fr/scrutin/{poll.pk}/resultats/").status_code == 404
 
 
@@ -372,7 +372,7 @@ def test_a_sandbox_published_poll_has_no_public_results(client: Client, db: None
     poll = _make_poll(sandbox=True)
     force_open(poll)
     _cast(poll, [[["a"], ["b"], ["c"]]])
-    close_poll(poll)
+    close_poll(poll, early_reason=Reason.ADMINISTRATIVE_DECISION)
     publish_poll(poll, User.objects.create_user(username="p.admin", password="x"))
     assert client.get(f"/fr/scrutin/{poll.pk}/resultats/").status_code == 404
 
@@ -489,7 +489,7 @@ def test_t36_published_artefacts_cross_check(client: Client, db: None) -> None:
     )
     _live(corrected, [["b"], ["c"], ["a"]], BallotSource.PAPER, version=2)
 
-    close_poll(poll)
+    close_poll(poll, early_reason=Reason.ADMINISTRATIVE_DECISION)
     publish_poll(poll, User.objects.create_user(username="p.admin", password="x"))
     poll = Poll.objects.get(pk=poll.pk)
 
@@ -558,7 +558,7 @@ def _publish_with_labels(labels: dict[str, dict[str, str]]) -> Poll:
         Ballot.objects.create(
             poll=poll, tracking_code=code, ranking=ranking, source=BallotSource.ONLINE
         )
-    close_poll(poll)
+    close_poll(poll, early_reason=Reason.ADMINISTRATIVE_DECISION)
     publish_poll(poll, User.objects.create_user(username=f"admin-{poll.pk}", password="x"))
     return Poll.objects.get(pk=poll.pk)
 
@@ -782,7 +782,7 @@ def test_t75_a_withdrawn_poll_shows_only_a_fixed_notice(client: Client, db: None
     force_open(published_source)
     _register(published_source, "voter1", channel=Channel.ONLINE)
     _cast(published_source, [[["a"], ["b"], ["c"]]])
-    close_poll(published_source)
+    close_poll(published_source, early_reason=Reason.ADMINISTRATIVE_DECISION)
     publish_poll(
         Poll.objects.get(pk=published_source.pk),
         User.objects.create_user(username="p.admin2", password="x"),
@@ -869,7 +869,11 @@ def test_uncountersigned_paper_ballots_are_published_apart_from_the_counted_ones
     ballots.countersign(signed, str(signer.pk))
     ballots.enter_paper(poll, str(entries["Petit"].pk), [["c"], ["b"], ["a"]], str(keyer.pk), "fr")
 
-    closed = close_poll(poll, override_reason=Reason.COUNTERSIGN_UNAVAILABLE)
+    closed = close_poll(
+        poll,
+        override_reason=Reason.COUNTERSIGN_UNAVAILABLE,
+        early_reason=Reason.ADMINISTRATIVE_DECISION,
+    )
     publish_poll(closed, signer)
 
     document = Client().get(f"/fr/scrutin/{poll.pk}/resultats/?format=json").json()

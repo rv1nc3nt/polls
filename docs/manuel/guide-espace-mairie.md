@@ -201,10 +201,12 @@ a deux origines possibles :
   le site public dès ce moment, et non seulement dans le tableau de bord.
 - **ouvert → clos** : calcule l'**empreinte de clôture** sur l'ensemble des
   bulletins retenus et **fige les compteurs de participation**. Ne dépouille
-  pas. *Clôturer maintenant* n'est proposé qu'une fois l'échéance de saisie
-  des bulletins papier atteinte — clore plus tôt figerait l'empreinte et les
-  compteurs par avance de bulletins que la fenêtre d'écriture accepterait
-  encore légitimement.
+  pas. *Clôturer maintenant* est proposé à tout moment une fois le scrutin
+  ouvert. Avant l'échéance de saisie des bulletins papier, c'est une
+  **clôture anticipée** : un motif est obligatoire, inscriptions, vote en
+  ligne et saisie papier s'arrêtent à l'instant même, les dates de clôture
+  deviennent cet instant, et la page publique du scrutin affiche la clôture
+  anticipée avec son motif, comme elle affiche un report.
 - **clos → publié** : le dépouillement (fonction pure) est exécuté et ces
   artefacts deviennent publics.
 - **annoncé, ouvert, clos ou publié → retiré** (à tout moment, motif

@@ -30,6 +30,7 @@ from apps.elections.transitions import (
     opening_blockers,
     publish_poll,
 )
+from apps.elections.windows import WindowClosed, check_registration_window
 from tests.conftest import force_open
 
 
@@ -622,13 +623,12 @@ def test_t67_open_now_succeeds_early_and_refuses_an_unready_poll(
     assert "Ouverture refusée" in body
 
 
-def test_t68_close_now_is_gated_on_the_deadline_and_needs_a_reason_when_blocked(
+def test_t68_close_now_after_the_deadline_needs_a_reason_when_blocked(
     client: Client, open_window_poll: Poll, admin_user: User
 ) -> None:
-    """T-68: *clôturer maintenant* is refused outright, without closing the
-    poll, before ``paper_entry_deadline``; once due, refused again without a
-    reason while a ballot awaits countersignature, then succeeds with one —
-    the override reason ``close_poll`` cannot get from a scheduled command."""
+    """T-68: once due, *clôturer maintenant* is refused without a reason while
+    a ballot awaits countersignature, then succeeds with one — the override
+    reason ``close_poll`` cannot get from a scheduled command."""
     open_window_poll.paper_requires_countersign = True
     open_window_poll.save(update_fields=["paper_requires_countersign"])
     poll = force_open(open_window_poll)
@@ -641,14 +641,6 @@ def test_t68_close_now_is_gated_on_the_deadline_and_needs_a_reason_when_blocked(
     )
     _grant(poll, admin_user, Role.POLL_ADMIN)
     client.force_login(admin_user)
-
-    # Not yet due: the form is absent, and a forged POST changes nothing.
-    body = client.get(_url(poll)).content.decode()
-    assert 'value="close_poll"' not in body
-    response = client.post(_url(poll), {"action": "close_poll"})
-    assert response.status_code == 403
-    poll.refresh_from_db()
-    assert poll.state == PollState.OPEN
 
     now = timezone.now()
     poll.closes_at = now - timedelta(minutes=2)
@@ -671,6 +663,41 @@ def test_t68_close_now_is_gated_on_the_deadline_and_needs_a_reason_when_blocked(
     assert poll.state == PollState.CLOSED
     assert poll.closure_override_reason == Reason.COUNTERSIGN_UNAVAILABLE
     assert AuditEvent.objects.filter(action=Action.CLOSURE_OVERRIDE, poll=poll).exists()
+
+
+def test_t68_early_close_needs_a_reason_and_brings_the_dates_back(
+    client: Client, open_window_poll: Poll, admin_user: User
+) -> None:
+    """T-68, R-3.4: before the deadline *clôturer maintenant* is offered; it is
+    refused without a reason, and with one it closes the poll, brings both
+    closing dates back to the instant of closure, logs the planned and actual
+    instants, shows the early closure publicly, and admits nothing after."""
+    poll = force_open(open_window_poll)
+    planned = poll.paper_entry_deadline
+    _grant(poll, admin_user, Role.POLL_ADMIN)
+    client.force_login(admin_user)
+
+    assert 'value="close_poll"' in client.get(_url(poll)).content.decode()
+    refused = client.post(_url(poll), {"action": "close_poll", "reason": ""}).content.decode()
+    assert "Une clôture anticipée exige un motif." in refused
+    poll.refresh_from_db()
+    assert poll.state == PollState.OPEN
+
+    response = client.post(
+        _url(poll), {"action": "close_poll", "reason": Reason.ADMINISTRATIVE_DECISION}
+    )
+    assert response.status_code == 302
+    poll.refresh_from_db()
+    assert poll.state == PollState.CLOSED
+    assert poll.closes_at == poll.paper_entry_deadline == poll.closed_at
+    event = AuditEvent.objects.get(action=Action.POLL_CLOSED_EARLY, poll=poll)
+    assert event.before["paper_entry_deadline"] == planned.isoformat()
+    assert event.reason == Reason.ADMINISTRATIVE_DECISION
+
+    public = client.get(f"/fr/scrutin/{poll.pk}/").content.decode()
+    assert "Clôture anticipée" in public
+    with pytest.raises(WindowClosed):
+        check_registration_window(poll)
 
 
 def test_close_now_succeeds_without_a_reason_once_due_and_nothing_is_blocked(
@@ -806,7 +833,7 @@ def test_withdraw_now_is_offered_from_closed_and_published_too(
     """R-3.11: unlike opening and closing, withdrawal is not restricted to one
     state — it follows the poll all the way to ``published``."""
     poll = force_open(open_window_poll)
-    poll = close_poll(poll)
+    poll = close_poll(poll, early_reason=Reason.ADMINISTRATIVE_DECISION)
     _grant(poll, admin_user, Role.POLL_ADMIN)
     client.force_login(admin_user)
     assert 'value="withdraw_poll"' in client.get(_url(poll)).content.decode()

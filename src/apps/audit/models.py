@@ -38,6 +38,9 @@ class Action(models.TextChoices):
     POLL_IMAGE_REMOVED = "poll_image_removed", _("image du scrutin supprimée")
     POLL_STATE_CHANGED = "poll_state_changed", _("transition d'état")
     POLL_CLOSES_AT_EXTENDED = "poll_closes_at_extended", _("clôture repoussée")
+    # R-3.4: a manual closure ahead of the deadline; before/after carry the
+    # planned and actual instants, shown publicly like an extension.
+    POLL_CLOSED_EARLY = "poll_closed_early", _("clôture anticipée")
     POLL_WITHDRAWN = "poll_withdrawn", _("scrutin retiré")
     # R-3.7: only a sandbox poll. The event outlives the poll it names (INV-3).
     POLL_DELETED = "poll_deleted", _("scrutin d'essai supprimé")

@@ -259,6 +259,20 @@ def _extensions(poll: Poll) -> list[dict[str, object]]:
     ]
 
 
+def _early_closure(poll: Poll) -> dict[str, object] | None:
+    """The poll's early closure (R-3.4), if it had one: the planned and actual
+    closing instants and the reason code, shown like an extension and for the
+    same reason — the calendar the public was given changed."""
+    event = AuditEvent.objects.filter(poll=poll, action=Action.POLL_CLOSED_EARLY).first()
+    if event is None:
+        return None
+    return {
+        "planned": parse_datetime(event.before.get("paper_entry_deadline", "")),
+        "actual": parse_datetime(event.after.get("paper_entry_deadline", "")),
+        "reason": dict(Reason.choices).get(event.reason, event.reason),
+    }
+
+
 def _live_participation(poll: Poll) -> dict[str, int] | None:
     """Turnout for an open poll, or ``None`` when it must not be shown.
 
@@ -427,6 +441,7 @@ def _render_poll_detail(
             "poll": poll,
             **_draft_preview_context(poll, language),
             "extensions": _extensions(poll),
+            "early_closure": _early_closure(poll),
             "participation": _live_participation(poll),
             "is_preview": status == "preview",
             "is_open": status == "open",

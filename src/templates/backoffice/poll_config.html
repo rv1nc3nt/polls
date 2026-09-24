@@ -203,14 +203,15 @@
       <h2 id="close-now">{% translate "Clôture" %}</h2>
       {% comment %}
         §4, R-2.1: open → closed otherwise runs unattended, at
-        paper_entry_deadline, via the scheduled close_poll job. Manual
-        closure is offered only from that deadline on, never before: closing
-        earlier would freeze closure_hash and the §9 counts ahead of ballots
-        the write path would still legitimately accept, and would hide the
-        paper-entry screens before their window has actually closed.
+        paper_entry_deadline, via the scheduled close_poll job. Before that
+        deadline a manual closure is an early one (R-3.4, decision log #34):
+        reason mandatory, closing dates brought back to now, shown publicly.
       {% endcomment %}
-      {% if can_close_now %}
+      {% if closing_early %}
+        <p class="help">{% translate "Clore le scrutin avant l'échéance met fin immédiatement aux inscriptions, au vote en ligne et à la saisie des bulletins papier. Les dates de clôture deviennent l'instant présent ; la clôture anticipée, avec son motif, est inscrite au journal d'audit et affichée sur la page publique du scrutin." %}</p>
+      {% else %}
         <p class="help">{% translate "L'échéance de saisie des bulletins papier est atteinte : vous pouvez clore le scrutin maintenant plutôt que d'attendre la prochaine exécution de la tâche planifiée." %}</p>
+      {% endif %}
         <form method="post">
           {% csrf_token %}
           <input type="hidden" name="action" value="close_poll">
@@ -221,12 +222,8 @@
               {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
             </p>
           {% endfor %}
-          <p class="help">{% translate "Le motif n'est exigé que si des bulletins papier attendent encore un contreseing." %}</p>
           <button type="submit">{% translate "Clôturer le scrutin maintenant" %}</button>
         </form>
-      {% else %}
-        <p class="help">{% translate "La clôture manuelle sera proposée ici une fois l'échéance de saisie des bulletins papier atteinte." %}</p>
-      {% endif %}
     </section>
   {% endif %}
 

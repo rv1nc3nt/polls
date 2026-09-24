@@ -725,9 +725,6 @@ msgstr "New closing date"
 msgid "Motif (obligatoire)"
 msgstr "Reason (required)"
 
-#: src/apps/backoffice/forms.py:462
-msgid "Motif de clôture forcée (si des bulletins attendent un contreseing)"
-msgstr "Reason for forced closure (if any ballots await countersignature)"
 
 #: src/apps/backoffice/forms.py:478
 msgid "Formulaires papier conservés par la commune"
@@ -1068,9 +1065,6 @@ msgstr "The poll must be announced."
 msgid "Scrutin ouvert."
 msgstr "Poll opened."
 
-#: src/apps/backoffice/views.py:472
-msgid "La clôture manuelle n'est possible qu'une fois l'échéance atteinte."
-msgstr "Manual closure is only possible once the deadline is reached."
 
 #: src/apps/backoffice/views.py:481
 msgid "Scrutin clos."
@@ -3316,24 +3310,9 @@ msgstr ""
 "The paper-entry deadline has been reached: you may close the poll now "
 "instead of waiting for the next scheduled run."
 
-#: src/templates/backoffice/poll_config.html:233
-msgid ""
-"Le motif n'est exigé que si des bulletins papier attendent encore un "
-"contreseing."
-msgstr ""
-"The reason is required only if paper ballots are still awaiting "
-"countersignature."
-
 #: src/templates/backoffice/poll_config.html:234
 msgid "Clôturer le scrutin maintenant"
 msgstr "Close the poll now"
-
-#: src/templates/backoffice/poll_config.html:237
-msgid ""
-"La clôture manuelle sera proposée ici une fois l'échéance de saisie des "
-"bulletins papier atteinte."
-msgstr ""
-"Manual closure will be offered here once the paper-entry deadline is reached."
 
 # R-3.11: withdrawal, added by hand for the same reason as the header explains.
 #: src/templates/backoffice/poll_config.html:244
@@ -5168,3 +5147,28 @@ msgstr "The scheduled closure has not happened"
 #: src/templates/backoffice/dashboard.html
 msgid "La fin de saisie des bulletins papier est passée mais le scrutin est toujours ouvert. Plus aucun bulletin n'est accepté ; vérifiez les blocages ci-dessous et le planificateur des tâches."
 msgstr "The paper entry deadline has passed but the poll is still open. No more ballots are accepted; check the blockers below and the task scheduler."
+
+#: src/apps/audit/models.py
+msgid "clôture anticipée"
+msgstr "early closure"
+
+#: src/apps/elections/transitions.py
+msgid "Une clôture anticipée exige un motif."
+msgstr "An early closure requires a reason."
+
+#: src/apps/backoffice/forms.py
+msgid "Motif (obligatoire avant l'échéance, ou si des bulletins attendent un contreseing)"
+msgstr "Reason (required before the deadline, or if ballots await countersignature)"
+
+#: src/templates/backoffice/poll_config.html
+msgid "Clore le scrutin avant l'échéance met fin immédiatement aux inscriptions, au vote en ligne et à la saisie des bulletins papier. Les dates de clôture deviennent l'instant présent ; la clôture anticipée, avec son motif, est inscrite au journal d'audit et affichée sur la page publique du scrutin."
+msgstr "Closing the poll before its deadline immediately ends registration, online voting and paper-ballot entry. The closing dates become the present instant; the early closure and its reason are recorded in the audit log and shown on the poll's public page."
+
+#: src/templates/publicsite/poll_detail.html
+msgid "Clôture anticipée"
+msgstr "Early closure"
+
+#: src/templates/publicsite/poll_detail.html
+#, python-format
+msgid "Clôture prévue le %(planned)s, avancée au %(actual)s"
+msgstr "Closing planned for %(planned)s, brought forward to %(actual)s"

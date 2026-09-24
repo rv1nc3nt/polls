@@ -94,7 +94,7 @@ def closed_poll(admin_user: User) -> Poll:
     poll = _make_poll()
     force_open(poll)
     _cast(poll, ([["a"], ["b"], ["c"]], [["a"], ["b"], ["c"]]))
-    close_poll(poll)
+    close_poll(poll, early_reason=Reason.ADMINISTRATIVE_DECISION)
     _grant(poll, admin_user)
     return Poll.objects.get(pk=poll.pk)
 
@@ -105,7 +105,7 @@ def tied_poll(admin_user: User) -> Poll:
     poll = _make_poll(tiebreak=TiebreakRule.PHYSICAL)
     force_open(poll)
     _cast(poll, CYCLE)
-    close_poll(poll)
+    close_poll(poll, early_reason=Reason.ADMINISTRATIVE_DECISION)
     _grant(poll, admin_user)
     return Poll.objects.get(pk=poll.pk)
 
@@ -329,7 +329,11 @@ def test_the_override_reason_from_closure_is_shown(client: Client, admin_user: U
         source=BallotSource.PAPER,
         status=BallotStatus.PENDING_COUNTERSIGN,
     )
-    close_poll(poll, override_reason=Reason.COUNTERSIGN_UNAVAILABLE)
+    close_poll(
+        poll,
+        override_reason=Reason.COUNTERSIGN_UNAVAILABLE,
+        early_reason=Reason.ADMINISTRATIVE_DECISION,
+    )
     _grant(poll, admin_user)
     client.force_login(admin_user)
 
@@ -411,7 +415,7 @@ def test_recording_it_clears_the_closure_blocker_and_archives_the_counts(
     assert "Rapprochement enregistré" in body
     assert 'name="action" value="record_reconciliation"' not in body
 
-    closed = close_poll(reconciliation_poll)
+    closed = close_poll(reconciliation_poll, early_reason=Reason.ADMINISTRATIVE_DECISION)
     assert closed.state == PollState.CLOSED
 
 

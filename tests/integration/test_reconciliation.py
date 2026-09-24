@@ -10,7 +10,7 @@ from datetime import timedelta
 import pytest
 from django.utils import timezone
 
-from apps.audit.models import Action, AuditEvent
+from apps.audit.models import Action, AuditEvent, Reason
 from apps.ballots import services
 from apps.ballots.models import Ballot, BallotSource, BallotStatus, ReconciliationRecord
 from apps.ballots.ranking import BallotRefused
@@ -39,13 +39,13 @@ def test_flag_on_blocks_closure_until_recorded(
     poll = paper_poll_reconciliation
     assert "reconciliation_pending" in closing_blockers(poll)
     with pytest.raises(TransitionRefused):
-        close_poll(poll)
+        close_poll(poll, early_reason=Reason.ADMINISTRATIVE_DECISION)
     poll.refresh_from_db()
     assert poll.state == PollState.OPEN
 
     services.record_reconciliation(poll, forms_retained_count=0, operator_id=str(operator.pk))
     assert "reconciliation_pending" not in closing_blockers(poll)
-    closed = close_poll(poll)
+    closed = close_poll(poll, early_reason=Reason.ADMINISTRATIVE_DECISION)
     assert closed.state == PollState.CLOSED
 
 
@@ -59,7 +59,11 @@ def test_override_reason_does_not_bypass_a_missing_record(
     from apps.audit.models import Reason
 
     with pytest.raises(TransitionRefused):
-        close_poll(paper_poll_reconciliation, override_reason=Reason.ADMINISTRATIVE_DECISION)
+        close_poll(
+            paper_poll_reconciliation,
+            override_reason=Reason.ADMINISTRATIVE_DECISION,
+            early_reason=Reason.ADMINISTRATIVE_DECISION,
+        )
 
 
 def test_records_the_systems_own_paper_count_not_the_operators(

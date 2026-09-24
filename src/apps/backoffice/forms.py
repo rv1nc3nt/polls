@@ -463,10 +463,10 @@ class ExtensionForm(forms.Form):
     )
 
 
-#: R-8.7 bis: the codes a poll admin may cite for closing over a
-#: ``pending_countersign`` ballot. ``COUNTERSIGN_UNAVAILABLE`` is the one this
-#: override exists for; the other two cover a closure forced for some other
-#: reason before every countersignature is in.
+#: R-8.7 bis and R-3.4: the codes a poll admin may cite for closing over a
+#: ``pending_countersign`` ballot or ahead of the deadline.
+#: ``COUNTERSIGN_UNAVAILABLE`` is the one the override exists for; the other
+#: two cover a closure forced, or brought forward, for some other reason.
 CLOSURE_REASONS: tuple[Reason, ...] = (
     Reason.COUNTERSIGN_UNAVAILABLE,
     Reason.ADMINISTRATIVE_DECISION,
@@ -477,15 +477,17 @@ CLOSURE_REASONS: tuple[Reason, ...] = (
 class ClosureOverrideForm(forms.Form):
     """Screen 2's manual ``close_poll`` trigger (§4).
 
-    The reason is required only when ``closing_blockers`` finds ballots
-    pending countersignature (R-8.7 bis); that is ``transitions.close_poll``'s
-    guard to enforce, not a client-side rule, so the field stays optional here
-    and an omitted reason on a blocked closure comes back as a message naming
-    the blocker instead of a form error.
+    The reason is required when the closure is early (R-3.4) or when
+    ``closing_blockers`` finds ballots pending countersignature (R-8.7 bis);
+    both are ``transitions.close_poll``'s guards to enforce, not client-side
+    rules, so the field stays optional here and an omitted reason comes back
+    as a message naming what needed it instead of a form error.
     """
 
     reason = forms.ChoiceField(
-        label=_("Motif de clôture forcée (si des bulletins attendent un contreseing)"),
+        label=_(
+            "Motif (obligatoire avant l'échéance, ou si des bulletins attendent un contreseing)"
+        ),
         required=False,
         choices=[("", "—")] + [(reason.value, reason.label) for reason in CLOSURE_REASONS],
     )

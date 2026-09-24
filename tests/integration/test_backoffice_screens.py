@@ -21,7 +21,7 @@ from django.test import Client
 from django.utils import timezone
 
 from apps.audit import services as audit
-from apps.audit.models import Action, AuditEvent
+from apps.audit.models import Action, AuditEvent, Reason
 from apps.backoffice.dashboard import describe_blocker, participation, permitted_actions
 from apps.ballots.models import Ballot, BallotSource, BallotStatus
 from apps.core.crypto import voter_hash
@@ -152,7 +152,7 @@ def test_a_closed_poll_shows_the_counts_frozen_at_closure(open_window_poll: Poll
     registrations a fresh count would read (§11)."""
     force_open(open_window_poll)
     _register(open_window_poll, "20000001", state=RegistrationState.ACTIVE, channel=Channel.ONLINE)
-    close_poll(open_window_poll)
+    close_poll(open_window_poll, early_reason=Reason.ADMINISTRATIVE_DECISION)
 
     Registration.objects.all().delete()  # what the purge does two months later
     counts = participation(Poll.objects.get(pk=open_window_poll.pk))
@@ -337,7 +337,9 @@ def test_a_purged_reference_is_rendered_as_a_deletion(
 
     assert "objet supprimé (rétention)" not in client.get(url).content.decode()
 
-    close_poll(Poll.objects.get(pk=open_window_poll.pk))
+    close_poll(
+        Poll.objects.get(pk=open_window_poll.pk), early_reason=Reason.ADMINISTRATIVE_DECISION
+    )
     registration.delete()  # the retention purge, two months on
     body = client.get(url).content.decode()
     assert "objet supprimé (rétention)" in body
@@ -391,7 +393,9 @@ def test_a_published_poll_still_shows_its_dashboard(
     """The screen must survive every state, including the one where the
     registrations behind its counts no longer exist."""
     force_open(open_window_poll)
-    close_poll(Poll.objects.get(pk=open_window_poll.pk))
+    close_poll(
+        Poll.objects.get(pk=open_window_poll.pk), early_reason=Reason.ADMINISTRATIVE_DECISION
+    )
     _grant(open_window_poll, admin_user, Role.POLL_ADMIN)
     client.force_login(admin_user)
 
