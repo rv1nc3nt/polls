@@ -206,8 +206,10 @@ Tests, lint and types:
     verifier/              Independent Rust verifier; shares no code (§14)
                            core/ verification logic, cli/ and gui/ front ends
     ansible/               Deployment (§15)
-    docs/                  Canonical serialisation, spec divergences,
-                           manuel/ (French user manual, all four roles)
+    docs/                  Architecture, canonical serialisation, spec
+                           divergences, glossary, review guide; manuel/
+                           (French user manual, all four roles) — index
+                           in docs/README.md
 
 ## Properties that must not be broken
 
