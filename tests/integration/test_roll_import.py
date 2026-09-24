@@ -9,7 +9,9 @@ the request/response cycle, and T-64 — the bundled fixture's expected outcome.
 from __future__ import annotations
 
 import contextlib
+import html
 import io
+import re
 import tempfile
 from collections.abc import Iterator
 from pathlib import Path
@@ -24,6 +26,7 @@ from apps.audit.models import Action, AuditEvent
 from apps.core.models import PollRole, Role, User
 from apps.elections import rollimport
 from apps.elections.models import Poll, RollEntry, WorkingRollEntry
+from apps.registrations.models import Channel, Registration, RegistrationState
 from tests.conftest import force_open
 
 HEADER = "Nom de naissance;Nom d'usage;Prénoms;Date de naissance;Type de liste"
@@ -450,6 +453,84 @@ def test_roll_status_search_narrows_the_frozen_copy(
     body = client.get(url, {"q": "Nguyen"}).content.decode()
     assert "Nguyen" in body
     assert "Dupont" not in body
+
+
+# --- R-7.5: the poll admin sees who registered and who voted -----------------
+
+
+def _participation_poll(poll: Poll) -> Poll:
+    """``poll`` opened over a roll of five, each in a different situation."""
+    for name in ("Arnaud", "Bernard", "Caron", "Durand"):
+        WorkingRollEntry.objects.create(
+            birth_name=name,
+            first_names="Alex",
+            date_of_birth="01/01/1980",
+            date_of_birth_parsed="1980-01-01",
+            list_types=["principale"],
+        )
+    force_open(poll)
+    poll = Poll.objects.get(pk=poll.pk)
+
+    def bind(name: str, state: str, channel: str) -> None:
+        email = "" if channel == Channel.PAPER else f"{name.lower()}@example.fr"
+        Registration.objects.create(
+            poll=poll,
+            roll_entry=RollEntry.objects.get(poll=poll, birth_name=name),
+            declared_last_name=name,
+            declared_first_names="Alex",
+            declared_dob="01/01/1980",
+            email=email,
+            email_canonical=email,
+            state=state,
+            channel=channel,
+        )
+
+    bind("Arnaud", RegistrationState.ACTIVE, Channel.ONLINE)
+    bind("Bernard", RegistrationState.ACTIVE, Channel.PAPER)
+    bind("Caron", RegistrationState.ACTIVE, Channel.NONE)
+    bind("Durand", RegistrationState.PENDING_EMAIL, Channel.NONE)
+    return poll
+
+
+def _participation_cells(body: str) -> dict[str, str]:
+    """``birth name → the row's last cell`` from the roll table."""
+    rows = re.findall(r"<tr>\s*<td>(\w+)</td>.*?<td>([^<]*)</td>\s*</tr>", body, re.S)
+    return {name: html.unescape(cell.strip()) for name, cell in rows}
+
+
+def test_poll_admin_sees_each_electors_participation(
+    client: Client, open_window_poll: Poll, operator: User
+) -> None:
+    """R-7.5: names with a voted flag, read from ``Registration`` alone, so an
+    elector who says they cannot vote can be told they already have — or
+    that they never confirmed their address."""
+    poll = _participation_poll(open_window_poll)
+    PollRole.objects.create(poll=poll, user=operator, role=Role.POLL_ADMIN)
+    client.force_login(operator)
+
+    body = client.get(f"/fr/mairie/scrutin/{poll.pk}/liste-electorale/").content.decode()
+    assert _participation_cells(body) == {
+        "Arnaud": "a voté en ligne",
+        "Bernard": "a voté sur papier",
+        "Caron": "inscrit, n'a pas voté",
+        "Durand": "inscription non confirmée",
+        "Dupont": "pas d'inscription",
+    }
+
+
+def test_auditor_browses_the_roll_without_participation(
+    client: Client, open_window_poll: Poll, operator: User
+) -> None:
+    """R-4.4 gives the auditor the roll; R-13.4 bis keeps participation by name
+    to the poll admin."""
+    poll = _participation_poll(open_window_poll)
+    PollRole.objects.create(poll=poll, user=operator, role=Role.AUDITOR)
+    client.force_login(operator)
+
+    body = client.get(f"/fr/mairie/scrutin/{poll.pk}/liste-electorale/").content.decode()
+    assert "Arnaud" in body
+    assert "Participation" not in body
+    assert "a voté" not in body
 
 
 # --- Screen 3's own search over the working roll -----------------------------

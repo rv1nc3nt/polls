@@ -478,8 +478,13 @@ Une fois un scrutin ouvert, son propre menu **« Liste électorale »** ne montr
 plus le statut de l'import commune mais sa **copie figée à lui**
 (`RollEntry`), avec la même recherche paginée — ouverte à
 l'**administrateur du scrutin** comme à l'**auditeur**, pour que qui était
-éligible reste vérifiable après coup. Une liste dont la rétention de deux mois
- est passée l'indique explicitement plutôt que de se confondre avec une
+éligible reste vérifiable après coup. L'administrateur du scrutin y voit en
+plus une colonne **Participation** — pas d'inscription, inscription non
+confirmée, inscrit sans avoir voté, a voté en ligne, a voté sur papier — pour
+répondre à un électeur qui dit ne pas pouvoir voter. Elle dit si la personne a
+voté, jamais comment ni à quel moment ; l'auditeur ne la voit pas, la
+participation nominative étant réservée à l'administrateur du scrutin. Une
+liste dont la rétention de deux mois est passée l'indique explicitement plutôt que de se confondre avec une
 liste vide ou une recherche sans résultat.
 
 **Figure 15a — Copie figée de la liste électorale d'un scrutin ouvert.**

@@ -464,7 +464,12 @@ present".
 Once a poll is open, its own **"Electoral roll"** menu no longer shows the
 commune import's status but its **own frozen snapshot** (`RollEntry`), with
 the same paginated search — open to the **poll administrator** as well as
-the **auditor**, so that who was eligible stays verifiable afterwards. A
+the **auditor**, so that who was eligible stays verifiable afterwards. The
+poll administrator also sees a **Participation** column — not registered,
+registration not confirmed, registered without having voted, voted online,
+voted on paper — to answer an elector who says they cannot vote. It says
+whether the person voted, never how nor when; the auditor does not see it,
+participation by name being reserved to the poll administrator. A
 roll whose two-month retention has elapsed states this explicitly
 rather than looking like an empty list or a search with no results.
 

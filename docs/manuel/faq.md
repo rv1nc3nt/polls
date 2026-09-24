@@ -175,6 +175,16 @@ ne consomme plus est supprimée deux mois après son import —
 distinct de la rétention de la copie figée d'un scrutin, qui part de sa
 clôture.
 
+### Un électeur dit qu'il ne peut pas voter. Comment savoir pourquoi ?
+Cherchez son nom dans le menu « Liste électorale » du scrutin. L'administrateur
+du scrutin y voit, pour chaque électeur, une colonne **Participation** :
+*pas d'inscription*, *inscription non confirmée* (le lien reçu par courriel n'a
+jamais été ouvert), *inscrit, n'a pas voté*, *a voté en ligne* ou *a voté sur
+papier*. Elle dit **si** la personne a voté, jamais **comment**, ni à quel
+moment. Une inscription encore en attente d'examen n'est rattachée à aucune
+entrée de la liste : elle se trouve dans la file d'attente des inscriptions.
+L'auditeur consulte la même liste sans cette colonne.
+
 ### Un électeur dit être inscrit mais le rapprochement échoue.
 Sa demande part en **file d'attente des inscriptions**. Comparez la déclaration
 aux entrées proches ; **acceptez** (en choisissant l'entrée de liste) ou
