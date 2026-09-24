@@ -42,6 +42,7 @@ class Filters:
     actor_id: str = ""
     object_ref: str = ""
     date_from: datetime | None = None
+    #: Exclusive: the first instant *not* shown.
     date_to: datetime | None = None
 
     def as_audit_payload(self) -> dict[str, str | bool]:

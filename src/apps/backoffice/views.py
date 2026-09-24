@@ -69,7 +69,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 from django.conf import settings
@@ -859,18 +859,21 @@ def _filters(request: HttpRequest) -> auditlog.Filters:
     """
     tz = get_current_timezone()
 
-    def instant(name: str) -> datetime | None:
+    def midnight(name: str, *, days_after: int = 0) -> datetime | None:
         raw = request.GET.get(name, "")
         day = parse_date(raw) if raw else None
-        return datetime.combine(day, datetime.min.time(), tzinfo=tz) if day else None
+        if day is None:
+            return None
+        return datetime.combine(day + timedelta(days=days_after), datetime.min.time(), tzinfo=tz)
 
-    date_to = instant("date_to")
     return auditlog.Filters(
         actor_id=request.GET.get("actor", ""),
         object_ref=request.GET.get("object", "").strip(),
-        date_from=instant("date_from"),
-        # Inclusive of the day the operator typed: they mean the whole of it.
-        date_to=date_to.replace(hour=23, minute=59, second=59) if date_to else None,
+        date_from=midnight("date_from"),
+        # Inclusive of the day the operator typed: they mean the whole of it,
+        # so the exclusive bound is the next midnight. 23:59:59 left out the
+        # last second of the day (review note L7).
+        date_to=midnight("date_to", days_after=1),
     )
 
 
