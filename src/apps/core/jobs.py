@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import IO, Any
 
 from django.conf import settings
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
 from .models import JobRun
@@ -89,7 +89,9 @@ class JobCommand(BaseCommand):
     """Base class carrying the four properties above.
 
     Subclasses implement ``handle_job(run, **options)`` and let exceptions
-    propagate; the exit code is this class's business.
+    propagate; the exit code is this class's business: ``EXIT_OK``, the
+    ``EXIT_REFUSED`` a refusal raises itself, or ``EXIT_ERROR`` for anything
+    unhandled, logged with its traceback so cron mail shows it.
     """
 
     job_name = ""
@@ -105,12 +107,19 @@ class JobCommand(BaseCommand):
             handler = logging.FileHandler(options["log_file"])
             handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
             logging.getLogger("polls").addHandler(handler)
+        name = self.job_name or self.__module__.rsplit(".", 1)[-1]
         try:
-            with job_lock(self.job_name or self.__module__.rsplit(".", 1)[-1]) as run:
+            with job_lock(name) as run:
                 self.handle_job(run, **options)
         except AlreadyRunning:
-            logger.info("%s: another instance is running; nothing to do", self.job_name)
+            logger.info("%s: another instance is running; nothing to do", name)
             sys.exit(EXIT_OK)
+        except CommandError:
+            raise  # Django's own usage-error path, with its own exit status.
+        except Exception:
+            # ``job_lock`` has already recorded the run as failed.
+            logger.exception("%s: failed", name)
+            sys.exit(EXIT_ERROR)
 
     def handle_job(self, run: JobRun, **options: Any) -> None:
         """The command's work, run under the lock. May set ``run.succeeded``

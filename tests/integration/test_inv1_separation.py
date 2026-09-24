@@ -72,6 +72,37 @@ def test_neither_models_module_imports_the_other() -> None:
         assert not any(name.startswith(forbidden) for name in imported), module
 
 
+def _imported_names(path: Path) -> set[str]:
+    """Every name ``path`` imports, fully qualified: ``from apps.x import y``
+    counts as ``apps.x.y``, so a submodule imported that way is not missed."""
+    names: set[str] = set()
+    for node in ast.walk(ast.parse(path.read_text())):
+        if isinstance(node, ast.Import):
+            names.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            names.update(f"{node.module}.{alias.name}" for alias in node.names)
+    return names
+
+
+def test_every_module_of_the_two_apps_keeps_the_boundary() -> None:
+    """Review note L3: the test above checks three modules; this checks them
+    all, migrations included. ``registrations`` never imports ``ballots``, and
+    ``ballots`` reaches ``registrations`` only through its services, which
+    take and return ids and strings — never a ``Registration`` (CLAUDE.md,
+    INV-1)."""
+    allowed = "apps.registrations.services"
+    for path in sorted((SRC / "apps" / "registrations").rglob("*.py")):
+        leaked = {n for n in _imported_names(path) if n.startswith("apps.ballots")}
+        assert not leaked, f"{path.relative_to(SRC)} imports {leaked}"
+    for path in sorted((SRC / "apps" / "ballots").rglob("*.py")):
+        leaked = {
+            n
+            for n in _imported_names(path)
+            if n.startswith("apps.registrations") and not n.startswith(allowed)
+        }
+        assert not leaked, f"{path.relative_to(SRC)} imports {leaked}"
+
+
 def test_tally_package_imports_no_model_at_all() -> None:
     """INV-9: the tally reads only ballots, never the register of electors —
     and ``apps/tally/`` is documented (its own module docstring, CLAUDE.md) as

@@ -4,10 +4,10 @@ version = "0.1.0"
 edition = "2021"
 license = "0BSD"
 authors = ["Romain VINCENT"]
-description = "Canonical serialisation, closure hash and Schulze method for the commune polling platform (§8, §9)"
+description = "Canonical serialisation, closure hash and tally methods for the commune polling platform (§8, §9)"
 
-# No dependencies, deliberately: SHA-256, the CSV reader and the Schulze
-# method are implemented here from docs/canonical-serialisation.md and §8 of
+# No dependencies, deliberately: SHA-256, the CSV reader and the three tally
+# methods are implemented here from docs/canonical-serialisation.md and §8 of
 # the specification. A shared crate would be a shared implementation, which is
 # the one thing this crate must not have. The CLI and GUI binaries depend on
 # this crate and may take on presentation dependencies of their own — that

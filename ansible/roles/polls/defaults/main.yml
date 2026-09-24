@@ -66,6 +66,10 @@ polls_python_version: "3.13"
 # --- Web process (§15 step 6, contrib/init/polls.service) ----------------
 polls_bind: "127.0.0.1:8000"
 polls_gunicorn_workers: 3
+# Proxies appending to X-Forwarded-For in front of gunicorn: 1 for this role's
+# nginx alone, 2 when TLS is terminated by another proxy in front of it. The
+# rate limiter keys on the address that many entries from the end.
+polls_trusted_proxy_hops: 1
 
 # --- SMTP (§15 step 9). prod.py no longer requires DJANGO_EMAIL_HOST — a
 # commune admin can set the relay instead from the back-office (§6.5.12) — but

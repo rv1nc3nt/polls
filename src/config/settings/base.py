@@ -82,10 +82,10 @@ DATABASES = {
             ),
             # Load-bearing: every atomic block takes the write lock at BEGIN,
             # so writers serialise. SQLite ignores ``select_for_update()``, and
-            # ``ballots.services.cast_online`` reads the elector's channel
-            # without it; this setting is what makes a concurrent second cast
-            # see the first one's channel flip (INV-5). A different backend
-            # would need explicit row locks there.
+            # this is what gives it effect here — ``ballots.services.modify``
+            # locks the live row so two concurrent modifications leave one live
+            # version (T-35). One vote per elector (INV-5) does not rest on it:
+            # ``registrations.services.mark_voted`` is a compare-and-set.
             "transaction_mode": "IMMEDIATE",
         },
     }
@@ -175,6 +175,11 @@ CACHES = {
 # numbers, and neither should have to edit the source to get them.
 RATE_LIMIT_REGISTRATION = os.environ.get("DJANGO_RATE_LIMIT_REGISTRATION", "5/1h")
 RATE_LIMIT_EMAIL = os.environ.get("DJANGO_RATE_LIMIT_EMAIL", "3/1h")
+# How many proxies append to X-Forwarded-For in front of gunicorn: 1 for the
+# nginx of §14 alone. One too few and the limiter keys on a proxy, so every
+# caller shares one bucket; one too many and a client can forge its address
+# (apps.core.ratelimit.client_digest).
+TRUSTED_PROXY_HOPS = int(os.environ.get("DJANGO_TRUSTED_PROXY_HOPS", "1"))
 
 LOGGING = {
     "version": 1,

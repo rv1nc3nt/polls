@@ -64,8 +64,7 @@ find a way round it.
   `ballots`, and neither app's `models.py` imports the other; `ballots` reaches
   `registrations` only through `registrations.services`, passing ids and plain
   strings, never a `Registration`. `tests/integration/test_inv1_separation.py`
-  asserts the schema and the imports of both `models.py` files and
-  `registrations/services.py`; the rest is held by review.
+  asserts all of this, over every module of both apps.
 - **INV-3.** `AuditEvent` has no update or delete path, in the application or
   the database. Events store a reference plus non-identifying state — never a
   name, date of birth or email; `reason` is a code from `audit.models.Reason`, never
@@ -79,7 +78,10 @@ find a way round it.
 - **The closure hash** covers exactly the `status = live` ballots, serialised
   with option ids and tracking codes only. `docs/canonical-serialisation.md` is
   the contract between Python, the published CSV and the Rust verifier; change
-  one and you change all three, deliberately.
+  one and you change all three, deliberately. `docs/publication-format.md` is
+  the same kind of contract for the JSON publication document the verifier
+  reads; it is versioned (`closure.PUBLICATION_FORMAT_VERSION`), and removing,
+  renaming or re-typing a member the verifier reads is a new version.
 - **The tie-break** is the hash chain of §8.3. No language PRNG, no
   `random.shuffle`, no seeded sort.
 - **`Poll.state` is assigned in exactly one module**,
@@ -91,9 +93,12 @@ find a way round it.
   `closes_at` and `paper_entry_deadline` are enforced on the clock alone
   (decision log #33).
 - **The plaintext token is never persisted.** Only `voter_hash` is stored
-  (§7). It follows that the token-for-session exchange of §6.3
-  (`apps/core/tokensession.py`) puts a *registration id* in the session, never
-  the token: Django's session backend is a database table.
+  (§7). Django's session backend is a database table, so the session is held
+  to the same rule and more: the token-for-session exchange of §6.3
+  (`apps/core/tokensession.py`) stores only the `ballot_hash`, and the
+  receipt only a tracking code and a ranking — never the token, and never a
+  registration id or anything else that identifies a voter, which beside a
+  ballot hash would be the join INV-1 forbids.
 - **No Django admin**, in any environment.
 - **Every poll-scoped back-office screen goes through `require_poll_role`**
   (`apps/backoffice/access.py`). `commune_admin` is commune-level and grants

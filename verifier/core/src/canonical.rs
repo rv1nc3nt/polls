@@ -101,8 +101,9 @@ pub fn canonical_serialisation(ballots: &[Ballot]) -> Vec<u8> {
 }
 
 /// Every option id that appears on at least one ballot, sorted. The CSV
-/// carries no option list, so an option no ballot ranks is absent here and
-/// from the matrix the verifier prints, although the published matrix has it.
+/// carries no option list, so an option no ballot ranks is absent here; a
+/// caller who knows the poll's options passes them instead (`Expected::options`
+/// in `report`), and the matrix then matches the published one row for row.
 pub fn options_in(ballots: &[Ballot]) -> Vec<String> {
     let mut set = BTreeSet::new();
     for ballot in ballots {
@@ -116,15 +117,20 @@ pub fn options_in(ballots: &[Ballot]) -> Vec<String> {
 }
 
 /// Decode a hexadecimal string (surrounding whitespace ignored); `None` on
-/// odd length or a non-hex pair.
+/// odd length or any character that is not an ASCII hex digit.
+///
+/// Byte-wise on purpose: slicing the `str` two bytes at a time panicked when a
+/// pasted value held a multi-byte character, and `u8::from_str_radix` accepts
+/// a leading `+`, so `"+f"` decoded (review note L6).
 pub fn parse_hex(text: &str) -> Option<Vec<u8>> {
-    let text = text.trim();
-    if text.len() % 2 != 0 {
+    let digits = text.trim().as_bytes();
+    if digits.len() % 2 != 0 {
         return None;
     }
-    (0..text.len())
-        .step_by(2)
-        .map(|i| u8::from_str_radix(&text[i..i + 2], 16).ok())
+    let nibble = |b: u8| (b as char).to_digit(16).filter(|_| b.is_ascii_hexdigit());
+    digits
+        .chunks(2)
+        .map(|pair| Some((nibble(pair[0])? * 16 + nibble(pair[1])?) as u8))
         .collect()
 }
 
@@ -132,6 +138,18 @@ pub fn parse_hex(text: &str) -> Option<Vec<u8>> {
 mod tests {
     use super::*;
     use crate::sha256::{hex, sha256};
+
+    #[test]
+    fn parse_hex_decodes_hex_and_refuses_everything_else() {
+        assert_eq!(parse_hex(" 00ff7A "), Some(vec![0x00, 0xff, 0x7a]));
+        assert_eq!(parse_hex(""), Some(vec![]));
+        assert_eq!(parse_hex("abc"), None);
+        assert_eq!(parse_hex("+f"), None);
+        assert_eq!(parse_hex("zz"), None);
+        assert_eq!(parse_hex("é"), None);
+        // Four bytes whose first pair ends inside "é": used to panic.
+        assert_eq!(parse_hex("aéb"), None);
+    }
 
     #[test]
     fn worked_vector_from_the_documentation() {

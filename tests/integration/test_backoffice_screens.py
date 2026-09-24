@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from contextlib import AbstractContextManager
-from datetime import timedelta
+from datetime import UTC, timedelta
 from typing import Any
 
 import pytest
@@ -279,6 +279,21 @@ def test_consulting_the_log_is_itself_logged(
     # Whether the search narrowed by object, never the text typed into the box
     # (§10): that box is unconstrained free text and must not ride the event.
     assert event.after["filters"]["object_filtered"] is True
+
+
+def test_the_date_filter_keeps_the_whole_last_day(rf: Any) -> None:
+    """Review note L7: "up to" a day means the whole of it, including its
+    last second, so the exclusive bound is the next local midnight."""
+    from apps.backoffice.views import _filters
+
+    filters = _filters(rf.get("/", {"date_from": "2026-10-24", "date_to": "2026-10-25"}))
+    assert filters.date_from is not None and filters.date_to is not None
+    # 25 October 2026 is the Europe/Paris autumn change: 25 hours long. In
+    # UTC, since two datetimes sharing a ZoneInfo subtract in wall-clock time.
+    span = filters.date_to.astimezone(UTC) - filters.date_from.astimezone(UTC)
+    assert span == timedelta(hours=49)
+    assert (filters.date_to.hour, filters.date_to.minute, filters.date_to.second) == (0, 0, 0)
+    assert filters.date_to.date().isoformat() == "2026-10-26"
 
 
 def test_the_log_filters_by_actor_object_and_date(

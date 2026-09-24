@@ -15,13 +15,15 @@ through one real ``JobCommand`` end to end.
 from __future__ import annotations
 
 import fcntl
+import logging
 from pathlib import Path
+from typing import Any
 
 import pytest
 from django.core.management import call_command
 from django.test import override_settings
 
-from apps.core.jobs import AlreadyRunning, job_lock
+from apps.core.jobs import EXIT_ERROR, AlreadyRunning, JobCommand, job_lock
 from apps.core.models import JobRun
 from apps.elections.models import Poll, PollState
 from tests.conftest import force_announce
@@ -93,3 +95,26 @@ def test_a_refused_open_poll_still_finalises_its_jobrun_row(
     assert run.succeeded is False
     assert run.finished_at is not None
     assert run.detail["refused"]
+
+
+class _Crashing(JobCommand):
+    """No ``job_name``: the lock and the logs fall back to the module name."""
+
+    def handle_job(self, run: JobRun, **options: Any) -> None:
+        raise RuntimeError("boom")
+
+
+def test_an_unhandled_error_exits_2_logged_and_recorded(
+    tmp_path: Path, db: None, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Review note L9: an unexpected failure exits EXIT_ERROR, distinct from
+    a refusal (1), names the job even without ``job_name``, and still leaves
+    its ``JobRun`` row marked failed."""
+    with override_settings(JOB_LOCK_DIR=tmp_path), caplog.at_level(logging.ERROR, "polls.jobs"):
+        with pytest.raises(SystemExit) as exc_info:
+            call_command(_Crashing())
+    assert exc_info.value.code == EXIT_ERROR
+    assert "test_jobs: failed" in caplog.text
+    assert "boom" in caplog.text
+    run = JobRun.objects.get(command="test_jobs")
+    assert run.succeeded is False

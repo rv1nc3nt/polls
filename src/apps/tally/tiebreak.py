@@ -30,17 +30,11 @@ def tiebreak_seed(opening_seed: bytes, closure_hash: bytes) -> bytes:
 def tiebreak_order(
     tied: Sequence[OptionId], opening_seed: bytes, closure_hash: bytes
 ) -> list[tuple[OptionId, bytes]]:
-    """The tied options with their draw values, ascending. Published in full."""
+    """The tied options with their draw values, ascending. Published in full;
+    the first is the winner (``elections.closure``)."""
     seed = tiebreak_seed(opening_seed, closure_hash)
     drawn = [
         (option, hashlib.sha256(seed + str(option).encode("utf-8")).digest()) for option in tied
     ]
     drawn.sort(key=lambda pair: pair[1])
     return drawn
-
-
-def break_tie(tied: Sequence[OptionId], opening_seed: bytes, closure_hash: bytes) -> OptionId:
-    """The winner of a computed tie-break. First in the order above."""
-    if not tied:
-        raise ValueError("break_tie called with no tied options")
-    return tiebreak_order(tied, opening_seed, closure_hash)[0][0]

@@ -11,7 +11,8 @@ from __future__ import annotations
 
 import pytest
 
-from apps.audit.services import PersonalDataInAuditEvent, _check
+from apps.audit.models import Action, Reason
+from apps.audit.services import PersonalDataInAuditEvent, UnknownAuditReason, _check, record
 
 
 def test_top_level_forbidden_key_is_caught() -> None:
@@ -32,3 +33,17 @@ def test_forbidden_key_nested_inside_a_list_is_caught() -> None:
 
 def test_unrelated_nested_payload_is_allowed() -> None:
     _check({"filters": {"object_filtered": True, "actor_id": "42"}, "page": 3}, "after")
+
+
+def test_a_reason_that_is_not_a_code_is_refused_before_any_write() -> None:
+    """Review note L2: prose in ``reason`` would outlive the retention purge.
+    Refused before the database is touched, so no ``db`` fixture is needed."""
+    with pytest.raises(UnknownAuditReason):
+        record(action=Action.POLL_STATE_CHANGED, reason="nom mal orthographié : Dupont")
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("reason", [Reason.KEYING_ERROR, str(Reason.KEYING_ERROR), ""])
+def test_a_reason_code_or_none_is_accepted(reason: str) -> None:
+    event = record(action=Action.POLL_STATE_CHANGED, reason=reason)
+    assert event.reason == str(reason)

@@ -162,6 +162,7 @@ utilisées :
 | `polls_python_version` | `3.13` | `uv` gère son propre interpréteur sous le préfixe. |
 | `polls_bind` | `127.0.0.1:8000` | adresse d'écoute de gunicorn (derrière nginx). |
 | `polls_gunicorn_workers` | `3` | |
+| `polls_trusted_proxy_hops` | `1` | nombre de relais devant gunicorn : `1` pour le seul nginx du rôle, `2` si TLS est terminé par un autre relais placé devant (section 11). |
 
 ## 5. Première mise en service applicative
 
@@ -314,7 +315,13 @@ remplacés.
   no-referrer` sur les routes de bulletin.
 - **Limitation de débit** sur l'inscription et l'envoi de courriels ;
   elle compte à travers les workers via la table de cache en base
-  (`createcachetable` est lancé par le déploiement).
+  (`createcachetable` est lancé par le déploiement). Elle compte par adresse
+  de visiteur, lue dans l'en-tête `X-Forwarded-For` en partant de la fin :
+  chaque relais y ajoute l'adresse qu'il a vue, et seules ces entrées-là sont
+  fiables. Si un autre relais (terminaison TLS en amont, CDN) est placé devant
+  nginx, passez `polls_trusted_proxy_hops` à `2` ; sinon tous les visiteurs
+  partagent un seul compteur et l'inscription se bloque pour tout le monde
+  dès la limite atteinte.
 - **Comptes nominatifs** : un compte par personne physique, jamais de
   compte partagé. Le journal d'audit ne survit pas à un login partagé.
 - **Rétention** : `retention_purge` efface, deux mois après la clôture, les

@@ -635,3 +635,55 @@ def test_a_tracking_code_collision_exhausting_every_attempt_refuses_the_ballot(
     # no ``PaperBallotLink`` exists for an entry that never got a ballot.
     assert Registration.objects.filter(poll=open_paper_poll, roll_entry=entry).count() == 0
     assert not PaperBallotLink.objects.filter(poll=open_paper_poll, roll_entry=entry).exists()
+
+
+# --- concurrent casts (INV-5, review note M4) --------------------------------
+#
+# Two requests can both read ``channel = none`` before either writes. SQLite's
+# IMMEDIATE transactions serialise them in production, but the guarantee must
+# not rest on that: ``mark_voted`` only moves the channel off ``none``, so the
+# loser refuses. Each test hands the service the stale read a racing request
+# would have made, with the winner's write already in the database.
+
+
+def test_a_cast_that_lost_the_race_writes_no_ballot(
+    open_paper_poll: Poll, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from apps.registrations import services as registrations
+
+    registration_id, token = _voter(open_paper_poll)
+    real = registrations.token_channel
+
+    def stale(poll: Poll, presented: Token) -> tuple[str, str, str] | None:
+        resolved = real(poll, presented)
+        Registration.objects.filter(pk=registration_id).update(channel=Channel.ONLINE)
+        return resolved
+
+    monkeypatch.setattr(registrations, "token_channel", stale)
+    with pytest.raises(BallotRefused, match="déjà été enregistré"):
+        services.cast_online(open_paper_poll, token, STRICT)
+
+    assert not Ballot.objects.filter(poll=open_paper_poll).exists()
+
+
+def test_a_paper_entry_that_lost_the_race_to_an_online_cast_writes_nothing(
+    open_paper_poll: Poll, operator: User, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from apps.registrations import services as registrations
+
+    registration_id, _token = _voter(open_paper_poll)
+    entry = _entry(open_paper_poll)
+    real = registrations.ensure_paper_registration
+
+    def stale(poll: Poll, roll_entry_id: str) -> tuple[str, str]:
+        resolved = real(poll, roll_entry_id)
+        Registration.objects.filter(pk=registration_id).update(channel=Channel.ONLINE)
+        return resolved
+
+    monkeypatch.setattr(registrations, "ensure_paper_registration", stale)
+    with pytest.raises(BallotRefused, match="déjà voté en ligne"):
+        services.enter_paper(open_paper_poll, str(entry.pk), STRICT, str(operator.pk), "fr")
+
+    assert not Ballot.objects.filter(poll=open_paper_poll).exists()
+    assert not PaperBallotLink.objects.filter(poll=open_paper_poll).exists()
+    assert not _events(open_paper_poll, Action.PAPER_BALLOT_CREATED)

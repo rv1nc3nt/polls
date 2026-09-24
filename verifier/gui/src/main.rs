@@ -11,7 +11,9 @@
 use std::path::PathBuf;
 
 use eframe::egui;
-use polls_verifier_core::report::{self, Expected, Report, VerifyError};
+use polls_verifier_core::counted::Method;
+use polls_verifier_core::publication::TiebreakRule;
+use polls_verifier_core::report::{self, Expected, PublicationReport, Report, VerifyError};
 
 fn main() -> eframe::Result<()> {
     let options = eframe::NativeOptions {
@@ -29,6 +31,8 @@ fn main() -> eframe::Result<()> {
 struct VerifierApp {
     csv_path: Option<PathBuf>,
     file_error: Option<String>,
+    method: Method,
+    expected_options: String,
     expected_closure_hash: String,
     expected_opening_seed: String,
     expected_winner: String,
@@ -37,6 +41,7 @@ struct VerifierApp {
 
 enum Outcome {
     Report(Report),
+    Publication(PublicationReport),
     Error(String),
 }
 
@@ -47,8 +52,8 @@ impl VerifierApp {
 
     fn choose_file(&mut self) {
         if let Some(path) = rfd::FileDialog::new()
-            .set_title("Choisir le fichier CSV des bulletins")
-            .add_filter("CSV", &["csv"])
+            .set_title("Choisir le document de publication (JSON) ou la liste des bulletins (CSV)")
+            .add_filter("Document de publication ou liste des bulletins", &["json", "csv"])
             .pick_file()
         {
             self.load(path);
@@ -74,21 +79,51 @@ impl VerifierApp {
             }
         };
 
+        // By content, not extension, as the CLI does: the CSV starts with its
+        // header, never with '{'.
+        if text.trim_start().starts_with('{') {
+            self.outcome = Some(match report::verify_publication(&text) {
+                Ok(checked) => Outcome::Publication(checked),
+                Err(err) => Outcome::Error(error_message(err)),
+            });
+            return;
+        }
+
         let closure_hash = non_empty(&self.expected_closure_hash);
         let opening_seed = non_empty(&self.expected_opening_seed);
         let winner = non_empty(&self.expected_winner);
-        let expected = Expected { closure_hash, opening_seed, winner };
+        let options: Option<Vec<String>> = non_empty(&self.expected_options).map(|list| {
+            list.split(',').map(str::trim).filter(|o| !o.is_empty()).map(String::from).collect()
+        });
+        let expected = Expected {
+            method: self.method,
+            options: options.as_deref(),
+            closure_hash,
+            opening_seed,
+            winner,
+        };
 
         self.outcome = Some(match report::verify(&text, &expected) {
             Ok(report) => Outcome::Report(report),
-            Err(VerifyError::Csv(err)) => {
-                Outcome::Error(format!("Le fichier CSV n'a pas pu être lu : {err}"))
-            }
-            Err(VerifyError::OpeningSeedNotHex) => Outcome::Error(
-                "La graine d'ouverture doit être une suite hexadécimale (par exemple a1b2c3…)."
-                    .to_string(),
-            ),
+            Err(err) => Outcome::Error(error_message(err)),
         });
+    }
+}
+
+fn error_message(err: VerifyError) -> String {
+    match err {
+        VerifyError::Csv(err) => format!("Le fichier CSV n'a pas pu être lu : {err}"),
+        VerifyError::Publication(err) => {
+            format!("Le document de publication n'a pas pu être lu : {err}")
+        }
+        VerifyError::OpeningSeedNotHex => {
+            "La graine d'ouverture doit être une suite hexadécimale (par exemple a1b2c3…)."
+                .to_string()
+        }
+        VerifyError::UnknownOption(option) => format!(
+            "Un bulletin classe l'option {option}, absente de la liste des options : \
+             la liste ou le fichier n'est pas celui de ce scrutin."
+        ),
     }
 }
 
@@ -116,14 +151,16 @@ impl eframe::App for VerifierApp {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Vérificateur indépendant");
             ui.label(
-                "Recalcule l'empreinte de clôture et le vainqueur Schulze à partir du seul \
-                 fichier CSV publié, sans faire confiance ni au site, ni à la mairie \
+                "Recalcule l'empreinte de clôture et le résultat à partir de ce que le \
+                 site publie, sans faire confiance ni au site, ni à la mairie \
                  (docs/manuel/verifier.md).",
             );
             ui.add_space(12.0);
 
             ui.group(|ui| {
-                ui.label("1. Fichier CSV des bulletins");
+                ui.label(
+                    "1. Document de publication (JSON, recommandé) ou liste des bulletins (CSV)",
+                );
                 ui.horizontal(|ui| {
                     if ui.button("Choisir un fichier…").clicked() {
                         self.choose_file();
@@ -145,10 +182,31 @@ impl eframe::App for VerifierApp {
             ui.add_space(8.0);
 
             ui.group(|ui| {
-                ui.label("2. Valeurs à comparer (facultatif — affichées sur la page de résultats)");
+                ui.label(
+                    "2. Pour un fichier CSV seulement : valeurs à comparer (facultatif — \
+                     affichées sur la page de résultats). Le document JSON les contient toutes.",
+                );
                 egui::Grid::new("expected-values").num_columns(2).spacing([8.0, 6.0]).show(
                     ui,
                     |ui| {
+                        // The CSV does not say which method the poll used; the
+                        // results page does, as "Méthode de dépouillement".
+                        ui.label("Méthode de dépouillement");
+                        ui.horizontal(|ui| {
+                            ui.radio_value(&mut self.method, Method::Schulze, "Schulze");
+                            ui.radio_value(&mut self.method, Method::Plurality, "majoritaire");
+                            ui.radio_value(&mut self.method, Method::Approval, "par assentiment");
+                        });
+                        ui.end_row();
+
+                        ui.label("Identifiants des options");
+                        ui.add(
+                            egui::TextEdit::singleline(&mut self.expected_options)
+                                .hint_text("séparés par des virgules, ex. option-a, option-b")
+                                .desired_width(400.0),
+                        );
+                        ui.end_row();
+
                         ui.label("Empreinte de clôture attendue");
                         ui.add(
                             egui::TextEdit::singleline(&mut self.expected_closure_hash)
@@ -195,13 +253,23 @@ impl eframe::App for VerifierApp {
                     ui.colored_label(egui::Color32::from_rgb(200, 40, 40), err);
                 }
                 Some(Outcome::Report(report)) => show_report(ui, report),
+                Some(Outcome::Publication(checked)) => show_publication(ui, checked),
             }
         });
     }
 }
 
+fn method_label(method: Method) -> &'static str {
+    match method {
+        Method::Schulze => "Schulze",
+        Method::Plurality => "majoritaire",
+        Method::Approval => "par assentiment",
+    }
+}
+
 fn show_report(ui: &mut egui::Ui, report: &Report) {
     egui::ScrollArea::vertical().show(ui, |ui| {
+        ui.label(format!("Méthode de dépouillement : {}", method_label(report.method)));
         ui.label(format!("Bulletins lus : {}", report.ballot_count));
 
         ui.horizontal(|ui| {
@@ -239,12 +307,25 @@ fn show_report(ui: &mut egui::Ui, report: &Report) {
             }
         });
 
+        if let Some(counts) = &report.counts {
+            ui.add_space(6.0);
+            ui.label("Voix par option :");
+            egui::Grid::new("counts").striped(true).show(ui, |ui| {
+                for (option, count) in report.options.iter().zip(counts) {
+                    ui.monospace(option);
+                    ui.label(count.to_string());
+                    ui.end_row();
+                }
+            });
+        }
+
         ui.add_space(6.0);
-        if report.schulze_winners.len() > 1 {
+        let method = method_label(report.method);
+        if report.winners.len() > 1 {
             ui.label(format!(
-                "Égalité entre {} options selon la méthode Schulze : {}",
-                report.schulze_winners.len(),
-                report.schulze_winners.join(", ")
+                "Égalité entre {} options selon la méthode {method} : {}",
+                report.winners.len(),
+                report.winners.join(", ")
             ));
             match &report.tiebreak_order {
                 Some(drawn) => {
@@ -257,7 +338,7 @@ fn show_report(ui: &mut egui::Ui, report: &Report) {
                 }
             }
         } else {
-            ui.label(format!("Vainqueur Schulze : {}", report.schulze_winners.join(", ")));
+            ui.label(format!("Vainqueur ({method}) : {}", report.winners.join(", ")));
         }
 
         if let Some(winner) = &report.final_winner {
@@ -273,6 +354,54 @@ fn show_report(ui: &mut egui::Ui, report: &Report) {
             );
         }
     });
+}
+
+fn show_publication(ui: &mut egui::Ui, checked: &PublicationReport) {
+    ui.label(format!(
+        "Document de publication, format {}, scrutin {}",
+        checked.format_version, checked.poll_id
+    ));
+    ui.weak(
+        "La méthode de dépouillement est celle que le document déclare : comparez-la avec \
+         celle que le scrutin annonçait.",
+    );
+    ui.add_space(4.0);
+    agreement_label(
+        ui,
+        checked.ballot_count_agrees,
+        "Le nombre de bulletins concorde avec celui publié.",
+        "Le nombre de bulletins NE concorde PAS avec celui publié.",
+    );
+    agreement_label(
+        ui,
+        checked.matrix_agrees,
+        "La matrice des duels concorde avec celle publiée.",
+        "La matrice des duels NE concorde PAS avec celle publiée.",
+    );
+    if let Some(agrees) = checked.counts_agree {
+        agreement_label(
+            ui,
+            agrees,
+            "Les voix par option concordent avec celles publiées.",
+            "Les voix par option NE concordent PAS avec celles publiées.",
+        );
+    }
+    if let Some(agrees) = checked.tiebreak_agrees {
+        if checked.tiebreak_rule == Some(TiebreakRule::Physical) {
+            ui.weak(
+                "Départage par tirage au sort physique, à la mairie : le vérificateur contrôle \
+                 qu'il porte exactement sur les options à égalité, mais ne peut pas le rejouer.",
+            );
+        }
+        agreement_label(
+            ui,
+            agrees,
+            "Le départage concorde avec celui publié.",
+            "Le départage NE concorde PAS avec celui publié.",
+        );
+    }
+    ui.add_space(6.0);
+    show_report(ui, &checked.report);
 }
 
 fn agreement_label(ui: &mut egui::Ui, agrees: bool, when_true: &str, when_false: &str) {

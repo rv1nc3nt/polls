@@ -58,6 +58,7 @@ reasoning.
 | 34 | A poll may be closed early, by hand, with a reason | decided |
 | 35 | Definitive actions are confirmed on a separate page | decided |
 | 36 | A sandbox poll's result is reachable through its link | decided |
+| 37 | The verifier reads the publication document, and every method | decided |
 
 ## 1. Retention purge on a poll that closed but was never published
 
@@ -1280,3 +1281,32 @@ browser holding only a voter token. Nothing lists the poll (INV-8).
 **Requirements.** R-3.7 no longer excludes the test poll from "published
 results" as such: its result appears on no public page, and "tried end to
 end" now includes the published result. Both languages. T-94.
+
+## 37. The verifier reads the publication document, and every method
+
+**Decided (2026-09-24).** §14 had the verifier read "only the published CSV" and
+recompute "the Schulze winner". The CSV does not say which method a poll used,
+so for a plurality or approval poll the winner check compared the announced
+winner with the Schulze one (review note M2). It also carries no option list,
+so an option nobody ranked was missing from the verifier's matrix (L5).
+
+**What the code does.** The verifier implements all three methods of R-10.3.
+Its preferred input is the JSON publication document, which R-11.2 already
+requires and which carries the ballots, the method, the options and every
+published value. From the ballots it recomputes the closure hash, the ballot
+count, the matrix, the counts, the winner and the tie-break, and checks each
+against the value the document states. A physical draw cannot be replayed; the
+verifier checks that its order is a draw among exactly the tied options. The
+document's layout is fixed in `docs/publication-format.md` and versioned by a
+`format_version` member, and the verifier refuses a version it does not know.
+The CSV remains a supported input, with the method and the other values supplied
+by the caller.
+
+**What it takes on trust.** The method, which decides what the winner should
+be. The document states it, and so does the results page, from the same
+server. The method is fixed before the poll opens and shown publicly from the
+time the poll is announced. The verifier restates the method so the reader can
+compare it with what was announced. No requirements change: R-11.4 asks that
+anyone can recompute the result "from the published data", which the document
+is. §14 and §9 were updated to match.
+

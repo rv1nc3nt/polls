@@ -15,7 +15,8 @@ edge case unlikely in practice.
 Where an entry is really a departure from the specification, the decision
 belongs in `specification-decision-log.md`, not here.
 
-No high-severity issue was found. M1 has since been resolved (see its entry).
+No high-severity issue was found. Every entry below has since been resolved
+(2026-09-24); each says how, and keeps the analysis as found.
 
 ## Medium
 
@@ -48,7 +49,15 @@ dashboard and by `/sante`. The analysis below is kept as found.
   `tests/conftest.py::open_window_poll` relies on the current behaviour: it
   registers against a `draft` poll.
 
-### M2. The verifier's winner check is Schulze-only, but the manual says otherwise
+### M2. The verifier's winner check is Schulze-only, but the manual says otherwise — resolved
+
+**Resolved:** the verifier implements plurality and approval
+(`verifier/core/src/counted.rs`) and takes the method from the caller —
+`--method` on the CLI, a choice in the GUI — since the CSV does not carry it;
+Schulze stays the default, and the report names the method it applied. The
+manual says to pass the method the results page shows.
+`test_verifier_agreement.py` checks Python and Rust agree under all three
+methods. The analysis below is kept as found.
 
 * **Where:** `verifier/core/src/report.rs` (`verify`);
   `docs/manuel/verifier.md:264-266` and `docs/manuel/verifier-en.md:247`.
@@ -62,7 +71,13 @@ dashboard and by `/sante`. The analysis below is kept as found.
   say plainly in the manual and in the CLI/GUI output that the winner check
   applies to Schulze polls only.
 
-### M3. The rate limiter trusts a client-controlled `X-Forwarded-For` entry
+### M3. The rate limiter trusts a client-controlled `X-Forwarded-For` entry — resolved
+
+**Resolved:** `client_digest` now counts from the right of the header,
+`TRUSTED_PROXY_HOPS` entries from the end (default 1, this role's nginx;
+`polls_trusted_proxy_hops` in Ansible), so the key is an address a trusted
+proxy wrote. `tests/unit/test_ratelimit.py` covers forged leading entries and a
+second proxy. The analysis below is kept as found.
 
 * **Where:** `src/apps/core/ratelimit.py`, `client_digest`;
   `ansible/roles/polls/templates/nginx-vhost.conf.j2:89,102`.
@@ -77,7 +92,14 @@ dashboard and by `/sante`. The analysis below is kept as found.
   entry. The docstring's claim that "the first entry is the client where nginx
   sets it" is inaccurate for this nginx configuration.
 
-### M4. One vote per elector under concurrency depends on SQLite's `IMMEDIATE` mode
+### M4. One vote per elector under concurrency depends on SQLite's `IMMEDIATE` mode — resolved
+
+**Resolved:** `registrations.services.mark_voted` only moves `channel` off
+`none` (`UPDATE … WHERE channel = 'none'`) and reports whether it did;
+`cast_online` refuses before inserting and `enter_paper` refuses and rolls
+back when it did not. That holds on any backend. `settings/dev.py` now keeps
+base's database options. Covered by the "concurrent casts" tests in
+`test_ballot_services.py`. The analysis below is kept as found.
 
 * **Where:** `src/config/settings/base.py` (`transaction_mode: IMMEDIATE`, now
   commented); `src/apps/ballots/services.py`, `cast_online`;
@@ -94,19 +116,19 @@ dashboard and by `/sante`. The analysis below is kept as found.
 
 ## Low
 
-| # | Location | Note |
-|---|---|---|
-| L1 | `src/apps/backoffice/communesettings.py:134,152`; `src/apps/elections/pollimages.py:105` | Stored files are deleted inside the transaction, before commit. If a later write raises, the database rolls back to a row that names a file no longer on disk. `elections/sandbox.delete_poll` defers the same delete with `transaction.on_commit`. |
-| L2 | `src/apps/audit/services.py`, `record` | `reason` is typed `Reason \| str` and never checked against `Reason`; model `choices` are not enforced on `create()`. The "a code, never prose" rule (§10) rests entirely on callers. |
-| L3 | `tests/integration/test_inv1_separation.py`, `test_neither_models_module_imports_the_other` | Checks three modules only. Nothing would catch `ballots/views.py` (which already imports `registrations.services`) starting to import `registrations.models`. CLAUDE.md's "the two apps' modules do not import each other" overstates the rule actually held: `ballots.services` and `ballots.views` do import `registrations.services`, by design. |
-| L4 | `src/apps/tally/methods.py`, `_tally_counted` | With ballots but no options, `max()` over an empty dict raises `ValueError`. Probably unreachable, since a poll needs two options to announce. |
-| L5 | `verifier/core/src/canonical.rs`, `options_in` | The option set is derived from the CSV, so an option no ballot ranked is missing from the verifier's printed matrix although present in the published one. The winner is unaffected. |
-| L6 | `verifier/core/src/canonical.rs`, `parse_hex` | Slices by byte offset: a non-ASCII character in user-supplied hex can land mid-UTF-8 sequence and panic instead of returning `None`. `u8::from_str_radix` also accepts a leading `+`. |
-| L7 | `src/apps/backoffice/views.py`, `_filters` | The audit-log `date_to` becomes 23:59:59.000000, so events in the last second of the chosen day are excluded. |
-| L8 | `src/apps/elections/management/commands/run_tally.py` | `help` says it "écrit les artefacts de publication"; it prints the publication JSON to stdout and writes nothing. |
-| L9 | `src/apps/core/jobs.py` | `EXIT_ERROR = 2` is never used: an unhandled exception exits with Django's default status. `JobCommand.handle` logs `self.job_name`, which is empty for a subclass relying on the module-name fallback (all current subclasses set it). |
-| L10 | `src/apps/core/tokensession.py`, `clear_ballot` | No caller in `src/`: a modification session entry is never cleared explicitly. |
-| L11 | `src/apps/tally/tiebreak.py`, `break_tie` | No caller in `src/` (closure uses `tiebreak_order`); used by tests only. |
+| # | Location | Note | Resolution |
+|---|---|---|---|
+| L1 | `src/apps/backoffice/communesettings.py:134,152`; `src/apps/elections/pollimages.py:105` | Stored files are deleted inside the transaction, before commit. If a later write raises, the database rolls back to a row that names a file no longer on disk. `elections/sandbox.delete_poll` defers the same delete with `transaction.on_commit`. | File deleted with `transaction.on_commit`, as `sandbox.delete_poll` does; a rollback test covers it. |
+| L2 | `src/apps/audit/services.py`, `record` | `reason` is typed `Reason \| str` and never checked against `Reason`; model `choices` are not enforced on `create()`. The "a code, never prose" rule (§10) rests entirely on callers. | `record` raises `UnknownAuditReason` for anything not a `Reason` value. |
+| L3 | `tests/integration/test_inv1_separation.py`, `test_neither_models_module_imports_the_other` | Checks three modules only. Nothing would catch `ballots/views.py` (which already imports `registrations.services`) starting to import `registrations.models`. CLAUDE.md's "the two apps' modules do not import each other" overstates the rule actually held: `ballots.services` and `ballots.views` do import `registrations.services`, by design. | `test_every_module_of_the_two_apps_keeps_the_boundary` walks every module of both apps; CLAUDE.md states the rule as held. |
+| L4 | `src/apps/tally/methods.py`, `_tally_counted` | With ballots but no options, `max()` over an empty dict raises `ValueError`. Probably unreachable, since a poll needs two options to announce. | `max(…, default=0)`: no winner, no crash. |
+| L5 | `verifier/core/src/canonical.rs`, `options_in` | The option set is derived from the CSV, so an option no ballot ranked is missing from the verifier's printed matrix although present in the published one. The winner is unaffected. | The verifier takes the poll's option list (`--options`, a GUI field); a ranked option missing from it is an input error. |
+| L6 | `verifier/core/src/canonical.rs`, `parse_hex` | Slices by byte offset: a non-ASCII character in user-supplied hex can land mid-UTF-8 sequence and panic instead of returning `None`. `u8::from_str_radix` also accepts a leading `+`. | Decoded byte-wise; any non-ASCII-hex character, `+` included, is refused. |
+| L7 | `src/apps/backoffice/views.py`, `_filters` | The audit-log `date_to` becomes 23:59:59.000000, so events in the last second of the chosen day are excluded. | The bound is the next local midnight, exclusive. |
+| L8 | `src/apps/elections/management/commands/run_tally.py` | `help` says it "écrit les artefacts de publication"; it prints the publication JSON to stdout and writes nothing. | Help text says it prints the publication document. |
+| L9 | `src/apps/core/jobs.py` | `EXIT_ERROR = 2` is never used: an unhandled exception exits with Django's default status. `JobCommand.handle` logs `self.job_name`, which is empty for a subclass relying on the module-name fallback (all current subclasses set it). | An unhandled exception is logged with the resolved job name and exits `EXIT_ERROR`; `CommandError` keeps Django's path. |
+| L10 | `src/apps/core/tokensession.py`, `clear_ballot` | No caller in `src/`: a modification session entry is never cleared explicitly. | Cleared after a modification and once the window has closed, so a shared browser keeps no ballot hash. |
+| L11 | `src/apps/tally/tiebreak.py`, `break_tie` | No caller in `src/` (closure uses `tiebreak_order`); used by tests only. | Removed; tests and the tally-methods page use `tiebreak_order`. |
 
 ## Documentation corrected during this pass
 
@@ -136,4 +158,5 @@ commits. They are listed so a reviewer can check the new wording.
   stated in the threat model and the data-protection notice?
 * **Deployment of M3.** Is the production nginx the only proxy in front, or is
   there another hop that would change which `X-Forwarded-For` entry is
-  trustworthy?
+  trustworthy? *Answered by configuration:* `polls_trusted_proxy_hops`, documented
+  in the instance administrator's guide.

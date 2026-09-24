@@ -206,6 +206,12 @@ def published_csv(poll: Poll) -> str:
     return buffer.getvalue()
 
 
+#: The layout of ``publication``, which ``docs/publication-format.md`` fixes and
+#: the Rust verifier reads. A change that moves, renames or re-types a member
+#: the verifier reads is a new version, made in all three places at once.
+PUBLICATION_FORMAT_VERSION = "1"
+
+
 def publication(poll: Poll) -> dict[str, Any]:
     """Everything §9 requires published, as one JSON-serialisable document.
 
@@ -217,6 +223,7 @@ def publication(poll: Poll) -> dict[str, Any]:
     ballots, options, result = tallied(poll)
 
     document: dict[str, Any] = {
+        "format_version": PUBLICATION_FORMAT_VERSION,
         "poll_id": str(poll.id),
         "tally_method": poll.tally_method,
         "tally_method_version": poll.tally_method_version,

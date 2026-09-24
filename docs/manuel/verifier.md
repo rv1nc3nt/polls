@@ -24,8 +24,8 @@ totalement indépendant :
   Python) et ne partage aucun code avec lui — une divergence dans le premier
   ne peut pas se retrouver dans le second par accident ;
 - il ne se connecte à aucune base de données et n'a besoin d'aucun accès à la
-  mairie ou à son serveur : il ne lit que le fichier CSV que le site public
-  publie pour tout le monde ;
+  mairie ou à son serveur : il ne lit que ce que le site public publie pour
+  tout le monde — le document de publication ou le fichier CSV ;
 - il recalcule tout depuis zéro — l'empreinte de clôture, la matrice des
   duels, le vainqueur et, s'il y a lieu, le départage — et vous dit s'il
   retrouve exactement ce que le site annonce.
@@ -37,15 +37,21 @@ plus bas) plutôt que faire confiance à l'un ou l'autre des deux calculs.
 
 ## Ce qu'il vous faut
 
-Trois choses, toutes disponibles depuis la page de résultats de la
-consultation (figure 20 du [guide de l'électeur](guide-electeur.md#8-vérifier-après-la-clôture)) :
+Deux choses :
 
-1. le fichier **CSV** de la liste anonymisée des bulletins — un lien
-   « Liste anonymisée des bulletins (CSV) » sur cette page ;
-2. l'**empreinte de clôture** affichée sur la même page (une suite de
-   caractères hexadécimaux, ex. `87694cf0…`) ;
-3. le **vérificateur**, un petit programme à télécharger une seule fois —
+1. le **document de publication** de la consultation — le lien « Document de
+   publication complet (JSON) » de sa page de résultats (figure 20 du [guide
+   de l'électeur](guide-electeur.md#8-vérifier-après-la-clôture)). Il contient
+   la liste anonymisée des bulletins et toutes les valeurs que le site
+   publie : méthode de dépouillement, options, empreinte de clôture, matrice
+   des duels, vainqueur et, s'il y a lieu, départage ;
+2. le **vérificateur**, un petit programme à télécharger une seule fois —
    voir ci-dessous.
+
+La même page propose aussi la **liste anonymisée des bulletins (CSV)**, qui
+s'ouvre dans un tableur. Le vérificateur la lit également, mais elle ne
+contient que les bulletins : il faut alors lui indiquer soi-même les valeurs
+à comparer, recopiées depuis la page de résultats (voir plus bas).
 
 Le vérificateur existe sous deux formes, construites à partir du même code de
 vérification : une **application graphique**, recommandée pour la plupart des
@@ -80,7 +86,7 @@ commande :
 > sur les Mac Apple Silicon, seulement un peu plus lentement.
 
 Placez le fichier téléchargé dans un dossier facile à retrouver — par
-exemple à côté du fichier CSV que vous avez déjà téléchargé.
+exemple à côté du document de publication que vous avez déjà téléchargé.
 
 ## Utiliser l'application graphique (recommandé)
 
@@ -120,26 +126,33 @@ gestionnaire de fichiers (ou lancez-le depuis un terminal) :
 
 ### Vérifier
 
-La fenêtre « Vérificateur indépendant » propose trois étapes :
+La fenêtre « Vérificateur indépendant » propose trois étapes ; avec le
+document de publication, seules la première et la dernière servent :
 
-1. **Fichier CSV des bulletins** — cliquez sur « Choisir un fichier… » et
-   sélectionnez le CSV téléchargé, ou déposez-le directement dans la
-   fenêtre.
-2. **Valeurs à comparer** — collez l'**empreinte de clôture attendue** dans
-   le champ du même nom. En cas d'égalité (voir plus bas), collez aussi la
-   **graine d'ouverture** ; pour vérifier également le vainqueur annoncé,
-   renseignez son identifiant dans **vainqueur annoncé**. Ces trois champs
+1. **Fichier** — cliquez sur « Choisir un fichier… » et sélectionnez le
+   document de publication (JSON) téléchargé, ou déposez-le directement dans
+   la fenêtre.
+2. **Valeurs à comparer** — à laisser vide avec le document de publication,
+   qui les contient toutes. Elles ne servent qu'avec le fichier CSV : la
+   **méthode de dépouillement** que la page de résultats indique (Schulze,
+   majoritaire ou par assentiment), les **identifiants des options**
+   séparés par des virgules, l'**empreinte de clôture attendue**, la
+   **graine d'ouverture** en cas d'égalité et le **vainqueur annoncé**. Tous
    sont facultatifs — sans eux, l'application affiche quand même ce qu'elle a
    recalculé, simplement sans rien comparer.
 3. Cliquez sur **Vérifier**.
 
-Le résultat s'affiche en dessous : le nombre de bulletins lus, l'empreinte
-recalculée, la matrice des duels, le ou les vainqueurs selon la méthode
-Schulze, et — pour chaque valeur que vous avez renseignée — une ligne verte
-« ✓ … concorde » ou rouge « ✗ … NE concorde PAS ». C'est l'équivalent exact
-des lignes `AGREES` / `DIFFERS` de la version en ligne de commande ci-dessous ;
-voir [« Que faire en cas de désaccord »](#que-faire-en-cas-de-désaccord) si
-vous obtenez un désaccord.
+Avec le document de publication, le résultat commence par une ligne verte
+« ✓ … concorde » ou rouge « ✗ … NE concorde PAS » pour chacune des valeurs
+publiées : nombre de bulletins, matrice des duels, voix par option (scrutin
+majoritaire ou par assentiment), départage s'il y en a eu un, empreinte de
+clôture et vainqueur. Viennent ensuite la méthode de dépouillement, telle que
+le document la déclare — comparez-la avec celle que la consultation
+annonçait avant son ouverture, c'est la seule valeur que le vérificateur ne
+peut pas recalculer —, la matrice et le ou les vainqueurs recalculés. C'est
+l'équivalent exact des lignes `AGREES` / `DIFFERS` de la version en ligne de
+commande ci-dessous ; voir [« Que faire en cas de
+désaccord »](#que-faire-en-cas-de-désaccord) si vous obtenez un désaccord.
 
 ## Utiliser la ligne de commande
 
@@ -196,8 +209,44 @@ exécutable :
 ### Lancer la vérification
 
 Depuis le terminal ouvert dans le dossier où se trouvent le programme et le
-fichier CSV, tapez (en adaptant les noms de fichiers à ce que vous avez
-téléchargé, et l'empreinte à celle affichée sur la page de résultats) :
+document de publication, tapez (en adaptant les noms de fichiers à ce que
+vous avez téléchargé) :
+
+**Windows (PowerShell) :**
+
+    .\polls-verifier-windows-x86_64.exe publication.json
+
+**macOS ou Linux :**
+
+    ./polls-verifier-macos-aarch64 publication.json
+
+Aucune autre valeur n'est à fournir : le document les contient toutes. Le
+programme affiche la méthode de dépouillement que le document déclare, le
+nombre de bulletins lus, l'empreinte qu'il a lui-même recalculée, la liste
+des options, la matrice des duels, le nombre de voix de chaque option pour un
+scrutin majoritaire ou par assentiment et le ou les vainqueurs — puis une
+ligne par valeur publiée qu'il a vérifiée :
+
+    closure hash    AGREES
+    ballot count    AGREES
+    matrix          AGREES
+    winner          AGREES
+
+`AGREES` signifie que la valeur recalculée à partir des seuls bulletins est
+identique à celle que le site publie ; `DIFFERS` signifierait le contraire
+(voir plus bas). S'y ajoutent une ligne `counts` pour un scrutin majoritaire
+ou par assentiment, et une ligne `tie-break` si un départage a eu lieu.
+
+La méthode de dépouillement est la seule valeur que le vérificateur ne peut
+pas recalculer, puisque c'est elle qui décide du vainqueur : il l'affiche en
+première ligne (`method`) pour que vous la compariez avec celle que la
+consultation annonçait avant son ouverture.
+
+#### Avec le fichier CSV
+
+Le fichier CSV ne contient que les bulletins : les valeurs à comparer se
+recopient depuis la page de résultats. Tapez (en adaptant les noms de
+fichiers, et l'empreinte à celle affichée sur la page de résultats) :
 
 **Windows (PowerShell) :**
 
@@ -209,7 +258,7 @@ téléchargé, et l'empreinte à celle affichée sur la page de résultats) :
 
 Le programme affiche le nombre de bulletins lus, l'empreinte qu'il a
 lui-même recalculée, la liste des options, la matrice des duels et le ou les
-vainqueurs selon la méthode Schulze — puis, en dernière ligne utile :
+vainqueurs — puis, en dernière ligne utile :
 
     closure hash    AGREES
 
@@ -219,29 +268,46 @@ calcul de clôture. `DIFFERS` signifierait le contraire (voir plus bas).
 
 Pour vérifier également le vainqueur annoncé, ajoutez `--winner` suivi de
 l'identifiant de l'option retenue (visible dans la matrice, entre
-parenthèses à côté du libellé sur la page de résultats) :
+parenthèses à côté du libellé sur la page de résultats), et `--method` suivi
+de la méthode de dépouillement que la page de résultats indique :
+`schulze`, `majoritaire` ou `assentiment` :
 
-    ./polls-verifier-macos-aarch64 ballots.csv --closure-hash 87694cf0... --winner option-b
+    ./polls-verifier-macos-aarch64 ballots.csv --closure-hash 87694cf0... --method majoritaire --winner option-b
 
 Une ligne `winner AGREES` confirme que le vérificateur, en repartant de zéro
 à partir du seul fichier public, retrouve exactement le vainqueur annoncé
 par le site.
 
-Le vérificateur ne recalcule le vainqueur que selon la méthode de Schulze.
-N'utilisez `--winner` que si la page de résultats indique « Schulze » comme
-méthode de dépouillement : pour un scrutin majoritaire ou par assentiment, il
-comparerait le vainqueur annoncé à celui de Schulze et pourrait signaler un
-désaccord qui n'en est pas un. La vérification de l'empreinte, elle, vaut pour
-tous les scrutins.
+Le fichier CSV ne dit pas quelle méthode le scrutin a employée : c'est à vous
+de la donner. Sans `--method`, le vérificateur compte selon la méthode de
+Schulze, et il indique en première ligne (`method`) la méthode qu'il a
+appliquée. Un vainqueur recalculé selon une autre méthode que celle du scrutin
+peut différer sans que rien ne soit faux. La vérification de l'empreinte,
+elle, vaut quelle que soit la méthode.
+
+Le fichier CSV ne dit pas non plus quelles options le scrutin proposait : il
+ne connaît que celles qu'un bulletin au moins a classées. Pour retrouver
+toutes les lignes de la matrice publiée, y compris celle d'une option que
+personne n'a classée, ajoutez `--options` suivi des identifiants des options,
+séparés par des virgules (`--options option-a,option-b,option-c`). Une option
+absente de la liste mais classée par un bulletin est signalée comme une
+erreur : la liste ou le fichier n'est pas celui du scrutin.
 
 #### En cas d'égalité (départage)
 
-Si la page de résultats indique qu'un départage a eu lieu, elle publie aussi
-la **graine d'ouverture** — une seconde suite hexadécimale, distincte de
-l'empreinte de clôture. Ajoutez-la avec `--opening-seed` pour que le
-vérificateur rejoue le départage lui-même :
+Avec le document de publication, il n'y a rien à ajouter : le vérificateur
+rejoue lui-même le départage calculé à partir de la graine d'ouverture que le
+document contient, et le compare à celui publié (ligne `tie-break`). Si la
+consultation avait prévu un **tirage au sort physique**, mené à la mairie,
+aucun programme ne peut le rejouer : le vérificateur contrôle seulement que
+le tirage publié porte exactement sur les options à égalité, et le signale.
 
-    ./polls-verifier-macos-aarch64 ballots.csv --closure-hash 87694cf0... --opening-seed a1b2c3... --winner option-b
+Avec le fichier CSV, la page de résultats publie aussi la **graine
+d'ouverture** — une seconde suite hexadécimale, distincte de l'empreinte de
+clôture. Ajoutez-la avec `--opening-seed` pour que le vérificateur rejoue le
+départage lui-même :
+
+    ./polls-verifier-macos-aarch64 ballots.csv --closure-hash 87694cf0... --method schulze --opening-seed a1b2c3... --winner option-b
 
 Le départage n'utilise ni tirage au sort, ni fonction du langage de
 programmation : il est entièrement déterminé par l'empreinte de clôture et
@@ -253,10 +319,10 @@ pour le détail de ce calcul.
 
 Si une ligne affiche `DIFFERS` :
 
-1. Vérifiez d'abord que vous avez copié l'empreinte (et, le cas échéant, la
-   graine d'ouverture) **sans espace ni caractère manquant**, et que le
-   fichier CSV téléchargé est bien complet (le refaire depuis la page de
-   résultats en cas de doute).
+1. Vérifiez d'abord que le fichier téléchargé est bien complet (le
+   télécharger à nouveau depuis la page de résultats en cas de doute) et,
+   avec le fichier CSV, que vous avez copié l'empreinte (et, le cas échéant,
+   la graine d'ouverture) **sans espace ni caractère manquant**.
 2. Si le désaccord persiste, **ne le gardez pas pour vous** : contactez la
    mairie en indiquant la consultation concernée, la commande exacte que
    vous avez lancée et son résultat complet. C'est exactement le type
@@ -264,10 +330,11 @@ Si une ligne affiche `DIFFERS` :
 
 ## Pour aller plus loin
 
-Le code source du vérificateur (`verifier/`) et le format exact du fichier
-CSV qu'il lit (`docs/canonical-serialisation.md`) sont publics : n'importe
-qui peut relire ce que fait exactement ce programme, ou écrire sa propre
-version dans un autre langage pour vérifier de manière encore plus
-indépendante. Pour comprendre ce que le vérificateur recalcule au juste — la
-méthode de Schulze et le départage — et les deux autres méthodes, voir
+Le code source du vérificateur (`verifier/`) et le format exact des fichiers
+qu'il lit (`docs/publication-format.md` pour le document de publication,
+`docs/canonical-serialisation.md` pour les bulletins et l'empreinte) sont
+publics : n'importe qui peut relire ce que fait exactement ce programme, ou
+écrire sa propre version dans un autre langage pour vérifier de manière
+encore plus indépendante. Pour comprendre ce que le vérificateur recalcule au juste — la
+méthode de Schulze, majoritaire ou par assentiment, et le départage — voir
 [Les méthodes de dépouillement, expliquées](methodes-de-depouillement.md).

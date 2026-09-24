@@ -76,7 +76,9 @@ def cast_online(poll: Poll, token: Token, ranking: list[list[str]]) -> CastResul
     handle (§7, R-7.4 bis, T-48).
 
     The channel flip and the ballot insert share this transaction (§7). Any
-    later use of the link is refused because ``channel`` is no longer ``none``.
+    later use of the link is refused because ``channel`` is no longer ``none``;
+    a concurrent one is refused by ``mark_voted``'s compare-and-set, which
+    runs before the insert so the losing request writes nothing (INV-5).
     """
     check_ballot_window(poll, BallotSource.ONLINE)
     _validate(poll, ranking)
@@ -94,6 +96,11 @@ def cast_online(poll: Poll, token: Token, ranking: list[list[str]]) -> CastResul
         # lands here; so does a spent link on a no-modification poll (R-7.1).
         raise BallotRefused(_("Un bulletin a déjà été enregistré pour cet électeur."))
 
+    if not registrations.mark_voted(registration_id, _CHANNEL_ONLINE):
+        # The channel moved between the read above and now: a second request
+        # on the same link, or a paper entry, got there first.
+        raise BallotRefused(_("Un bulletin a déjà été enregistré pour cet électeur."))
+
     digest: bytes | None = None
     if poll.allow_ballot_modification:
         digest = ballot_hash_of(TokenSalt(bytes(poll.token_salt)), token)
@@ -101,7 +108,6 @@ def cast_online(poll: Poll, token: Token, ranking: list[list[str]]) -> CastResul
     ballot = _insert(
         poll, ranking, BallotStatus.LIVE, source=BallotSource.ONLINE, ballot_hash=digest
     )
-    registrations.mark_voted(registration_id, _CHANNEL_ONLINE)
     return CastResult(ballot=ballot, registration_id=registration_id)
 
 
@@ -291,10 +297,18 @@ def enter_paper(
     )
     ballot = _insert(poll, ranking, status)
     _link(poll, ballot, entry, operator, language, note)
-    if channel == _CHANNEL_NONE:
+    if channel == _CHANNEL_NONE and not registrations.mark_voted(registration_id, "paper"):
         # An existing registration on the ``none`` channel; a freshly created
-        # one is already ``paper`` and needs no second write (§6.4, D2).
-        registrations.mark_voted(registration_id, "paper")
+        # one is already ``paper`` and needs no second write (§6.4, D2). The
+        # flip failing means an online cast landed since the read above
+        # (INV-5): refused as if it had been seen then, and the ballot and
+        # link written just now roll back with this transaction.
+        raise BallotRefused(
+            _(
+                "Cet électeur a déjà voté en ligne ; ce vote fait foi et ne peut pas être "
+                "remplacé par un bulletin papier."
+            )
+        )
     audit.record(
         action=Action.PAPER_BALLOT_CREATED,
         poll=poll,

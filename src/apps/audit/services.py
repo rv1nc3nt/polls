@@ -43,6 +43,11 @@ class PersonalDataInAuditEvent(ValueError):
     """Raised when an event would carry an elector's identity (§10)."""
 
 
+class UnknownAuditReason(ValueError):
+    """Raised when ``reason`` is not a ``Reason`` code — prose, most likely,
+    which could carry a name the log would then keep for ever (§10)."""
+
+
 def _offending_keys(value: Any) -> set[str]:
     """``FORBIDDEN_KEYS`` found anywhere under ``value``, however deeply nested.
 
@@ -86,9 +91,10 @@ def record(
     """Append one event.
 
     ``reason`` is a code from the declared vocabulary, never prose: any note an
-    operator writes goes on the referenced object (§10). That is the caller's
-    obligation — a plain ``str`` is accepted and not checked against
-    ``Reason`` here.
+    operator writes goes on the referenced object (§10). A plain ``str`` is
+    accepted — a form hands back the code's value — but must be one of
+    ``Reason``'s; anything else raises ``UnknownAuditReason`` before a row is
+    written (review note L2).
 
     Raises ``PersonalDataInAuditEvent`` if ``before`` or ``after`` carries a
     ``FORBIDDEN_KEYS`` key at any depth. Writes inside the caller's
@@ -96,6 +102,8 @@ def record(
     ``elections.transitions.open_poll`` for refusals logged after one).
     ``actor_label`` defaults to ``"system"`` when there is no ``actor``.
     """
+    if reason and reason not in Reason.values:
+        raise UnknownAuditReason(str(reason))
     before = before or {}
     after = after or {}
     _check(before, "before")

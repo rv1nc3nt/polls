@@ -193,7 +193,11 @@ def modify(request: HttpRequest, poll_id: str) -> HttpResponse:
     """The token-free modification page (§6.3, R-7.1).
 
     Reached only from ``access`` having put ``ballot_hash`` in the session; the
-    token is already gone from the URL (T-21).
+    token is already gone from the URL (T-21). The entry is spent by a
+    modification, and dropped once the window has closed: left for the
+    session's life, it would let the next person at a shared browser read the
+    ranking and change it (review note L10). The receipt already sends a voter
+    back to the mailed link to modify again.
     """
     poll = _reachable_poll_or_404(request, poll_id)
     digest_hex = tokensession.load_ballot(request, str(poll.pk))
@@ -202,6 +206,7 @@ def modify(request: HttpRequest, poll_id: str) -> HttpResponse:
     try:
         check_ballot_window(poll, BallotSource.ONLINE)
     except WindowClosed:
+        tokensession.clear_ballot(request, str(poll.pk))
         return _to_notice(poll, "indisponible")
 
     ballot_hash = BallotHash(bytes.fromhex(digest_hex))
@@ -215,10 +220,12 @@ def modify(request: HttpRequest, poll_id: str) -> HttpResponse:
         try:
             new = services.modify(poll, ballot_hash, form.cleaned_data["ranking"])
         except WindowClosed:
+            tokensession.clear_ballot(request, str(poll.pk))
             return _to_notice(poll, "indisponible")
         except BallotRefused as refused:
             form.add_error(None, str(refused))
         else:
+            tokensession.clear_ballot(request, str(poll.pk))
             tokensession.store_receipt(
                 request,
                 str(poll.pk),
