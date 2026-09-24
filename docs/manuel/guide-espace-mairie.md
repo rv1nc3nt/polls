@@ -159,7 +159,12 @@ a deux origines possibles :
 
 - une **tâche planifiée** (`open_poll`, `close_poll`), qui peut tourner en
   retard, deux fois, ou pas du tout — d'où le tableau de bord qui nomme à
-  l'avance ce qui bloquerait la transition suivante (ci-dessous) ;
+  l'avance ce qui bloquerait la transition suivante (ci-dessous). Les heures,
+  elles, sont toujours respectées : aucun bulletin n'est accepté après
+  l'échéance, même si la clôture tarde. En revanche, **inscriptions et votes
+  n'ouvrent qu'avec le scrutin** : si l'ouverture planifiée n'a pas lieu, rien
+  n'est possible tant que le scrutin reste annoncé, et le tableau de bord le
+  signale ;
 - l'administrateur du scrutin, **à la main**, depuis l'écran de
   **configuration** (écran 2) : *Annoncer maintenant*, *Ouvrir maintenant*,
   *Clôturer maintenant* et *Retirer le scrutin*. Les quatre passent par
@@ -168,6 +173,16 @@ a deux origines possibles :
   depuis l'écran — à l'exception du passage outre au contreseing, que
   seul un humain peut motiver. Le retrait n'a, lui, aucune tâche planifiée
   équivalente : c'est une action manuelle et volontaire, ou rien.
+
+**Toute action définitive demande une confirmation.** Annoncer, ouvrir,
+clore, reporter la clôture, retirer, publier, signer le procès-verbal de
+rapprochement et supprimer un scrutin d'essai : le bouton mène d'abord à une
+page qui rappelle ce qui va se passer — calculé au moment même, par exemple
+le nombre d'inscriptions encore en attente d'examen qui ne pourront plus
+voter — et rien n'est fait tant que vous n'avez pas confirmé. *Annuler*
+ramène à l'écran sans rien changer. Si l'action doit de toute façon être
+refusée (traduction manquante, motif absent…), le refus s'affiche tout de
+suite, sans page de confirmation.
 
 - **brouillon → annoncé** (**obligatoire**) : rend le scrutin visible
   sur le site public — propositions et calendrier, sans inscription ni vote
@@ -196,10 +211,12 @@ a deux origines possibles :
   le site public dès ce moment, et non seulement dans le tableau de bord.
 - **ouvert → clos** : calcule l'**empreinte de clôture** sur l'ensemble des
   bulletins retenus et **fige les compteurs de participation**. Ne dépouille
-  pas. *Clôturer maintenant* n'est proposé qu'une fois l'échéance de saisie
-  des bulletins papier atteinte — clore plus tôt figerait l'empreinte et les
-  compteurs par avance de bulletins que la fenêtre d'écriture accepterait
-  encore légitimement.
+  pas. *Clôturer maintenant* est proposé à tout moment une fois le scrutin
+  ouvert. Avant l'échéance de saisie des bulletins papier, c'est une
+  **clôture anticipée** : un motif est obligatoire, inscriptions, vote en
+  ligne et saisie papier s'arrêtent à l'instant même, les dates de clôture
+  deviennent cet instant, et la page publique du scrutin affiche la clôture
+  anticipée avec son motif, comme elle affiche un report.
 - **clos → publié** : le dépouillement (fonction pure) est exécuté et ces
   artefacts deviennent publics.
 - **annoncé, ouvert, clos ou publié → retiré** (à tout moment, motif
@@ -237,6 +254,12 @@ permises dans l'état courant**.
 - En **brouillon**, il nomme toute condition qui ferait échouer l'ouverture —
   traduction manquante, liste électorale non figée — pour qu'un manque soit
   visible **avant** l'heure d'ouverture, pas à l'heure d'ouverture.
+- Si une **tâche planifiée est en retard** de plus de 30 minutes — scrutin
+  toujours annoncé après l'heure d'ouverture, ou toujours ouvert après la fin
+  de saisie des bulletins papier — un avertissement en tête le dit. Pour une
+  ouverture manquée, *Ouvrir maintenant* (écran 2) ouvre le scrutin sans
+  attendre ; prévenez aussi l'administrateur système, le planificateur
+  est probablement arrêté.
 - En **ouvert**, il nomme ce qui bloquerait la clôture — *clôture bloquée : n
   bulletins en attente de contreseing*, ou, si `paper_requires_reconciliation`
   est activé et qu'il n'est pas encore enregistré, *clôture bloquée :
@@ -299,7 +322,7 @@ Seul l'administrateur du scrutin peut le faire ; un auditeur voit le lien sans
 pouvoir le modifier.
 
 Le même écran permet de **supprimer** le scrutin d'essai, **à n'importe quel
-état**, après une case de confirmation. La suppression est **définitive** : le
+état**, après une page de confirmation. La suppression est **définitive** : le
 scrutin, ses propositions, ses bulletins, ses inscriptions et sa copie de la
 liste électorale sont effacés. Le journal d'audit, lui, n'est jamais modifié : il
 garde tout ce qui a été fait sur le scrutin et une ligne indique qu'il a été

@@ -31,7 +31,7 @@ from django.utils.translation import gettext as _
 
 from apps.audit.models import Action, AuditEvent, Reason
 from apps.core import manual
-from apps.elections import closure, results_view, richtext, sandbox, windows
+from apps.elections import closure, results_view, richtext, sandbox, transitions, windows
 from apps.elections.models import Poll, PollState
 from apps.registrations.models import PARTICIPATING, Channel, Registration
 
@@ -90,13 +90,25 @@ def _status_key(poll: Poll, now: datetime) -> str:
 def health(request: HttpRequest) -> JsonResponse:
     """``GET /sante`` (§14).
 
-    200 with the application version and whether migrations are pending. No
+    200 with the application version, whether migrations are pending, and
+    whether a scheduled transition is overdue (``transitions_overdue``: the
+    scheduler has stopped, or a job keeps refusing — decision log #33). No
     authentication, no personal data, no counts — it is read by the Ansible
     smoke play and by monitoring, both of which are outside the trust boundary.
+    The flag is a single boolean for the whole instance and names no poll.
     """
     executor = MigrationExecutor(connection)
     pending = bool(executor.migration_plan(executor.loader.graph.leaf_nodes()))
-    return JsonResponse({"version": settings.APP_VERSION, "migrations_pending": pending})
+    # Not queried while migrations are pending: the tables may not match the
+    # models yet, and that is what the other flag already reports.
+    overdue = False if pending else transitions.transitions_overdue()
+    return JsonResponse(
+        {
+            "version": settings.APP_VERSION,
+            "migrations_pending": pending,
+            "transitions_overdue": overdue,
+        }
+    )
 
 
 def help_page(request: HttpRequest) -> HttpResponse:
@@ -245,6 +257,20 @@ def _extensions(poll: Poll) -> list[dict[str, object]]:
         }
         for event in events
     ]
+
+
+def _early_closure(poll: Poll) -> dict[str, object] | None:
+    """The poll's early closure (R-3.4), if it had one: the planned and actual
+    closing instants and the reason code, shown like an extension and for the
+    same reason — the calendar the public was given changed."""
+    event = AuditEvent.objects.filter(poll=poll, action=Action.POLL_CLOSED_EARLY).first()
+    if event is None:
+        return None
+    return {
+        "planned": parse_datetime(event.before.get("paper_entry_deadline", "")),
+        "actual": parse_datetime(event.after.get("paper_entry_deadline", "")),
+        "reason": dict(Reason.choices).get(event.reason, event.reason),
+    }
 
 
 def _live_participation(poll: Poll) -> dict[str, int] | None:
@@ -415,6 +441,7 @@ def _render_poll_detail(
             "poll": poll,
             **_draft_preview_context(poll, language),
             "extensions": _extensions(poll),
+            "early_closure": _early_closure(poll),
             "participation": _live_participation(poll),
             "is_preview": status == "preview",
             "is_open": status == "open",

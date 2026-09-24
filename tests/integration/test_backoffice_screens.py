@@ -21,7 +21,7 @@ from django.test import Client
 from django.utils import timezone
 
 from apps.audit import services as audit
-from apps.audit.models import Action, AuditEvent
+from apps.audit.models import Action, AuditEvent, Reason
 from apps.backoffice.dashboard import describe_blocker, participation, permitted_actions
 from apps.ballots.models import Ballot, BallotSource, BallotStatus
 from apps.core.crypto import voter_hash
@@ -152,7 +152,7 @@ def test_a_closed_poll_shows_the_counts_frozen_at_closure(open_window_poll: Poll
     registrations a fresh count would read (§11)."""
     force_open(open_window_poll)
     _register(open_window_poll, "20000001", state=RegistrationState.ACTIVE, channel=Channel.ONLINE)
-    close_poll(open_window_poll)
+    close_poll(open_window_poll, early_reason=Reason.ADMINISTRATIVE_DECISION)
 
     Registration.objects.all().delete()  # what the purge does two months later
     counts = participation(Poll.objects.get(pk=open_window_poll.pk))
@@ -337,7 +337,9 @@ def test_a_purged_reference_is_rendered_as_a_deletion(
 
     assert "objet supprimé (rétention)" not in client.get(url).content.decode()
 
-    close_poll(Poll.objects.get(pk=open_window_poll.pk))
+    close_poll(
+        Poll.objects.get(pk=open_window_poll.pk), early_reason=Reason.ADMINISTRATIVE_DECISION
+    )
     registration.delete()  # the retention purge, two months on
     body = client.get(url).content.decode()
     assert "objet supprimé (rétention)" in body
@@ -391,7 +393,9 @@ def test_a_published_poll_still_shows_its_dashboard(
     """The screen must survive every state, including the one where the
     registrations behind its counts no longer exist."""
     force_open(open_window_poll)
-    close_poll(Poll.objects.get(pk=open_window_poll.pk))
+    close_poll(
+        Poll.objects.get(pk=open_window_poll.pk), early_reason=Reason.ADMINISTRATIVE_DECISION
+    )
     _grant(open_window_poll, admin_user, Role.POLL_ADMIN)
     client.force_login(admin_user)
 
@@ -441,6 +445,7 @@ def test_screen_4_lists_pending_email_electors_and_resends_the_link(
 def test_resending_is_for_the_poll_admin_and_not_another_polls_registration(
     client: Client, open_window_poll: Poll, admin_user: User
 ) -> None:
+    force_open(open_window_poll)
     waiting = _register(open_window_poll, "41000001", state=RegistrationState.PENDING_EMAIL)
     url = f"/fr/mairie/scrutin/{open_window_poll.pk}/inscriptions/renvoyer/"
     client.force_login(admin_user)  # no role on this poll
@@ -450,6 +455,7 @@ def test_resending_is_for_the_poll_admin_and_not_another_polls_registration(
 def test_the_dashboard_counts_electors_awaiting_confirmation_apart_from_registered(
     open_window_poll: Poll,
 ) -> None:
+    force_open(open_window_poll)
     _register(open_window_poll, "42000001", state=RegistrationState.PENDING_EMAIL)
     _register(open_window_poll, "42000002", state=RegistrationState.PENDING_EMAIL)
     _register(open_window_poll, "42000003", state=RegistrationState.ACTIVE)
@@ -457,3 +463,43 @@ def test_the_dashboard_counts_electors_awaiting_confirmation_apart_from_register
     counts = participation(open_window_poll)
     assert counts.pending_email == 2
     assert counts.registered == 1
+
+
+# --- Decision log #33: a missed scheduled transition is flagged --------------
+
+
+def test_a_missed_opening_is_flagged_on_the_dashboard_and_by_sante(
+    client: Client, open_window_poll: Poll, admin_user: User
+) -> None:
+    """Every write needs an open poll, so an ``open_poll`` that never ran
+    delays voting: the dashboard says so, and ``/sante`` reports it for
+    monitoring — without naming the poll."""
+    from tests.conftest import force_announce
+
+    assert client.get("/sante").json()["transitions_overdue"] is False
+    force_announce(open_window_poll)  # opens_at a day past, open_poll never ran
+    health = client.get("/sante").json()
+    assert health["transitions_overdue"] is True
+    assert str(open_window_poll.pk) not in str(health)
+
+    _grant(open_window_poll, admin_user, Role.POLL_ADMIN)
+    client.force_login(admin_user)
+    page = client.get(f"/fr/mairie/scrutin/{open_window_poll.pk}/").content.decode()
+    assert "L'ouverture planifiée n'a pas eu lieu" in page
+
+
+def test_overdue_waits_out_the_grace_period_and_covers_closing(open_window_poll: Poll) -> None:
+    from apps.elections.transitions import OVERDUE_AFTER, overdue_transition, transitions_overdue
+    from tests.conftest import force_announce
+
+    poll = force_announce(open_window_poll)
+    just_late = poll.opens_at + OVERDUE_AFTER - timedelta(seconds=1)
+    assert overdue_transition(poll, just_late) is None
+    assert not transitions_overdue(just_late)
+    assert overdue_transition(poll, poll.opens_at + OVERDUE_AFTER) == "open_poll"
+
+    poll = force_open(Poll.objects.get(pk=poll.pk))
+    assert overdue_transition(poll) is None  # voting under way: nothing due
+    late = poll.paper_entry_deadline + OVERDUE_AFTER
+    assert overdue_transition(poll, late) == "close_poll"
+    assert transitions_overdue(late)

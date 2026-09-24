@@ -16,8 +16,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.core import ratelimit
 from apps.elections import sandbox
-from apps.elections.models import Poll
-from apps.elections.windows import WindowClosed
+from apps.elections.models import Poll, PollState
+from apps.elections.windows import WindowClosed, check_registration_window
 
 from . import mail, services
 from .forms import RegistrationForm
@@ -34,8 +34,24 @@ def _open_poll_or_404(request: HttpRequest, poll_id: str) -> Poll:
 
 
 def register(request: HttpRequest, poll_id: str) -> HttpResponse:
-    """Steps 1–7 (§6.2). The form, and what happens when it is submitted."""
+    """Steps 1–7 (§6.2). The form, and what happens when it is submitted.
+
+    Offered only while the poll accepts registrations (R-3.10): a ``draft``
+    poll appears on no public page, so it answers 404; otherwise, outside the
+    window, the page says why and shows no form. ``services.register`` makes
+    the same check, so a POST that bypasses this page is refused there.
+    """
     poll = _open_poll_or_404(request, poll_id)
+    if poll.state == PollState.DRAFT:
+        raise Http404
+    try:
+        check_registration_window(poll)
+    except WindowClosed as closed:
+        return render(
+            request,
+            "registrations/register.html",
+            {"poll": poll, "form": None, "error": str(closed)},
+        )
     form = RegistrationForm(request.POST or None)
     error = ""
 

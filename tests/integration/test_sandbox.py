@@ -406,16 +406,22 @@ def test_the_screen_generates_and_revokes_the_link(
     assert sandbox_poll.preview_token == ""
 
 
-def test_deleting_from_the_screen_needs_the_confirmation_tick(
+def test_deleting_from_the_screen_goes_through_the_confirmation_page(
     client: Client, sandbox_poll: Poll, admin_user: User
 ) -> None:
+    """R-2.4, T-93: the first POST deletes nothing and states what will go;
+    only the confirming POST deletes."""
     _grant(sandbox_poll, admin_user, Role.POLL_ADMIN)
     client.force_login(admin_user)
 
-    client.post(_screen(sandbox_poll), {"action": "delete"})
+    page = client.post(_screen(sandbox_poll), {"action": "delete"})
+    assert page.status_code == 200
+    body = page.content.decode()
+    assert "Supprimer ce scrutin d&#x27;essai ?" in body
+    assert 'name="confirmed" value="1"' in body
     assert Poll.objects.filter(pk=sandbox_poll.pk).exists()
 
-    response = client.post(_screen(sandbox_poll), {"action": "delete", "confirm": "yes"})
+    response = client.post(_screen(sandbox_poll), {"confirmed": "1", "action": "delete"})
     assert response.status_code == 302
     assert response["Location"] == "/fr/mairie/"
     assert not Poll.objects.filter(pk=sandbox_poll.pk).exists()
@@ -431,7 +437,7 @@ def test_an_auditor_sees_the_screen_but_cannot_act_on_it(
     body = client.get(_screen(sandbox_poll)).content.decode()
     assert 'value="delete"' not in body
     assert (
-        client.post(_screen(sandbox_poll), {"action": "delete", "confirm": "yes"}).status_code
+        client.post(_screen(sandbox_poll), {"confirmed": "1", "action": "delete"}).status_code
         == 403
     )
     assert Poll.objects.filter(pk=sandbox_poll.pk).exists()

@@ -20,6 +20,7 @@ from apps.audit.models import Action, AuditEvent
 from apps.ballots.models import Ballot, BallotSource, BallotStatus
 from apps.core.codes import new_tracking_code
 from apps.elections.models import Poll, PollImage
+from tests.conftest import force_announce, force_open
 
 
 def raw(sql: str, params: list[str] | None = None) -> None:
@@ -52,6 +53,7 @@ def test_t24_audit_event_cannot_be_updated_or_deleted(open_window_poll: Poll) ->
 
 
 def test_t24_superseded_ballot_versions_are_immutable(open_window_poll: Poll) -> None:
+    force_open(open_window_poll)
     ballot = Ballot.objects.create(
         poll=open_window_poll,
         tracking_code=new_tracking_code(),
@@ -68,7 +70,8 @@ def test_t24_superseded_ballot_versions_are_immutable(open_window_poll: Poll) ->
 def test_t52_ballot_before_opens_at_is_refused_even_with_state_forced_to_open(
     open_window_poll: Poll,
 ) -> None:
-    """The window check never consults ``state`` (§4, INV-2).
+    """The window check never relies on ``state`` alone (§4, INV-2): ``open``
+    is necessary, never sufficient.
 
     Here the poll's opening instant is moved into the future by raw SQL,
     while still ``draft`` — ``opens_at`` freezes the moment it leaves that
@@ -97,6 +100,7 @@ def test_t52_ballot_before_opens_at_is_refused_even_with_state_forced_to_open(
 def test_t56_paper_keying_window_outlives_online_voting(open_window_poll: Poll) -> None:
     """§6.4: online voting stops at ``closes_at``; keying continues to
     ``paper_entry_deadline``."""
+    force_open(open_window_poll)
     now = timezone.now()
     raw(
         "UPDATE elections_poll SET closes_at = %s, paper_entry_deadline = %s WHERE id = %s",
@@ -133,6 +137,7 @@ def test_paper_channel_registration_moves_in_the_keying_window(open_window_poll:
     """D1 / §6.4: a paper voter's channel indicator tracks the *ballot* window,
     so it may be created and moved after ``closes_at`` and until
     ``paper_entry_deadline`` — and nothing else on the row may."""
+    force_open(open_window_poll)
     from apps.elections.models import RollEntry
     from apps.registrations.models import Channel, Registration, RegistrationState
 
@@ -369,7 +374,6 @@ def test_t78_withdrawn_refuses_ballots_and_registrations_even_inside_the_window(
     from apps.elections.models import RollEntry
     from apps.elections.windows import WindowClosed, check_ballot_window, check_registration_window
     from apps.registrations.models import Channel, Registration, RegistrationState
-    from tests.conftest import force_open
 
     poll = force_open(open_window_poll)
     entry = RollEntry.objects.get(poll=poll)
@@ -399,4 +403,33 @@ def test_t78_withdrawn_refuses_ballots_and_registrations_even_inside_the_window(
             declared_dob="12/05/1970",
             email="x@example.test",
             email_canonical="x@example.test",
+        )
+
+
+@pytest.mark.parametrize("announced", [False, True])
+def test_a_poll_not_yet_open_admits_no_write_even_past_opens_at(
+    open_window_poll: Poll, announced: bool
+) -> None:
+    """Decision log #33: the trigger requires ``state = open`` as the
+    application check does. ``opens_at`` has passed, so the clock alone would
+    admit both inserts; a ``draft`` or an ``announced`` poll whose
+    ``open_poll`` has not run refuses them."""
+    from apps.registrations.models import Registration
+
+    if announced:
+        force_announce(open_window_poll)
+    with pytest.raises(Exception, match="INV-2"), transaction.atomic():
+        Ballot.objects.create(
+            poll=open_window_poll,
+            tracking_code=new_tracking_code(),
+            ranking=[["a"], ["b"], ["c"]],
+            source=BallotSource.ONLINE,
+        )
+    with pytest.raises(Exception, match="INV-2"), transaction.atomic():
+        Registration.objects.create(
+            poll=open_window_poll,
+            declared_last_name="Dupont",
+            declared_first_names="Émile",
+            email="e@example.fr",
+            email_canonical="e@example.fr",
         )

@@ -120,6 +120,15 @@
         {% endfor %}
       </ul>
     {% endif %}
+    {% if early_closure %}
+      {% comment %} R-3.4: an early closure is shown here like an extension — the calendar
+         the public was given changed, and why is part of the record. {% endcomment %}
+      <h3>{% translate "Clôture anticipée" %}</h3>
+      <p>
+        {% blocktranslate with planned=early_closure.planned|timezone:poll.timezone|date:"DATETIME_FORMAT" actual=early_closure.actual|timezone:poll.timezone|date:"DATETIME_FORMAT" %}Clôture prévue le {{ planned }}, avancée au {{ actual }}{% endblocktranslate %}
+        — {% translate "motif" %} : {{ early_closure.reason }}
+      </p>
+    {% endif %}
   </section>
 
   {% if participation %}

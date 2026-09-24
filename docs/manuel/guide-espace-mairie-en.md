@@ -154,7 +154,11 @@ two origins:
 
 - a **scheduled task** (`open_poll`, `close_poll`), which may run late,
   twice, or not at all — hence the dashboard that names in advance whatever
-  would block the next transition (below);
+  would block the next transition (below). The times themselves always
+  hold: no ballot is accepted after the deadline, even if closing is late.
+  **Registration and voting, on the other hand, only start once the poll is
+  open**: if the scheduled opening does not happen, nothing is possible while
+  the poll stays announced, and the dashboard says so;
 - the poll administrator, **by hand**, from the **configuration** screen
   (screen 2): *Announce now*, *Open now*, *Close now* and *Withdraw the
   poll*. All four go through the same guarded functions as the
@@ -163,6 +167,16 @@ two origins:
   countersignature requirement, which only a human can justify.
   Withdrawal, for its part, has no equivalent scheduled task: it is a
   manual, deliberate action, or nothing.
+
+**Every final action asks for confirmation.** Announcing, opening, closing,
+extending the closing date, withdrawing, publishing, signing the
+reconciliation record and deleting a test poll: the button first leads to a
+page that restates what will happen — worked out at that very moment, for
+instance how many registrations still under review will no longer be able to
+vote — and nothing is done until you confirm. *Cancel* returns to the screen
+without changing anything. If the action would be refused anyway (a missing
+translation, no reason given…), the refusal is shown straight away, with no
+confirmation page.
 
 - **draft → announced** (**mandatory**): makes the poll visible on
   the public site — propositions and schedule, with no registration or vote
@@ -191,9 +205,11 @@ two origins:
   dashboard.
 - **open → closed**: computes the **closure hash** over the whole set of
   retained ballots and **freezes the turnout counters**. Does not tally.
-  *Close now* only appears once the paper-ballot keying deadline has been
-  reached — closing earlier would freeze the hash and the counters ahead of
-  ballots the write window would still legitimately accept.
+  *Close now* is offered at any time once the poll is open. Before the
+  paper-ballot keying deadline it is an **early closure**: a reason is
+  required, registration, online voting and paper entry stop at that very
+  instant, the closing dates become that instant, and the poll's public page
+  shows the early closure and its reason, as it shows an extension.
 - **closed → published**: the tally (a pure function) is run and these
   artefacts become public.
 - **announced, open, closed or published → withdrawn** (at any
@@ -230,6 +246,11 @@ actions allowed in the current state**.
 - While a **draft**, it names any condition that would make opening fail —
   a missing translation, an unfrozen electoral roll — so that a gap is
   visible **before** the opening time, not at the opening time.
+- If a **scheduled task is more than 30 minutes late** — the poll still
+  announced after its opening time, or still open after the paper-entry
+  deadline — a warning at the top says so. For a missed opening, *Open now*
+  (screen 2) opens the poll straight away; tell the system administrator too,
+  since the scheduler has probably stopped.
 - While **open**, it names whatever would block closing — *closing
   blocked: n ballots awaiting countersignature*, or, if
   `paper_requires_reconciliation` is enabled and not yet recorded, *closing
@@ -288,7 +309,7 @@ asked. Only the poll administrator can do either; an auditor sees the link but
 cannot change it.
 
 The same screen lets you **delete** the test poll, **in any state**, after a
-confirmation tick. Deletion is **permanent**: the poll, its propositions, its
+confirmation page. Deletion is **permanent**: the poll, its propositions, its
 ballots, its registrations and its copy of the electoral roll are erased. The
 audit log is never altered: it keeps everything that was done on the poll, and
 one line records that it was deleted, by whom and when. No poll that is not a

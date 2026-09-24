@@ -26,7 +26,7 @@ from apps.elections.transitions import (
     withdraw_poll,
     withdrawing_blockers,
 )
-from tests.conftest import force_open
+from tests.conftest import _create_open_poll, force_open
 
 
 def test_opening_takes_the_snapshot_and_the_seed_in_one_transaction(
@@ -252,7 +252,7 @@ def test_t57_closure_refuses_while_a_ballot_awaits_countersignature(
     )
     assert "pending_countersign:1" in closing_blockers(poll)
     with pytest.raises(TransitionRefused):
-        close_poll(poll)
+        close_poll(poll, early_reason=Reason.ADMINISTRATIVE_DECISION)
     poll.refresh_from_db()
     assert poll.state == PollState.OPEN
 
@@ -282,7 +282,11 @@ def test_t32_closure_override_excludes_uncountersigned_ballots(
         status=BallotStatus.PENDING_COUNTERSIGN,
     )
 
-    closed = close_poll(poll, override_reason=Reason.COUNTERSIGN_UNAVAILABLE)
+    closed = close_poll(
+        poll,
+        override_reason=Reason.COUNTERSIGN_UNAVAILABLE,
+        early_reason=Reason.ADMINISTRATIVE_DECISION,
+    )
     assert closed.state == PollState.CLOSED
     assert closed.closure_override_reason == Reason.COUNTERSIGN_UNAVAILABLE
 
@@ -298,7 +302,7 @@ def test_frozen_counts_are_stored_at_closure_not_derived_later(
 ) -> None:
     """§9, T-58: they read ``Registration``, which the retention job deletes."""
     poll = force_open(open_window_poll)
-    closed = close_poll(poll)
+    closed = close_poll(poll, early_reason=Reason.ADMINISTRATIVE_DECISION)
     assert set(closed.frozen_counts) == {
         "registered",
         "ballots_online",
@@ -353,14 +357,22 @@ def test_t72_withdraw_poll_succeeds_from_each_of_the_four_public_states(
     opened = withdraw_poll(force_open(_minimal_poll("Ouvert")), reason=Reason.OTHER)
     assert opened.state == PollState.WITHDRAWN
 
-    closed = withdraw_poll(close_poll(force_open(_minimal_poll("Clos"))), reason=Reason.OTHER)
+    closed = withdraw_poll(
+        close_poll(force_open(_minimal_poll("Clos")), early_reason=Reason.ADMINISTRATIVE_DECISION),
+        reason=Reason.OTHER,
+    )
     assert closed.state == PollState.WITHDRAWN
     # A poll withdrawn after closure keeps the earlier, correct anchor (§11).
     assert closed.closed_at is not None
     assert closed.withdrawn_at is not None
     assert closed.closed_at < closed.withdrawn_at
 
-    published_source = publish_poll(close_poll(force_open(_minimal_poll("Publié"))), admin)
+    published_source = publish_poll(
+        close_poll(
+            force_open(_minimal_poll("Publié")), early_reason=Reason.ADMINISTRATIVE_DECISION
+        ),
+        admin,
+    )
     published = withdraw_poll(published_source, reason=Reason.OTHER)
     assert published.state == PollState.WITHDRAWN
 
@@ -397,7 +409,7 @@ def test_withdrawal_leaves_ballots_and_closure_hash_untouched(open_window_poll: 
         ranking=[["a"], ["b"], ["c"]],
         source=BallotSource.ONLINE,
     )
-    closed = close_poll(poll)
+    closed = close_poll(poll, early_reason=Reason.ADMINISTRATIVE_DECISION)
     assert closed.closure_hash is not None
     closure_hash = bytes(closed.closure_hash)
     frozen_counts = dict(closed.frozen_counts)
@@ -407,3 +419,36 @@ def test_withdrawal_leaves_ballots_and_closure_hash_untouched(open_window_poll: 
     assert withdrawn.closure_hash is not None
     assert bytes(withdrawn.closure_hash) == closure_hash
     assert dict(withdrawn.frozen_counts) == frozen_counts
+
+
+# --- R-3.4, decision log #34: early closure ----------------------------------
+
+
+def test_early_closure_during_the_paper_stretch_keeps_closes_at(db: None) -> None:
+    """Closed after ``closes_at`` but before ``paper_entry_deadline``: online
+    voting really did stop at ``closes_at``, so only the paper deadline moves."""
+    now = timezone.now()
+    poll = _create_open_poll(
+        title="Fenêtre papier",
+        description="Saisie différée.",
+        opens_at=now - timedelta(days=2),
+        closes_at=now - timedelta(hours=1),
+        paper_entry_deadline=now + timedelta(days=1),
+        roll_name=("Dupont", "Émile", "12/05/1970", "1970-05-12"),
+    )
+    closes_at = poll.closes_at
+    with pytest.raises(TransitionRefused) as refused:
+        close_poll(poll, now=now)
+    assert refused.value.blockers == ["early_closure_reason_required"]
+
+    closed = close_poll(poll, now=now, early_reason=Reason.ADMINISTRATIVE_DECISION)
+    assert closed.closes_at == closes_at
+    assert closed.paper_entry_deadline == now == closed.closed_at
+
+
+def test_the_scheduled_closure_is_never_early(open_paper_poll: Poll) -> None:
+    """At or after the deadline nothing moves and no reason is asked for."""
+    deadline = open_paper_poll.paper_entry_deadline
+    closed = close_poll(open_paper_poll, now=deadline)
+    assert closed.paper_entry_deadline == deadline
+    assert not AuditEvent.objects.filter(action=Action.POLL_CLOSED_EARLY).exists()

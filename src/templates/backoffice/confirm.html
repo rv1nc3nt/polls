@@ -1,0 +1,34 @@
+{% extends "backoffice/base.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD #}
+{% comment %}
+  R-2.4, decision log #35: the one page every definitive action on a poll goes
+  through before it runs. Rendered by ``views._confirmation_page`` from a
+  ``confirmations.Confirmation``; nothing has been written when it shows. The
+  form re-posts the operator's input unchanged, plus ``confirmed=1``, to the
+  screen it came from, which checks the role, the state and the input again
+  before acting. Cancel is a plain link back: no POST, nothing to undo.
+{% endcomment %}
+
+{% block screen_title %}{{ confirmation.title }}{% endblock %}
+{% block heading %}{{ confirmation.title }}{% endblock %}
+
+{% block screen %}
+  <section aria-labelledby="consequences" class="confirm">
+    <p class="help">{{ poll.display_title }}</p>
+    <h2 id="consequences">{% translate "Ce qui va se passer" %}</h2>
+    <ul>
+      {% for consequence in confirmation.consequences %}<li>{{ consequence }}</li>{% endfor %}
+    </ul>
+    {% if confirmation.irreversible %}
+      <p class="status status--warn"><strong>{% translate "Cette action est définitive : elle ne pourra pas être annulée." %}</strong></p>
+    {% endif %}
+    <form method="post" action="{{ request.path }}">
+      {% csrf_token %}
+      {% for name, value in fields %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+      <input type="hidden" name="confirmed" value="1">
+      <button type="submit" class="danger">{{ confirmation.button }}</button>
+      <a class="button secondary" href="{{ request.path }}">{% translate "Annuler" %}</a>
+    </form>
+  </section>
+{% endblock %}

@@ -57,7 +57,7 @@ def _sibling_poll(model: Poll, **config: object) -> Poll:
     trigger enforces it, so a test that needs a different setting builds a poll
     with it rather than updating one.
     """
-    from apps.elections.models import PollOption, RollEntry
+    from apps.elections.models import PollOption
 
     poll = Poll.objects.create(
         title_i18n={"fr": "Second"},
@@ -72,15 +72,8 @@ def _sibling_poll(model: Poll, **config: object) -> Poll:
         PollOption.objects.create(
             poll=poll, option_id=option_id, label_i18n={"fr": option_id}, position=position
         )
-    RollEntry.objects.create(
-        poll=poll,
-        birth_name="Dupont",
-        first_names="Émile",
-        date_of_birth="12/05/1970",
-        date_of_birth_parsed="1970-05-12",
-        list_types=["principale"],
-    )
-    return poll
+    # The working roll ``open_window_poll`` seeded holds the same elector.
+    return force_open(poll)
 
 
 # --- Step 4's routing (R-5.4, R-4.7) ---------------------------------------

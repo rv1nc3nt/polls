@@ -15,11 +15,17 @@ edge case unlikely in practice.
 Where an entry is really a departure from the specification, the decision
 belongs in `specification-decision-log.md`, not here.
 
-No high-severity issue was found.
+No high-severity issue was found. M1 has since been resolved (see its entry).
 
 ## Medium
 
-### M1. Registration is accepted on a poll that is not open
+### M1. Registration is accepted on a poll that is not open — resolved
+
+**Resolved** by decision log #33 (the clock refuses, the state admits):
+the window checks and the INV-2 triggers (migration 0014) now require
+`state = open`, the registration page answers 404 for a `draft` poll and
+shows no form outside the window, and a missed opening is flagged on the
+dashboard and by `/sante`. The analysis below is kept as found.
 
 * **Where:** `src/apps/registrations/views.py:36` (`register`), which gates
   only on sandbox reachability; `src/apps/registrations/services.py:196`, which

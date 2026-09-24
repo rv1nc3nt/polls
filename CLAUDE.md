@@ -41,7 +41,9 @@ transactional apply shared by the CLI and screen 3) ·
 `src/apps/audit/` · `src/apps/tally/` pure, imports no model ·
 `src/apps/backoffice/` espace mairie (§6.5, the bulk of the remaining work;
 `access.py` is the role gate every screen goes through, `dashboard.py`,
-`auditlog.py` and `review.py` the read models for screens 1, 4 and 8)
+`auditlog.py` and `review.py` the read models for screens 1, 4 and 8,
+`confirmations.py` the confirmation page every definitive poll action goes
+through first, R-2.4)
 · `src/apps/publicsite/`
 · `src/templates/` · `src/static/` · `locale/` (French is the msgid language, so
 only `en` has a catalogue) · `verifier/` independent Rust verifier — `core/`
@@ -77,9 +79,13 @@ find a way round it.
 - **The tie-break** is the hash chain of §8.3. No language PRNG, no
   `random.shuffle`, no seeded sort.
 - **`Poll.state` is assigned in exactly one module**,
-  `apps/elections/transitions.py`, and a test enforces it. Ballot writes go
-  through `apps/elections/windows.py`, which never consults `state` — the
-  scheduled job may run late, twice, or not at all.
+  `apps/elections/transitions.py`, and a test enforces it. Ballot and
+  registration writes go through `apps/elections/windows.py`: **the clock
+  refuses, the state admits.** A write needs `state = open` *and* the clock
+  inside the window, but nothing relies on `state` to refuse a write past a
+  deadline — the scheduled job may run late, twice, or not at all, so
+  `closes_at` and `paper_entry_deadline` are enforced on the clock alone
+  (decision log #33).
 - **The plaintext token is never persisted.** Only `voter_hash` is stored
   (§7). It follows that the token-for-session exchange of §6.3
   (`apps/core/tokensession.py`) puts a *registration id* in the session, never

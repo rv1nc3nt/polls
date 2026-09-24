@@ -7,6 +7,24 @@
 
 {% block screen %}
 
+  {% if overdue %}
+    {% comment %} Decision log #33: every write needs an open poll, so an opening the
+       scheduler missed delays voting. A job that refuses is loud; one that never
+       ran is not, which is what this notice is for. {% endcomment %}
+    <div class="status status--warn" role="alert">
+      <svg class="ic" aria-hidden="true"><use href="#pub-ico-warn"/></svg>
+      <div>
+        {% if overdue == "open_poll" %}
+          <strong>{% translate "L'ouverture planifiée n'a pas eu lieu" %}</strong>
+          <p>{% translate "L'heure d'ouverture est passée mais le scrutin est toujours annoncé : ni inscription ni vote ne sont possibles. Vérifiez les blocages ci-dessous et le planificateur des tâches, ou ouvrez le scrutin depuis l'écran de configuration." %}</p>
+        {% else %}
+          <strong>{% translate "La clôture planifiée n'a pas eu lieu" %}</strong>
+          <p>{% translate "La fin de saisie des bulletins papier est passée mais le scrutin est toujours ouvert. Plus aucun bulletin n'est accepté ; vérifiez les blocages ci-dessous et le planificateur des tâches." %}</p>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+
   {% if blockers %}
     {% comment %} §6.5.1: the blocker is named while there is still time to act on it. A
        poll advertised for Monday and still in `draft` on Monday morning is the

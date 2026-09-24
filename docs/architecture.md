@@ -111,12 +111,15 @@ assigns `Poll.state` (tested). The database trigger `poll_state_irreversible`
 is the actual enforcement. Configuration freezes when the poll leaves `draft`
 (INV-6): `Poll.save()` produces the error message and the triggers enforce it.
 
-**State is not what gates a vote.** Ballot and registration writes go through
-`elections/windows.py`, which compares the clock against `opens_at`,
-`closes_at` and `paper_entry_deadline` and never reads `state`, apart from
-refusing everything once a poll is `withdrawn`. The scheduled jobs can
-therefore run late, twice, or not at all without letting a vote through
-outside the window. The INV-2 triggers enforce the same rule.
+**The clock refuses, the state admits** (decision log #33). Ballot and
+registration writes go through `elections/windows.py`, which requires the
+poll to be `open` *and* compares the clock against `opens_at`, `closes_at` and
+`paper_entry_deadline`. Nothing relies on `state` to refuse a write past a
+deadline, so a `close_poll` that runs late, twice, or not at all lets nothing
+through late. A late `open_poll` delays the start of voting, which no rule
+could avoid, since the snapshot it takes is what registration and paper entry
+read. The dashboard and `/sante` flag it. The INV-2 triggers enforce the same
+rule.
 
 ### Registering and voting online
 
@@ -234,6 +237,11 @@ Every route taking a `poll_id` is wrapped in `access.require_poll_role`.
 | 14 | Commune | `commune_settings`, `commune_*_upload`/`_remove` | commune admin | `communesettings.py` | `communesettings.py` |
 | – | Nouveau scrutin | `poll_create` | commune admin | none | `elections.config.create_poll` |
 | – | Aide | `manual_index`, `manual_page`, `manual_image` | any signed-in operator | `core.manual` | none |
+
+Every definitive action in the table (announce, open, close, extend, withdraw,
+publish, reconciliation, sandbox deletion) first renders
+`backoffice/confirm.html` from `confirmations.py`, and runs only on a second
+POST carrying `confirmed=1` (R-2.4, decision log #35).
 
 `commune_admin` grants nothing on any individual poll, and `is_superuser` is
 never checked. Reaching a poll's screens always goes through an audited
