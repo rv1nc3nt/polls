@@ -227,6 +227,13 @@ Une ligne `winner AGREES` confirme que le vérificateur, en repartant de zéro
 à partir du seul fichier public, retrouve exactement le vainqueur annoncé
 par le site.
 
+Le vérificateur ne recalcule le vainqueur que selon la méthode de Schulze.
+N'utilisez `--winner` que si la page de résultats indique « Schulze » comme
+méthode de dépouillement : pour un scrutin majoritaire ou par assentiment, il
+comparerait le vainqueur annoncé à celui de Schulze et pourrait signaler un
+désaccord qui n'en est pas un. La vérification de l'empreinte, elle, vaut pour
+tous les scrutins.
+
 #### En cas d'égalité (départage)
 
 Si la page de résultats indique qu'un départage a eu lieu, elle publie aussi
@@ -262,5 +269,5 @@ CSV qu'il lit (`docs/canonical-serialisation.md`) sont publics : n'importe
 qui peut relire ce que fait exactement ce programme, ou écrire sa propre
 version dans un autre langage pour vérifier de manière encore plus
 indépendante. Pour comprendre ce que le vérificateur recalcule au juste — la
-méthode de Schulze, majoritaire ou par assentiment, et le départage — voir
+méthode de Schulze et le départage — et les deux autres méthodes, voir
 [Les méthodes de dépouillement, expliquées](methodes-de-depouillement.md).
