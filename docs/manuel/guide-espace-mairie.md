@@ -159,7 +159,12 @@ a deux origines possibles :
 
 - une **tâche planifiée** (`open_poll`, `close_poll`), qui peut tourner en
   retard, deux fois, ou pas du tout — d'où le tableau de bord qui nomme à
-  l'avance ce qui bloquerait la transition suivante (ci-dessous) ;
+  l'avance ce qui bloquerait la transition suivante (ci-dessous). Les heures,
+  elles, sont toujours respectées : aucun bulletin n'est accepté après
+  l'échéance, même si la clôture tarde. En revanche, **inscriptions et votes
+  n'ouvrent qu'avec le scrutin** : si l'ouverture planifiée n'a pas lieu, rien
+  n'est possible tant que le scrutin reste annoncé, et le tableau de bord le
+  signale ;
 - l'administrateur du scrutin, **à la main**, depuis l'écran de
   **configuration** (écran 2) : *Annoncer maintenant*, *Ouvrir maintenant*,
   *Clôturer maintenant* et *Retirer le scrutin*. Les quatre passent par
@@ -237,6 +242,12 @@ permises dans l'état courant**.
 - En **brouillon**, il nomme toute condition qui ferait échouer l'ouverture —
   traduction manquante, liste électorale non figée — pour qu'un manque soit
   visible **avant** l'heure d'ouverture, pas à l'heure d'ouverture.
+- Si une **tâche planifiée est en retard** de plus de 30 minutes — scrutin
+  toujours annoncé après l'heure d'ouverture, ou toujours ouvert après la fin
+  de saisie des bulletins papier — un avertissement en tête le dit. Pour une
+  ouverture manquée, *Ouvrir maintenant* (écran 2) ouvre le scrutin sans
+  attendre ; prévenez aussi l'administrateur système, le planificateur
+  est probablement arrêté.
 - En **ouvert**, il nomme ce qui bloquerait la clôture — *clôture bloquée : n
   bulletins en attente de contreseing*, ou, si `paper_requires_reconciliation`
   est activé et qu'il n'est pas encore enregistré, *clôture bloquée :

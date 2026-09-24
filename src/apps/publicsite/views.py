@@ -31,7 +31,7 @@ from django.utils.translation import gettext as _
 
 from apps.audit.models import Action, AuditEvent, Reason
 from apps.core import manual
-from apps.elections import closure, results_view, richtext, sandbox, windows
+from apps.elections import closure, results_view, richtext, sandbox, transitions, windows
 from apps.elections.models import Poll, PollState
 from apps.registrations.models import PARTICIPATING, Channel, Registration
 
@@ -90,13 +90,25 @@ def _status_key(poll: Poll, now: datetime) -> str:
 def health(request: HttpRequest) -> JsonResponse:
     """``GET /sante`` (§14).
 
-    200 with the application version and whether migrations are pending. No
+    200 with the application version, whether migrations are pending, and
+    whether a scheduled transition is overdue (``transitions_overdue``: the
+    scheduler has stopped, or a job keeps refusing — decision log #33). No
     authentication, no personal data, no counts — it is read by the Ansible
     smoke play and by monitoring, both of which are outside the trust boundary.
+    The flag is a single boolean for the whole instance and names no poll.
     """
     executor = MigrationExecutor(connection)
     pending = bool(executor.migration_plan(executor.loader.graph.leaf_nodes()))
-    return JsonResponse({"version": settings.APP_VERSION, "migrations_pending": pending})
+    # Not queried while migrations are pending: the tables may not match the
+    # models yet, and that is what the other flag already reports.
+    overdue = False if pending else transitions.transitions_overdue()
+    return JsonResponse(
+        {
+            "version": settings.APP_VERSION,
+            "migrations_pending": pending,
+            "transitions_overdue": overdue,
+        }
+    )
 
 
 def help_page(request: HttpRequest) -> HttpResponse:

@@ -459,3 +459,43 @@ def test_the_dashboard_counts_electors_awaiting_confirmation_apart_from_register
     counts = participation(open_window_poll)
     assert counts.pending_email == 2
     assert counts.registered == 1
+
+
+# --- Decision log #33: a missed scheduled transition is flagged --------------
+
+
+def test_a_missed_opening_is_flagged_on_the_dashboard_and_by_sante(
+    client: Client, open_window_poll: Poll, admin_user: User
+) -> None:
+    """Every write needs an open poll, so an ``open_poll`` that never ran
+    delays voting: the dashboard says so, and ``/sante`` reports it for
+    monitoring — without naming the poll."""
+    from tests.conftest import force_announce
+
+    assert client.get("/sante").json()["transitions_overdue"] is False
+    force_announce(open_window_poll)  # opens_at a day past, open_poll never ran
+    health = client.get("/sante").json()
+    assert health["transitions_overdue"] is True
+    assert str(open_window_poll.pk) not in str(health)
+
+    _grant(open_window_poll, admin_user, Role.POLL_ADMIN)
+    client.force_login(admin_user)
+    page = client.get(f"/fr/mairie/scrutin/{open_window_poll.pk}/").content.decode()
+    assert "L'ouverture planifiée n'a pas eu lieu" in page
+
+
+def test_overdue_waits_out_the_grace_period_and_covers_closing(open_window_poll: Poll) -> None:
+    from apps.elections.transitions import OVERDUE_AFTER, overdue_transition, transitions_overdue
+    from tests.conftest import force_announce
+
+    poll = force_announce(open_window_poll)
+    just_late = poll.opens_at + OVERDUE_AFTER - timedelta(seconds=1)
+    assert overdue_transition(poll, just_late) is None
+    assert not transitions_overdue(just_late)
+    assert overdue_transition(poll, poll.opens_at + OVERDUE_AFTER) == "open_poll"
+
+    poll = force_open(Poll.objects.get(pk=poll.pk))
+    assert overdue_transition(poll) is None  # voting under way: nothing due
+    late = poll.paper_entry_deadline + OVERDUE_AFTER
+    assert overdue_transition(poll, late) == "close_poll"
+    assert transitions_overdue(late)

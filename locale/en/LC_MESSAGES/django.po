@@ -5152,3 +5152,19 @@ msgstr "Paper ballots not countersigned, not counted"
 #: src/apps/backoffice/views.py
 msgid "Bulletin rectifié ; il attend un nouveau contreseing."
 msgstr "Ballot corrected; it now awaits a new countersignature."
+
+#: src/templates/backoffice/dashboard.html
+msgid "L'ouverture planifiée n'a pas eu lieu"
+msgstr "The scheduled opening has not happened"
+
+#: src/templates/backoffice/dashboard.html
+msgid "L'heure d'ouverture est passée mais le scrutin est toujours annoncé : ni inscription ni vote ne sont possibles. Vérifiez les blocages ci-dessous et le planificateur des tâches, ou ouvrez le scrutin depuis l'écran de configuration."
+msgstr "The opening time has passed but the poll is still announced: neither registration nor voting is possible. Check the blockers below and the task scheduler, or open the poll from the configuration screen."
+
+#: src/templates/backoffice/dashboard.html
+msgid "La clôture planifiée n'a pas eu lieu"
+msgstr "The scheduled closure has not happened"
+
+#: src/templates/backoffice/dashboard.html
+msgid "La fin de saisie des bulletins papier est passée mais le scrutin est toujours ouvert. Plus aucun bulletin n'est accepté ; vérifiez les blocages ci-dessous et le planificateur des tâches."
+msgstr "The paper entry deadline has passed but the poll is still open. No more ballots are accepted; check the blockers below and the task scheduler."

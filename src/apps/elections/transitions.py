@@ -17,9 +17,10 @@ announcing it can never open, scheduled or by hand. A fifth, terminal state,
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
@@ -130,6 +131,42 @@ def closing_blockers(poll: Poll) -> list[str]:
     ):
         blockers.append("reconciliation_pending")
     return blockers
+
+
+#: How long a scheduled transition may lag its instant before it is reported
+#: overdue. Several runs of a job that fires every few minutes
+#: (``polls_job_interval_minutes``, 5 by default) plus slack for a slow host.
+OVERDUE_AFTER = timedelta(minutes=30)
+
+
+def overdue_transition(poll: Poll, now: datetime | None = None) -> str | None:
+    """The scheduled transition that should have moved ``poll`` by now, if any.
+
+    ``"open_poll"`` for an ``announced`` poll past ``opens_at``,
+    ``"close_poll"`` for an ``open`` poll past ``paper_entry_deadline``, each
+    by more than ``OVERDUE_AFTER``. The window checks require ``open``
+    (decision log #33), so a missed opening delays voting and must be noticed:
+    a job that refuses says so loudly (``JOB_REFUSED``), but one that never
+    ran is otherwise silent. A missed closing admits nothing late — the clock
+    alone refuses — but still holds up the closure hash and publication.
+    """
+    now = now or timezone.now()
+    if poll.state == PollState.ANNOUNCED and now >= poll.opens_at + OVERDUE_AFTER:
+        return "open_poll"
+    if poll.state == PollState.OPEN and now >= poll.paper_entry_deadline + OVERDUE_AFTER:
+        return "close_poll"
+    return None
+
+
+def transitions_overdue(now: datetime | None = None) -> bool:
+    """Whether any poll has an ``overdue_transition`` — the ``/sante`` flag
+    monitoring alerts on (§14). Sandbox polls included: they run on the same
+    scheduler, so a stuck one is the same fault."""
+    threshold = (now or timezone.now()) - OVERDUE_AFTER
+    return Poll.objects.filter(
+        Q(state=PollState.ANNOUNCED, opens_at__lte=threshold)
+        | Q(state=PollState.OPEN, paper_entry_deadline__lte=threshold)
+    ).exists()
 
 
 def _run_transition(

@@ -127,6 +127,7 @@ from apps.elections.transitions import (
     close_poll,
     extend_closes_at,
     open_poll,
+    overdue_transition,
     publish_poll,
     withdraw_poll,
 )
@@ -358,6 +359,9 @@ def poll_dashboard(request: HttpRequest, poll: Poll) -> HttpResponse:
             # (`apps.publicsite.views.poll_detail`), so an operator sees the
             # same "vote en ligne clos" notice a visitor already does.
             "online_voting_closed": online_voting_closed(poll),
+            # Decision log #33: a missed opening delays voting, so it is
+            # flagged here rather than left for someone to notice.
+            "overdue": overdue_transition(poll),
         },
     )
 

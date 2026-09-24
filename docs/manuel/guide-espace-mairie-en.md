@@ -154,7 +154,11 @@ two origins:
 
 - a **scheduled task** (`open_poll`, `close_poll`), which may run late,
   twice, or not at all — hence the dashboard that names in advance whatever
-  would block the next transition (below);
+  would block the next transition (below). The times themselves always
+  hold: no ballot is accepted after the deadline, even if closing is late.
+  **Registration and voting, on the other hand, only start once the poll is
+  open**: if the scheduled opening does not happen, nothing is possible while
+  the poll stays announced, and the dashboard says so;
 - the poll administrator, **by hand**, from the **configuration** screen
   (screen 2): *Announce now*, *Open now*, *Close now* and *Withdraw the
   poll*. All four go through the same guarded functions as the
@@ -230,6 +234,11 @@ actions allowed in the current state**.
 - While a **draft**, it names any condition that would make opening fail —
   a missing translation, an unfrozen electoral roll — so that a gap is
   visible **before** the opening time, not at the opening time.
+- If a **scheduled task is more than 30 minutes late** — the poll still
+  announced after its opening time, or still open after the paper-entry
+  deadline — a warning at the top says so. For a missed opening, *Open now*
+  (screen 2) opens the poll straight away; tell the system administrator too,
+  since the scheduler has probably stopped.
 - While **open**, it names whatever would block closing — *closing
   blocked: n ballots awaiting countersignature*, or, if
   `paper_requires_reconciliation` is enabled and not yet recorded, *closing

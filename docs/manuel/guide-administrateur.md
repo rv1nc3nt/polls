@@ -286,16 +286,21 @@ remplacés.
 ## 10. Supervision
 
 - **`GET /sante`** (hors `i18n_patterns`, jamais redirigé) : `200` avec
-  `{"version": …, "migrations_pending": bool}`. Pas d'authentification, pas de
-  donnée personnelle, pas de compteur — lu par le smoke play et par la
-  supervision, tous deux hors périmètre de confiance.
+  `{"version": …, "migrations_pending": bool, "transitions_overdue": bool}`.
+  `transitions_overdue` passe à `true` quand un scrutin aurait dû être ouvert
+  ou clos par une tâche planifiée depuis plus de 30 minutes sans l'avoir été :
+  planificateur arrêté, ou tâche qui refuse d'agir. Pas d'authentification, pas
+  de donnée personnelle, pas de compteur, aucun scrutin nommé — lu par le smoke
+  play et par la supervision, tous deux hors périmètre de confiance.
 - **Journaux** : gunicorn et les commandes écrivent sur stdout/stderr →
   journald sous systemd. nginx **supprime la journalisation de l'URI de requête
   pour le préfixe `/bulletin/`** : le jeton de vote transite dans un lien et ne
   doit jamais atteindre un log. Ne rétablissez pas cette
   journalisation.
 - **Ce qu'il faut alerter** : `/sante` qui ne répond pas ; `migrations_pending`
-  à `true` après un déploiement ; échec d'une tâche cron (le `MAILTO` du
+  à `true` après un déploiement ; `transitions_overdue` à `true` — tant qu'un
+  scrutin n'est pas ouvert, personne ne peut s'y inscrire ni voter, même
+  après l'heure annoncée ; échec d'une tâche cron (le `MAILTO` du
   `cron.d` pointe sur `polls_admin_email`) ; absence de nouveau snapshot depuis
   plus de 24 h ; certificat TLS proche de l'expiration.
 - **Pas de compteur de participation** exposé nulle part quand
@@ -334,5 +339,5 @@ remplacés.
 | Les liens de modification de bulletin ne fonctionnent plus après un déploiement | `SECRET_KEY` a été régénéré. Restaurer `/etc/polls/secret_key` depuis une sauvegarde ; les liens signés avant le changement restent perdus. |
 | Le smoke play échoue sur le courriel | relais SMTP injoignable ou identifiants du vault faux. Corriger, relancer `--tags deploy` puis le smoke. Un hôte peut être monté sans relais avec `polls_smoke_require_mail=false`, à corriger avant l'ouverture d'un scrutin. |
 | Une tâche cron « marche à la main » mais pas planifiée | l'environnement n'est pas sourcé. Utiliser `/opt/polls/bin/polls-manage <tâche>`, pas `manage.py` directement. |
-| `open_poll` n'ouvre pas un scrutin à l'heure dite | vérifier que le planificateur tourne (`systemctl list-timers`, ou `/etc/cron.d/polls`) et l'intervalle `polls_job_interval_minutes`. Le tableau de bord du scrutin liste ce qui bloque l'ouverture (traduction manquante, pas de liste à figer). |
+| `open_poll` n'ouvre pas un scrutin à l'heure dite (`transitions_overdue` à `true`, avertissement sur le tableau de bord du scrutin) | inscriptions et votes restent fermés tant que le scrutin n'est pas ouvert. Vérifier que le planificateur tourne (`systemctl list-timers`, ou `/etc/cron.d/polls`) et l'intervalle `polls_job_interval_minutes`. Le tableau de bord du scrutin liste ce qui bloque l'ouverture (traduction manquante, pas de liste à figer). L'administrateur du scrutin peut aussi l'ouvrir à la main depuis l'écran de configuration. |
 | Après restauration, le service ne démarre pas | sidecars `db.sqlite3-wal`/`-shm` périmés (normalement supprimés par `restore.yml`) ; ou snapshot d'un schéma plus récent que le code déployé — déployer d'abord le bon tag. |
