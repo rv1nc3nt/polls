@@ -52,7 +52,7 @@ def _cast(poll: Poll, ranking: list[list[str]], n: int, *, days_ago: int) -> Non
 
 
 def _three_points(poll: Poll) -> None:
-    """40 arrivals: points at 10, 20 and 30 are shown, 40 waits for the 45th."""
+    """40 ballots: points at 10, 20 and 30 are shown, 40 waits for the 45th."""
     _cast(poll, [["a"], ["b"], ["c"]], 10, days_ago=3)
     _cast(poll, [["b"], ["c"], ["a"]], 20, days_ago=2)
     _cast(poll, [["c"], ["a"], ["b"]], 10, days_ago=1)
@@ -73,7 +73,7 @@ def test_the_admin_sees_the_standing_as_of_the_last_point_shown(
     client: Client, poll: Poll, admin: User
 ) -> None:
     """Today's ballots count like any others; point 40 waits for five more
-    arrivals, so the 10 cast last are not in any point yet."""
+    ballots, so the 10 cast last are not in any point yet."""
     _cast(poll, [["a"], ["b"], ["c"]], 10, days_ago=3)
     _cast(poll, [["b"], ["c"], ["a"]], 20, days_ago=2)
     _cast(poll, [["c"], ["a"], ["b"]], 10, days_ago=0)

@@ -1516,7 +1516,7 @@ def countersign_queue(request: HttpRequest, poll: Poll) -> HttpResponse:
 
 @require_poll_role(Role.POLL_ADMIN, Role.AUDITOR)
 def poll_trend(request: HttpRequest, poll: Poll) -> HttpResponse:
-    """The running trend (R-11.5 bis): the result recomputed every ten arrivals.
+    """The running trend (R-11.5 bis): the result recomputed every ten ballots.
 
     Offered only on the polls ``settings.TREND_POLL_IDS`` names — everywhere
     else the URL does not exist, which is what R-11.5 still requires of a poll

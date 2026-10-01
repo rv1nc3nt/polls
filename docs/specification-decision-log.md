@@ -1367,16 +1367,25 @@ ways through it:
 
 The requirements owner then asked for the current standing rather than
 yesterday's. A point updated with every ballot would hand over each voter's
-ballot outright, so points are now cut every ten *arrivals* (a version
-created), today included; each counts every ballot as it stood at that
-moment, from the stored version history, so a shown point never changes; and
-a point is shown only once more arrivals follow it, so the tail after the
-last point shown is never empty.
+ballot outright, so points are now cut every ten ballots counted, today
+included; each counts every ballot as it stood at that moment, from the
+stored version history, so a shown point never changes; and a point is shown
+only once more ballots are cast after it, so the tail after the last point
+shown is never empty.
 
-That wait was first ten arrivals, making the newest point ten to nineteen
-arrivals old. The requirements owner then asked for it to be five (point 10
-shown at the 15th arrival, 20 at the 25th), so "current" now means five to
-fourteen arrivals ago. Two consecutive points still differ by ten; what
+Points were at first cut every ten *arrivals* (a version created: a ballot
+cast, modified, or a paper entry corrected), and the wait was ten arrivals
+too. Two things changed that. The requirements owner saw a point labelled
+"19 bulletins" where they expected 20 — one of its arrivals was a
+modification — and wanted the points at 10, 20, 30 ballots. And arrivals were
+never a sound measure: R-7.1 lets an elector modify as often as they wish, so
+ten arrivals between two points, or the closing tail, could all be one
+elector, the difference then being that elector's old and new ranking.
+Counting ballots makes every gap that many distinct electors.
+
+The requirements owner also asked for the wait to be five (point 10 shown at
+the 15th ballot, 20 at the 25th), so "current" now means five to fourteen
+ballots ago. Two consecutive points still differ by ten; what
 shrinks is the closing tail — the published result minus the last point shown
 before closure — from at least ten ballots to at least five. R-11.5 bis
 states the lower floor. `LAG` in `apps/tally/trend.py` holds it apart from
@@ -1384,9 +1393,10 @@ states the lower floor. `LAG` in `apps/tally/trend.py` holds it apart from
 
 The figures were widened twice along the way, at the requirements owner's
 request: the pairwise matrix (or count per option), then the ballots per
-distinct ranking. Arrival counts are thus the only protection: nobody sees
-an aggregate of fewer than ten, except the closing tail, of at least five. A group whose members all place one option ahead
-of another, or all cast the same ranking, reveals that choice of each of them
+distinct ranking. Ballot counts are thus the only protection: nobody sees an
+aggregate of fewer than ten electors, except the closing tail, of at least
+five. A group whose members all place one option ahead of another, or all
+cast the same ranking, reveals that choice of each of them
 — the same exposure as a polling station where every voter chose alike.
 R-11.5 bis states this residual risk rather than leaving it implied.
 

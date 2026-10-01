@@ -14,7 +14,7 @@
   {% endcomment %}
   <p class="help trend-intro">
     {% blocktranslate trimmed %}
-      Résultat recalculé tous les {{ step }} bulletins déposés ou modifiés, chacun compté tel qu’il était à ce moment-là. Un point n’apparaît qu’une fois {{ lag }} autres bulletins reçus après lui : deux points successifs diffèrent de {{ step }} bulletins, et le résultat final du dernier point d’au moins {{ lag }}.
+      Résultat recalculé tous les {{ step }} bulletins, chacun compté tel qu’il était à ce moment-là ; une modification n’ajoute pas de bulletin. Un point n’apparaît qu’une fois {{ lag }} autres bulletins déposés après lui : deux points successifs diffèrent de {{ step }} bulletins, et le résultat final du dernier point d’au moins {{ lag }}.
     {% endblocktranslate %}
     {% if not is_open %}{% translate "Le scrutin est clos : le dernier point est le résultat final." %}{% endif %}
   </p>
@@ -22,7 +22,7 @@
   {% if not has_points %}
     <p class="notice">
       {% blocktranslate trimmed %}
-        Pas encore assez de bulletins : le premier point apparaît une fois {{ first_at }} bulletins déposés ou modifiés.
+        Pas encore assez de bulletins : le premier point apparaît une fois {{ first_at }} bulletins déposés.
       {% endblocktranslate %}
     </p>
   {% else %}
