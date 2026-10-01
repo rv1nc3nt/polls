@@ -99,7 +99,7 @@ from apps.ballots.ranking import BallotRefused
 from apps.core import manual
 from apps.core.codes import format_tracking_code
 from apps.core.models import Commune, Role, User
-from apps.core.types import TrackingCode
+from apps.core.types import OptionId, TrackingCode
 from apps.elections import (
     closure,
     config,
@@ -140,6 +140,8 @@ from apps.publicsite.views import _draft_preview_context
 from apps.registrations import mail as registration_mail
 from apps.registrations import services as registrations
 from apps.registrations.models import Channel, Registration
+from apps.tally.methods import Method
+from apps.tally.trend import MIN_BIN
 
 from . import (
     accounts,
@@ -152,6 +154,7 @@ from . import (
     paper,
     review,
     rollbrowse,
+    trend,
 )
 from .access import (
     accessible_polls,
@@ -1509,6 +1512,52 @@ def countersign_queue(request: HttpRequest, poll: Poll) -> HttpResponse:
 
 
 # --- Screen 9: clôture et publication (§6.5.9, §9) ------------------------
+
+
+@require_poll_role(Role.POLL_ADMIN, Role.AUDITOR)
+def poll_trend(request: HttpRequest, poll: Poll) -> HttpResponse:
+    """The running trend (R-11.5 bis): the ranking re-counted day by day.
+
+    Offered only on the polls ``settings.TREND_POLL_IDS`` names — everywhere
+    else the URL does not exist, which is what R-11.5 still requires of a poll
+    not configured for it (docs/specification-decision-log.md #39). Same
+    audience as screen 9: the poll admin, and the auditor read-only (R-2.1).
+    How coarse the figures are, and why, is ``apps.tally.trend``'s to say.
+    """
+    if not trend.enabled(poll):
+        raise Http404
+    points = trend.series(poll, timezone.now())
+    options = [
+        (OptionId(option.option_id), option.label()) for option in poll.options.order_by("position")
+    ]
+    schulze = poll.tally_method == Method.SCHULZE
+    context: dict[str, object] = {
+        "poll": poll,
+        "options": options,
+        "has_points": bool(points),
+        "min_bin": MIN_BIN,
+        "is_open": poll.state == PollState.OPEN,
+        "is_schulze": schulze,
+    }
+    if points:
+        context |= {
+            "summary": trend.summary(points, options, schulze=schulze),
+            "curves": trend.curves(points, options, schulze=schulze),
+            "duels": trend.duels(points, options),
+            "rows": trend.table(points, options, schulze=schulze),
+        }
+        # The matrix shows one point: the latest, or the one ``?au=`` names
+        # among those already shown — never a date the binning did not produce.
+        dates = [p.through for p in points]
+        chosen = parse_date(request.GET.get("au") or "") or dates[-1]
+        shown = points[dates.index(chosen)] if chosen in dates else points[-1]
+        context |= {
+            "matrix_point": shown,
+            "matrix_dates": list(reversed(dates)),
+            "matrix": trend.matrix(shown, options),
+            "ballot_types": trend.ballot_types(shown, options),
+        }
+    return render(request, "backoffice/poll_trend.html", context)
 
 
 @require_poll_role(Role.POLL_ADMIN, Role.AUDITOR)

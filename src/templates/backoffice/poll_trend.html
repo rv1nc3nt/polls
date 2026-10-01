@@ -1,0 +1,344 @@
+{% extends "backoffice/base.html" %}
+{% load i18n static %}
+{# SPDX-License-Identifier: 0BSD #}
+
+{% block screen_title %}{% translate "Tendance" %}{% endblock %}
+{% block heading %}{% translate "Tendance" %}{% endblock %}
+
+{% block screen %}
+  {% comment %}
+    R-11.5 bis. Four parts, the same figures throughout: the headline tiles
+    (latest point), the curves (every point), the duels (latest point, with
+    each margin's history) and the table, which is the accessible view of all
+    of it (R-14.1). How coarse the points are, and why, is apps.tally.trend's.
+  {% endcomment %}
+  <p class="help trend-intro">
+    {% blocktranslate trimmed %}
+      Résultat recalculé sur les bulletins en vigueur reçus jusqu’à chaque date incluse. Les journées sont regroupées jusqu’à réunir au moins {{ min_bin }} bulletins, pour qu’aucun petit groupe d’électeurs ne puisse être isolé.
+    {% endblocktranslate %}
+    {% if is_open %}{% translate "Le scrutin est ouvert : la journée en cours n’est jamais prise en compte, et un bulletin modifié est compté à la date de sa dernière version." %}{% endif %}
+  </p>
+
+  {% if not has_points %}
+    <p class="notice">
+      {% blocktranslate trimmed %}
+        Pas encore assez de bulletins : la tendance s’affiche dès qu’au moins {{ min_bin }} bulletins ont été reçus sur des journées révolues.
+      {% endblocktranslate %}
+    </p>
+  {% else %}
+
+    {# --- headline ----------------------------------------------------- #}
+    <section class="trend-tiles" aria-label="{% translate 'Situation au' %} {{ summary.through|date:'j F Y' }}">
+      <div class="trend-tile">
+        <p class="trend-tile__label">{% translate "Bulletins comptés" %}</p>
+        <p class="trend-tile__value">{{ summary.count }}</p>
+        <p class="trend-tile__sub">{% blocktranslate with date=summary.through|date:"j F Y" %}jusqu’au {{ date }}{% endblocktranslate %}</p>
+        {% if summary.count_delta is not None %}
+          <p class="trend-delta trend-delta--up">
+            <span aria-hidden="true">▲</span>
+            {% blocktranslate with n=summary.count_delta since=summary.since|date:"j F" trimmed %}+{{ n }} depuis le {{ since }}{% endblocktranslate %}
+          </p>
+        {% endif %}
+      </div>
+
+      <div class="trend-tile trend-tile--lead">
+        <p class="trend-tile__label">{% if summary.leaders|length > 1 %}{% translate "À égalité en tête" %}{% else %}{% translate "En tête" %}{% endif %}</p>
+        <p class="trend-tile__value trend-tile__value--text">{{ summary.leaders|join:", " }}</p>
+        <p class="trend-badges">
+          {% if is_schulze %}
+            {% if summary.condorcet %}
+              <span class="trend-badge trend-badge--ok"><span aria-hidden="true">✓</span> {% translate "bat chacune des autres en duel" %}</span>
+            {% else %}
+              <span class="trend-badge"><span aria-hidden="true">↻</span> {% translate "aucune ne bat toutes les autres" %}</span>
+            {% endif %}
+          {% endif %}
+          {% if summary.leader_changed %}
+            <span class="trend-badge trend-badge--warn"><span aria-hidden="true">!</span> {% blocktranslate with since=summary.since|date:"j F" %}nouveau depuis le {{ since }}{% endblocktranslate %}</span>
+          {% endif %}
+        </p>
+      </div>
+
+      <div class="trend-tile">
+        <p class="trend-tile__label">{% if is_schulze %}{% translate "Avance dans son duel le plus serré" %}{% else %}{% translate "Avance sur la suivante" %}{% endif %}</p>
+        {% if summary.lead %}
+          <p class="trend-tile__value">{{ summary.lead.pts }}<span class="trend-tile__unit">&nbsp;{% translate "pts" %}</span></p>
+          <p class="trend-tile__sub">
+            {% blocktranslate with rival=summary.lead.rival for=summary.lead.for_pct|floatformat:0 against=summary.lead.against_pct|floatformat:0 count n=summary.lead.ballots trimmed %}
+              sur {{ rival }} : {{ for }} % contre {{ against }} %, soit {{ n }} bulletin d’écart
+            {% plural %}
+              sur {{ rival }} : {{ for }} % contre {{ against }} %, soit {{ n }} bulletins d’écart
+            {% endblocktranslate %}
+          </p>
+          {% if summary.lead.delta %}
+            <p class="trend-delta trend-delta--{{ summary.lead.delta_dir }}">
+              <span aria-hidden="true">{% if summary.lead.delta_dir == "up" %}▲{% elif summary.lead.delta_dir == "down" %}▼{% else %}■{% endif %}</span>
+              {% blocktranslate with d=summary.lead.delta since=summary.since|date:"j F" trimmed %}{{ d }} pts depuis le {{ since }}{% endblocktranslate %}
+            </p>
+          {% endif %}
+        {% else %}
+          <p class="trend-tile__value trend-tile__value--text">—</p>
+          <p class="trend-tile__sub">{% translate "plusieurs propositions à égalité en tête" %}</p>
+        {% endif %}
+      </div>
+
+      {% if is_schulze %}
+        <div class="trend-tile">
+          <p class="trend-tile__label">{% translate "Ensemble de Smith" %}</p>
+          <p class="trend-tile__value">{{ summary.smith|length }}</p>
+          <p class="trend-tile__sub">
+            {% if summary.smith|length == 1 %}{% translate "une seule proposition bat toutes les autres" %}{% else %}{{ summary.smith|join:", " }}{% endif %}
+          </p>
+        </div>
+      {% endif %}
+    </section>
+
+    {# --- curves -------------------------------------------------------- #}
+    {% if curves %}
+      <section class="trend-card" aria-labelledby="trend-curves-title">
+        <header class="trend-card__head">
+          <h2 id="trend-curves-title">{% translate "Évolution" %}</h2>
+          <p class="help">
+            {% if is_schulze %}
+              {% translate "Pour chaque proposition, l’écart de son duel le plus serré, en points de pourcentage des bulletins : au-dessus de zéro, elle bat chacune des autres ; en dessous, la distance qui la sépare de ne plus perdre aucun duel." %}
+            {% else %}
+              {% translate "Part des bulletins obtenue par chaque proposition, en pourcentage." %}
+            {% endif %}
+          </p>
+          <ul class="trend-legend">
+            {% for line in curves.series %}
+              <li class="trend-legend__item trend-s{{ line.slot }}"><span class="trend-key" aria-hidden="true"></span>{{ line.label }}</li>
+            {% endfor %}
+          </ul>
+        </header>
+
+        <div class="trend-chart" data-trend-chart data-xs="{{ curves.xs }}" tabindex="0" role="group"
+             aria-label="{% translate 'Graphique de l’évolution ; les flèches gauche et droite parcourent les dates. Les mêmes chiffres figurent dans le tableau ci-dessous.' %}">
+          <svg viewBox="0 0 {{ curves.width }} {{ curves.height }}" aria-hidden="true" focusable="false">
+            {% if is_schulze %}
+              <rect class="trend-chart__above" x="{{ curves.left }}" y="{{ curves.top }}" width="{{ curves.plot_w }}" height="{{ curves.above_h }}"/>
+            {% endif %}
+            {% for tick in curves.ticks %}
+              <line class="trend-chart__grid{% if tick.zero %} trend-chart__grid--zero{% endif %}" x1="{{ curves.left }}" x2="{{ curves.right }}" y1="{{ tick.y }}" y2="{{ tick.y }}"/>
+              <text class="trend-chart__tick" x="{{ curves.left|add:-10 }}" y="{{ tick.y }}" dy="0.32em" text-anchor="end">{{ tick.label }}</text>
+            {% endfor %}
+            {% for d in curves.dates %}
+              <text class="trend-chart__tick" x="{{ d.x }}" y="{{ curves.bottom|add:22 }}" text-anchor="middle">{{ d.date|date:"j M" }}</text>
+            {% endfor %}
+            <line class="trend-chart__cursor" data-trend-cursor x1="0" x2="0" y1="{{ curves.top }}" y2="{{ curves.bottom }}" visibility="hidden"/>
+            {% for line in curves.series %}
+              <g class="trend-s{{ line.slot }}">
+                <path class="trend-chart__line" d="{{ line.path }}"/>
+                {% for mark in line.marks %}<circle class="trend-chart__dot" cx="{{ mark.x }}" cy="{{ mark.y }}" r="4"/>{% endfor %}
+                <text class="trend-chart__end" x="{{ curves.label_x }}" y="{{ line.end_y }}" dy="0.32em"><tspan class="trend-chart__end-value">{{ line.end_value }}</tspan> {{ line.label|truncatechars:26 }}</text>
+              </g>
+            {% endfor %}
+          </svg>
+          <div class="trend-tip" data-trend-tip hidden aria-live="polite">
+            {% for col in curves.columns %}
+              <div class="trend-tip__col" data-col="{{ forloop.counter0 }}" hidden>
+                <p class="trend-tip__head">{{ col.through|date:"j F Y" }} · {% blocktranslate count n=col.count %}{{ n }} bulletin{% plural %}{{ n }} bulletins{% endblocktranslate %}</p>
+                <ul>
+                  {% for row in col.rows %}
+                    <li class="trend-s{{ row.slot }}"><span class="trend-key" aria-hidden="true"></span><strong>{{ row.value }}</strong> {{ row.label }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+    {% endif %}
+
+    {# --- duels --------------------------------------------------------- #}
+    {% if is_schulze %}
+      <section class="trend-card" aria-labelledby="trend-duels-title">
+        <header class="trend-card__head">
+          <h2 id="trend-duels-title">{% translate "Duels" %}</h2>
+          <p class="help">{% translate "Pour chaque paire, la part des bulletins qui placent l’une avant l’autre ; au milieu, ceux qui ne les départagent pas. La courbe retrace l’écart depuis le premier point." %}</p>
+        </header>
+        <ul class="trend-duels">
+          {% for duel in duels %}
+            <li class="trend-duel">
+              <p class="trend-duel__names">
+                <span class="trend-s{{ duel.left.slot }}"><span class="trend-key" aria-hidden="true"></span><strong>{{ duel.left.label }}</strong></span>
+                <span class="trend-duel__vs">{% if duel.tied %}{% translate "à égalité avec" %}{% else %}{% translate "devant" %}{% endif %}</span>
+                <span class="trend-s{{ duel.right.slot }}"><span class="trend-key" aria-hidden="true"></span>{{ duel.right.label }}</span>
+              </p>
+              <div class="trend-duel__bar" aria-hidden="true">
+                <span class="trend-duel__seg trend-s{{ duel.left.slot }}" style="flex-grow: {{ duel.left.count }}"></span>
+                {% if duel.neither %}<span class="trend-duel__seg trend-duel__seg--neither" style="flex-grow: {{ duel.neither }}"></span>{% endif %}
+                <span class="trend-duel__seg trend-s{{ duel.right.slot }}" style="flex-grow: {{ duel.right.count }}"></span>
+              </div>
+              <p class="trend-duel__figures">
+                <span><strong>{{ duel.left.pct|floatformat:0 }} %</strong> ({{ duel.left.count }})</span>
+                {% if duel.neither %}<span class="trend-duel__neither">{% blocktranslate with p=duel.neither_pct|floatformat:0 n=duel.neither %}{{ p }} % sans préférence ({{ n }}){% endblocktranslate %}</span>{% endif %}
+                <span><strong>{{ duel.right.pct|floatformat:0 }} %</strong> ({{ duel.right.count }})</span>
+              </p>
+              <div class="trend-duel__margin">
+                <p class="trend-duel__pts">{{ duel.margin }}<span class="trend-tile__unit">&nbsp;{% translate "pts" %}</span></p>
+                {% if duel.delta %}
+                  <p class="trend-delta trend-delta--{{ duel.delta_dir }}"><span aria-hidden="true">{% if duel.delta_dir == "up" %}▲{% elif duel.delta_dir == "down" %}▼{% else %}■{% endif %}</span> {{ duel.delta }}</p>
+                {% endif %}
+                {% if duel.spark %}
+                  <svg class="trend-spark trend-s{{ duel.left.slot }}" viewBox="0 0 {{ duel.spark.width }} {{ duel.spark.height }}" aria-hidden="true" focusable="false">
+                    <line class="trend-spark__zero" x1="0" x2="{{ duel.spark.width }}" y1="{{ duel.spark.zero_y }}" y2="{{ duel.spark.zero_y }}"/>
+                    <path d="{{ duel.spark.path }}"/>
+                    <circle cx="{{ duel.spark.end_x }}" cy="{{ duel.spark.end_y }}" r="3"/>
+                  </svg>
+                {% endif %}
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% endif %}
+
+    {# --- one date in detail: the matrix and the ballots per ranking ----- #}
+    {% comment %}
+      Both cards below show the same point — the latest, or the one ?au=
+      names — so one date control serves the two.
+    {% endcomment %}
+    {% if matrix_dates|length > 1 %}
+      <form method="get" class="trend-matrix__when">
+        <label for="trend-matrix-date">{% translate "Matrice et classements au" %}</label>
+        <select id="trend-matrix-date" name="au">
+          {% for d in matrix_dates %}
+            <option value="{{ d|date:'Y-m-d' }}"{% if d == matrix_point.through %} selected{% endif %}>{{ d|date:"j F Y" }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit">{% translate "Afficher" %}</button>
+      </form>
+    {% endif %}
+
+    {# --- matrix -------------------------------------------------------- #}
+    {% if is_schulze %}
+      <section class="trend-card" aria-labelledby="trend-matrix-title">
+        <header class="trend-card__head">
+          <h2 id="trend-matrix-title">{% translate "Matrice des duels" %}</h2>
+          <p class="help">{% translate "Chaque case donne le nombre de bulletins qui placent la proposition de la ligne devant celle de la colonne. Une case marquée ✓ sur fond vert : la ligne gagne ce duel ; marquée = : égalité." %}</p>
+        </header>
+        <div class="table-scroll">
+          <table class="trend-matrix">
+            <caption class="help">
+              {% blocktranslate with date=matrix_point.through|date:"j F Y" count n=matrix_point.ballot_count trimmed %}
+                Au {{ date }}, sur {{ n }} bulletin.
+              {% plural %}
+                Au {{ date }}, sur {{ n }} bulletins.
+              {% endblocktranslate %}
+            </caption>
+            <thead>
+              <tr>
+                <td></td>
+                {% for row in matrix %}<th scope="col" class="trend-s{{ row.slot }}"><span class="trend-key" aria-hidden="true"></span>{{ row.label }}</th>{% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in matrix %}
+                <tr>
+                  <th scope="row" class="trend-s{{ row.slot }}"><span class="trend-key" aria-hidden="true"></span>{{ row.label }}</th>
+                  {% for cell in row.cells %}
+                    {% if cell.self %}
+                      <td class="trend-matrix__self"><span class="visually-hidden">{% translate "sans objet" %}</span></td>
+                    {% else %}
+                      <td class="trend-matrix__cell trend-matrix__cell--{{ cell.outcome }}">
+                        <span class="trend-matrix__mark" aria-hidden="true">{% if cell.outcome == "win" %}✓{% elif cell.outcome == "tie" %}={% endif %}</span>
+                        <strong>{{ cell.count }}</strong>
+                        <span class="trend-matrix__pct">{{ cell.pct|floatformat:0 }} %</span>
+                        {% if cell.outcome == "win" %}<span class="visually-hidden">{% translate "(gagne)" %}</span>{% elif cell.outcome == "tie" %}<span class="visually-hidden">{% translate "(égalité)" %}</span>{% endif %}
+                      </td>
+                    {% endif %}
+                  {% endfor %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    {% endif %}
+
+    {# --- ballots per ranking (R-11.3) ---------------------------------- #}
+    <section class="trend-card" aria-labelledby="trend-types-title">
+      <header class="trend-card__head">
+        <h2 id="trend-types-title">{% translate "Bulletins par classement" %}</h2>
+        <p class="help">{% translate "Nombre de bulletins portant chaque classement, du plus fréquent au moins fréquent. Chaque proposition est précédée de son rang ; des propositions classées ex æquo partagent le même ; celles laissées de côté comptent ensemble en dernier." %}</p>
+      </header>
+      <p class="help trend-types__caption">
+        {% blocktranslate with date=matrix_point.through|date:"j F Y" count n=matrix_point.ballot_count trimmed %}
+          Au {{ date }}, sur {{ n }} bulletin.
+        {% plural %}
+          Au {{ date }}, sur {{ n }} bulletins.
+        {% endblocktranslate %}
+      </p>
+      {% comment %}
+        A list rather than a table: a ranking is a run of options of any
+        length, which a table column could only wrap; here it keeps one line
+        on a desktop and stacks above its figures on a phone (R-14.2). Each
+        item reads in full as text — rank, option, count — without the bar.
+      {% endcomment %}
+      <ol class="trend-types">
+        {% for row in ballot_types %}
+          <li class="trend-types__row">
+            <p class="trend-types__ranking">
+              {% for group in row.groups %}
+                {% for option in group %}
+                  <span class="trend-types__option trend-s{{ option.slot }}"><span class="trend-types__rank">{{ forloop.parentloop.counter }}</span>{{ option.label }}</span>
+                {% endfor %}
+              {% endfor %}
+              {% if row.unranked %}
+                <span class="trend-types__unranked">{% translate "non classées :" %}
+                  {% for option in row.unranked %}{{ option.label }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>
+              {% endif %}
+            </p>
+            <span class="trend-types__bar" aria-hidden="true"><span style="flex-grow: {{ row.bar }}"></span>{% if row.rest %}<span class="trend-types__rest" style="flex-grow: {{ row.rest }}"></span>{% endif %}</span>
+            <p class="trend-types__figures">
+              <strong>{% blocktranslate count n=row.count %}{{ n }} bulletin{% plural %}{{ n }} bulletins{% endblocktranslate %}</strong>
+              <span>{{ row.pct|floatformat:0 }} %</span>
+            </p>
+          </li>
+        {% endfor %}
+      </ol>
+    </section>
+
+    {# --- table --------------------------------------------------------- #}
+    <section class="trend-card" aria-labelledby="trend-table-title">
+      <header class="trend-card__head"><h2 id="trend-table-title">{% translate "Données détaillées" %}</h2></header>
+      <div class="table-scroll">
+        <table class="trend-table">
+          <caption class="help">
+            {% if is_schulze %}
+              {% translate "Rang de chaque proposition et, entre parenthèses, l’écart de son duel le plus serré, en points. Le plus récent en premier." %}
+            {% else %}
+              {% translate "Rang de chaque proposition et, entre parenthèses, sa part des bulletins, en pourcentage. Le plus récent en premier." %}
+            {% endif %}
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">{% translate "Jusqu’au" %}</th>
+              <th scope="col">{% translate "Bulletins" %}</th>
+              {% for option_id, label in options %}<th scope="col">{{ label }}</th>{% endfor %}
+              {% if is_schulze %}
+                <th scope="col">{% translate "Vainqueur de Condorcet" %}</th>
+                <th scope="col">{% translate "Ensemble de Smith" %}</th>
+              {% endif %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+              <tr>
+                <th scope="row">{{ row.through|date:"j F Y" }}</th>
+                <td>{{ row.count }}</td>
+                {% for cell in row.cells %}<td>{{ cell.rank }} <span class="trend-table__aside">({{ cell.value }})</span></td>{% endfor %}
+                {% if is_schulze %}
+                  <td>{% if row.condorcet %}{{ row.condorcet }}{% else %}{% translate "aucun" %}{% endif %}</td>
+                  <td>{{ row.smith|join:", " }}</td>
+                {% endif %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  {% endif %}
+{% endblock %}
+
+{% block body_end %}{{ block.super }}<script src="{% static 'js/trend-chart.js' %}" defer></script>{% endblock %}

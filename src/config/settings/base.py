@@ -8,6 +8,7 @@ the repository.
 from __future__ import annotations
 
 import os
+import uuid
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parents[3]
@@ -218,3 +219,12 @@ JOB_LOCK_DIR = Path(os.environ.get("DJANGO_JOB_LOCK_DIR", BASE_DIR / "var" / "lo
 # RATE_LIMIT_REGISTRATION above: how much text still reads comfortably on one
 # screen is a per-deployment call.
 OPTION_DETAILS_PREVIEW_LENGTH = int(os.environ.get("DJANGO_OPTION_DETAILS_PREVIEW_LENGTH", "1000"))
+
+# R-11.5 bis: the polls whose back office shows the running trend, as
+# comma-separated ids. Interim: the rule makes it a per-poll setting frozen at
+# opening (INV-6), but adding that column is a migration, and a poll already
+# open needs the screen (docs/specification-decision-log.md #39). A malformed id
+# fails here, at startup, rather than silently enabling nothing.
+TREND_POLL_IDS: frozenset[uuid.UUID] = frozenset(
+    uuid.UUID(v.strip()) for v in os.environ.get("DJANGO_TREND_POLLS", "").split(",") if v.strip()
+)

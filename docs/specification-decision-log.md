@@ -60,6 +60,7 @@ reasoning.
 | 36 | A sandbox poll's result is reachable through its link | decided |
 | 37 | The verifier reads the publication document, and every method | decided |
 | 38 | A poll requiring reconciliation cannot be closed early | **open question** for the requirements owner (R-3.4 and R-8.6) |
+| 39 | The back-office trend is switched on by deployment setting, not a poll field | **interim**, until the `show_trend` column lands |
 
 ## 1. Retention purge on a poll that closed but was never published
 
@@ -1331,4 +1332,44 @@ follows the early-closure instant: an early closure moves
 `paper_entry_deadline` to the moment of closing, so the count could be taken
 at that moment, in the same confirmed action. The second changes what R-8.6's
 record attests to, and is for the requirements owner to decide.
+
+## 39. The back-office trend is switched on by deployment setting, not a poll field
+
+**Decided (2026-10-01).** R-11.5 bis, new, lets a poll's configuration show
+the poll admin and the auditor a running trend: the ranking recomputed day by
+day. The rule makes it a poll field, `show_trend`, default off and frozen at
+`open` like the rest of the configuration (INV-6, §3.1). The requirements owner
+wants it on a poll that is already open, and adding a column is a migration
+that cannot run while that poll is live. So, for now, the deployment names the
+polls that get it: `DJANGO_TREND_POLLS`, a comma-separated list of poll ids,
+read into `settings.TREND_POLL_IDS`. Every other poll keeps R-11.5 as it was —
+the URL does not exist and the menu has no entry.
+
+**What this departs from.** The open poll's configuration, frozen when it
+opened, did not provide for a trend. Switching it on afterwards is the
+requirements owner's decision for that poll. It is not a precedent for
+changing a frozen field: the setting lives outside the poll row and the
+INV-6 trigger never sees it. The setting also has no audit trail, which
+`show_trend` would get through `POLL_CONFIG_CHANGED`.
+
+**What it does not depart from.** INV-1. The audience holds
+`Registration.confirmed_at`, and an elector often votes a minute after
+confirming, so a fine-grained trend would line registrations up with ballots.
+`apps/tally/trend.py` therefore shows only whole days, never the one still
+running, merged until each bin holds ten ballots. The first version also withheld every count per option and the pairwise
+matrix, since subtracting two points yields one bin's figures. The requirements
+owner then asked for the margins, and the trend now shows the matrix (or the
+count per option), and then for the ballots per distinct ranking, which it
+shows too. The binning is therefore the only protection: nobody sees
+an aggregate of fewer than ten ballots. A bin whose electors all place one
+option ahead of another, or all cast the same ranking, reveals that choice of
+each of them — the same
+exposure as a polling station where every voter chose alike. R-11.5 bis states
+this residual risk rather than leaving it implied.
+
+**Not yet done.** Opening the screen writes no audit event. A new `Action`
+value changes the field's `choices`, which is itself a migration. Both the
+access event and the `show_trend` column belong in the same migration, before
+the next release. At that point `TREND_POLL_IDS` is removed, and its polls are
+carried over to `show_trend = true` by a data migration.
 

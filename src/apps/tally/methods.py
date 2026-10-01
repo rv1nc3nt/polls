@@ -141,6 +141,21 @@ def _tally_schulze(ballots: Sequence[Ranking], options: Sequence[OptionId]) -> T
     )
 
 
+def option_counts(
+    ballots: Sequence[Ranking], options: Sequence[OptionId], method: Method
+) -> dict[OptionId, int]:
+    """The per-option count plurality and approval are decided on (§8.2)."""
+    counts: dict[OptionId, int] = dict.fromkeys(options, 0)
+    for ranking in ballots:
+        if not ranking:
+            continue
+        chosen = ranking[0] if method is Method.PLURALITY else [o for g in ranking for o in g]
+        for option in chosen:
+            if option in counts:
+                counts[option] += 1
+    return counts
+
+
 def _tally_counted(
     ballots: Sequence[Ranking], options: Sequence[OptionId], method: Method
 ) -> TallyResult:
@@ -151,14 +166,7 @@ def _tally_counted(
     configuration that permits it is a misconfiguration the back-office warns
     about, not something to resolve silently here.
     """
-    counts: dict[OptionId, int] = dict.fromkeys(options, 0)
-    for ranking in ballots:
-        if not ranking:
-            continue
-        chosen = ranking[0] if method is Method.PLURALITY else [o for g in ranking for o in g]
-        for option in chosen:
-            if option in counts:
-                counts[option] += 1
+    counts = option_counts(ballots, options, method)
     # ``default``: no options at all is unreachable from a real poll (it
     # needs two to be announced), but a pure function must not crash on it.
     best = max(counts.values(), default=0)
