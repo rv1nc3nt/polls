@@ -141,7 +141,7 @@ from apps.registrations import mail as registration_mail
 from apps.registrations import services as registrations
 from apps.registrations.models import Channel, Registration
 from apps.tally.methods import Method
-from apps.tally.trend import MIN_BIN
+from apps.tally.trend import STEP
 
 from . import (
     accounts,
@@ -1516,7 +1516,7 @@ def countersign_queue(request: HttpRequest, poll: Poll) -> HttpResponse:
 
 @require_poll_role(Role.POLL_ADMIN, Role.AUDITOR)
 def poll_trend(request: HttpRequest, poll: Poll) -> HttpResponse:
-    """The running trend (R-11.5 bis): the ranking re-counted day by day.
+    """The running trend (R-11.5 bis): the result recomputed every ten arrivals.
 
     Offered only on the polls ``settings.TREND_POLL_IDS`` names — everywhere
     else the URL does not exist, which is what R-11.5 still requires of a poll
@@ -1526,7 +1526,7 @@ def poll_trend(request: HttpRequest, poll: Poll) -> HttpResponse:
     """
     if not trend.enabled(poll):
         raise Http404
-    points = trend.series(poll, timezone.now())
+    points = trend.series(poll)
     options = [
         (OptionId(option.option_id), option.label()) for option in poll.options.order_by("position")
     ]
@@ -1535,7 +1535,8 @@ def poll_trend(request: HttpRequest, poll: Poll) -> HttpResponse:
         "poll": poll,
         "options": options,
         "has_points": bool(points),
-        "min_bin": MIN_BIN,
+        "step": STEP,
+        "first_at": 2 * STEP,
         "is_open": poll.state == PollState.OPEN,
         "is_schulze": schulze,
     }
@@ -1546,14 +1547,13 @@ def poll_trend(request: HttpRequest, poll: Poll) -> HttpResponse:
             "duels": trend.duels(points, options),
             "rows": trend.table(points, options, schulze=schulze),
         }
-        # The matrix shows one point: the latest, or the one ``?au=`` names
-        # among those already shown — never a date the binning did not produce.
-        dates = [p.through for p in points]
-        chosen = parse_date(request.GET.get("au") or "") or dates[-1]
-        shown = points[dates.index(chosen)] if chosen in dates else points[-1]
+        # The matrix shows one point: the latest, or the one ``?point=`` names
+        # by its arrival count — only ever one of the points already shown.
+        by_arrivals = {str(p.arrivals): p for p in points}
+        shown = by_arrivals.get(request.GET.get("point") or "", points[-1])
         context |= {
             "matrix_point": shown,
-            "matrix_dates": list(reversed(dates)),
+            "matrix_points": list(reversed(points)),
             "matrix": trend.matrix(shown, options),
             "ballot_types": trend.ballot_types(shown, options),
         }

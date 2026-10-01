@@ -1,32 +1,41 @@
 # SPDX-License-Identifier: 0BSD
-"""The back-office trend (R-11.5 bis): the ranking re-counted day after day.
+"""The back-office trend (R-11.5 bis): the result recomputed as ballots arrive.
 
-Pure, like the rest of this package: the caller supplies each live ballot's
-calendar day in the poll's timezone and the last day that may be shown, never
-a clock.
+Pure, like the rest of this package: the caller supplies every ballot version
+with its creation instant and day in the poll's timezone, never a clock.
 
 What is computed is bounded by INV-1 rather than by what would be most
 informative (docs/specification-decision-log.md #39). The audience — the poll
-administrator — also holds each registration's ``confirmed_at``, and an elector
-often votes a minute after confirming. So:
+administrator — sees which electors have voted (R-7.5) and can reload that
+list, and this screen, at will. Whatever two views of this screen differ by is
+therefore attributable to the electors who voted in between. So:
 
-* a point only ever covers **whole days**, and the day still running is never
-  shown, so reloading the screen through the day reveals nothing finer;
-* consecutive days are **merged until a bin holds ``MIN_BIN`` ballots**, the
-  same reasoning that keeps R-11.5 from publishing turnout by polling station;
-* each point carries the ranks, the Condorcet winner, the Smith set, the
-  head-to-head counts (or, under plurality and approval, the count per
-  option) and the number of ballots per distinct ranking. Subtracting two
-  consecutive points yields the same figures for one bin, so ``MIN_BIN`` is
-  the smallest group whose aggregate anyone sees — the size of a very small
-  polling station. The residual exposure is a bin whose electors all agree on
-  a duel or, through the per-ranking counts, all cast the same ranking: its
-  aggregate then states each one's choice. R-11.5 bis accepts that in
-  exchange for the figures (decision log #39).
+* **a point every ``STEP`` arrivals** — a ballot cast, modified, or a paper
+  entry changing state — never on the clock. Two consecutive points differ by
+  ``STEP`` arrivals, however often the screen is reloaded;
+* **a point never changes once shown.** Each counts every ballot as it stood
+  when the point's last arrival came in: the version then in force, not the
+  current one. Recomputing past points from the current live set would let a
+  modification remove one ballot's old ranking from them, readable as the
+  difference (decision log #39);
+* **the newest point waits.** A point is shown only once ``STEP`` further
+  arrivals follow it. The result published at closure is the whole live set,
+  so it minus the last point shown before closure is what came after: never
+  fewer than ``STEP`` ballots. After closure the final standing is shown too —
+  it is the published result.
 
-Each point is cumulative: every live ballot whose day is on or before
-``through``. A ballot modified on a later day is counted from the day of its
-current version (R-7.2), the earlier versions being no longer live.
+Each point carries the ranks, the Condorcet winner, the Smith set, the
+head-to-head counts (or, under plurality and approval, the count per option)
+and the number of ballots per distinct ranking. The residual exposure is a
+group of ``STEP`` arrivals that all agree on a duel, or all cast the same
+ranking: the difference then states each one's choice. R-11.5 bis accepts that
+in exchange for the figures.
+
+Paper ballots are the one exception to "never changes": a countersignature or
+a deletion changes a row's status in place, with no instant recorded, so it is
+read as of the row's creation. The link from a paper ballot to its elector is
+deliberate and already on the poll admin's screens (R-8.2 bis), so this
+reveals nothing they could not read there.
 """
 
 from __future__ import annotations
@@ -34,7 +43,7 @@ from __future__ import annotations
 from collections import Counter
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 
 from apps.core.types import OptionId
 
@@ -44,13 +53,30 @@ from .methods import Method, Ranking, option_counts, pairwise_matrix, schulze_pa
 #: order so that ``[[b, a]]`` and ``[[a, b]]`` are the same tie.
 Ordering = tuple[tuple[OptionId, ...], ...]
 
-#: The fewest ballots a bin may hold before it is shown on its own.
-MIN_BIN = 10
+#: Arrivals between two points, and before the newest one is shown.
+STEP = 10
+
+
+@dataclass(frozen=True)
+class Version:
+    """One ballot version, as the trend reads it.
+
+    ``ballot`` is shared by every version of one ballot (its tracking code,
+    stable across versions, R-7.2). ``ranking`` is ``None`` for a version that
+    does not count — a paper entry awaiting countersignature, or deleted — so
+    from ``at`` on the ballot counts for nothing.
+    """
+
+    at: datetime
+    day: date
+    ballot: str
+    ranking: Ranking | None
 
 
 @dataclass(frozen=True)
 class TrendPoint:
-    """The standing after every ballot cast up to and including ``through``.
+    """The standing after the ``arrivals``-th arrival, which came in on
+    ``through``.
 
     ``ranks[o]`` is 1 for the leading option; options the method cannot
     separate share a rank. ``smith_set`` is in the poll's option order.
@@ -60,6 +86,7 @@ class TrendPoint:
     """
 
     through: date
+    arrivals: int
     ballot_count: int
     ranks: dict[OptionId, int]
     condorcet_winner: OptionId | None
@@ -90,54 +117,37 @@ class TrendPoint:
 
 
 def trend(
-    ballots: Sequence[tuple[date, Ranking]],
+    versions: Sequence[Version],
     options: Sequence[OptionId],
     method: Method,
     *,
-    last_day: date,
     final: bool,
-    min_bin: int = MIN_BIN,
+    step: int = STEP,
 ) -> list[TrendPoint]:
-    """One cumulative point per bin of at least ``min_bin`` ballots.
-
-    Ballots dated after ``last_day`` are ignored — the caller passes the day
-    before today while ballots can still arrive. Where ``final`` is false, a
-    trailing remainder below ``min_bin`` waits for later days rather than being
-    shown; once ``final``, it is folded into the last bin instead of being
-    dropped, so the last point is the whole live set.
-    """
-    by_day: dict[date, list[Ranking]] = {}
-    for day, ranking in ballots:
-        if day <= last_day:
-            by_day.setdefault(day, []).append(ranking)
-
-    bins: list[tuple[date, int]] = []
-    pending = 0
-    last_seen: date | None = None
-    for day in sorted(by_day):
-        pending += len(by_day[day])
-        last_seen = day
-        if pending >= min_bin:
-            bins.append((day, pending))
-            pending = 0
-    if final and pending and bins and last_seen is not None:
-        _through, size = bins.pop()
-        bins.append((last_seen, size + pending))
-
+    """The points to show: one per ``step`` arrivals with ``step`` more after
+    it and, once ``final``, the final standing."""
+    ordered = sorted(versions, key=lambda v: (v.at, v.ballot))
+    total = len(ordered)
+    in_force: dict[str, Ranking] = {}
     points: list[TrendPoint] = []
-    cumulative: list[Ranking] = []
-    days = iter(sorted(by_day))
-    for through, _size in bins:
-        for day in days:
-            cumulative.extend(by_day[day])
-            if day == through:
-                break
-        points.append(_point(through, cumulative, options, method))
+    for n, version in enumerate(ordered, start=1):
+        if version.ranking is None:
+            in_force.pop(version.ballot, None)
+        else:
+            in_force[version.ballot] = version.ranking
+        if n % step == 0 and total - n >= step:
+            points.append(_point(version.day, n, list(in_force.values()), options, method))
+    if final and ordered and (not points or points[-1].arrivals != total):
+        points.append(_point(ordered[-1].day, total, list(in_force.values()), options, method))
     return points
 
 
 def _point(
-    through: date, ballots: Sequence[Ranking], options: Sequence[OptionId], method: Method
+    through: date,
+    arrivals: int,
+    ballots: Sequence[Ranking],
+    options: Sequence[OptionId],
+    method: Method,
 ) -> TrendPoint:
     d = pairwise_matrix(ballots, options)
     counts: dict[OptionId, int] | None = None
@@ -153,6 +163,7 @@ def _point(
     condorcet = [i for i in options if all(d[i][j] > d[j][i] for j in options if j != i)]
     return TrendPoint(
         through=through,
+        arrivals=arrivals,
         ballot_count=len(ballots),
         ranks=ranks,
         condorcet_winner=condorcet[0] if condorcet else None,

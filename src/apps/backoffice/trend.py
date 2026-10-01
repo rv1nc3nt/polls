@@ -1,27 +1,26 @@
 # SPDX-License-Identifier: 0BSD
 """Read model for the trend screen (R-11.5 bis).
 
-Reads ``Ballot`` alone — the creation instant and the ranking of each live
-version — and never ``Registration``: what makes the screen safe is that its
-output is coarse (``apps.tally.trend``), not that its readers lack the other
-list (docs/specification-decision-log.md #39).
+Reads ``Ballot`` alone — every version's creation instant, tracking code,
+ranking and status — and never ``Registration``: what makes the screen safe is
+how its points are cut (``apps.tally.trend``), not that its readers lack the
+other list (docs/specification-decision-log.md #39).
 """
 
 from __future__ import annotations
 
 import itertools
 import math
-from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from django.conf import settings
 from django.utils.formats import number_format
 
-from apps.ballots.models import Ballot
+from apps.ballots.models import Ballot, BallotStatus
 from apps.core.types import OptionId
 from apps.elections.models import Poll, PollState
 from apps.tally.methods import Method
-from apps.tally.trend import TrendPoint, trend
+from apps.tally.trend import TrendPoint, Version, trend
 
 #: Withdrawn is absent on purpose: R-3.11 takes every figure of the poll off
 #: view, and draft or announced polls have no ballot to show.
@@ -33,24 +32,31 @@ def enabled(poll: Poll) -> bool:
     return poll.pk in settings.TREND_POLL_IDS and poll.state in _SHOWN_IN
 
 
-def series(poll: Poll, now: datetime) -> list[TrendPoint]:
-    """The cumulative points, in the poll's own calendar.
+def series(poll: Poll) -> list[TrendPoint]:
+    """The points to show, every version of every ballot considered.
 
-    Until the poll is closed — paper keying included, which runs to
-    ``paper_entry_deadline`` (§6.4) — the day in progress is left out, so the
-    screen changes at most once a day.
+    Superseded versions count until the next one arrives, which is what keeps
+    a point fixed once shown. Paper entries awaiting countersignature and
+    deleted ones count for nothing (§3.4).
     """
     zone = ZoneInfo(poll.timezone)
-    final = poll.state != PollState.OPEN
-    last_day = date.max if final else now.astimezone(zone).date() - timedelta(days=1)
-    rows = Ballot.live.filter(poll=poll).values_list("created_at", "ranking")
-    ballots = [
-        (created_at.astimezone(zone).date(), [[OptionId(o) for o in g] for g in ranking])
-        for created_at, ranking in rows
+    counted = (BallotStatus.LIVE, BallotStatus.SUPERSEDED)
+    rows = Ballot.objects.filter(poll=poll).values_list(
+        "created_at", "tracking_code", "ranking", "status"
+    )
+    versions = [
+        Version(
+            at=created_at,
+            day=created_at.astimezone(zone).date(),
+            ballot=tracking_code,
+            ranking=[[OptionId(o) for o in g] for g in ranking] if status in counted else None,
+        )
+        for created_at, tracking_code, ranking, status in rows
     ]
     option_ids = poll.options.order_by("position").values_list("option_id", flat=True)
     options = [OptionId(o) for o in option_ids]
-    return trend(ballots, options, Method(poll.tally_method), last_day=last_day, final=final)
+    final = poll.state != PollState.OPEN
+    return trend(versions, options, Method(poll.tally_method), final=final)
 
 
 #: Categorical slots the stylesheet defines (``--s1`` … ``--s8``). With more
@@ -162,13 +168,11 @@ def curves(
             {"y": y(v), "label": _signed(v) if schulze else number_format(v, 0), "zero": v == 0}
         )
         v += step
-    # At most about six date labels, always the first and the last.
-    every = max(1, math.ceil(len(points) / 6))
-    dates = [
-        {"x": xs[k], "date": p.through}
-        for k, p in enumerate(points)
-        if k % every == 0 or k == len(points) - 1
-    ]
+    # Several points can fall on one day: label a day once, at its first
+    # point, and keep at most about six labels.
+    firsts = [k for k, p in enumerate(points) if k == 0 or p.through != points[k - 1].through]
+    every = max(1, math.ceil(len(firsts) / 6))
+    dates = [{"x": xs[k], "date": points[k].through} for k in firsts[::every]]
     columns = []
     for k, p in enumerate(points):
         rows = sorted(
@@ -326,7 +330,6 @@ def summary(
         "through": last.through,
         "count": last.ballot_count,
         "count_delta": last.ballot_count - previous.ballot_count if previous else None,
-        "since": previous.through if previous else None,
         "leaders": [labels[o] for o in leaders],
         "leader_changed": previous is not None and set(previous.leaders) != set(leaders),
         "condorcet": labels[last.condorcet_winner] if last.condorcet_winner else None,

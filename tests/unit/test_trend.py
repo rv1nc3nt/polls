@@ -1,14 +1,15 @@
 # SPDX-License-Identifier: 0BSD
-"""The back-office trend (R-11.5 bis), as a pure function: binning, ranks,
-Condorcet winner and Smith set."""
+"""The back-office trend (R-11.5 bis), as a pure function: where points fall,
+which version of each ballot they count, ranks, Condorcet winner and Smith set."""
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+import itertools
+from datetime import UTC, date, datetime, timedelta
 
 from apps.core.types import OptionId
 from apps.tally.methods import Method, Ranking, pairwise_matrix
-from apps.tally.trend import smith_set, trend
+from apps.tally.trend import Version, smith_set, trend
 
 A, B, C = OptionId("a"), OptionId("b"), OptionId("c")
 OPTIONS = [A, B, C]
@@ -19,41 +20,82 @@ BCA: Ranking = [[B], [C], [A]]
 CAB: Ranking = [[C], [A], [B]]
 
 
-def _on(day: int, ranking: Ranking, n: int) -> list[tuple[date, Ranking]]:
-    return [(DAY + timedelta(days=day), ranking)] * n
+_clock = itertools.count()
 
 
-def test_days_merge_until_a_bin_holds_the_minimum() -> None:
-    ballots = _on(0, ABC, 4) + _on(1, ABC, 4) + _on(2, ABC, 4) + _on(3, BCA, 3)
-    points = trend(ballots, OPTIONS, Method.SCHULZE, last_day=date.max, final=False, min_bin=10)
-    # 4 + 4 + 4 closes one bin on day 2; the 3 of day 3 wait for more.
-    assert [(p.through, p.ballot_count) for p in points] == [(DAY + timedelta(days=2), 12)]
+def _on(day: int, ranking: Ranking | None, n: int, *, ballot: str = "") -> list[Version]:
+    """``n`` arrivals on ``day``, each later than every arrival made before
+    it; ``ballot`` reuses one tracking code (a modification) where given."""
+    out = []
+    for _ in range(n):
+        tick = next(_clock)
+        at = datetime(2026, 9, 1, tzinfo=UTC) + timedelta(days=day, seconds=tick)
+        out.append(Version(at, DAY + timedelta(days=day), ballot or f"T{tick}", ranking))
+    return out
 
 
-def test_once_final_the_remainder_folds_into_the_last_bin() -> None:
-    ballots = _on(0, ABC, 10) + _on(1, ABC, 10) + _on(2, BCA, 3)
-    points = trend(ballots, OPTIONS, Method.SCHULZE, last_day=date.max, final=True, min_bin=10)
-    assert [(p.through, p.ballot_count) for p in points] == [
-        (DAY, 10),
-        (DAY + timedelta(days=2), 23),
+def test_a_point_every_step_arrivals_shown_once_step_more_follow() -> None:
+    """While the poll is open, the newest point waits for ``step`` more
+    arrivals after it, so nothing after the last point shown is ever fewer
+    than ``step`` ballots."""
+    ballots = _on(0, ABC, 29)
+    points = trend(ballots, OPTIONS, Method.SCHULZE, final=False)
+    assert [p.arrivals for p in points] == [10]
+    points = trend(ballots + _on(0, ABC, 1), OPTIONS, Method.SCHULZE, final=False)
+    assert [p.arrivals for p in points] == [10, 20]
+
+
+def test_points_fall_within_a_day_and_need_no_day_boundary() -> None:
+    ballots = _on(0, ABC, 15) + _on(1, BCA, 25)
+    points = trend(ballots, OPTIONS, Method.SCHULZE, final=False)
+    assert [(p.arrivals, p.through) for p in points] == [
+        (10, DAY),
+        (20, DAY + timedelta(days=1)),
+        (30, DAY + timedelta(days=1)),
     ]
 
 
-def test_too_few_ballots_show_nothing_even_once_final() -> None:
-    points = trend(_on(0, ABC, 9), OPTIONS, Method.SCHULZE, last_day=date.max, final=True)
-    assert points == []
+def test_once_final_the_last_point_is_the_whole_live_set() -> None:
+    ballots = _on(0, ABC, 23)
+    points = trend(ballots, OPTIONS, Method.SCHULZE, final=True)
+    # 20 has only 3 arrivals after it: never shown, since the published result
+    # minus it would be those 3 ballots.
+    assert [(p.arrivals, p.ballot_count) for p in points] == [(10, 10), (23, 23)]
 
 
-def test_days_after_last_day_are_ignored() -> None:
-    """The day in progress is left out while the poll is open."""
-    ballots = _on(0, ABC, 10) + _on(1, BCA, 30)
-    points = trend(ballots, OPTIONS, Method.SCHULZE, last_day=DAY, final=False)
-    assert [(p.through, p.ballot_count) for p in points] == [(DAY, 10)]
+def test_too_few_ballots_show_nothing_while_open() -> None:
+    assert trend(_on(0, ABC, 19), OPTIONS, Method.SCHULZE, final=False) == []
+
+
+def test_a_shown_point_does_not_change_when_a_ballot_in_it_is_modified() -> None:
+    """Recomputing from the current live set would drop the old version from
+    every past point, and the difference would be that one ballot."""
+    first = _on(0, ABC, 1, ballot="X") + _on(0, ABC, 19)
+    before = trend(first, OPTIONS, Method.SCHULZE, final=False)
+    after = trend(first + _on(1, BCA, 1, ballot="X"), OPTIONS, Method.SCHULZE, final=False)
+    assert before[0] == after[0]
+    assert before[0].pairwise[A][B] == 10
+
+
+def test_a_modification_replaces_the_ballot_from_its_arrival_on() -> None:
+    ballots = _on(0, ABC, 1, ballot="X") + _on(0, ABC, 9) + _on(1, BCA, 1, ballot="X")
+    (final,) = trend(ballots, OPTIONS, Method.SCHULZE, final=True)[-1:]
+    assert final.ballot_count == 10
+    assert final.arrivals == 11
+    assert final.pairwise[A][B] == 9
+
+
+def test_a_version_that_does_not_count_withdraws_the_ballot() -> None:
+    """A paper correction awaiting countersignature, or a deleted entry."""
+    ballots = _on(0, ABC, 1, ballot="P") + _on(0, ABC, 9) + _on(0, None, 1, ballot="P")
+    (final,) = trend(ballots, OPTIONS, Method.SCHULZE, final=True)[-1:]
+    assert final.ballot_count == 9
 
 
 def test_points_are_cumulative_and_track_the_schulze_order() -> None:
     ballots = _on(0, ABC, 10) + _on(1, BCA, 20)
-    first, second = trend(ballots, OPTIONS, Method.SCHULZE, last_day=date.max, final=True)
+    points = trend(ballots, OPTIONS, Method.SCHULZE, final=True)
+    first, second = points[0], points[-1]
     assert first.ranks == {A: 1, B: 2, C: 3}
     assert first.condorcet_winner == A
     assert first.smith_set == (A,)
@@ -65,7 +107,7 @@ def test_points_are_cumulative_and_track_the_schulze_order() -> None:
 
 def test_a_cycle_has_no_condorcet_winner_and_a_full_smith_set() -> None:
     ballots = _on(0, ABC, 10) + _on(0, BCA, 10) + _on(0, CAB, 10)
-    (point,) = trend(ballots, OPTIONS, Method.SCHULZE, last_day=date.max, final=True)
+    point = trend(ballots, OPTIONS, Method.SCHULZE, final=True)[-1]
     assert point.condorcet_winner is None
     assert point.smith_set == (A, B, C)
     assert point.ranks == {A: 1, B: 1, C: 1}
@@ -73,7 +115,7 @@ def test_a_cycle_has_no_condorcet_winner_and_a_full_smith_set() -> None:
 
 def test_plurality_ranks_by_first_preferences() -> None:
     ballots = _on(0, ABC, 6) + _on(0, BCA, 4) + _on(0, CAB, 4)
-    (point,) = trend(ballots, OPTIONS, Method.PLURALITY, last_day=date.max, final=True)
+    point = trend(ballots, OPTIONS, Method.PLURALITY, final=True)[-1]
     assert point.ranks == {A: 1, B: 2, C: 2}
 
 
@@ -86,7 +128,7 @@ def test_smith_set_excludes_options_beaten_by_the_whole_top_cycle() -> None:
 
 def test_a_point_carries_the_duels_and_each_options_tightest_one() -> None:
     ballots = _on(0, ABC, 6) + _on(0, BCA, 4)
-    (point,) = trend(ballots, OPTIONS, Method.SCHULZE, last_day=date.max, final=True)
+    point = trend(ballots, OPTIONS, Method.SCHULZE, final=True)[-1]
     assert point.pairwise[A][B] == 6
     assert point.pairwise[B][A] == 4
     assert point.margin(A, B) == 2
@@ -100,7 +142,7 @@ def test_a_point_carries_the_duels_and_each_options_tightest_one() -> None:
 
 def test_plurality_points_carry_the_count_per_option() -> None:
     ballots = _on(0, ABC, 6) + _on(0, BCA, 4)
-    (point,) = trend(ballots, OPTIONS, Method.PLURALITY, last_day=date.max, final=True)
+    point = trend(ballots, OPTIONS, Method.PLURALITY, final=True)[-1]
     assert point.counts == {A: 6, B: 4, C: 0}
 
 
@@ -108,5 +150,5 @@ def test_orderings_count_ballots_per_ranking_ignoring_order_within_a_tie() -> No
     ballots = (
         _on(0, ABC, 3) + _on(0, [[B, A], [C]], 1) + _on(0, [[A, B], [C]], 1) + _on(0, [[C]], 2)
     )
-    (point,) = trend(ballots, OPTIONS, Method.SCHULZE, last_day=date.max, final=True, min_bin=1)
+    point = trend(ballots, OPTIONS, Method.SCHULZE, final=True, step=1)[-1]
     assert point.orderings == {((A,), (B,), (C,)): 3, ((A, B), (C,)): 2, ((C,),): 2}

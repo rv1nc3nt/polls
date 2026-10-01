@@ -12,7 +12,7 @@ import pytest
 from django.test import Client, override_settings
 from django.utils import timezone
 
-from apps.ballots.models import Ballot, BallotSource
+from apps.ballots.models import Ballot, BallotSource, BallotStatus
 from apps.core.codes import new_tracking_code
 from apps.core.models import PollRole, Role, User
 from apps.elections.models import Poll, PollState
@@ -51,6 +51,13 @@ def _cast(poll: Poll, ranking: list[list[str]], n: int, *, days_ago: int) -> Non
         )
 
 
+def _three_points(poll: Poll) -> None:
+    """40 arrivals: points at 10, 20 and 30 are shown, 40 waits."""
+    _cast(poll, [["a"], ["b"], ["c"]], 10, days_ago=3)
+    _cast(poll, [["b"], ["c"], ["a"]], 20, days_ago=2)
+    _cast(poll, [["c"], ["a"], ["b"]], 10, days_ago=1)
+
+
 def _enabled(poll: Poll) -> override_settings:
     return override_settings(TREND_POLL_IDS=frozenset({poll.pk}))
 
@@ -62,17 +69,21 @@ def test_a_poll_not_configured_for_it_has_no_trend(client: Client, poll: Poll, a
     assert "/tendance/" not in client.get(f"/fr/mairie/scrutin/{poll.pk}/").content.decode()
 
 
-def test_the_admin_sees_the_standing_but_not_today(client: Client, poll: Poll, admin: User) -> None:
+def test_the_admin_sees_the_standing_as_of_the_last_point_shown(
+    client: Client, poll: Poll, admin: User
+) -> None:
+    """Today's ballots count like any others; the newest point waits for ten
+    more arrivals, so the 10 cast last are not in it yet."""
     _cast(poll, [["a"], ["b"], ["c"]], 10, days_ago=3)
     _cast(poll, [["b"], ["c"], ["a"]], 20, days_ago=2)
-    _cast(poll, [["c"], ["a"], ["b"]], 50, days_ago=0)
+    _cast(poll, [["c"], ["a"], ["b"]], 10, days_ago=0)
     client.force_login(admin)
     with _enabled(poll):
         response = client.get(_url(poll))
         dashboard = client.get(f"/fr/mairie/scrutin/{poll.pk}/").content.decode()
     assert response.status_code == 200
     rows = response.context["rows"]  # newest first
-    assert [r["count"] for r in rows] == [30, 10]
+    assert [r["count"] for r in rows] == [30, 20, 10]
     assert [c["rank"] for c in rows[0]["cells"]] == [3, 1, 2]
     assert response.context["curves"] is not None
 
@@ -80,7 +91,6 @@ def test_the_admin_sees_the_standing_but_not_today(client: Client, poll: Poll, a
     summary = response.context["summary"]
     assert summary["leaders"] == ["B"]
     assert summary["condorcet"] == "B"
-    assert summary["leader_changed"] is True
     assert summary["lead"]["rival"] == "A"
     assert summary["lead"]["ballots"] == 10
 
@@ -127,8 +137,7 @@ def test_chart_coordinates_survive_the_french_locale(
 ) -> None:
     """A float rendered under ``fr`` takes a decimal comma, which SVG would
     read as a coordinate separator."""
-    _cast(poll, [["a"], ["b"], ["c"]], 10, days_ago=3)
-    _cast(poll, [["b"], ["c"], ["a"]], 20, days_ago=2)
+    _three_points(poll)
     client.force_login(admin)
     with _enabled(poll):
         body = client.get(_url(poll)).content.decode()
@@ -144,14 +153,13 @@ def test_chart_coordinates_survive_the_french_locale(
 def test_the_matrix_shows_the_latest_point_or_the_one_asked_for(
     client: Client, poll: Poll, admin: User
 ) -> None:
-    _cast(poll, [["a"], ["b"], ["c"]], 10, days_ago=3)
-    _cast(poll, [["b"], ["c"], ["a"]], 20, days_ago=2)
+    _three_points(poll)
     client.force_login(admin)
     with _enabled(poll):
         latest = client.get(_url(poll)).context
-        first_day = latest["matrix_dates"][-1]
-        earlier = client.get(_url(poll), {"au": first_day.isoformat()}).context
-        bogus = client.get(_url(poll), {"au": "1999-01-01"}).context
+        assert [p.arrivals for p in latest["matrix_points"]] == [30, 20, 10]
+        earlier = client.get(_url(poll), {"point": "10"}).context
+        bogus = client.get(_url(poll), {"point": "40"}).context
     # Row b, column a: 20 of 30 ballots rank b above a.
     assert latest["matrix"][1]["cells"][0] == {
         "self": False,
@@ -162,22 +170,44 @@ def test_the_matrix_shows_the_latest_point_or_the_one_asked_for(
     assert latest["matrix_point"].ballot_count == 30
     assert earlier["matrix_point"].ballot_count == 10
     assert earlier["matrix"][1]["cells"][0]["outcome"] == "loss"
-    # A date the binning did not produce falls back to the latest point.
+    # A point not shown — 40 is still waiting — falls back to the latest.
     assert bogus["matrix_point"].ballot_count == 30
 
 
-def test_ballots_per_ranking_follow_the_chosen_date(
+def test_ballots_per_ranking_follow_the_chosen_point(
     client: Client, poll: Poll, admin: User
 ) -> None:
-    _cast(poll, [["a"], ["b"], ["c"]], 10, days_ago=3)
-    _cast(poll, [["b"], ["c"], ["a"]], 20, days_ago=2)
+    _three_points(poll)
     client.force_login(admin)
     with _enabled(poll):
         latest = client.get(_url(poll)).context["ballot_types"]
-        first_day = client.get(_url(poll)).context["matrix_dates"][-1]
-        earlier = client.get(_url(poll), {"au": first_day.isoformat()}).context["ballot_types"]
+        earlier = client.get(_url(poll), {"point": "10"}).context["ballot_types"]
     assert [(r["count"], [[o["label"] for o in g] for g in r["groups"]]) for r in latest] == [
         (20, [["B"], ["C"], ["A"]]),
         (10, [["A"], ["B"], ["C"]]),
     ]
     assert [r["count"] for r in earlier] == [10]
+
+
+def test_a_modified_ballot_leaves_the_points_already_shown_alone(
+    client: Client, poll: Poll, admin: User
+) -> None:
+    """The leak this guards against: recomputing past points from the live set
+    would drop a modified ballot's old version from them, and the difference
+    between two views would be that one old ranking."""
+    _three_points(poll)
+    client.force_login(admin)
+    with _enabled(poll):
+        before = [r["cells"] for r in client.get(_url(poll)).context["rows"]]
+        old = Ballot.objects.filter(poll=poll).order_by("created_at").first()
+        assert old is not None
+        Ballot.objects.filter(pk=old.pk).update(status=BallotStatus.SUPERSEDED)
+        Ballot.objects.create(
+            poll=poll,
+            tracking_code=old.tracking_code,
+            version=2,
+            ranking=[["c"], ["b"], ["a"]],
+            source=BallotSource.ONLINE,
+        )
+        after = [r["cells"] for r in client.get(_url(poll)).context["rows"]]
+    assert after == before

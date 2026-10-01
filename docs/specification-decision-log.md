@@ -60,7 +60,7 @@ reasoning.
 | 36 | A sandbox poll's result is reachable through its link | decided |
 | 37 | The verifier reads the publication document, and every method | decided |
 | 38 | A poll requiring reconciliation cannot be closed early | **open question** for the requirements owner (R-3.4 and R-8.6) |
-| 39 | The back-office trend is switched on by deployment setting, not a poll field | **interim**, until the `show_trend` column lands |
+| 39 | The back-office trend: switched on by deployment setting, and cut every ten arrivals | **interim**, until the `show_trend` column lands |
 
 ## 1. Retention purge on a poll that closed but was never published
 
@@ -1336,8 +1336,8 @@ record attests to, and is for the requirements owner to decide.
 ## 39. The back-office trend is switched on by deployment setting, not a poll field
 
 **Decided (2026-10-01).** R-11.5 bis, new, lets a poll's configuration show
-the poll admin and the auditor a running trend: the ranking recomputed day by
-day. The rule makes it a poll field, `show_trend`, default off and frozen at
+the poll admin and the auditor a running trend: the result recomputed as
+ballots arrive. The rule makes it a poll field, `show_trend`, default off and frozen at
 `open` like the rest of the configuration (INV-6, §3.1). The requirements owner
 wants it on a poll that is already open, and adding a column is a migration
 that cannot run while that poll is live. So, for now, the deployment names the
@@ -1352,20 +1352,40 @@ changing a frozen field: the setting lives outside the poll row and the
 INV-6 trigger never sees it. The setting also has no audit trail, which
 `show_trend` would get through `POLL_CONFIG_CHANGED`.
 
-**What it does not depart from.** INV-1. The audience holds
-`Registration.confirmed_at`, and an elector often votes a minute after
-confirming, so a fine-grained trend would line registrations up with ballots.
-`apps/tally/trend.py` therefore shows only whole days, never the one still
-running, merged until each bin holds ten ballots. The first version also withheld every count per option and the pairwise
-matrix, since subtracting two points yields one bin's figures. The requirements
-owner then asked for the margins, and the trend now shows the matrix (or the
-count per option), and then for the ballots per distinct ranking, which it
-shows too. The binning is therefore the only protection: nobody sees
-an aggregate of fewer than ten ballots. A bin whose electors all place one
-option ahead of another, or all cast the same ranking, reveals that choice of
-each of them — the same
-exposure as a polling station where every voter chose alike. R-11.5 bis states
-this residual risk rather than leaving it implied.
+**What it does not depart from.** INV-1. The poll admin sees which electors
+have voted (R-7.5) and can reload that list and the trend at will, so any
+difference between two views of the trend is attributable to the electors who
+voted in between. The first version (1.0.0b13) cut points by whole days, the
+day in progress excluded, merged until each held ten ballots. Review found two
+ways through it:
+
+- **Modifications.** Every point was recomputed from the current live set. A
+  modified ballot's old version dropped out of every past point, and the
+  difference between two views of one point was that single old ranking.
+- **Closure.** The published result minus the last point seen before closure
+  is the ballots cast after it — as few as one.
+
+The requirements owner then asked for the current standing rather than
+yesterday's. A point updated with every ballot would hand over each voter's
+ballot outright, so points are now cut every ten *arrivals* (a version
+created), today included; each counts every ballot as it stood at that
+moment, from the stored version history, so a shown point never changes; and
+a point is shown only once ten more arrivals follow it, so the tail after the
+last point shown is never fewer than ten. "Current" therefore means ten to
+nineteen arrivals ago — the closest INV-1 allows.
+
+The figures were widened twice along the way, at the requirements owner's
+request: the pairwise matrix (or count per option), then the ballots per
+distinct ranking. Ten arrivals is thus the only protection: nobody sees an
+aggregate of fewer than ten. A group whose members all place one option ahead
+of another, or all cast the same ranking, reveals that choice of each of them
+— the same exposure as a polling station where every voter chose alike.
+R-11.5 bis states this residual risk rather than leaving it implied.
+
+Paper entries are the exception to "never changes": countersignature and
+deletion change a row's status in place, with no instant, and are read as of
+the row's creation. A paper ballot's elector is already on the poll admin's
+screens (R-8.2 bis), so this reveals nothing new.
 
 **Not yet done.** Opening the screen writes no audit event. A new `Action`
 value changes the field's `choices`, which is itself a migration. Both the
