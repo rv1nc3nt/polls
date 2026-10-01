@@ -35,10 +35,16 @@
       cols.forEach(function (col, i) { col.hidden = i !== k; });
       tip.hidden = false;
       var scale = svg.getBoundingClientRect().width / viewWidth;
-      var left = xs[k] * scale + 14;
-      // scrollWidth: on a phone the drawing scrolls inside the container.
-      if (left + tip.offsetWidth > chart.scrollWidth) left = xs[k] * scale - tip.offsetWidth - 14;
-      tip.style.left = Math.max(0, left) + "px";
+      var x = xs[k] * scale;
+      var width = tip.offsetWidth;
+      // On a phone the drawing scrolls inside the container: keep the tip in
+      // the part of it on screen, beside the cursor where it fits.
+      var start = chart.scrollLeft;
+      var end = start + chart.clientWidth;
+      var left = x + 14;
+      if (left + width > end) left = x - width - 14;
+      if (left < start) left = end - width;
+      tip.style.left = Math.max(start, left) + "px";
     }
 
     function hide() {

@@ -778,6 +778,19 @@ keys, to read a point's values.
 other, and in the middle those that do not separate them (ranked equal, or
 both left out). The small curve traces the margin since the first point.
 
+**The 95% interval**, shown while voting is open under each margin and under
+the leading proposition's lead, gives the range the margin very likely lies
+in given the number of ballots received; on the small curve it is the shaded
+band. On the chart of the trend over time, only the leading proposition and
+its closest rival carry that band, so the curves stay legible; hover over a
+point to read every proposition's interval. It narrows as ballots come in. "Uncertain" means it includes zero: the
+margin is still too small, for the number of ballots, to rule out its
+reversing. It assumes the ballots received resemble those to come, which is
+not guaranteed: electors who vote early are not necessarily those who vote
+late, and paper ballots often arrive in batches. It is therefore not a
+forecast of the result. Once the poll is closed it disappears: the result is
+known exactly.
+
 **The Smith set** gathers the propositions that beat every other one head to
 head; down to a single one, it is the Condorcet winner. A narrowing set
 signals a preference emerging, a set that stays wide a divided electorate.

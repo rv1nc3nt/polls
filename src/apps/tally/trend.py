@@ -45,6 +45,7 @@ reveals nothing they could not read there.
 
 from __future__ import annotations
 
+import math
 from bisect import bisect_right
 from collections import Counter
 from collections.abc import Mapping, Sequence
@@ -64,6 +65,9 @@ STEP = 10
 
 #: Ballots first cast after a point, and counted, before it is shown.
 LAG = 5
+
+#: The normal quantile of a two-sided 95 % interval.
+Z95 = 1.959964
 
 
 @dataclass(frozen=True)
@@ -123,6 +127,26 @@ class TrendPoint:
             return None
         worst = min(self.pairwise[i], key=lambda j: self.margin(i, j))
         return worst, self.margin(i, worst)
+
+    def margin_interval(self, i: OptionId, j: OptionId, z: float = Z95) -> tuple[float, float]:
+        """A confidence interval on ``margin(i, j)``, in ballots.
+
+        Wilson's interval on the share of ``i`` among the ballots that separate
+        the two, the ones preferring neither left aside, scaled back to a
+        margin. It measures how far the ballots received so far are from
+        settling the duel, as if they were a random draw from those to come:
+        it knows nothing of who votes early and who late (decision log #39).
+        Deterministic, so a point shown never changes. ``(0, 0)`` when no
+        ballot separates the two.
+        """
+        won, lost = self.pairwise[i][j], self.pairwise[j][i]
+        m = won + lost
+        if m == 0:
+            return 0.0, 0.0
+        share = won / m
+        centre = (share + z * z / (2 * m)) / (1 + z * z / m)
+        half = z / (1 + z * z / m) * math.sqrt(share * (1 - share) / m + z * z / (4 * m * m))
+        return m * (2 * (centre - half) - 1), m * (2 * (centre + half) - 1)
 
 
 def trend(

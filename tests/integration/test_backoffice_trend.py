@@ -145,7 +145,7 @@ def test_chart_coordinates_survive_the_french_locale(
     drawn = body.split("data-trend-chart")[1]
     coordinates = re.findall(r'\s(?:cx|cy|x|y|x1|x2|y1|y2|width|height)="([^"]*)"', drawn)
     paths = " ".join(re.findall(r'\sd="([^"]*)"', drawn))
-    numbers = re.sub(r"[ML,]", " ", paths).split()
+    numbers = re.sub(r"[MLZ,]", " ", paths).split()
     assert coordinates and numbers
     assert all(v.lstrip("-").isdigit() for v in coordinates + numbers)
 
@@ -211,3 +211,43 @@ def test_a_modified_ballot_leaves_the_points_already_shown_alone(
         )
         after = [r["cells"] for r in client.get(_url(poll)).context["rows"]]
     assert after == before
+
+
+def test_duel_intervals_are_shown_while_open_and_gone_once_closed(
+    client: Client, poll: Poll, admin: User
+) -> None:
+    """They describe the ballots still to come; the final result has none."""
+    _three_points(poll)
+    client.force_login(admin)
+    with _enabled(poll):
+        response = client.get(_url(poll))
+        duel = next(d for d in response.context["duels"] if d["left"]["label"] == "B")
+        assert duel["interval"] is not None
+        assert duel["spark"]["band"].endswith("Z")
+        assert response.context["summary"]["lead"]["interval"] is not None
+        assert "à 95 %" in response.content.decode()
+        Poll.objects.filter(pk=poll.pk).update(state=PollState.CLOSED)
+        response = client.get(_url(poll))
+    assert all(d["interval"] is None for d in response.context["duels"])
+    assert all(d["spark"]["band"] is None for d in response.context["duels"])
+    assert response.context["summary"]["lead"]["interval"] is None
+    assert "à 95 %" not in response.content.decode()
+
+
+def test_the_curves_band_the_leader_and_its_rival_and_the_tooltip_has_every_interval(
+    client: Client, poll: Poll, admin: User
+) -> None:
+    """Every band at once would bury the lines: only the pair the lead is
+    about gets one, the rest are read by hovering a point."""
+    _three_points(poll)
+    client.force_login(admin)
+    with _enabled(poll):
+        curves = client.get(_url(poll)).context["curves"]
+        banded = {s["label"] for s in curves["series"] if s["band"]}
+        assert banded == {"B", "A"}
+        assert all(r["interval"] is not None for c in curves["columns"] for r in c["rows"])
+        Poll.objects.filter(pk=poll.pk).update(state=PollState.CLOSED)
+        curves = client.get(_url(poll)).context["curves"]
+    assert not curves["banded"]
+    assert all(s["band"] is None for s in curves["series"])
+    assert all(r["interval"] is None for c in curves["columns"] for r in c["rows"])

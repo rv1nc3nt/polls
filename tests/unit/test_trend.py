@@ -7,6 +7,8 @@ from __future__ import annotations
 import itertools
 from datetime import UTC, date, datetime, timedelta
 
+import pytest
+
 from apps.core.types import OptionId
 from apps.tally.methods import Method, Ranking, pairwise_matrix
 from apps.tally.trend import Version, smith_set, trend
@@ -175,3 +177,29 @@ def test_orderings_count_ballots_per_ranking_ignoring_order_within_a_tie() -> No
     )
     point = trend(ballots, OPTIONS, Method.SCHULZE, final=True, step=1)[-1]
     assert point.orderings == {((A,), (B,), (C,)): 3, ((A, B), (C,)): 2, ((C,),): 2}
+
+
+def test_the_margin_interval_is_wilsons_on_the_ballots_that_separate_the_two() -> None:
+    """30 against 20 is a share of 0.6 on 50; Wilson's 95 % interval on it is
+    [0.4618, 0.7239], so the margin lies in [−3.8, +22.4] ballots. Ballots
+    preferring neither play no part."""
+    neither: Ranking = [[C]]
+    ballots = _on(0, ABC, 30) + _on(0, BCA, 20) + _on(0, neither, 7)
+    point = trend(ballots, OPTIONS, Method.SCHULZE, final=True)[-1]
+    lo, hi = point.margin_interval(A, B)
+    assert (round(lo, 1), round(hi, 1)) == (-3.8, 22.4)
+    assert point.margin_interval(B, A) == pytest.approx((-hi, -lo))
+
+
+def test_the_margin_interval_narrows_as_ballots_accumulate() -> None:
+    def width(n: int) -> float:
+        point = trend(_on(0, ABC, 3 * n) + _on(0, BCA, 2 * n), OPTIONS, Method.SCHULZE, final=True)
+        lo, hi = point[-1].margin_interval(A, B)
+        return (hi - lo) / (5 * n)
+
+    assert width(10) > width(40) > width(160)
+
+
+def test_no_ballot_separating_two_options_gives_an_empty_interval() -> None:
+    point = trend(_on(0, [[A, B], [C]], 12), OPTIONS, Method.SCHULZE, final=True)[-1]
+    assert point.margin_interval(A, B) == (0.0, 0.0)

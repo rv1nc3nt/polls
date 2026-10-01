@@ -1531,6 +1531,9 @@ def poll_trend(request: HttpRequest, poll: Poll) -> HttpResponse:
         (OptionId(option.option_id), option.label()) for option in poll.options.order_by("position")
     ]
     schulze = poll.tally_method == Method.SCHULZE
+    # Confidence intervals describe ballots still to come; once closed, the
+    # last point is the result itself and has none (decision log #39).
+    is_open = poll.state == PollState.OPEN
     context: dict[str, object] = {
         "poll": poll,
         "options": options,
@@ -1538,14 +1541,14 @@ def poll_trend(request: HttpRequest, poll: Poll) -> HttpResponse:
         "step": STEP,
         "lag": LAG,
         "first_at": STEP + LAG,
-        "is_open": poll.state == PollState.OPEN,
+        "is_open": is_open,
         "is_schulze": schulze,
     }
     if points:
         context |= {
-            "summary": trend.summary(points, options, schulze=schulze),
-            "curves": trend.curves(points, options, schulze=schulze),
-            "duels": trend.duels(points, options),
+            "summary": trend.summary(points, options, schulze=schulze, intervals=is_open),
+            "curves": trend.curves(points, options, schulze=schulze, intervals=is_open),
+            "duels": trend.duels(points, options, intervals=is_open),
             "rows": trend.table(points, options, schulze=schulze),
         }
         # The matrix shows one point: the latest, or the one ``?point=`` names
