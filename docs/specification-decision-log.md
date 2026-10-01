@@ -1400,6 +1400,23 @@ cast the same ranking, reveals that choice of each of them
 — the same exposure as a polling station where every voter chose alike.
 R-11.5 bis states this residual risk rather than leaving it implied.
 
+**Confidence intervals.** At the requirements owner's request, each Schulze
+duel carries a 95 % interval on its margin while the poll is open: Wilson's
+interval on the share of one option among the ballots that separate the
+pair, scaled back to a margin. It is a function of the point's pairwise
+counts, already shown, so it reveals nothing new, and it is deterministic, so
+a point still never changes. It treats the ballots received as a random draw
+from all those to come, which they are not — early and late voters differ,
+paper entries arrive in blocks — so it measures how far the count is from
+settling a duel, not the chance of an outcome; the screen and the manuals say
+so. A bootstrap "win probability" was proposed alongside and not built: it
+rests on the same false premise and reads as a forecast. Once closed, the last
+point is the result itself and no interval is shown. On the curves, only the
+leader and its closest rival carry the interval as a band — every band at
+once buries the lines — and the tooltip gives every option's; the axis is
+fitted to the lines and the bands clipped, since an early band can span a
+hundred points.
+
 Paper entries are the exception to "never changes": countersignature and
 deletion change a row's status in place, with no instant, and are read as of
 the row's creation. A paper ballot's elector is already on the poll admin's

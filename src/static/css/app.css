@@ -93,6 +93,7 @@
   --ok: #1f6b2c;             /* 6:1 on --paper */
   --ok-soft: #e7f2e6;        /* ok wash — pairs with --ok the way --accent-soft pairs with --accent */
   --warn: #7a5c00;           /* 6.3:1 on --paper */
+  --band-opacity: 0.14;      /* a confidence band under its line; dark needs more */
 
   --shadow: 0 1px 2px rgba(17, 17, 26, 0.05), 0 6px 20px -4px rgba(17, 17, 26, 0.10);
   --shadow-sm: 0 1px 2px rgba(17, 17, 26, 0.06);
@@ -121,6 +122,7 @@
     --ok: #74c983;           /* 9:1 on --paper */
     --ok-soft: #1c2e20;
     --warn: #d9b45f;         /* 9.7:1 on --paper */
+    --band-opacity: 0.26;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 20px -4px rgba(0, 0, 0, 0.55);
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
   }
@@ -143,6 +145,7 @@
   --ok: #74c983;
   --ok-soft: #1c2e20;
   --warn: #d9b45f;
+  --band-opacity: 0.26;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 20px -4px rgba(0, 0, 0, 0.55);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
@@ -942,6 +945,7 @@ tbody tr.selected th, tbody tr.selected td { background: var(--accent-soft); }
 .trend-chart__grid { stroke: var(--rule-soft); stroke-width: 1; }
 .trend-chart__grid--zero { stroke: var(--rule); stroke-width: 1.5; }
 .trend-chart__tick { fill: var(--ink-quiet); font-size: 12px; font-variant-numeric: tabular-nums; }
+.trend-chart__band { fill: var(--series); fill-opacity: var(--band-opacity); stroke: none; }
 .trend-chart__line { fill: none; stroke: var(--series); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
 .trend-chart__dot { fill: var(--series); stroke: var(--surface); stroke-width: 2; }
 .trend-chart__end { fill: var(--ink); font-size: 13px; }
@@ -950,6 +954,9 @@ tbody tr.selected th, tbody tr.selected td { background: var(--accent-soft); }
 
 .trend-tip {
   position: absolute; top: 0.5rem; z-index: 2; min-width: 12rem; pointer-events: none;
+  /* Its own width, not what is left of the drawing right of the cursor;
+     trend-chart.js keeps it inside the visible part. */
+  width: max-content; max-width: min(24rem, calc(100vw - 3rem));
   padding: 0.6rem 0.8rem; font-size: 0.85rem;
   background: var(--surface); border: 1px solid var(--rule-soft);
   border-radius: var(--radius-sm); box-shadow: var(--shadow);
@@ -957,6 +964,7 @@ tbody tr.selected th, tbody tr.selected td { background: var(--accent-soft); }
 .trend-tip__head { margin: 0 0 0.35rem; color: var(--ink-quiet); font-weight: 600; }
 .trend-tip ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.2rem; }
 .trend-tip strong { display: inline-block; min-width: 3.2rem; font-variant-numeric: tabular-nums; }
+.trend-tip__ci { color: var(--ink-quiet); font-size: 0.85em; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 .trend-duels { list-style: none; margin: 0; padding: 0; }
 .trend-duel {
@@ -980,9 +988,17 @@ tbody tr.selected th, tbody tr.selected td { background: var(--accent-soft); }
 .trend-spark path { fill: none; stroke: var(--series); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
 .trend-spark circle { fill: var(--series); }
 .trend-spark__zero { stroke: var(--rule-soft); stroke-width: 1; stroke-dasharray: 2 2; }
+.trend-spark path.trend-spark__band { fill: var(--series); fill-opacity: calc(var(--band-opacity) + 0.04); stroke: none; }
+/* Fixed widths, so a badge, a longer interval or a shorter change does not
+   shift one row's bar against the others'. */
+.trend-duel__value { width: 10.5rem; }
+.trend-duel__margin .trend-delta { min-width: 3.5rem; }
+.trend-duel__value p + p { margin-top: 0.2rem; }
+.trend-duel__ci { font-size: 0.8rem; color: var(--ink-quiet); font-variant-numeric: tabular-nums; }
 @media (max-width: 40rem) {
   .trend-duel { grid-template-columns: 1fr; }
   .trend-duel__margin { grid-column: 1; grid-row: auto; justify-content: flex-start; text-align: left; }
+  .trend-duel__value { width: auto; }
 }
 
 /* Read aloud, not shown: the duel matrix spells out what its ✓ and colour

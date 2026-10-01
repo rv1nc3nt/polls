@@ -65,10 +65,14 @@ def series(poll: Poll) -> list[TrendPoint]:
 CHART_SERIES = 8
 
 
-def _signed(value: float) -> str:
-    """``+12,5`` / ``−3`` / ``0``, in the active locale, true minus sign."""
-    text = number_format(abs(value), 1 if value % 1 else 0)
-    return ("+" if value > 0 else "−" if value < 0 else "") + text
+def _signed(value: float, decimals: int | None = None) -> str:
+    """``+12,5`` / ``−3`` / ``0``, in the active locale, true minus sign; one
+    decimal only where needed unless ``decimals`` says how many."""
+    if decimals is None:
+        decimals = 1 if value % 1 else 0
+    shown = round(value, decimals)
+    text = number_format(abs(shown), decimals)
+    return ("+" if shown > 0 else "−" if shown < 0 else "") + text
 
 
 def _direction(now: float, before: float | None) -> str | None:
@@ -78,7 +82,7 @@ def _direction(now: float, before: float | None) -> str | None:
     return "up" if now > before else "down" if now < before else "flat"
 
 
-def _pct(part: int, whole: int) -> float:
+def _pct(part: float, whole: int) -> float:
     return 100 * part / whole if whole else 0.0
 
 
@@ -120,14 +124,44 @@ def _spread(ys: list[int], gap: int = 16) -> list[int]:
     return out
 
 
+def _score_interval(point: TrendPoint, option: OptionId) -> tuple[float, float] | None:
+    """The 95 % interval of what ``_score`` plots under Schulze: the margin of
+    the option's tightest duel at that point."""
+    duel = point.tightest_duel(option)
+    return _interval(point, option, duel[0]) if duel else None
+
+
+def _banded(last: TrendPoint) -> set[OptionId]:
+    """The options whose curve carries its interval as a band: the leader and
+    its closest rival, or the options tied in the lead. Every band at once
+    would bury the lines; the rest are in the tooltip."""
+    leaders = set(last.leaders)
+    if len(leaders) == 1:
+        (leader,) = leaders
+        duel = last.tightest_duel(leader)
+        if duel is not None:
+            leaders.add(duel[0])
+    return leaders
+
+
 def curves(
-    points: list[TrendPoint], options: list[tuple[OptionId, str]], *, schulze: bool
+    points: list[TrendPoint],
+    options: list[tuple[OptionId, str]],
+    *,
+    schulze: bool,
+    intervals: bool = False,
 ) -> dict[str, object] | None:
     """Geometry for the main chart: one line per option across the points.
 
     Every coordinate is a whole number: the template would render a float
     with the active locale's decimal comma, which SVG reads as a separator.
     Colour follows the option's position in the poll, never its rank.
+
+    With ``intervals`` (Schulze only), the leader's and its rival's curves
+    carry their 95 % interval as a band, and the tooltip every option's. The
+    axis is fitted to the lines, not the bands: an early band can span a
+    hundred points and would flatten every line; the template clips it to the
+    plot instead.
     """
     if not points or len(options) > CHART_SERIES:
         return None
@@ -145,12 +179,30 @@ def curves(
 
     xs = [x(k) for k in range(len(points))]
     ends = _spread([y(scores[o][-1]) for o, _label in options])
+    bounds: dict[OptionId, list[tuple[float, float] | None]] = {}
+    if intervals and schulze:
+        bounds = {o: [_score_interval(p, o) for p in points] for o, _label in options}
+    banded = _banded(points[-1]) if bounds else set()
+
+    def band(option: OptionId) -> str | None:
+        pairs = [(k, b) for k, b in enumerate(bounds[option]) if b is not None]
+        if option not in banded or len(pairs) < 2:
+            return None
+        upper = [f"{xs[k]},{y(b[1])}" for k, b in pairs]
+        lower = [f"{xs[k]},{y(b[0])}" for k, b in reversed(pairs)]
+        return "M" + " L".join(upper + lower) + " Z"
+
+    def tip_interval(option: OptionId, k: int) -> dict[str, object] | None:
+        b = bounds[option][k] if bounds else None
+        return _shown_interval(b) if b else None
+
     series = []
     for slot, ((option, label), end_y) in enumerate(zip(options, ends, strict=True), start=1):
         series.append(
             {
                 "slot": slot,
                 "label": label,
+                "band": band(option) if bounds else None,
                 "path": " ".join(
                     f"{'M' if k == 0 else 'L'}{xs[k]},{y(v)}" for k, v in enumerate(scores[option])
                 ),
@@ -181,6 +233,7 @@ def curves(
                     "slot": slot,
                     "label": label,
                     "value": _signed(scores[o][k]) if schulze else number_format(scores[o][k], 1),
+                    "interval": tip_interval(o, k),
                     "raw": scores[o][k],
                 }
                 for slot, (o, label) in enumerate(options, start=1)
@@ -197,11 +250,13 @@ def curves(
         "bottom": _H - _BOTTOM,
         "zero_y": y(0),
         "plot_w": plot_w,
+        "plot_h": plot_h,
         "above_h": y(0) - _TOP,
         "label_x": _W - _RIGHT + 14,
         "ticks": ticks,
         "dates": dates,
         "series": series,
+        "banded": bool(banded),
         "columns": columns,
         "xs": ",".join(str(c) for c in xs),
     }
@@ -210,9 +265,22 @@ def curves(
 # --- the summary and the duels -------------------------------------------------
 
 
-def _spark(values: list[float], width: int = 120, height: int = 32) -> dict[str, object]:
-    """A sparkline of a duel's margin, zero line included."""
-    lo, hi = min([*values, 0.0]), max([*values, 0.0])
+def _interval(point: TrendPoint, i: OptionId, j: OptionId) -> tuple[float, float]:
+    """``margin_interval`` in points of the ballots counted, like the margin."""
+    lo, hi = point.margin_interval(i, j)
+    return _pct(lo, point.ballot_count), _pct(hi, point.ballot_count)
+
+
+def _spark(
+    values: list[float],
+    band: list[tuple[float, float]] | None = None,
+    width: int = 120,
+    height: int = 32,
+) -> dict[str, object]:
+    """A sparkline of a duel's margin, zero line included, and its confidence
+    band where given."""
+    bounds = [v for b in band or [] for v in b]
+    lo, hi = min([*values, *bounds, 0.0]), max([*values, *bounds, 0.0])
     if hi - lo < 1:
         lo, hi = lo - 1, hi + 1
 
@@ -222,22 +290,32 @@ def _spark(values: list[float], width: int = 120, height: int = 32) -> dict[str,
     def x(k: int) -> int:
         return width // 2 if len(values) == 1 else 3 + round((width - 6) * k / (len(values) - 1))
 
+    band_path = None
+    if band:
+        upper = [f"{x(k)},{y(b[1])}" for k, b in enumerate(band)]
+        lower = [f"{x(k)},{y(b[0])}" for k, b in reversed(list(enumerate(band)))]
+        band_path = "M" + " L".join(upper + lower) + " Z"
     return {
         "width": width,
         "height": height,
         "zero_y": y(0),
+        "band": band_path,
         "path": " ".join(f"{'M' if k == 0 else 'L'}{x(k)},{y(v)}" for k, v in enumerate(values)),
         "end_x": x(len(values) - 1),
         "end_y": y(values[-1]),
     }
 
 
-def duels(points: list[TrendPoint], options: list[tuple[OptionId, str]]) -> list[dict[str, object]]:
+def duels(
+    points: list[TrendPoint], options: list[tuple[OptionId, str]], *, intervals: bool
+) -> list[dict[str, object]]:
     """Every head-to-head pair at the latest point, closest-run last.
 
     Each is oriented winner first, with the ballots preferring neither (ranked
     equal, or both left unranked, R-10.4) shown between the two shares, and
     the margin's history as a sparkline. Pairs involving a leader come first.
+    With ``intervals``, each margin carries its 95 % interval, and the
+    sparkline the interval's history as a band.
     """
     last = points[-1]
     previous = points[-2] if len(points) > 1 else None
@@ -251,6 +329,7 @@ def duels(points: list[TrendPoint], options: list[tuple[OptionId, str]]) -> list
         margin = _pct(won - lost, n)
         history = [_pct(p.margin(left, right), p.ballot_count) for p in points]
         delta = margin - history[-2] if previous is not None else None
+        band = [_interval(p, left, right) for p in points] if intervals else None
         out.append(
             {
                 "left": {
@@ -272,7 +351,8 @@ def duels(points: list[TrendPoint], options: list[tuple[OptionId, str]]) -> list
                 "margin_ballots": won - lost,
                 "delta": _signed(delta) if delta is not None else None,
                 "delta_dir": None if delta is None else _direction(delta, 0.0),
-                "spark": _spark(history) if len(history) > 1 else None,
+                "interval": _shown_interval(band[-1]) if band else None,
+                "spark": _spark(history, band) if len(history) > 1 else None,
                 "leader": bool({left, right} & set(last.leaders)),
                 "abs_margin": abs(won - lost),
             }
@@ -281,8 +361,20 @@ def duels(points: list[TrendPoint], options: list[tuple[OptionId, str]]) -> list
     return out
 
 
+def _shown_interval(bounds: tuple[float, float]) -> dict[str, object]:
+    """An interval for display: its bounds, and whether it leaves zero out —
+    the duel's winner is then clear of the noise of the ballots received."""
+    lo, hi = bounds
+    # Both bounds to one decimal, so "−19,0 à +23,8" reads as a pair.
+    return {"lo": _signed(lo, 1), "hi": _signed(hi, 1), "clear": lo > 0 or hi < 0}
+
+
 def summary(
-    points: list[TrendPoint], options: list[tuple[OptionId, str]], *, schulze: bool
+    points: list[TrendPoint],
+    options: list[tuple[OptionId, str]],
+    *,
+    schulze: bool,
+    intervals: bool,
 ) -> dict[str, object]:
     """The headline figures of the latest point, and how they moved since the
     one before."""
@@ -305,6 +397,9 @@ def summary(
                 )
                 lead = {
                     "pts": _signed(pts),
+                    "interval": (
+                        _shown_interval(_interval(last, leader, rival)) if intervals else None
+                    ),
                     "ballots": margin,
                     "rival": labels[rival],
                     "for_pct": _pct(last.pairwise[leader][rival], last.ballot_count),
@@ -325,6 +420,7 @@ def summary(
                     "against_pct": _pct(counts[runner], last.ballot_count),
                     "delta": None,
                     "delta_dir": None,
+                    "interval": None,
                 }
     return {
         "through": last.through,

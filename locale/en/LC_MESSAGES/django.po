@@ -5609,6 +5609,42 @@ msgid "devant"
 msgstr "ahead of"
 
 #, python-format
+msgid "à 95 %% : de %(lo)s à %(hi)s pts"
+msgstr "95%% interval: %(lo)s to %(hi)s pts"
+
+#, python-format
+msgid "à 95 %% : de %(lo)s à %(hi)s"
+msgstr "95%%: %(lo)s to %(hi)s"
+
+msgid "incertain"
+msgstr "uncertain"
+
+#, python-format
+msgid "(%(lo)s à %(hi)s)"
+msgstr "(%(lo)s to %(hi)s)"
+
+#, python-format
+msgid ""
+"La bande teintée est l’intervalle à 95 %% de la proposition en tête et de sa "
+"rivale la plus proche ; survolez un point pour lire celui de chaque "
+"proposition."
+msgstr ""
+"The shaded band is the 95%% interval of the leading proposition and its "
+"closest rival; hover over a point to read every proposition’s."
+
+#, python-format
+msgid ""
+"L’intervalle à 95 %% mesure l’incertitude due au petit nombre de bulletins "
+"reçus, comme s’ils étaient tirés au hasard parmi tous ceux à venir ; il ne "
+"dit rien de qui vote tôt ou tard. « Incertain » : l’intervalle comprend "
+"zéro, l’écart peut encore s’inverser."
+msgstr ""
+"The 95%% interval measures the uncertainty due to the small number of "
+"ballots received, as if they were drawn at random from all those to come; "
+"it says nothing of who votes early or late. “Uncertain”: the interval "
+"includes zero, and the margin may still reverse."
+
+#, python-format
 msgid "%(p)s %% sans préférence (%(n)s)"
 msgstr "%(p)s%% no preference (%(n)s)"
 

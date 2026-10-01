@@ -69,6 +69,12 @@
               sur {{ rival }} : {{ for }} % contre {{ against }} %, soit {{ n }} bulletins d’écart
             {% endblocktranslate %}
           </p>
+          {% if summary.lead.interval %}
+            <p class="trend-tile__sub">
+              {% blocktranslate with lo=summary.lead.interval.lo hi=summary.lead.interval.hi trimmed %}à 95 % : de {{ lo }} à {{ hi }} pts{% endblocktranslate %}
+              {% if not summary.lead.interval.clear %}<span class="trend-badge trend-badge--warn">{% translate "incertain" %}</span>{% endif %}
+            </p>
+          {% endif %}
           {% if summary.lead.delta %}
             <p class="trend-delta trend-delta--{{ summary.lead.delta_dir }}">
               <span aria-hidden="true">{% if summary.lead.delta_dir == "up" %}▲{% elif summary.lead.delta_dir == "down" %}▼{% else %}■{% endif %}</span>
@@ -100,6 +106,7 @@
           <p class="help">
             {% if is_schulze %}
               {% translate "Pour chaque proposition, l’écart de son duel le plus serré, en points de pourcentage des bulletins : au-dessus de zéro, elle bat chacune des autres ; en dessous, la distance qui la sépare de ne plus perdre aucun duel." %}
+              {% if curves.banded %}{% blocktranslate trimmed %}La bande teintée est l’intervalle à 95 % de la proposition en tête et de sa rivale la plus proche ; survolez un point pour lire celui de chaque proposition.{% endblocktranslate %}{% endif %}
             {% else %}
               {% translate "Part des bulletins obtenue par chaque proposition, en pourcentage." %}
             {% endif %}
@@ -124,6 +131,12 @@
             {% for d in curves.dates %}
               <text class="trend-chart__tick" x="{{ d.x }}" y="{{ curves.bottom|add:22 }}" text-anchor="middle">{{ d.date|date:"j M" }}</text>
             {% endfor %}
+            {% if curves.banded %}
+              <clipPath id="trend-plot-clip"><rect x="{{ curves.left }}" y="{{ curves.top }}" width="{{ curves.plot_w }}" height="{{ curves.plot_h }}"/></clipPath>
+              {% for line in curves.series %}
+                {% if line.band %}<path class="trend-chart__band trend-s{{ line.slot }}" d="{{ line.band }}" clip-path="url(#trend-plot-clip)"/>{% endif %}
+              {% endfor %}
+            {% endif %}
             <line class="trend-chart__cursor" data-trend-cursor x1="0" x2="0" y1="{{ curves.top }}" y2="{{ curves.bottom }}" visibility="hidden"/>
             {% for line in curves.series %}
               <g class="trend-s{{ line.slot }}">
@@ -139,7 +152,7 @@
                 <p class="trend-tip__head">{{ col.through|date:"j F Y" }} · {% blocktranslate count n=col.count %}{{ n }} bulletin{% plural %}{{ n }} bulletins{% endblocktranslate %}</p>
                 <ul>
                   {% for row in col.rows %}
-                    <li class="trend-s{{ row.slot }}"><span class="trend-key" aria-hidden="true"></span><strong>{{ row.value }}</strong> {{ row.label }}</li>
+                    <li class="trend-s{{ row.slot }}"><span class="trend-key" aria-hidden="true"></span><strong>{{ row.value }}</strong> {{ row.label }}{% if row.interval %} <span class="trend-tip__ci">{% blocktranslate with lo=row.interval.lo hi=row.interval.hi trimmed %}({{ lo }} à {{ hi }}){% endblocktranslate %}</span>{% endif %}</li>
                   {% endfor %}
                 </ul>
               </div>
@@ -154,7 +167,7 @@
       <section class="trend-card" aria-labelledby="trend-duels-title">
         <header class="trend-card__head">
           <h2 id="trend-duels-title">{% translate "Duels" %}</h2>
-          <p class="help">{% translate "Pour chaque paire, la part des bulletins qui placent l’une avant l’autre ; au milieu, ceux qui ne les départagent pas. La courbe retrace l’écart depuis le premier point." %}</p>
+          <p class="help">{% translate "Pour chaque paire, la part des bulletins qui placent l’une avant l’autre ; au milieu, ceux qui ne les départagent pas. La courbe retrace l’écart depuis le premier point." %}{% if is_open %} {% blocktranslate trimmed %}L’intervalle à 95 % mesure l’incertitude due au petit nombre de bulletins reçus, comme s’ils étaient tirés au hasard parmi tous ceux à venir ; il ne dit rien de qui vote tôt ou tard. « Incertain » : l’intervalle comprend zéro, l’écart peut encore s’inverser.{% endblocktranslate %}{% endif %}</p>
         </header>
         <ul class="trend-duels">
           {% for duel in duels %}
@@ -175,12 +188,19 @@
                 <span><strong>{{ duel.right.pct|floatformat:0 }} %</strong> ({{ duel.right.count }})</span>
               </p>
               <div class="trend-duel__margin">
-                <p class="trend-duel__pts">{{ duel.margin }}<span class="trend-tile__unit">&nbsp;{% translate "pts" %}</span></p>
+                <div class="trend-duel__value">
+                  <p class="trend-duel__pts">{{ duel.margin }}<span class="trend-tile__unit">&nbsp;{% translate "pts" %}</span></p>
+                  {% if duel.interval %}
+                    <p class="trend-duel__ci">{% blocktranslate with lo=duel.interval.lo hi=duel.interval.hi trimmed %}à 95 % : de {{ lo }} à {{ hi }}{% endblocktranslate %}</p>
+                    {% if not duel.interval.clear %}<p><span class="trend-badge trend-badge--warn">{% translate "incertain" %}</span></p>{% endif %}
+                  {% endif %}
+                </div>
                 {% if duel.delta %}
                   <p class="trend-delta trend-delta--{{ duel.delta_dir }}"><span aria-hidden="true">{% if duel.delta_dir == "up" %}▲{% elif duel.delta_dir == "down" %}▼{% else %}■{% endif %}</span> {{ duel.delta }}</p>
                 {% endif %}
                 {% if duel.spark %}
                   <svg class="trend-spark trend-s{{ duel.left.slot }}" viewBox="0 0 {{ duel.spark.width }} {{ duel.spark.height }}" aria-hidden="true" focusable="false">
+                    {% if duel.spark.band %}<path class="trend-spark__band" d="{{ duel.spark.band }}"/>{% endif %}
                     <line class="trend-spark__zero" x1="0" x2="{{ duel.spark.width }}" y1="{{ duel.spark.zero_y }}" y2="{{ duel.spark.zero_y }}"/>
                     <path d="{{ duel.spark.path }}"/>
                     <circle cx="{{ duel.spark.end_x }}" cy="{{ duel.spark.end_y }}" r="3"/>

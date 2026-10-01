@@ -829,6 +829,21 @@ l'autre, et au milieu ceux qui ne les départagent pas (rangées à égalité ou
 toutes deux laissées de côté). La petite courbe retrace l'écart depuis le
 premier point.
 
+**L'intervalle à 95 %**, affiché tant que le vote est ouvert sous chaque écart
+et sous l'avance de la proposition en tête, donne la fourchette dans laquelle
+l'écart a de bonnes chances de se trouver compte tenu du nombre de bulletins
+reçus ; sur la petite courbe, c'est la bande teintée. Sur le graphique de
+l'évolution, seules la proposition en tête et sa rivale la plus proche portent
+cette bande, pour que les courbes restent lisibles ; survolez un point pour
+lire l'intervalle de chaque proposition. Il se resserre à mesure
+que les bulletins arrivent. La mention « incertain » signale qu'il comprend
+zéro : l'écart est encore trop faible, au regard du nombre de bulletins, pour
+exclure qu'il s'inverse. Il suppose que les bulletins reçus ressemblent à ceux
+à venir, ce qui n'est pas garanti : les électeurs qui votent tôt ne sont pas
+forcément ceux qui votent tard, et les bulletins papier arrivent souvent par
+paquets. Ce n'est donc pas une prévision du résultat. Une fois le scrutin
+clos, il disparaît : le résultat est connu exactement.
+
 **L'ensemble de Smith** regroupe les propositions qui battent en duel toutes
 les autres ; réduit à une seule, c'est le vainqueur de Condorcet. Un ensemble
 qui se resserre signale une préférence qui se dégage, un ensemble qui reste
