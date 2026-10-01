@@ -5691,16 +5691,17 @@ msgstr "not ranked:"
 #: src/templates/backoffice/poll_trend.html
 #, python-format
 msgid ""
-"Résultat recalculé tous les %(step)s bulletins déposés ou modifiés, chacun "
-"compté tel qu’il était à ce moment-là. Un point n’apparaît qu’une fois "
-"%(lag)s autres bulletins reçus après lui : deux points successifs diffèrent "
-"de %(step)s bulletins, et le résultat final du dernier point d’au moins "
-"%(lag)s."
+"Résultat recalculé tous les %(step)s bulletins, chacun compté tel qu’il "
+"était à ce moment-là ; une modification n’ajoute pas de bulletin. Un point "
+"n’apparaît qu’une fois %(lag)s autres bulletins déposés après lui : deux "
+"points successifs diffèrent de %(step)s bulletins, et le résultat final du "
+"dernier point d’au moins %(lag)s."
 msgstr ""
-"Result recomputed every %(step)s ballots cast or modified, each counted as it "
-"stood at that moment. A point appears only once %(lag)s more ballots have "
-"come in after it: two consecutive points differ by %(step)s ballots, and the "
-"final result differs from the last point by at least %(lag)s."
+"Result recomputed every %(step)s ballots, each counted as it stood at that "
+"moment; a modification adds no ballot. A point appears only once %(lag)s "
+"more ballots have been cast after it: two consecutive points differ by "
+"%(step)s ballots, and the final result differs from the last point by at "
+"least %(lag)s."
 
 #: src/templates/backoffice/poll_trend.html
 msgid "Le scrutin est clos : le dernier point est le résultat final."
@@ -5710,10 +5711,10 @@ msgstr "The poll is closed: the last point is the final result."
 #, python-format
 msgid ""
 "Pas encore assez de bulletins : le premier point apparaît une fois "
-"%(first_at)s bulletins déposés ou modifiés."
+"%(first_at)s bulletins déposés."
 msgstr ""
 "Not enough ballots yet: the first point appears once %(first_at)s ballots "
-"have been cast or modified."
+"have been cast."
 
 #: src/templates/backoffice/poll_trend.html
 #, python-format

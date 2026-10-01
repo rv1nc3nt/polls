@@ -34,16 +34,38 @@ def _on(day: int, ranking: Ranking | None, n: int, *, ballot: str = "") -> list[
     return out
 
 
-def test_a_point_every_step_arrivals_shown_once_lag_more_follow() -> None:
+def test_a_point_every_step_ballots_shown_once_lag_more_follow() -> None:
     """While the poll is open, the newest point waits for ``lag`` more
-    arrivals after it, so nothing after the last point shown is ever fewer
-    than ``lag`` ballots: 10 appears at the 15th arrival, 20 at the 25th."""
-    ballots = _on(0, ABC, 15)
-    assert [p.arrivals for p in trend(ballots, OPTIONS, Method.SCHULZE, final=False)] == [10]
+    ballots after it, so nothing after the last point shown is ever fewer
+    than ``lag`` ballots: 10 appears at the 15th ballot, 20 at the 25th, 30 at
+    the 35th."""
+    for cast, shown in ((15, [10]), (24, [10]), (25, [10, 20]), (34, [10, 20]), (35, [10, 20, 30])):
+        points = trend(_on(0, ABC, cast), OPTIONS, Method.SCHULZE, final=False)
+        assert [p.ballot_count for p in points] == shown, cast
+
+
+def test_a_modification_does_not_move_a_point_off_its_multiple() -> None:
+    """Points count 10, 20, 30… ballots: a modification is an arrival but adds
+    no ballot, so point 20 waits for the 20th ballot, here the 21st arrival."""
+    ballots = _on(0, ABC, 1, ballot="X") + _on(0, ABC, 14) + _on(0, BCA, 1, ballot="X")
     ballots += _on(0, ABC, 9)
-    assert [p.arrivals for p in trend(ballots, OPTIONS, Method.SCHULZE, final=False)] == [10]
-    ballots += _on(0, ABC, 1)
-    assert [p.arrivals for p in trend(ballots, OPTIONS, Method.SCHULZE, final=False)] == [10, 20]
+    points = trend(ballots, OPTIONS, Method.SCHULZE, final=False)
+    assert [(p.ballot_count, p.arrivals) for p in points] == [(10, 10)]
+    points = trend(ballots + _on(0, ABC, 5), OPTIONS, Method.SCHULZE, final=False)
+    assert [(p.ballot_count, p.arrivals) for p in points] == [(10, 10), (20, 21)]
+
+
+def test_one_elector_modifying_again_and_again_neither_cuts_nor_shows_a_point() -> None:
+    """R-7.1 allows any number of modifications. Were arrivals the measure,
+    ten by one elector would be the whole difference between two points, and
+    five the whole tail before the published result."""
+    again = [v for r in (BCA, CAB) * 5 for v in _on(0, r, 1, ballot="X")]
+    ballots = _on(0, ABC, 1, ballot="X") + _on(0, ABC, 14) + again
+    points = trend(ballots, OPTIONS, Method.SCHULZE, final=False)
+    assert [p.ballot_count for p in points] == [10]
+    ballots = _on(0, ABC, 1, ballot="X") + _on(0, ABC, 19) + again
+    points = trend(ballots, OPTIONS, Method.SCHULZE, final=False)
+    assert [p.ballot_count for p in points] == [10]
 
 
 def test_points_fall_within_a_day_and_need_no_day_boundary() -> None:

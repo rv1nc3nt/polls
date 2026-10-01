@@ -10,18 +10,21 @@ administrator — sees which electors have voted (R-7.5) and can reload that
 list, and this screen, at will. Whatever two views of this screen differ by is
 therefore attributable to the electors who voted in between. So:
 
-* **a point every ``STEP`` arrivals** — a ballot cast, modified, or a paper
-  entry changing state — never on the clock. Two consecutive points differ by
-  ``STEP`` arrivals, however often the screen is reloaded;
+* **a point every ``STEP`` ballots counted**, never on the clock: the
+  points count 10, 20, 30… ballots. A modification adds no ballot, so it does
+  not move a point; the ``STEP`` new ballots between two points are ``STEP``
+  distinct electors, however often each modifies (R-7.1). Cutting on arrivals
+  instead would let one elector modifying ``STEP`` times make the whole
+  difference between two points (decision log #39);
 * **a point never changes once shown.** Each counts every ballot as it stood
   when the point's last arrival came in: the version then in force, not the
   current one. Recomputing past points from the current live set would let a
   modification remove one ballot's old ranking from them, readable as the
   difference (decision log #39);
-* **the newest point waits.** A point is shown only once ``LAG`` further
-  arrivals follow it. The result published at closure is the whole live set,
-  so it minus the last point shown before closure is what came after: never
-  fewer than ``LAG`` ballots. After closure the final standing is shown too —
+* **the newest point waits.** A point is shown only once ``LAG`` ballots
+  first cast after it are counted. The result published at closure is the
+  whole live set, so it minus the last point shown before closure is what came
+  after: never fewer than ``LAG`` electors. After closure the final standing is shown too —
   it is the published result. ``LAG`` is shorter than ``STEP`` at the
   requirements owner's request, trading that floor for a fresher newest point
   (decision log #39).
@@ -29,10 +32,9 @@ therefore attributable to the electors who voted in between. So:
 Each point carries the ranks, the Condorcet winner, the Smith set, the
 head-to-head counts (or, under plurality and approval, the count per option)
 and the number of ballots per distinct ranking. The residual exposure is a
-group of ``STEP`` arrivals — or the closing ``LAG`` — that all agree on a
+group of ``STEP`` electors — or the closing ``LAG`` — that all agree on a
 duel, or all cast the same ranking: the difference then states each one's
-choice. R-11.5 bis accepts that
-in exchange for the figures.
+choice. R-11.5 bis accepts that in exchange for the figures.
 
 Paper ballots are the one exception to "never changes": a countersignature or
 a deletion changes a row's status in place, with no instant recorded, so it is
@@ -43,6 +45,7 @@ reveals nothing they could not read there.
 
 from __future__ import annotations
 
+from bisect import bisect_right
 from collections import Counter
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -56,10 +59,10 @@ from .methods import Method, Ranking, option_counts, pairwise_matrix, schulze_pa
 #: order so that ``[[b, a]]`` and ``[[a, b]]`` are the same tie.
 Ordering = tuple[tuple[OptionId, ...], ...]
 
-#: Arrivals between two points.
+#: Ballots counted between two points.
 STEP = 10
 
-#: Arrivals that must follow a point before it is shown.
+#: Ballots first cast after a point, and counted, before it is shown.
 LAG = 5
 
 
@@ -131,19 +134,31 @@ def trend(
     step: int = STEP,
     lag: int = LAG,
 ) -> list[TrendPoint]:
-    """The points to show: one per ``step`` arrivals with ``lag`` more after
-    it and, once ``final``, the final standing."""
+    """The points to show: one each time the ballots counted reach a further
+    multiple of ``step``, once ``lag`` ballots cast after it are counted, and,
+    once ``final``, the final standing."""
     ordered = sorted(versions, key=lambda v: (v.at, v.ballot))
     total = len(ordered)
     in_force: dict[str, Ranking] = {}
-    points: list[TrendPoint] = []
+    first_cast: dict[str, int] = {}
+    cuts: list[tuple[Version, int, list[Ranking]]] = []
     for n, version in enumerate(ordered, start=1):
+        first_cast.setdefault(version.ballot, n)
         if version.ranking is None:
             in_force.pop(version.ballot, None)
         else:
             in_force[version.ballot] = version.ranking
-        if n % step == 0 and total - n >= lag:
-            points.append(_point(version.day, n, list(in_force.values()), options, method))
+        # The count moves by at most one per arrival, so it meets each
+        # multiple exactly; a paper correction can lower it, and the next cut
+        # then waits for the next multiple, not this one again.
+        if len(in_force) == step * (len(cuts) + 1):
+            cuts.append((version, n, list(in_force.values())))
+    cast_at = sorted(first_cast[b] for b in in_force)
+    points = [
+        _point(version.day, n, ballots, options, method)
+        for version, n, ballots in cuts
+        if len(cast_at) - bisect_right(cast_at, n) >= lag
+    ]
     if final and ordered and (not points or points[-1].arrivals != total):
         points.append(_point(ordered[-1].day, total, list(in_force.values()), options, method))
     return points

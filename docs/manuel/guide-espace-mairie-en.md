@@ -750,10 +750,11 @@ after it, how the ranking moves as ballots come in. By default no poll has it,
 and while voting is open nothing then reveals a running count. It is never
 published.
 
-**The points.** The trend is recomputed every ten ballots cast or modified,
-during the day too. A point appears only once five more ballots have come in
-after it: the newest one therefore shows the standing five to fourteen ballots
-ago, never the present moment. Each ballot is counted as it stood then, so a
+**The points.** The trend is recomputed every ten ballots, during the day
+too: the points count 10, 20, 30 ballots, and so on. A modification does not
+count as a new ballot. A point appears only once five more ballots have been
+cast after it: the newest one therefore shows the standing five to fourteen
+ballots ago, never the present moment. Each ballot is counted as it stood then, so a
 point once shown no longer changes, even if an elector later modifies their
 vote. Once the poll is closed, the last point is the final result.
 
@@ -794,12 +795,14 @@ The table at the bottom repeats every figure, point by point.
 
 Why not the present moment? The mairie area shows which electors have voted.
 A trend updated with every ballot would let anyone comparing two views read
-the vote of the person who voted in between. Cutting by ten ensures that two
-successive views differ by at least ten ballots, and waiting for five ballots
-after each point that the published result differs from the last point shown
-by at least five. Even so, if the electors of
-one group all place one proposition ahead of another, or all cast the same
-ranking, the trend shows it.
+the vote of the person who voted in between. Cutting every ten ballots
+ensures that two successive points differ by at least ten electors, and
+waiting for five ballots after each point that the published result differs
+from the last point shown by at least five. Modifications do not count, or a
+single elector modifying their vote ten times would make the whole difference
+between two points. Even so, if the electors of one group all place one
+proposition ahead of another, or all cast the same ranking, the trend shows
+it.
 
 ## 9. The two channels competing
 

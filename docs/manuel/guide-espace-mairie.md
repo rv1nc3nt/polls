@@ -797,10 +797,12 @@ comme après, comment le classement évolue au fil des bulletins reçus. Par
 défaut, aucun scrutin ne l'a : tant que le vote est ouvert, rien ne révèle
 alors de décompte en cours. Elle n'est jamais publiée.
 
-**Les points.** La tendance est recalculée tous les dix bulletins déposés ou
-modifiés, y compris dans la journée. Un point n'apparaît qu'une fois cinq
-autres bulletins reçus après lui : le plus récent montre donc la situation d'il
-y a cinq à quatorze bulletins, jamais celle de l'instant. Chaque bulletin y est
+**Les points.** La tendance est recalculée tous les dix bulletins, y compris
+dans la journée : les points comptent 10, 20, 30 bulletins, et ainsi de suite.
+Une modification ne compte pas comme un nouveau bulletin. Un point n'apparaît
+qu'une fois cinq autres bulletins déposés après lui : le plus récent montre
+donc la situation d'il y a cinq à quatorze bulletins, jamais celle de
+l'instant. Chaque bulletin y est
 compté tel qu'il était à ce moment-là, si bien qu'un point affiché ne change
 plus, même si un électeur modifie ensuite son vote. Une fois le scrutin clos,
 le dernier point est le résultat final.
@@ -848,11 +850,13 @@ Le tableau en bas de page reprend tous ces chiffres, point par point.
 Pourquoi pas l'instant présent ? L'espace mairie montre quels électeurs ont
 voté. Une tendance mise à jour à chaque bulletin permettrait, en comparant
 deux affichages, de lire le vote de la personne qui a voté entre les deux. Le
-découpage par dix garantit que deux affichages successifs diffèrent d'au moins
-dix bulletins, et l'attente de cinq bulletins après chaque point que le
-résultat publié diffère du dernier point affiché d'au moins cinq. Même ainsi, si les électeurs d'un groupe placent tous une
-proposition devant une autre, ou expriment tous le même classement, la
-tendance le laisse voir.
+découpage par dix bulletins garantit que deux points successifs diffèrent d'au
+moins dix électeurs, et l'attente de cinq bulletins après chaque point que le
+résultat publié diffère du dernier point affiché d'au moins cinq. Les
+modifications ne comptent pas, sans quoi un seul électeur modifiant dix fois
+son vote ferait à lui seul la différence entre deux points. Même ainsi, si les
+électeurs d'un groupe placent tous une proposition devant une autre, ou
+expriment tous le même classement, la tendance le laisse voir.
 
 ## 9. Concurrence des deux canaux
 
