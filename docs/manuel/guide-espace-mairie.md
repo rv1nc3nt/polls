@@ -789,6 +789,62 @@ qu'après la clôture. La méthode et sa version sont enregistrées avec le scru
 donc un résultat publié reste reproductible malgré des changements de code
 ultérieurs.
 
+### Tendance
+
+Sur un scrutin pour lequel elle a été activée, l'entrée **Tendance** du menu
+Résultats montre à l'administrateur du scrutin et à l'auditeur, pendant le vote
+comme après, comment le classement évolue au fil des bulletins reçus. Par
+défaut, aucun scrutin ne l'a : tant que le vote est ouvert, rien ne révèle
+alors de décompte en cours. Elle n'est jamais publiée.
+
+L'écran commence par la situation à la dernière date : nombre de bulletins
+comptés, proposition en tête, son avance et l'ensemble de Smith, chacun avec
+son évolution depuis la date précédente.
+
+**L'avance** se lit en duels. Pour deux propositions, on compte les bulletins
+qui placent l'une devant l'autre, et inversement ; l'écart, rapporté au nombre
+de bulletins, s'exprime en points. La proposition en tête est jugée sur son
+duel le plus serré : « +8,9 pts sur B » signifie qu'elle bat chacune des autres
+et que son adversaire le plus proche, B, est à 8,9 points.
+
+**Les courbes** suivent cette même mesure pour chaque proposition, date après
+date. Au-dessus de zéro (zone teintée), une proposition bat chacune des
+autres ; en dessous, la courbe dit de combien elle perd son duel le plus
+difficile. Deux courbes qui se croisent signalent un changement de tête.
+Survolez le graphique, ou parcourez-le au clavier avec les flèches, pour lire
+les valeurs d'une date.
+
+**Les duels** détaillent chaque paire : part des bulletins pour l'une, pour
+l'autre, et au milieu ceux qui ne les départagent pas (rangées à égalité ou
+toutes deux laissées de côté). La petite courbe retrace l'écart depuis le
+premier point.
+
+**L'ensemble de Smith** regroupe les propositions qui battent en duel toutes
+les autres ; réduit à une seule, c'est le vainqueur de Condorcet. Un ensemble
+qui se resserre signale une préférence qui se dégage, un ensemble qui reste
+large un électorat partagé.
+
+**La matrice des duels** réunit tous ces décomptes dans un seul tableau : la
+case à l'intersection d'une ligne et d'une colonne donne le nombre de bulletins
+qui placent la proposition de la ligne devant celle de la colonne. Une case
+marquée ✓ indique que la ligne gagne ce duel. C'est la même matrice que celle
+publiée avec le résultat.
+
+**Les bulletins par classement** comptent les bulletins qui portent chaque
+classement, par exemple « A › B › C : 7 bulletins », du plus fréquent au moins
+fréquent. La matrice et ce décompte se rapportent à la même date, choisie dans
+le menu placé au-dessus d'eux.
+
+Le tableau en bas de page reprend tous ces chiffres, date par date.
+
+La journée en cours n'y figure jamais, et les journées sont regroupées jusqu'à
+réunir au moins dix bulletins. L'espace mairie connaît l'heure à laquelle
+chaque électeur a confirmé son inscription : une tendance plus fine
+permettrait de deviner ce qu'a voté une personne qui a voté juste après. Même
+ainsi, si les électeurs d'un groupe placent tous une proposition devant une
+autre, ou expriment tous le même classement, la tendance le laisse voir. Un bulletin modifié compte à la date de sa
+dernière version.
+
 ## 9. Concurrence des deux canaux
 
 | État de l'électeur | Vote en ligne | Saisie papier |

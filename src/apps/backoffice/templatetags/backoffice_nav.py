@@ -48,6 +48,7 @@ from apps.core.models import Role
 from apps.elections.models import Poll
 
 from ..access import is_commune_admin, poll_roles
+from ..trend import enabled as trend_enabled
 
 register = template.Library()
 
@@ -66,13 +67,16 @@ class _Item:
     role on the poll at all (the dashboard). ``owns`` lists further url names
     that should light this entry — screens reached from it but not in the menu
     themselves. ``needs_countersign`` hides the entry where the poll is not
-    configured for a second signature (R-8.7)."""
+    configured for a second signature (R-8.7), ``needs_trend`` where it is not
+    configured for the running trend (R-11.5 bis)."""
 
     label: Promise
     url_name: str
     roles: tuple[str, ...] = ()
     owns: tuple[str, ...] = ()
     needs_countersign: bool = False
+    #: Shown only on a poll configured for the trend (R-11.5 bis).
+    needs_trend: bool = False
     #: Name of a ``<symbol>`` in the sprite at the top of ``backoffice/_nav.html``.
     icon: str = ""
 
@@ -171,7 +175,16 @@ _POLL_MENU: tuple[_Group, ...] = (
         # R-2.1: read-only for the auditor here too, once the poll is closed —
         # the anonymised ballot list this screen shows (and its CSV/JSON) is
         # named in the same breath as the audit log.
-        (_Item(_("Dépouillement"), "results_publish", (_POLL_ADMIN, _AUDITOR), icon="tally"),),
+        (
+            _Item(_("Dépouillement"), "results_publish", (_POLL_ADMIN, _AUDITOR), icon="tally"),
+            _Item(
+                _("Tendance"),
+                "poll_trend",
+                (_POLL_ADMIN, _AUDITOR),
+                needs_trend=True,
+                icon="trend",
+            ),
+        ),
     ),
     _Group(
         _("Suivi"),
@@ -254,6 +267,8 @@ def _resolve(context: template.Context) -> _Resolved:
             entries = []
             for item in group.items:
                 if item.needs_countersign and not poll.paper_requires_countersign:
+                    continue
+                if item.needs_trend and not trend_enabled(poll):
                     continue
                 held = not item.roles or bool(roles & set(item.roles))
                 if not held and not commune_admin:

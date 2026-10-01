@@ -742,6 +742,56 @@ ballots, never the voter register, and only runs after closing. The method
 and its version are recorded with the poll, so a published result stays
 reproducible despite later code changes.
 
+### Trend
+
+On a poll for which it has been switched on, the **Trend** entry of the
+Results menu shows the poll administrator and the auditor, during the vote and
+after it, how the ranking moves as ballots come in. By default no poll has it,
+and while voting is open nothing then reveals a running count. It is never
+published.
+
+The screen opens with the standing at the latest date: ballots counted, the
+leading proposition, its lead and the Smith set, each with how it moved since
+the previous date.
+
+**The lead** is read in head-to-head duels. For two propositions, count the
+ballots placing one ahead of the other, and the reverse; the difference, over
+the number of ballots, is expressed in points. The leader is judged on its
+closest duel: "+8.9 pts over B" means it beats every other proposition and its
+nearest opponent, B, is 8.9 points behind.
+
+**The curves** follow that same measure for each proposition, date after date.
+Above zero (the shaded band), a proposition beats every other one; below, the
+curve says by how much it loses its hardest duel. Two curves crossing signal a
+change of leader. Hover over the chart, or step through it with the arrow
+keys, to read a date's values.
+
+**The duels** break down each pair: the share of ballots for one, for the
+other, and in the middle those that do not separate them (ranked equal, or
+both left out). The small curve traces the margin since the first point.
+
+**The Smith set** gathers the propositions that beat every other one head to
+head; down to a single one, it is the Condorcet winner. A narrowing set
+signals a preference emerging, a set that stays wide a divided electorate.
+
+**The duel matrix** gathers all those counts in one table: the cell where a
+row meets a column gives the number of ballots placing the row's proposition
+ahead of the column's. A cell marked ✓ means the row wins that duel. It is the
+same matrix as the one published with the result.
+
+**The ballots by ranking** count the ballots carrying each ranking, for
+example "A › B › C: 7 ballots", most frequent first. The matrix and this count
+refer to the same date, chosen in the menu above them.
+
+The table at the bottom repeats every figure, date by date.
+
+The current day never appears, and days are grouped until they hold at least
+ten ballots. The mairie area knows when each elector confirmed their
+registration: a finer trend would let someone guess how a person who voted
+right after had voted. Even so, if the electors of one group all place one
+proposition ahead of another, or all cast the same ranking, the trend shows it. A modified ballot counts
+from the date of its latest version.
+
 ## 9. The two channels competing
 
 | Voter's state | Online vote | Paper entry |

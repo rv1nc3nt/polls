@@ -110,6 +110,8 @@ urlpatterns = [
         views.countersign_queue,
         name="countersign_queue",
     ),
+    # R-11.5 bis: only on the polls settings.TREND_POLL_IDS names; 404 elsewhere.
+    path("scrutin/<uuid:poll_id>/tendance/", views.poll_trend, name="poll_trend"),
     path(
         "scrutin/<uuid:poll_id>/depouillement/",
         views.results_publish,

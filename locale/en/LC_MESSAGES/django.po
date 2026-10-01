@@ -5522,3 +5522,201 @@ msgstr "Source code"
 
 #~ msgid "Contactez la mairie ou rendez-vous sur place."
 #~ msgstr "Contact the mairie or visit in person."
+
+#: src/apps/backoffice/templatetags/backoffice_nav.py:181
+#: src/templates/backoffice/poll_trend.html:5
+#: src/templates/backoffice/poll_trend.html:6
+msgid "Tendance"
+msgstr "Trend"
+
+#: src/templates/backoffice/poll_trend.html:21
+msgid ""
+"Le scrutin est ouvert : la journée en cours n’est jamais prise en compte, et "
+"un bulletin modifié est compté à la date de sa dernière version."
+msgstr ""
+"The poll is open: the current day is never included, and a modified ballot "
+"is counted from the date of its latest version."
+
+#: src/templates/backoffice/poll_trend.html:26
+#, python-format
+msgid ""
+"Pas encore assez de bulletins : la tendance s’affiche dès qu’au moins "
+"%(min_bin)s bulletins ont été reçus sur des journées révolues."
+msgstr ""
+"Not enough ballots yet: the trend appears once at least %(min_bin)s ballots "
+"have been received over completed days."
+
+#: src/templates/backoffice/poll_trend.html:60
+msgid "Jusqu’au"
+msgstr "Up to"
+
+#: src/templates/backoffice/poll_trend.html:64
+msgid "Vainqueur de Condorcet"
+msgstr "Condorcet winner"
+
+#: src/templates/backoffice/poll_trend.html:65
+msgid "Ensemble de Smith"
+msgstr "Smith set"
+
+#, python-format
+msgid "Résultat recalculé sur les bulletins en vigueur reçus jusqu’à chaque date incluse. Les journées sont regroupées jusqu’à réunir au moins %(min_bin)s bulletins, pour qu’aucun petit groupe d’électeurs ne puisse être isolé."
+msgstr "Result recomputed over the ballots in force received up to and including each date. Days are grouped until they hold at least %(min_bin)s ballots, so that no small group of electors can be singled out."
+
+msgid "Situation au"
+msgstr "Standing at"
+
+msgid "Bulletins comptés"
+msgstr "Ballots counted"
+
+#, python-format
+msgid "jusqu’au %(date)s"
+msgstr "up to %(date)s"
+
+#, python-format
+msgid "+%(n)s depuis le %(since)s"
+msgstr "+%(n)s since %(since)s"
+
+msgid "À égalité en tête"
+msgstr "Tied for the lead"
+
+msgid "En tête"
+msgstr "Leading"
+
+msgid "bat chacune des autres en duel"
+msgstr "beats every other one head to head"
+
+msgid "aucune ne bat toutes les autres"
+msgstr "none beats all the others"
+
+#, python-format
+msgid "nouveau depuis le %(since)s"
+msgstr "new since %(since)s"
+
+msgid "Avance dans son duel le plus serré"
+msgstr "Lead in its closest duel"
+
+msgid "Avance sur la suivante"
+msgstr "Lead over the next"
+
+msgid "pts"
+msgstr "pts"
+
+#, python-format
+msgid "sur %(rival)s : %(for)s %% contre %(against)s %%, soit %(n)s bulletin d’écart"
+msgid_plural "sur %(rival)s : %(for)s %% contre %(against)s %%, soit %(n)s bulletins d’écart"
+msgstr[0] "over %(rival)s: %(for)s%% to %(against)s%%, a gap of %(n)s ballot"
+msgstr[1] "over %(rival)s: %(for)s%% to %(against)s%%, a gap of %(n)s ballots"
+
+#, python-format
+msgid "%(d)s pts depuis le %(since)s"
+msgstr "%(d)s pts since %(since)s"
+
+msgid "plusieurs propositions à égalité en tête"
+msgstr "several propositions tied for the lead"
+
+msgid "une seule proposition bat toutes les autres"
+msgstr "a single proposition beats all the others"
+
+msgid "Évolution"
+msgstr "Over time"
+
+msgid "Pour chaque proposition, l’écart de son duel le plus serré, en points de pourcentage des bulletins : au-dessus de zéro, elle bat chacune des autres ; en dessous, la distance qui la sépare de ne plus perdre aucun duel."
+msgstr "For each proposition, the margin of its closest duel, in percentage points of the ballots: above zero it beats every other one; below, how far it is from losing no duel at all."
+
+msgid "Part des bulletins obtenue par chaque proposition, en pourcentage."
+msgstr "Share of the ballots each proposition received, in per cent."
+
+msgid "Graphique de l’évolution ; les flèches gauche et droite parcourent les dates. Les mêmes chiffres figurent dans le tableau ci-dessous."
+msgstr "Chart over time; the left and right arrow keys step through the dates. The same figures are in the table below."
+
+msgid "Duels"
+msgstr "Duels"
+
+msgid "Pour chaque paire, la part des bulletins qui placent l’une avant l’autre ; au milieu, ceux qui ne les départagent pas. La courbe retrace l’écart depuis le premier point."
+msgstr "For each pair, the share of ballots placing one ahead of the other; in the middle, those that do not separate them. The small curve traces the margin since the first point."
+
+msgid "à égalité avec"
+msgstr "tied with"
+
+msgid "devant"
+msgstr "ahead of"
+
+#, python-format
+msgid "%(p)s %% sans préférence (%(n)s)"
+msgstr "%(p)s%% no preference (%(n)s)"
+
+msgid "Données détaillées"
+msgstr "Detailed figures"
+
+msgid "Rang de chaque proposition et, entre parenthèses, l’écart de son duel le plus serré, en points. Le plus récent en premier."
+msgstr "Rank of each proposition and, in brackets, the margin of its closest duel, in points. Most recent first."
+
+msgid "Rang de chaque proposition et, entre parenthèses, sa part des bulletins, en pourcentage. Le plus récent en premier."
+msgstr "Rank of each proposition and, in brackets, its share of the ballots, in per cent. Most recent first."
+
+#: src/templates/backoffice/poll_trend.html
+#, python-format
+msgid "%(n)s bulletin"
+msgid_plural "%(n)s bulletins"
+msgstr[0] "%(n)s ballot"
+msgstr[1] "%(n)s ballots"
+
+#: src/templates/backoffice/poll_trend.html
+msgid "Matrice des duels"
+msgstr "Duel matrix"
+
+#: src/templates/backoffice/poll_trend.html
+msgid ""
+"Chaque case donne le nombre de bulletins qui placent la proposition de la "
+"ligne devant celle de la colonne. Une case marquée ✓ sur fond vert : la "
+"ligne gagne ce duel ; marquée = : égalité."
+msgstr ""
+"Each cell gives the number of ballots placing the row’s proposition ahead of "
+"the column’s. A cell marked ✓ on green: the row wins that duel; marked =: a "
+"tie."
+
+#: src/templates/backoffice/poll_trend.html
+msgid "Afficher"
+msgstr "Show"
+
+#: src/templates/backoffice/poll_trend.html
+#, python-format
+msgid "Au %(date)s, sur %(n)s bulletin."
+msgid_plural "Au %(date)s, sur %(n)s bulletins."
+msgstr[0] "On %(date)s, out of %(n)s ballot."
+msgstr[1] "On %(date)s, out of %(n)s ballots."
+
+#: src/templates/backoffice/poll_trend.html
+msgid "sans objet"
+msgstr "not applicable"
+
+#: src/templates/backoffice/poll_trend.html
+msgid "(gagne)"
+msgstr "(wins)"
+
+#: src/templates/backoffice/poll_trend.html
+msgid "(égalité)"
+msgstr "(tie)"
+
+#: src/templates/backoffice/poll_trend.html
+msgid "Matrice et classements au"
+msgstr "Matrix and rankings as of"
+
+#: src/templates/backoffice/poll_trend.html
+msgid "Bulletins par classement"
+msgstr "Ballots by ranking"
+
+#: src/templates/backoffice/poll_trend.html
+msgid ""
+"Nombre de bulletins portant chaque classement, du plus fréquent au moins "
+"fréquent. Chaque proposition est précédée de son rang ; des propositions "
+"classées ex æquo partagent le même ; celles laissées de côté comptent "
+"ensemble en dernier."
+msgstr ""
+"Number of ballots carrying each ranking, most frequent first. Each "
+"proposition is preceded by its rank; propositions ranked equal share it; "
+"those left out count together as last."
+
+#: src/templates/backoffice/poll_trend.html
+msgid "non classées :"
+msgstr "not ranked:"
