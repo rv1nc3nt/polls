@@ -34,15 +34,16 @@ def _on(day: int, ranking: Ranking | None, n: int, *, ballot: str = "") -> list[
     return out
 
 
-def test_a_point_every_step_arrivals_shown_once_step_more_follow() -> None:
-    """While the poll is open, the newest point waits for ``step`` more
+def test_a_point_every_step_arrivals_shown_once_lag_more_follow() -> None:
+    """While the poll is open, the newest point waits for ``lag`` more
     arrivals after it, so nothing after the last point shown is ever fewer
-    than ``step`` ballots."""
-    ballots = _on(0, ABC, 29)
-    points = trend(ballots, OPTIONS, Method.SCHULZE, final=False)
-    assert [p.arrivals for p in points] == [10]
-    points = trend(ballots + _on(0, ABC, 1), OPTIONS, Method.SCHULZE, final=False)
-    assert [p.arrivals for p in points] == [10, 20]
+    than ``lag`` ballots: 10 appears at the 15th arrival, 20 at the 25th."""
+    ballots = _on(0, ABC, 15)
+    assert [p.arrivals for p in trend(ballots, OPTIONS, Method.SCHULZE, final=False)] == [10]
+    ballots += _on(0, ABC, 9)
+    assert [p.arrivals for p in trend(ballots, OPTIONS, Method.SCHULZE, final=False)] == [10]
+    ballots += _on(0, ABC, 1)
+    assert [p.arrivals for p in trend(ballots, OPTIONS, Method.SCHULZE, final=False)] == [10, 20]
 
 
 def test_points_fall_within_a_day_and_need_no_day_boundary() -> None:
@@ -58,13 +59,13 @@ def test_points_fall_within_a_day_and_need_no_day_boundary() -> None:
 def test_once_final_the_last_point_is_the_whole_live_set() -> None:
     ballots = _on(0, ABC, 23)
     points = trend(ballots, OPTIONS, Method.SCHULZE, final=True)
-    # 20 has only 3 arrivals after it: never shown, since the published result
-    # minus it would be those 3 ballots.
+    # 20 has only 3 arrivals after it, fewer than the lag: never shown, since
+    # the published result minus it would be those 3 ballots.
     assert [(p.arrivals, p.ballot_count) for p in points] == [(10, 10), (23, 23)]
 
 
 def test_too_few_ballots_show_nothing_while_open() -> None:
-    assert trend(_on(0, ABC, 19), OPTIONS, Method.SCHULZE, final=False) == []
+    assert trend(_on(0, ABC, 14), OPTIONS, Method.SCHULZE, final=False) == []
 
 
 def test_a_shown_point_does_not_change_when_a_ballot_in_it_is_modified() -> None:

@@ -141,7 +141,7 @@ from apps.registrations import mail as registration_mail
 from apps.registrations import services as registrations
 from apps.registrations.models import Channel, Registration
 from apps.tally.methods import Method
-from apps.tally.trend import STEP
+from apps.tally.trend import LAG, STEP
 
 from . import (
     accounts,
@@ -1536,7 +1536,8 @@ def poll_trend(request: HttpRequest, poll: Poll) -> HttpResponse:
         "options": options,
         "has_points": bool(points),
         "step": STEP,
-        "first_at": 2 * STEP,
+        "lag": LAG,
+        "first_at": STEP + LAG,
         "is_open": poll.state == PollState.OPEN,
         "is_schulze": schulze,
     }

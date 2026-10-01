@@ -18,17 +18,20 @@ therefore attributable to the electors who voted in between. So:
   current one. Recomputing past points from the current live set would let a
   modification remove one ballot's old ranking from them, readable as the
   difference (decision log #39);
-* **the newest point waits.** A point is shown only once ``STEP`` further
+* **the newest point waits.** A point is shown only once ``LAG`` further
   arrivals follow it. The result published at closure is the whole live set,
   so it minus the last point shown before closure is what came after: never
-  fewer than ``STEP`` ballots. After closure the final standing is shown too —
-  it is the published result.
+  fewer than ``LAG`` ballots. After closure the final standing is shown too —
+  it is the published result. ``LAG`` is shorter than ``STEP`` at the
+  requirements owner's request, trading that floor for a fresher newest point
+  (decision log #39).
 
 Each point carries the ranks, the Condorcet winner, the Smith set, the
 head-to-head counts (or, under plurality and approval, the count per option)
 and the number of ballots per distinct ranking. The residual exposure is a
-group of ``STEP`` arrivals that all agree on a duel, or all cast the same
-ranking: the difference then states each one's choice. R-11.5 bis accepts that
+group of ``STEP`` arrivals — or the closing ``LAG`` — that all agree on a
+duel, or all cast the same ranking: the difference then states each one's
+choice. R-11.5 bis accepts that
 in exchange for the figures.
 
 Paper ballots are the one exception to "never changes": a countersignature or
@@ -53,8 +56,11 @@ from .methods import Method, Ranking, option_counts, pairwise_matrix, schulze_pa
 #: order so that ``[[b, a]]`` and ``[[a, b]]`` are the same tie.
 Ordering = tuple[tuple[OptionId, ...], ...]
 
-#: Arrivals between two points, and before the newest one is shown.
+#: Arrivals between two points.
 STEP = 10
+
+#: Arrivals that must follow a point before it is shown.
+LAG = 5
 
 
 @dataclass(frozen=True)
@@ -123,8 +129,9 @@ def trend(
     *,
     final: bool,
     step: int = STEP,
+    lag: int = LAG,
 ) -> list[TrendPoint]:
-    """The points to show: one per ``step`` arrivals with ``step`` more after
+    """The points to show: one per ``step`` arrivals with ``lag`` more after
     it and, once ``final``, the final standing."""
     ordered = sorted(versions, key=lambda v: (v.at, v.ballot))
     total = len(ordered)
@@ -135,7 +142,7 @@ def trend(
             in_force.pop(version.ballot, None)
         else:
             in_force[version.ballot] = version.ranking
-        if n % step == 0 and total - n >= step:
+        if n % step == 0 and total - n >= lag:
             points.append(_point(version.day, n, list(in_force.values()), options, method))
     if final and ordered and (not points or points[-1].arrivals != total):
         points.append(_point(ordered[-1].day, total, list(in_force.values()), options, method))
