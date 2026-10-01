@@ -798,9 +798,9 @@ défaut, aucun scrutin ne l'a : tant que le vote est ouvert, rien ne révèle
 alors de décompte en cours. Elle n'est jamais publiée.
 
 **Les points.** La tendance est recalculée tous les dix bulletins déposés ou
-modifiés, y compris dans la journée. Un point n'apparaît qu'une fois dix autres
-bulletins reçus après lui : le plus récent montre donc la situation d'il y a
-dix à dix-neuf bulletins, jamais celle de l'instant. Chaque bulletin y est
+modifiés, y compris dans la journée. Un point n'apparaît qu'une fois cinq
+autres bulletins reçus après lui : le plus récent montre donc la situation d'il
+y a cinq à quatorze bulletins, jamais celle de l'instant. Chaque bulletin y est
 compté tel qu'il était à ce moment-là, si bien qu'un point affiché ne change
 plus, même si un électeur modifie ensuite son vote. Une fois le scrutin clos,
 le dernier point est le résultat final.
@@ -848,9 +848,9 @@ Le tableau en bas de page reprend tous ces chiffres, point par point.
 Pourquoi pas l'instant présent ? L'espace mairie montre quels électeurs ont
 voté. Une tendance mise à jour à chaque bulletin permettrait, en comparant
 deux affichages, de lire le vote de la personne qui a voté entre les deux. Le
-découpage par dix, et l'attente du point suivant, garantissent que toute
-comparaison — entre deux affichages, ou avec le résultat publié — porte sur au
-moins dix bulletins. Même ainsi, si les électeurs d'un groupe placent tous une
+découpage par dix garantit que deux affichages successifs diffèrent d'au moins
+dix bulletins, et l'attente de cinq bulletins après chaque point que le
+résultat publié diffère du dernier point affiché d'au moins cinq. Même ainsi, si les électeurs d'un groupe placent tous une
 proposition devant une autre, ou expriment tous le même classement, la
 tendance le laisse voir.
 

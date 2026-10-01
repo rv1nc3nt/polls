@@ -751,8 +751,8 @@ and while voting is open nothing then reveals a running count. It is never
 published.
 
 **The points.** The trend is recomputed every ten ballots cast or modified,
-during the day too. A point appears only once ten more ballots have come in
-after it: the newest one therefore shows the standing ten to nineteen ballots
+during the day too. A point appears only once five more ballots have come in
+after it: the newest one therefore shows the standing five to fourteen ballots
 ago, never the present moment. Each ballot is counted as it stood then, so a
 point once shown no longer changes, even if an elector later modifies their
 vote. Once the poll is closed, the last point is the final result.
@@ -794,9 +794,10 @@ The table at the bottom repeats every figure, point by point.
 
 Why not the present moment? The mairie area shows which electors have voted.
 A trend updated with every ballot would let anyone comparing two views read
-the vote of the person who voted in between. Cutting by ten, and waiting for
-the next point, ensure that any comparison — between two views, or with the
-published result — covers at least ten ballots. Even so, if the electors of
+the vote of the person who voted in between. Cutting by ten ensures that two
+successive views differ by at least ten ballots, and waiting for five ballots
+after each point that the published result differs from the last point shown
+by at least five. Even so, if the electors of
 one group all place one proposition ahead of another, or all cast the same
 ranking, the trend shows it.
 
