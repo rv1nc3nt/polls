@@ -5529,23 +5529,6 @@ msgstr "Source code"
 msgid "Tendance"
 msgstr "Trend"
 
-#: src/templates/backoffice/poll_trend.html:21
-msgid ""
-"Le scrutin est ouvert : la journée en cours n’est jamais prise en compte, et "
-"un bulletin modifié est compté à la date de sa dernière version."
-msgstr ""
-"The poll is open: the current day is never included, and a modified ballot "
-"is counted from the date of its latest version."
-
-#: src/templates/backoffice/poll_trend.html:26
-#, python-format
-msgid ""
-"Pas encore assez de bulletins : la tendance s’affiche dès qu’au moins "
-"%(min_bin)s bulletins ont été reçus sur des journées révolues."
-msgstr ""
-"Not enough ballots yet: the trend appears once at least %(min_bin)s ballots "
-"have been received over completed days."
-
 #: src/templates/backoffice/poll_trend.html:60
 msgid "Jusqu’au"
 msgstr "Up to"
@@ -5558,10 +5541,6 @@ msgstr "Condorcet winner"
 msgid "Ensemble de Smith"
 msgstr "Smith set"
 
-#, python-format
-msgid "Résultat recalculé sur les bulletins en vigueur reçus jusqu’à chaque date incluse. Les journées sont regroupées jusqu’à réunir au moins %(min_bin)s bulletins, pour qu’aucun petit groupe d’électeurs ne puisse être isolé."
-msgstr "Result recomputed over the ballots in force received up to and including each date. Days are grouped until they hold at least %(min_bin)s ballots, so that no small group of electors can be singled out."
-
 msgid "Situation au"
 msgstr "Standing at"
 
@@ -5571,10 +5550,6 @@ msgstr "Ballots counted"
 #, python-format
 msgid "jusqu’au %(date)s"
 msgstr "up to %(date)s"
-
-#, python-format
-msgid "+%(n)s depuis le %(since)s"
-msgstr "+%(n)s since %(since)s"
 
 msgid "À égalité en tête"
 msgstr "Tied for the lead"
@@ -5587,10 +5562,6 @@ msgstr "beats every other one head to head"
 
 msgid "aucune ne bat toutes les autres"
 msgstr "none beats all the others"
-
-#, python-format
-msgid "nouveau depuis le %(since)s"
-msgstr "new since %(since)s"
 
 msgid "Avance dans son duel le plus serré"
 msgstr "Lead in its closest duel"
@@ -5606,10 +5577,6 @@ msgid "sur %(rival)s : %(for)s %% contre %(against)s %%, soit %(n)s bulletin d�
 msgid_plural "sur %(rival)s : %(for)s %% contre %(against)s %%, soit %(n)s bulletins d’écart"
 msgstr[0] "over %(rival)s: %(for)s%% to %(against)s%%, a gap of %(n)s ballot"
 msgstr[1] "over %(rival)s: %(for)s%% to %(against)s%%, a gap of %(n)s ballots"
-
-#, python-format
-msgid "%(d)s pts depuis le %(since)s"
-msgstr "%(d)s pts since %(since)s"
 
 msgid "plusieurs propositions à égalité en tête"
 msgstr "several propositions tied for the lead"
@@ -5720,3 +5687,50 @@ msgstr ""
 #: src/templates/backoffice/poll_trend.html
 msgid "non classées :"
 msgstr "not ranked:"
+
+#: src/templates/backoffice/poll_trend.html
+#, python-format
+msgid ""
+"Résultat recalculé tous les %(step)s bulletins déposés ou modifiés, chacun "
+"compté tel qu’il était à ce moment-là. Un point n’apparaît qu’une fois "
+"%(step)s autres bulletins reçus après lui : aucune différence entre deux "
+"affichages ne porte ainsi sur moins de %(step)s bulletins."
+msgstr ""
+"Result recomputed every %(step)s ballots cast or modified, each counted as it "
+"stood at that moment. A point appears only once %(step)s more ballots have "
+"come in after it, so no difference between two views ever covers fewer than "
+"%(step)s ballots."
+
+#: src/templates/backoffice/poll_trend.html
+msgid "Le scrutin est clos : le dernier point est le résultat final."
+msgstr "The poll is closed: the last point is the final result."
+
+#: src/templates/backoffice/poll_trend.html
+#, python-format
+msgid ""
+"Pas encore assez de bulletins : le premier point apparaît une fois "
+"%(first_at)s bulletins déposés ou modifiés."
+msgstr ""
+"Not enough ballots yet: the first point appears once %(first_at)s ballots "
+"have been cast or modified."
+
+#: src/templates/backoffice/poll_trend.html
+#, python-format
+msgid "+%(n)s depuis le point précédent"
+msgstr "+%(n)s since the previous point"
+
+#: src/templates/backoffice/poll_trend.html
+msgid "nouveau depuis le point précédent"
+msgstr "new since the previous point"
+
+#: src/templates/backoffice/poll_trend.html
+#, python-format
+msgid "%(d)s pts depuis le point précédent"
+msgstr "%(d)s pts since the previous point"
+
+#: src/templates/backoffice/poll_trend.html
+#, python-format
+msgid "%(date)s — %(n)s bulletin"
+msgid_plural "%(date)s — %(n)s bulletins"
+msgstr[0] "%(date)s — %(n)s ballot"
+msgstr[1] "%(date)s — %(n)s ballots"

@@ -750,9 +750,16 @@ after it, how the ranking moves as ballots come in. By default no poll has it,
 and while voting is open nothing then reveals a running count. It is never
 published.
 
-The screen opens with the standing at the latest date: ballots counted, the
+**The points.** The trend is recomputed every ten ballots cast or modified,
+during the day too. A point appears only once ten more ballots have come in
+after it: the newest one therefore shows the standing ten to nineteen ballots
+ago, never the present moment. Each ballot is counted as it stood then, so a
+point once shown no longer changes, even if an elector later modifies their
+vote. Once the poll is closed, the last point is the final result.
+
+The screen opens with the standing at the latest point: ballots counted, the
 leading proposition, its lead and the Smith set, each with how it moved since
-the previous date.
+the previous point.
 
 **The lead** is read in head-to-head duels. For two propositions, count the
 ballots placing one ahead of the other, and the reverse; the difference, over
@@ -760,11 +767,11 @@ the number of ballots, is expressed in points. The leader is judged on its
 closest duel: "+8.9 pts over B" means it beats every other proposition and its
 nearest opponent, B, is 8.9 points behind.
 
-**The curves** follow that same measure for each proposition, date after date.
+**The curves** follow that same measure for each proposition, point after point.
 Above zero (the shaded band), a proposition beats every other one; below, the
 curve says by how much it loses its hardest duel. Two curves crossing signal a
 change of leader. Hover over the chart, or step through it with the arrow
-keys, to read a date's values.
+keys, to read a point's values.
 
 **The duels** break down each pair: the share of ballots for one, for the
 other, and in the middle those that do not separate them (ranked equal, or
@@ -781,16 +788,17 @@ same matrix as the one published with the result.
 
 **The ballots by ranking** count the ballots carrying each ranking, for
 example "A › B › C: 7 ballots", most frequent first. The matrix and this count
-refer to the same date, chosen in the menu above them.
+refer to the same point, chosen in the menu above them.
 
-The table at the bottom repeats every figure, date by date.
+The table at the bottom repeats every figure, point by point.
 
-The current day never appears, and days are grouped until they hold at least
-ten ballots. The mairie area knows when each elector confirmed their
-registration: a finer trend would let someone guess how a person who voted
-right after had voted. Even so, if the electors of one group all place one
-proposition ahead of another, or all cast the same ranking, the trend shows it. A modified ballot counts
-from the date of its latest version.
+Why not the present moment? The mairie area shows which electors have voted.
+A trend updated with every ballot would let anyone comparing two views read
+the vote of the person who voted in between. Cutting by ten, and waiting for
+the next point, ensure that any comparison — between two views, or with the
+published result — covers at least ten ballots. Even so, if the electors of
+one group all place one proposition ahead of another, or all cast the same
+ranking, the trend shows it.
 
 ## 9. The two channels competing
 

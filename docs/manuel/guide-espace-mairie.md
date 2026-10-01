@@ -797,9 +797,17 @@ comme après, comment le classement évolue au fil des bulletins reçus. Par
 défaut, aucun scrutin ne l'a : tant que le vote est ouvert, rien ne révèle
 alors de décompte en cours. Elle n'est jamais publiée.
 
-L'écran commence par la situation à la dernière date : nombre de bulletins
+**Les points.** La tendance est recalculée tous les dix bulletins déposés ou
+modifiés, y compris dans la journée. Un point n'apparaît qu'une fois dix autres
+bulletins reçus après lui : le plus récent montre donc la situation d'il y a
+dix à dix-neuf bulletins, jamais celle de l'instant. Chaque bulletin y est
+compté tel qu'il était à ce moment-là, si bien qu'un point affiché ne change
+plus, même si un électeur modifie ensuite son vote. Une fois le scrutin clos,
+le dernier point est le résultat final.
+
+L'écran commence par la situation au dernier point : nombre de bulletins
 comptés, proposition en tête, son avance et l'ensemble de Smith, chacun avec
-son évolution depuis la date précédente.
+son évolution depuis le point précédent.
 
 **L'avance** se lit en duels. Pour deux propositions, on compte les bulletins
 qui placent l'une devant l'autre, et inversement ; l'écart, rapporté au nombre
@@ -807,12 +815,12 @@ de bulletins, s'exprime en points. La proposition en tête est jugée sur son
 duel le plus serré : « +8,9 pts sur B » signifie qu'elle bat chacune des autres
 et que son adversaire le plus proche, B, est à 8,9 points.
 
-**Les courbes** suivent cette même mesure pour chaque proposition, date après
-date. Au-dessus de zéro (zone teintée), une proposition bat chacune des
+**Les courbes** suivent cette même mesure pour chaque proposition, point après
+point. Au-dessus de zéro (zone teintée), une proposition bat chacune des
 autres ; en dessous, la courbe dit de combien elle perd son duel le plus
 difficile. Deux courbes qui se croisent signalent un changement de tête.
 Survolez le graphique, ou parcourez-le au clavier avec les flèches, pour lire
-les valeurs d'une date.
+les valeurs d'un point.
 
 **Les duels** détaillent chaque paire : part des bulletins pour l'une, pour
 l'autre, et au milieu ceux qui ne les départagent pas (rangées à égalité ou
@@ -832,18 +840,19 @@ publiée avec le résultat.
 
 **Les bulletins par classement** comptent les bulletins qui portent chaque
 classement, par exemple « A › B › C : 7 bulletins », du plus fréquent au moins
-fréquent. La matrice et ce décompte se rapportent à la même date, choisie dans
+fréquent. La matrice et ce décompte se rapportent au même point, choisi dans
 le menu placé au-dessus d'eux.
 
-Le tableau en bas de page reprend tous ces chiffres, date par date.
+Le tableau en bas de page reprend tous ces chiffres, point par point.
 
-La journée en cours n'y figure jamais, et les journées sont regroupées jusqu'à
-réunir au moins dix bulletins. L'espace mairie connaît l'heure à laquelle
-chaque électeur a confirmé son inscription : une tendance plus fine
-permettrait de deviner ce qu'a voté une personne qui a voté juste après. Même
-ainsi, si les électeurs d'un groupe placent tous une proposition devant une
-autre, ou expriment tous le même classement, la tendance le laisse voir. Un bulletin modifié compte à la date de sa
-dernière version.
+Pourquoi pas l'instant présent ? L'espace mairie montre quels électeurs ont
+voté. Une tendance mise à jour à chaque bulletin permettrait, en comparant
+deux affichages, de lire le vote de la personne qui a voté entre les deux. Le
+découpage par dix, et l'attente du point suivant, garantissent que toute
+comparaison — entre deux affichages, ou avec le résultat publié — porte sur au
+moins dix bulletins. Même ainsi, si les électeurs d'un groupe placent tous une
+proposition devant une autre, ou expriment tous le même classement, la
+tendance le laisse voir.
 
 ## 9. Concurrence des deux canaux
 

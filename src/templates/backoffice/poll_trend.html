@@ -14,15 +14,15 @@
   {% endcomment %}
   <p class="help trend-intro">
     {% blocktranslate trimmed %}
-      Résultat recalculé sur les bulletins en vigueur reçus jusqu’à chaque date incluse. Les journées sont regroupées jusqu’à réunir au moins {{ min_bin }} bulletins, pour qu’aucun petit groupe d’électeurs ne puisse être isolé.
+      Résultat recalculé tous les {{ step }} bulletins déposés ou modifiés, chacun compté tel qu’il était à ce moment-là. Un point n’apparaît qu’une fois {{ step }} autres bulletins reçus après lui : aucune différence entre deux affichages ne porte ainsi sur moins de {{ step }} bulletins.
     {% endblocktranslate %}
-    {% if is_open %}{% translate "Le scrutin est ouvert : la journée en cours n’est jamais prise en compte, et un bulletin modifié est compté à la date de sa dernière version." %}{% endif %}
+    {% if not is_open %}{% translate "Le scrutin est clos : le dernier point est le résultat final." %}{% endif %}
   </p>
 
   {% if not has_points %}
     <p class="notice">
       {% blocktranslate trimmed %}
-        Pas encore assez de bulletins : la tendance s’affiche dès qu’au moins {{ min_bin }} bulletins ont été reçus sur des journées révolues.
+        Pas encore assez de bulletins : le premier point apparaît une fois {{ first_at }} bulletins déposés ou modifiés.
       {% endblocktranslate %}
     </p>
   {% else %}
@@ -36,7 +36,7 @@
         {% if summary.count_delta is not None %}
           <p class="trend-delta trend-delta--up">
             <span aria-hidden="true">▲</span>
-            {% blocktranslate with n=summary.count_delta since=summary.since|date:"j F" trimmed %}+{{ n }} depuis le {{ since }}{% endblocktranslate %}
+            {% blocktranslate with n=summary.count_delta trimmed %}+{{ n }} depuis le point précédent{% endblocktranslate %}
           </p>
         {% endif %}
       </div>
@@ -53,7 +53,7 @@
             {% endif %}
           {% endif %}
           {% if summary.leader_changed %}
-            <span class="trend-badge trend-badge--warn"><span aria-hidden="true">!</span> {% blocktranslate with since=summary.since|date:"j F" %}nouveau depuis le {{ since }}{% endblocktranslate %}</span>
+            <span class="trend-badge trend-badge--warn"><span aria-hidden="true">!</span> {% translate "nouveau depuis le point précédent" %}</span>
           {% endif %}
         </p>
       </div>
@@ -72,7 +72,7 @@
           {% if summary.lead.delta %}
             <p class="trend-delta trend-delta--{{ summary.lead.delta_dir }}">
               <span aria-hidden="true">{% if summary.lead.delta_dir == "up" %}▲{% elif summary.lead.delta_dir == "down" %}▼{% else %}■{% endif %}</span>
-              {% blocktranslate with d=summary.lead.delta since=summary.since|date:"j F" trimmed %}{{ d }} pts depuis le {{ since }}{% endblocktranslate %}
+              {% blocktranslate with d=summary.lead.delta trimmed %}{{ d }} pts depuis le point précédent{% endblocktranslate %}
             </p>
           {% endif %}
         {% else %}
@@ -195,15 +195,15 @@
 
     {# --- one date in detail: the matrix and the ballots per ranking ----- #}
     {% comment %}
-      Both cards below show the same point — the latest, or the one ?au=
-      names — so one date control serves the two.
+      Both cards below show the same point — the latest, or the one ?point=
+      names by its arrival count — so one control serves the two.
     {% endcomment %}
-    {% if matrix_dates|length > 1 %}
+    {% if matrix_points|length > 1 %}
       <form method="get" class="trend-matrix__when">
         <label for="trend-matrix-date">{% translate "Matrice et classements au" %}</label>
-        <select id="trend-matrix-date" name="au">
-          {% for d in matrix_dates %}
-            <option value="{{ d|date:'Y-m-d' }}"{% if d == matrix_point.through %} selected{% endif %}>{{ d|date:"j F Y" }}</option>
+        <select id="trend-matrix-date" name="point">
+          {% for p in matrix_points %}
+            <option value="{{ p.arrivals }}"{% if p.arrivals == matrix_point.arrivals %} selected{% endif %}>{% blocktranslate with date=p.through|date:"j F Y" count n=p.ballot_count %}{{ date }} — {{ n }} bulletin{% plural %}{{ date }} — {{ n }} bulletins{% endblocktranslate %}</option>
           {% endfor %}
         </select>
         <button type="submit">{% translate "Afficher" %}</button>
