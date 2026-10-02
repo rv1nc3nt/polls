@@ -25,7 +25,7 @@ recomputed there.
 
 All three are **pure functions**: given the same ballots, they always give
 the same result, recomputable by anyone from the published data alone — see
-[Verify a result yourself](verifier.md). A given poll uses only **one** of
+[Verify a result yourself](verifier-en.md). A given poll uses only **one** of
 them, fixed at configuration and published with the result; this document
 presents all three so the difference is understood, not to suggest one could
 be picked after the fact.
@@ -173,7 +173,7 @@ Because the tie-break seed depends on the closure hash, and therefore on
 every ballot cast, the outcome is known to no one — not even the mairie —
 before the last ballot has been counted, and it is recomputable by anyone
 from the published values alone: this is exactly what the `--opening-seed`
-option of the [independent verifier](verifier.md#in-case-of-a-tie-tie-break)
+option of the [independent verifier](verifier-en.md#in-case-of-a-tie-tie-break)
 checks.
 
 **Physical drawing of lots.** A poll may instead be configured to use a
@@ -317,7 +317,7 @@ def tiebreak_order(
 No pseudo-random generator, no sort keyed by a seed: only SHA-256 hashes,
 whose result depends on neither the language, nor the machine, nor the
 version of the software recomputing them — this is exactly what lets the
-[independent verifier](verifier.md#in-case-of-a-tie-tie-break), written
+[independent verifier](verifier-en.md#in-case-of-a-tie-tie-break), written
 in an entirely different language, arrive at the same tie-break.
 
 ## Going further
@@ -325,6 +325,6 @@ in an entirely different language, arrive at the same tie-break.
 The full reasoning behind a given tally — the duel matrix and, for Schulze,
 the path strengths — is published in the clear with every result, next to
 the anonymised ballot list: see the "Verify, after closure" section of the
-[voter's guide](guide-electeur.md#8-verify-after-closure). To recompute a
+[voter's guide](guide-electeur-en.md#8-verify-after-closure). To recompute a
 result yourself without reading a line of code, see [Verify a result
-yourself](verifier.md).
+yourself](verifier-en.md).

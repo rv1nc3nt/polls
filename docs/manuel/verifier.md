@@ -139,10 +139,16 @@ document de publication, seules la première et la dernière servent :
    séparés par des virgules, l'**empreinte de clôture attendue**, la
    **graine d'ouverture** en cas d'égalité et le **vainqueur annoncé**. Tous
    sont facultatifs — sans eux, l'application affiche quand même ce qu'elle a
-   recalculé, simplement sans rien comparer.
+   recalculé, mais elle l'annonce en tête du résultat : « Rien n'a été
+   comparé ». Ce n'est alors pas une vérification.
 3. Cliquez sur **Vérifier**.
 
-Avec le document de publication, le résultat commence par une ligne verte
+Le résultat s'ouvre sur une ligne de synthèse : « ✓ VÉRIFIÉ : toutes les
+valeurs comparées concordent » en vert, ou « ✗ … NE concordent PAS » en rouge.
+Si vous modifiez une valeur de l'étape 2 après avoir cliqué sur **Vérifier**,
+ce résultat s'efface : cliquez à nouveau pour vérifier les nouvelles valeurs.
+
+Avec le document de publication, viennent ensuite une ligne verte
 « ✓ … concorde » ou rouge « ✗ … NE concorde PAS » pour chacune des valeurs
 publiées : nombre de bulletins, matrice des duels, voix par option (scrutin
 majoritaire ou par assentiment), départage s'il y en a eu un, empreinte de
@@ -262,6 +268,12 @@ vainqueurs — puis, en dernière ligne utile :
 
     closure hash    AGREES
 
+Sans `--closure-hash` ni `--winner`, le programme n'a rien à comparer : il
+affiche son recalcul, puis `NOTHING COMPARED`, et se termine sur un code
+d'erreur — jamais sur un succès. Une option mal orthographiée, ou donnée sans
+valeur, est refusée plutôt qu'ignorée. Chaque option peut s'écrire
+`--closure-hash 87694cf0...` ou `--closure-hash=87694cf0...`.
+
 `AGREES` signifie que l'empreinte que vous avez recalculée est identique à
 celle publiée sur le site : le fichier CSV n'a pas été altéré depuis le
 calcul de clôture. `DIFFERS` signifierait le contraire (voir plus bas).
@@ -309,6 +321,12 @@ départage lui-même :
 
     ./polls-verifier-macos-aarch64 ballots.csv --closure-hash 87694cf0... --method schulze --opening-seed a1b2c3... --winner option-b
 
+La graine d'ouverture est tirée au sort à l'ouverture de la consultation et
+affichée dès ce moment sur sa page publique, sous le calendrier. Si vous
+l'avez notée alors, vérifiez que celle du document de publication est
+exactement la même : une graine changée après coup permettrait de choisir
+l'issue d'un départage, et le recalcul, lui, concorderait quand même.
+
 Le départage n'utilise ni tirage au sort, ni fonction du langage de
 programmation : il est entièrement déterminé par l'empreinte de clôture et
 la graine d'ouverture, ce qui est précisément ce que cette commande vérifie.
@@ -316,6 +334,18 @@ Voir [Les méthodes de dépouillement, expliquées](methodes-de-depouillement.md
 pour le détail de ce calcul.
 
 ## Que faire en cas de désaccord
+
+La ligne de commande se termine sur un code qui résume l'issue, utile si vous
+automatisez la vérification :
+
+| Code | Signification | Que faire |
+|---|---|---|
+| 0 | Toutes les valeurs comparées concordent. | Rien : le résultat publié est celui que donnent les bulletins. |
+| 1 | Au moins une valeur ne concorde pas (`DIFFERS`). | Suivre les étapes ci-dessous. |
+| 2 | Le vérificateur n'a pas pu travailler : fichier illisible ou incomplet, option inconnue ou sans valeur, ou liste de bulletins impossible (un code de suivi répété ou mal formé). | Corriger la commande, ou télécharger à nouveau le fichier. Un code de suivi répété ou mal formé dans un fichier téléchargé tel quel depuis la page de résultats est une anomalie à signaler comme un désaccord. |
+| 3 | Rien n'a été comparé (fichier CSV sans `--closure-hash` ni `--winner`). | Ajouter les valeurs à comparer, recopiées depuis la page de résultats. |
+
+Un code 2 ou 3 n'est jamais un succès : il signifie que rien n'a été vérifié.
 
 Si une ligne affiche `DIFFERS` :
 

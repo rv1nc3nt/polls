@@ -24,7 +24,9 @@ from apps.elections.models import Poll, PollState
 from apps.registrations import services as reg
 from apps.registrations.models import Channel, Registration, RegistrationState
 
-ROOT = Path("/home/claude/Projects/polls")
+# The repository root, from this file's own place in it (docs/manuel/captures/
+# outils/), so the captures land in the clone the script is run from.
+ROOT = Path(__file__).resolve().parents[4]
 OUT = ROOT / "docs" / "manuel" / "captures"
 OUT.mkdir(parents=True, exist_ok=True)
 CSS = (ROOT / "src" / "static" / "css" / "app.css").read_text(encoding="utf-8")
@@ -45,9 +47,12 @@ review_reg = Registration.objects.filter(poll=poll, state=RegistrationState.PEND
 
 
 def save(name: str, html: str) -> None:
+    # A function, not a string, as the replacement: app.css holds CSS escapes
+    # such as `content: "\203A"`, which re.sub would read as a backreference
+    # or an octal escape and turn into a control character.
     html = re.sub(
         r'<link rel="stylesheet" href="[^"]*app\.css[^"]*">',
-        f"<style>\n{CSS}\n</style>"
+        lambda _: f"<style>\n{CSS}\n</style>"
         # `.bo-side` is `position: fixed; bottom: 0` so it stays put while a
         # real browser window scrolls (§6.5) — it fills the *viewport*, not
         # the page. A full-page capture has no scrolling viewport, only the

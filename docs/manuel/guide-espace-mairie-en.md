@@ -416,7 +416,7 @@ as tied for last place.
 
 For a detailed explanation of each method — with a worked example and, for
 whoever wants it, the exact source code behind the computation — see [Tally
-methods, explained](methodes-de-depouillement.md).
+methods, explained](methodes-de-depouillement-en.md).
 
 ### Tie-break
 

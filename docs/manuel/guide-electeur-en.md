@@ -213,7 +213,7 @@ more briefly, also appears directly on the public list of consultations
   hash**.
 
 To understand what this matrix and reasoning concretely mean for the poll's
-particular method, see [Tally methods, explained](methodes-de-depouillement.md).
+particular method, see [Tally methods, explained](methodes-de-depouillement-en.md).
 
 You can:
 
@@ -221,7 +221,7 @@ You can:
    is the one you cast;
 2. **recompute the result yourself** from the published data — an
    independent implementation of the tally and the hash is published for
-   this purpose. See [Verify a result yourself](verifier.md) for step-by-step
+   this purpose. See [Verify a result yourself](verifier-en.md) for step-by-step
    instructions, with no prior technical skill required.
 
 > **Worth knowing.** If you keep your tracking code, you can find your own

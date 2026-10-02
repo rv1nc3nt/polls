@@ -39,7 +39,7 @@ Two things:
 
 1. the consultation's **publication document** — the "Full publication
    document (JSON)" link on its results page (figure 20 of the [voter's
-   guide](guide-electeur.md#8-verify-after-closure)). It contains the
+   guide](guide-electeur-en.md#8-verify-after-closure)). It contains the
    anonymised list of ballots and every value the site publishes: tally
    method, options, closure hash, pairwise matrix, winner and, where
    applicable, the tie-break;
@@ -128,11 +128,17 @@ document, only the first and the last are needed:
    assentiment — approval), the **option identifiers** separated by commas,
    the **expected closure hash**, the **opening seed** in case of a tie and
    the **announced winner**. All are optional — without them, the
-   application still shows what it recomputed, simply without comparing
-   anything.
+   application still shows what it recomputed, but says so at the top of
+   the result: "Nothing was compared". That is not a verification.
 3. Click **Verify**.
 
-With the publication document, the result starts with a green "✓ …
+The result opens with a summary line: "✓ VERIFIED: every compared value
+matches" in green, or "✗ … do NOT match" in red. (The application is in
+French: it reads « ✓ VÉRIFIÉ » or « ✗ … NE concordent PAS ».) If you change a
+value in step 2 after clicking **Verify**, that result is cleared: click again
+to check the new values.
+
+With the publication document, it continues with a green "✓ …
 matches" or red "✗ … does NOT match" line for each published value: number
 of ballots, pairwise matrix, votes per option (plurality or approval poll),
 tie-break if there was one, closure hash and winner. Then come the tally
@@ -245,6 +251,12 @@ last useful line:
 
     closure hash    AGREES
 
+Without `--closure-hash` or `--winner` the program has nothing to compare:
+it shows its recomputation, then `NOTHING COMPARED`, and ends with an error
+code, never with success. A misspelt flag, or one given without a value, is
+refused rather than ignored. Each flag can be written `--closure-hash
+87694cf0...` or `--closure-hash=87694cf0...`.
+
 `AGREES` means the hash you recomputed is identical to the one published on
 the site: the CSV file has not been altered since the closure computation.
 `DIFFERS` would mean the opposite (see below).
@@ -287,13 +299,31 @@ second hexadecimal string, distinct from the closure hash. Add it with
 
     ./polls-verifier-macos-aarch64 ballots.csv --closure-hash 87694cf0... --method schulze --opening-seed a1b2c3... --winner option-b
 
+The opening seed is drawn when the consultation opens and shown from that
+moment on its public page, under the calendar. If you noted it then, check
+that the one in the publication document is exactly the same: a seed changed
+afterwards could pick the outcome of a tie-break, and the recomputation would
+still agree.
+
 The tie-break uses no drawing of lots and no programming-language function:
 it is entirely determined by the closure hash and the opening seed, which is
 exactly what this command checks. See [Tally methods,
-explained](methodes-de-depouillement.md#ties-and-the-tie-break) for the
+explained](methodes-de-depouillement-en.md#ties-and-the-tie-break) for the
 detail of this computation.
 
 ## What to do in case of disagreement
+
+The command line ends with a code that sums up the outcome, useful if you
+automate the check:
+
+| Code | Meaning | What to do |
+|---|---|---|
+| 0 | Every compared value matches. | Nothing: the published result is the one the ballots produce. |
+| 1 | At least one value does not match (`DIFFERS`). | Follow the steps below. |
+| 2 | The verifier could not work: unreadable or incomplete file, unknown flag or flag without a value, or an impossible ballot list (a repeated or malformed tracking code). | Correct the command, or download the file again. A repeated or malformed tracking code in a file downloaded as-is from the results page is an anomaly to report like a disagreement. |
+| 3 | Nothing was compared (a CSV file without `--closure-hash` or `--winner`). | Add the values to compare, copied from the results page. |
+
+A code 2 or 3 is never a success: it means nothing was verified.
 
 If a line shows `DIFFERS`:
 
@@ -315,4 +345,4 @@ anyone can read exactly what this program does, or write their own version
 in another language to verify things even more independently. To understand exactly
 what the verifier recomputes — the Schulze, plurality or approval method,
 and the tie-break — see [Tally methods,
-explained](methodes-de-depouillement.md).
+explained](methodes-de-depouillement-en.md).
