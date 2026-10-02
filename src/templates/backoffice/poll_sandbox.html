@@ -1,5 +1,5 @@
 {% extends "backoffice/base.html" %}
-{% load i18n %}
+{% load i18n static %}
 {# SPDX-License-Identifier: 0BSD #}
 {% comment %}
   Scrutin d'essai (R-3.7): the share link that lets invited people try the poll,
@@ -19,7 +19,7 @@
     <h2 id="sandbox-link">{% translate "Lien d'essai" %}</h2>
     <p class="help">{% translate "Un lien impossible à deviner, à transmettre aux personnes invitées à essayer ce scrutin : il donne accès à la page du scrutin et à l'inscription, sans compte espace mairie, à tout état du scrutin. Les inscriptions se font contre la liste électorale comme pour un scrutin réel : chaque testeur doit y figurer. Régénérer le lien invalide aussitôt le précédent ; le révoquer coupe l'accès de ceux qui l'ont utilisé." %}</p>
     {% if link_url %}
-      <p><input type="text" readonly value="{{ link_url }}" onclick="this.select()" aria-label="{{ link_label }}"></p>
+      <p><input type="text" readonly value="{{ link_url }}" data-select-all aria-label="{{ link_label }}"></p>
       {% if has_admin_role %}
         <form method="post" class="inline">
           {% csrf_token %}
@@ -55,3 +55,5 @@
     </section>
   {% endif %}
 {% endblock %}
+
+{% block body_end %}{{ block.super }}<script src="{% static 'js/select-all.js' %}" defer></script>{% endblock %}

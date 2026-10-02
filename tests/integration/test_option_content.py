@@ -516,3 +516,46 @@ def test_the_public_page_renders_the_description_and_extended_description(
     body = client.get(f"/fr/scrutin/{open_window_poll.pk}/").content.decode()
     assert "<strong>Description</strong>" in body
     assert "<strong>Détails</strong>" in body
+
+
+# --- images come only from the poll's own library (review A-5) ---------------
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "![pixel](https://tracker.example/p.gif)",
+        '<img src="https://evil.example/x.png">',
+        '<img src="/media/anything.png" class="skip-link visually-hidden">',
+        '<p class="error">no class from the operator</p>',
+    ],
+    ids=["markdown-url", "raw-html", "raw-html-with-class", "class-on-other-tag"],
+)
+def test_no_image_or_class_the_operator_wrote_survives(open_window_poll: Poll, raw: str) -> None:
+    """A public page must not load anything from elsewhere (it would report
+    its visitors to a third party), nor take a class the operator chose,
+    which could restyle or hide the page's own furniture."""
+    open_window_poll.description_i18n = {"fr": raw}
+    open_window_poll.save(update_fields=["description_i18n"])
+    html = richtext.render_poll_description(open_window_poll)
+    assert "<img" not in html
+    assert "class=" not in html
+    assert "tracker.example" not in html and "evil.example" not in html
+
+
+def test_a_library_image_still_renders_inside_text_and_links(
+    open_window_poll: Poll, admin_user: User
+) -> None:
+    image = pollimages.add_poll_image(
+        open_window_poll, SimpleUploadedFile("c.png", _PNG), alt_text="Plan", actor=admin_user
+    )
+    open_window_poll.description_i18n = {
+        "fr": f"Voir [![](image:{image.short_id}:small)](https://example.org) ci-dessus."
+    }
+    open_window_poll.save(update_fields=["description_i18n"])
+    html = richtext.render_poll_description(open_window_poll)
+    assert (
+        f'<a href="https://example.org" rel="noopener noreferrer nofollow ugc">'
+        f'<img src="{image.file.url}" alt="Plan" class="poll-image--small"></a>'
+    ) in html
+    assert "POLLIMAGE" not in html

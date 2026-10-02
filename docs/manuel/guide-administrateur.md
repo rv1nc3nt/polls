@@ -352,6 +352,15 @@ remplacés.
   journal du service (`journalctl -u polls`, message `sign-in failed`), avec
   une empreinte de l'adresse, jamais l'identifiant tapé. Les seuils se règlent
   par `DJANGO_RATE_LIMIT_LOGIN_ADDRESS` et `DJANGO_RATE_LIMIT_LOGIN_ACCOUNT`.
+- **En-têtes de sécurité** : chaque page envoie une politique de sécurité du
+  contenu (`Content-Security-Policy`) qui n'autorise que les scripts, styles,
+  images et polices du site lui-même, et les seules vidéos YouTube intégrées
+  aux descriptions ; ainsi qu'une `Permissions-Policy` qui coupe caméra,
+  micro, géolocalisation et paiement. Les descriptions de scrutin ne peuvent
+  afficher que les images téléversées pour ce scrutin, jamais une image
+  hébergée ailleurs. Si un navigateur venait à bloquer quelque chose
+  d'imprévu, `DJANGO_CSP_REPORT_ONLY=1` dans l'environnement fait seulement
+  signaler les blocages dans la console du navigateur, le temps de corriger.
 - **Journaux nginx et liens de vote** : les adresses de bulletin portent le
   jeton de vote. nginx ne les écrit ni dans son journal d'accès ni, pour les
   erreurs ordinaires (passerelle indisponible pendant un redémarrage, par

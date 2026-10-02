@@ -34,6 +34,26 @@ def test_no_comment_spans_more_than_one_line(path: Path) -> None:
     assert offenders == [], f"{path.name}: multi-line {{# #}} renders into the page: {offenders}"
 
 
+_INLINE = [
+    (re.compile(r"<script(?![^>]*\bsrc=)[^>]*>"), "inline <script>"),
+    (re.compile(r"<style\b"), "<style> block"),
+    (re.compile(r"""\sstyle\s*=\s*["']"""), "style attribute"),
+    (re.compile(r"""\son[a-z]+\s*=\s*["']"""), "event-handler attribute"),
+]
+
+
+@pytest.mark.parametrize("path", TEMPLATES, ids=lambda p: p.name)
+def test_no_inline_script_style_or_handler(path: Path) -> None:
+    """The Content-Security-Policy allows scripts and styles from this origin
+    only (apps/core/headers.py, review A-10): anything inline is refused by
+    the browser, silently, and the page just misbehaves. Comments are left
+    out: they describe the rule."""
+    text = COMMENT.sub("", path.read_text())
+    text = re.sub(r"\{% comment %\}.*?\{% endcomment %\}", "", text, flags=re.S)
+    found = [label for pattern, label in _INLINE if pattern.search(text)]
+    assert found == [], f"{path.name}: {found}"
+
+
 @pytest.mark.parametrize("path", TEMPLATES, ids=lambda p: p.name)
 def test_every_template_compiles(path: Path) -> None:
     """A syntax error otherwise waits for somebody to open that one screen."""

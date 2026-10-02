@@ -38,6 +38,8 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # CSP, Permissions-Policy, CORP (review A-10): apps/core/headers.py.
+    "apps.core.headers.SecurityHeadersMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -144,6 +146,9 @@ CSRF_COOKIE_SAMESITE = "Lax"
 X_FRAME_OPTIONS = "DENY"
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "same-origin"
+# The Content-Security-Policy is enforced; "1" sends it report-only instead,
+# a way back should a browser refuse something unforeseen (apps/core/headers.py).
+CSP_REPORT_ONLY = os.environ.get("DJANGO_CSP_REPORT_ONLY", "") == "1"
 
 # §6.5: the back-office is the only authenticated area, and it is reached by
 # named accounts only (R-2.2). There is no self-service signup and no password

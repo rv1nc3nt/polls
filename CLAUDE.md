@@ -216,6 +216,13 @@ taken — that costs more than it saves.
   takes none: give each first version `epoch=trendpoints.current_epoch(poll)`
   and call `trendpoints.record_due_point(poll)` after it, as
   `test_trend_points.py` does.
+- The Content-Security-Policy (`core/headers.py`) admits scripts and styles
+  from the site only: an inline `<script>`, a `style="…"` attribute or an
+  `onclick="…"` is refused by the browser, silently, and the page just
+  misbehaves. Put behaviour in a file under `static/js/` and a value it needs
+  in a `data-*` attribute (see `data-grow` on the trend screen);
+  `tests/unit/test_templates.py` fails on the inline forms. The policy is not
+  sent under `DEBUG`, so a dev server will not show the breakage.
 - Latin-1 decodes every byte 0–255, so a CSV upload can never fail to decode —
   there is no "wrong encoding" a `_read_csv` can catch. §6.1's real defence
   against garbage content is the validation report downstream, not a

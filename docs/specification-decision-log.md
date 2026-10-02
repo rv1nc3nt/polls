@@ -65,6 +65,7 @@ reasoning.
 | 41 | The method version was free text, and published results were recomputed per request | settled |
 | 42 | Ballot times and order paired ballots with registrations | settled |
 | 43 | A fresh instance, back-office sign-in and nginx's error log were open to abuse | settled |
+| 44 | Poll descriptions could load third-party images, and pages had no Content-Security-Policy | settled |
 
 ## 1. Retention purge on a poll that closed but was never published
 
@@ -1613,4 +1614,45 @@ and the pattern, there, in the map and in Django's own log filter
 (`core/logging.py`), allows the prefix to be absent; a test reads the pattern
 out of the template so the two stay in step. Re-run against the same dead
 upstream, neither log holds a token, and an unrelated path is still logged.
+
+## 44. Poll descriptions could load third-party images, and pages had no Content-Security-Policy
+
+**Found (2026-10-02, review A-5, A-10).** §3.1 bis promised "no bare-URL image
+syntax: every image a description shows was uploaded through screen 2", and a
+`class` on an image "only ever populated from this fixed three-value table".
+Neither held: `img` was in the sanitiser's allow-list with `src` and `class`,
+so `![x](https://tracker.example/p.gif)` rendered a tracking pixel on a public
+page, and raw `<img class="…">` kept whatever class the operator chose. And no
+response carried a Content-Security-Policy, the backstop should anything get
+past the sanitiser.
+
+**Settled.**
+
+- Images are emitted the way YouTube embeds already were: a resolved
+  `image:<n>` reference becomes a placeholder, and after sanitisation the
+  renderer swaps it for an `<img>` it builds from the stored file. `img` left
+  the allow-list, so nothing the operator writes becomes an image or a class.
+  §3.1 bis is corrected to say so.
+- Every response carries a strict `Content-Security-Policy` — scripts, styles,
+  images, fonts and connections from the site only, frames from
+  `youtube-nocookie.com` only, no `object`, no `<base>`, forms to the site,
+  framing refused — plus a `Permissions-Policy` switching off camera,
+  microphone, geolocation, payment and the like, and
+  `Cross-Origin-Resource-Policy: same-origin`. Set by middleware
+  (`core/headers.py`), so the hand-installed deployments of `contrib/init/`
+  get it too; not under `DEBUG`, where Django's error page styles itself
+  inline. `DJANGO_CSP_REPORT_ONLY=1` downgrades it to report-only, as a way
+  back.
+- What the policy refused had to go: two `onclick="this.select()"` attributes
+  (now `data-select-all`, `static/js/select-all.js`) and four inline
+  `style="flex-grow: …"` on the trend's bars (now `data-grow`, applied by
+  `trend-chart.js`; without JavaScript the bars, which repeat figures printed
+  beside them, shrink to slivers). A template test fails on any inline
+  script, `<style>`, `style` attribute or event handler.
+
+Checked in a browser: 28 public and back-office pages served with the policy,
+`DEBUG` off, record no violation and no console error; the trend's bars, the
+share field and a YouTube embed work; an injected inline script is refused.
+The manual's own pages (`core/manual.py`) still allow `img`: their content is
+the repository's, not an operator's.
 

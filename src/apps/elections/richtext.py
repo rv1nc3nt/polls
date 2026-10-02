@@ -11,15 +11,21 @@ migration.
 Three pieces of untrusted input, handled in a fixed order so each is closed
 off before the next could reopen it:
 
-1. An ``image:<short_id>`` reference is resolved to a real media URL before
-   the text ever reaches the Markdown parser, and only to an image that
-   belongs to *this* poll's shared library — a reference to another poll's
-   image id, or to one that does not exist, is silently dropped rather than
-   followed. ``![](image:<short_id>)``, with nothing between the brackets,
-   takes the library's own ``PollImage.alt_text`` rather than emitting an
-   image with no alt text: that field is the default, reused everywhere the
-   image is embedded; writing something inside the brackets overrides it for
-   that one reference only. An optional ``:small``/``:medium``/``:large``
+1. An ``image:<short_id>`` reference is resolved before the text ever reaches
+   the Markdown parser, and only to an image that belongs to *this* poll's
+   shared library — a reference to another poll's image id, or to one that
+   does not exist, is silently dropped rather than followed. Like a YouTube
+   embed (point 2), a resolved reference becomes an opaque placeholder, swapped
+   after sanitisation for an ``<img>`` this module builds from the stored
+   image: ``img`` is not in the sanitiser's allow-list at all, so no image the
+   operator wrote — ``![](https://…)`` or raw HTML — survives, and no ``class``
+   either (review A-5). An image from anywhere else would let a public page
+   report its visitors to a third party. ``![](image:<short_id>)``, with
+   nothing between the brackets, takes the library's own
+   ``PollImage.alt_text`` rather than emitting an image with no alt text:
+   that field is the default, reused everywhere the image is embedded;
+   writing something inside the brackets overrides it for that one reference
+   only. An optional ``:small``/``:medium``/``:large``
    suffix on the reference (``image:<short_id>:large``) picks a display size;
    omitted, the image renders at its natural size, unchanged from before this
    suffix existed (docs/specification-decision-log.md #23).
@@ -35,8 +41,8 @@ off before the next could reopen it:
    taken as a request to embed. This is the one place in the pipeline
    allowed to emit an iframe.
 3. Everything else goes through ``markdown`` and then ``nh3.clean`` with a
-   fixed allow-list: no ``<iframe>``, no ``<script>``, no ``on*`` attribute,
-   no scheme but ``http``/``https`` on a link or an image.
+   fixed allow-list: no ``<img>``, no ``<iframe>``, no ``<script>``, no
+   ``on*`` attribute, no scheme but ``http``/``https`` on a link.
 """
 
 from __future__ import annotations
@@ -73,9 +79,9 @@ _YOUTUBE_URL_LINE = re.compile(
 #: ``[text](image:<short_id>)``, which the unanchored form used to match too.
 _IMAGE_REF = re.compile(r"!\[([^\]]*)\]\(image:(\d+)(?::(small|medium|large))?\)")
 
-#: CSS classes the size suffix selects between (static/css/app.css). Not part
-#: of the sanitiser's general allow-list — ``class`` is only ever emitted here,
-#: from this fixed table, never from operator-supplied text.
+#: CSS classes the size suffix selects between (static/css/app.css). ``class``
+#: is only ever emitted here, from this fixed table, never from operator text:
+#: the sanitiser allows no ``img`` at all (point 1 of the module docstring).
 _IMAGE_SIZE_CLASSES = {
     "small": "poll-image--small",
     "medium": "poll-image--medium",
@@ -95,9 +101,8 @@ _ALLOWED_TAGS = {
     "h3",
     "h4",
     "blockquote",
-    "img",
 }
-_ALLOWED_ATTRIBUTES = {"a": {"href", "title"}, "img": {"src", "alt", "title", "class"}}
+_ALLOWED_ATTRIBUTES = {"a": {"href", "title"}}
 
 
 def render_poll_description(poll: Poll, language: str | None = None) -> SafeString:
@@ -128,10 +133,19 @@ def _render(poll: Poll, raw: str) -> SafeString:
     raw = raw.replace("\r\n", "\n").replace("\r", "\n")
 
     embeds: dict[str, str] = {}
+    images: dict[str, str] = {}
 
     def _embed_token(video_id: str) -> str:
         token = f"YOUTUBEEMBED{uuid.uuid4().hex}ENDEMBED"
         embeds[token] = video_id
+        return token
+
+    def _image_token(match: re.Match[str]) -> str:
+        tag = _resolve_image(poll, match)
+        if tag is None:
+            return ""
+        token = f"POLLIMAGE{uuid.uuid4().hex}ENDIMAGE"
+        images[token] = tag
         return token
 
     def _extract_embed(match: re.Match[str]) -> str:
@@ -152,7 +166,7 @@ def _render(poll: Poll, raw: str) -> SafeString:
     # can never itself satisfy `_YOUTUBE_URL_LINE`'s "alone on its own line"
     # test — but a future change to either pattern should not have to
     # rediscover that the order was supposed to matter.
-    text = _IMAGE_REF.sub(lambda m: _resolve_image(poll, m), raw)
+    text = _IMAGE_REF.sub(_image_token, raw)
     text = _YOUTUBE_BLOCK.sub(_extract_embed, text)
     text = _YOUTUBE_URL_LINE.sub(_extract_url_embed, text)
 
@@ -168,27 +182,29 @@ def _render(poll: Poll, raw: str) -> SafeString:
     for token, video_id in embeds.items():
         iframe = _youtube_iframe(video_id)
         clean = clean.replace(f"<p>{token}</p>", iframe).replace(token, iframe)
+    for token, tag in images.items():
+        clean = clean.replace(token, tag)
 
     return mark_safe(clean)  # noqa: S308 — `clean` is nh3's own output, sanitised just above
 
 
-def _resolve_image(poll: Poll, match: re.Match[str]) -> str:
+def _resolve_image(poll: Poll, match: re.Match[str]) -> str | None:
+    """The ``<img>`` an ``image:<n>`` reference stands for, or ``None`` when it
+    names no image of this poll. Built here, after sanitisation, from the
+    stored file's own URL and an escaped alt text: nothing the operator typed
+    becomes markup."""
     alt = match.group(1)
     short_id = int(match.group(2))
     size = match.group(3)
     image = PollImage.objects.filter(poll=poll, short_id=short_id).first()
     if image is None:
-        return ""
+        return None
     if not alt:
         alt = image.alt_text
-    if size is None:
-        return f"![{alt}]({image.file.url})"
-    # A raw <img> rather than Markdown image syntax: the size suffix needs a
-    # `class`, which Markdown's own `![]()` form has no way to carry. Safe to
-    # emit unparsed — nh3.clean() sanitises the whole document afterwards
-    # regardless of how a tag reached it (§3.1 bis point 3).
-    css_class = _IMAGE_SIZE_CLASSES[size]
-    return f'<img src="{image.file.url}" alt="{_escape_attr(alt, quote=True)}" class="{css_class}">'
+    src = _escape_attr(image.file.url, quote=True)
+    alt = _escape_attr(alt, quote=True)
+    css = f' class="{_IMAGE_SIZE_CLASSES[size]}"' if size else ""
+    return f'<img src="{src}" alt="{alt}"{css}>'
 
 
 def _youtube_iframe(video_id: str) -> str:
