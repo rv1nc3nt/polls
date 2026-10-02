@@ -247,7 +247,9 @@ Implemented and tested — the CI gates (`compilemessages`, `makemigrations
 - the independent Rust verifier and its cross-check against the Python tally;
 - the Ansible role — `provision`, `deploy`, `backup`, `restore`, `smoke` (§15).
 
-Every acceptance test T-1…T-81 (§12) has a test or a Molecule scenario.
+Every acceptance test of §12 (T-1…T-94) has a test or a Molecule scenario that
+cites it by number, and `tests/unit/test_acceptance_traceability.py` fails the
+build when one does not.
 
 Outstanding:
 

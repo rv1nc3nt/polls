@@ -274,8 +274,10 @@ et les `cargo test` Rust sont au vert :
 - le rôle Ansible — `provision`, `deploy`, `backup`, `restore`, `smoke`
   (§15).
 
-Chaque test d'acceptation T-1…T-81 (§12) dispose d'un test ou d'un scénario
-Molecule.
+Chaque test d'acceptation du §12 (T-1…T-94) dispose d'un test ou d'un scénario
+Molecule qui le cite par son numéro, et
+`tests/unit/test_acceptance_traceability.py` fait échouer la construction
+quand ce n'est pas le cas.
 
 Reste à faire :
 

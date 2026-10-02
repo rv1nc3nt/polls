@@ -31,10 +31,10 @@ def test_flag_off_is_never_a_blocker(open_paper_poll: Poll) -> None:
     assert "reconciliation_pending" not in closing_blockers(open_paper_poll)
 
 
-def test_flag_on_blocks_closure_until_recorded(
+def test_t81_flag_on_blocks_closure_until_recorded(
     paper_poll_reconciliation: Poll, operator: User
 ) -> None:
-    """R-8.6: the boolean now has teeth — unlike ``pending_countersign``, there
+    """T-81, first case. R-8.6: the boolean now has teeth — unlike ``pending_countersign``, there
     is no override (R-8.7 bis names one only for countersignature)."""
     poll = paper_poll_reconciliation
     assert "reconciliation_pending" in closing_blockers(poll)
@@ -49,10 +49,10 @@ def test_flag_on_blocks_closure_until_recorded(
     assert closed.state == PollState.CLOSED
 
 
-def test_override_reason_does_not_bypass_a_missing_record(
+def test_t81_override_reason_does_not_bypass_a_missing_record(
     paper_poll_reconciliation: Poll, operator: User
 ) -> None:
-    """Unlike ``pending_countersign:n``, ``reconciliation_pending`` does not
+    """T-81, second case. Unlike ``pending_countersign:n``, ``reconciliation_pending`` does not
     start with that prefix, so ``_close_poll_locked``'s ``overridable`` check
     already refuses it even with a reason supplied — no code change needed
     there, only the new blocker."""
@@ -66,11 +66,12 @@ def test_override_reason_does_not_bypass_a_missing_record(
         )
 
 
-def test_records_the_systems_own_paper_count_not_the_operators(
+def test_t81_records_the_systems_own_paper_count_not_the_operators(
     paper_poll_reconciliation_window_open: Poll, operator: User
 ) -> None:
-    """The operator supplies only the physical count; the system count is
-    computed from the live paper ballots, never taken on their word."""
+    """T-81, fourth case. The operator supplies only the physical count; the
+    system count is computed from the live paper ballots, never taken on their
+    word, and closure then proceeds."""
     poll = paper_poll_reconciliation_window_open
     Ballot.objects.create(
         poll=poll,
@@ -79,14 +80,20 @@ def test_records_the_systems_own_paper_count_not_the_operators(
         source=BallotSource.PAPER,
         status=BallotStatus.LIVE,
     )
-    # A superseded and a deleted paper ballot must not be counted either.
-    Ballot.objects.create(
-        poll=poll,
-        tracking_code=new_tracking_code(),
-        ranking=[["a"], ["b"], ["c"]],
-        source=BallotSource.PAPER,
-        status=BallotStatus.DELETED,
-    )
+    # Paper ballots in every other status, and a live online one, must not
+    # be counted.
+    for status in (
+        BallotStatus.SUPERSEDED,
+        BallotStatus.DELETED,
+        BallotStatus.PENDING_COUNTERSIGN,
+    ):
+        Ballot.objects.create(
+            poll=poll,
+            tracking_code=new_tracking_code(),
+            ranking=[["a"], ["b"], ["c"]],
+            source=BallotSource.PAPER,
+            status=status,
+        )
     Ballot.objects.create(
         poll=poll,
         tracking_code=new_tracking_code(),
@@ -117,11 +124,17 @@ def test_records_the_systems_own_paper_count_not_the_operators(
     assert event.after == {"forms_retained_count": 2, "recorded_ballots_count": 1}
     assert event.reason == ""
 
+    # The pending countersignature still needs its own override (R-8.7 bis);
+    # the reconciliation blocker is gone.
+    assert "reconciliation_pending" not in closing_blockers(poll)
+    closed = close_poll(poll, override_reason=Reason.ADMINISTRATIVE_DECISION)
+    assert closed.state == PollState.CLOSED
 
-def test_refuses_before_the_paper_entry_deadline(
+
+def test_t81_refuses_before_the_paper_entry_deadline(
     paper_poll_reconciliation_window_open: Poll, operator: User
 ) -> None:
-    """A count taken before the window closes could be made stale by a paper
+    """T-81, third case. A count taken before the window closes could be made stale by a paper
     entry or correction the window still legitimately admits (§6.4)."""
     poll = paper_poll_reconciliation_window_open
     assert poll.paper_entry_deadline > timezone.now()
