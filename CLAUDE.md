@@ -160,6 +160,14 @@ The tag must always match `version` in `pyproject.toml` — bump
 `pyproject.toml` in the same commit that gets tagged and released, not before
 and not after, so the two never drift apart.
 
+That release commit also:
+
+- adds the version's section to `CHANGELOG.md`, the same text as the GitHub
+  release's notes;
+- regenerates the manual's captures (`docs/manuel/captures/README.md`,
+  "Régénérer") and commits whatever changed, so the manual shows the screens
+  being released.
+
 ## Pushing back
 
 The specification is careful and mostly right, so treat it as the default. But

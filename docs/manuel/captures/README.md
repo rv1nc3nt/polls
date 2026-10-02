@@ -8,16 +8,20 @@
 
 ## Régénérer
 
+À chaque version publiée, avant l'étiquette : les captures suivent les gabarits,
+et un écran modifié depuis la dernière régénération apparaîtrait autrement
+dans le manuel tel qu'il était.
+
 ```sh
-# 1. base de démonstration (settings dev, SQLite jetable)
-rm -f var/dev.sqlite3
-DJANGO_SETTINGS_MODULE=config.settings.dev PYTHONPATH=src \
-  uv run python manage.py migrate
-PYTHONPATH=src uv run python docs/manuel/captures/outils/demo_seed.py
+# 1. base de démonstration, jetable : DJANGO_DB_PATH la tient à l'écart de
+#    var/dev.sqlite3, que cette recette ne touche pas
+export DJANGO_SETTINGS_MODULE=config.settings.dev PYTHONPATH=src
+export DJANGO_DB_PATH="$(mktemp -d)/captures.sqlite3"
+uv run python manage.py migrate
+uv run python docs/manuel/captures/outils/demo_seed.py
 
 # 2. HTML de chaque écran dans docs/manuel/captures/
-DJANGO_SETTINGS_MODULE=config.settings.dev PYTHONPATH=src \
-  uv run python docs/manuel/captures/outils/render_captures.py
+uv run python docs/manuel/captures/outils/render_captures.py
 
 # 3. HTML -> PNG dans docs/manuel/captures/img/ (navigateur sans affichage)
 mkdir -p docs/manuel/captures/img

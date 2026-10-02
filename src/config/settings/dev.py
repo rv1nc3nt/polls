@@ -2,6 +2,8 @@
 """Local development: ``manage.py`` defaults to these. SQLite under ``var/``,
 mail printed to the console, a fixed non-secret key."""
 
+import os
+
 from .base import *
 from .base import BASE_DIR, DATABASES
 
@@ -16,4 +18,11 @@ EMAIL_FALLBACK_BACKEND = "django.core.mail.backends.console.EmailBackend"
 # Only the file differs from production: the OPTIONS (WAL, busy_timeout,
 # IMMEDIATE transactions) are base's, so development runs with the same
 # concurrency semantics (review note M4).
-DATABASES = {"default": {**DATABASES["default"], "NAME": BASE_DIR / "var" / "dev.sqlite3"}}
+# DJANGO_DB_PATH points it elsewhere, as in production: the manual's captures
+# are rendered from a throwaway demo database (docs/manuel/captures/README.md).
+DATABASES = {
+    "default": {
+        **DATABASES["default"],
+        "NAME": os.environ.get("DJANGO_DB_PATH", BASE_DIR / "var" / "dev.sqlite3"),
+    }
+}
