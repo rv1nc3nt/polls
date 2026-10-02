@@ -124,7 +124,8 @@ class Poll(models.Model):
       ``transitions.extend_closes_at``;
     * **lifecycle** — ``state``, ``opening_seed``, ``closure_hash``,
       ``closed_at``, ``withdrawn_at``, ``frozen_counts``,
-      ``closure_override_reason``, written only by ``transitions`` (and
+      ``closure_override_reason``, ``published_document``,
+      ``published_csv``, written only by ``transitions`` (and
       ``physical_tiebreak_order`` by ``closure``);
     * **access** — ``preview_token``, written by ``sharelink``.
 
@@ -195,6 +196,16 @@ class Poll(models.Model):
     # is logged. An ordering of the tied option ids; empty until entered. A
     # lifecycle field, not configuration — set once, after closure.
     physical_tiebreak_order = models.JSONField(default=list, blank=True)
+    # R-10.2: the §9 artefacts exactly as served, written once by
+    # ``publish_poll`` and never re-derived, so neither a later change to the
+    # tally code nor to the document's shaping can restate a published result.
+    # Text, not JSON: the bytes a reader downloaded are what is kept. NULL
+    # until published — nullable rather than blank so SQLite adds the columns
+    # in place, without the table rebuild that trips every trigger reading
+    # this table (migration 0010's comment) — then write-once, by trigger
+    # (migration 0015).
+    published_document = models.TextField(null=True, blank=True)  # noqa: DJ001
+    published_csv = models.TextField(null=True, blank=True)  # noqa: DJ001
 
     created_at = models.DateTimeField(auto_now_add=True)
 

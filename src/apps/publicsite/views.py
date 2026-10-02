@@ -490,11 +490,14 @@ def results(request: HttpRequest, poll_id: str) -> HttpResponse:
         raise Http404
 
     fmt = request.GET.get("format")
+    # R-10.2: served from the copy stored at publication, never recomputed.
     if fmt == "csv":
-        response = HttpResponse(closure.published_csv(poll), content_type="text/csv; charset=utf-8")
+        response = HttpResponse(closure.csv_text(poll), content_type="text/csv; charset=utf-8")
         response["Content-Disposition"] = f'attachment; filename="bulletins-{poll.pk}.csv"'
         return response
     if fmt == "json":
+        if poll.published_document is not None:
+            return HttpResponse(poll.published_document, content_type="application/json")
         return JsonResponse(closure.publication(poll), json_dumps_params={"ensure_ascii": False})
     if fmt is not None:
         raise Http404

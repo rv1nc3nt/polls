@@ -62,7 +62,7 @@ The software is released as open source, one instance per commune. **Non-goals.*
 | `opens_at`, `closes_at` | timestamptz | timezone stored explicitly |
 | `paper_entry_deadline` | timestamptz | `≥ closes_at`, default equal to it; the paper keying window (§6.4) |
 | `tally_method` | enum | `schulze` \| `plurality` \| `approval` |
-| `tally_method_version` | string | pinned; R-10.2 |
+| `tally_method_version` | string | pinned; R-10.2. One of the versions the tally implements (`tally.methods.SUPPORTED_VERSIONS`), chosen in `draft`; the tally runs that version or refuses (§8), and announcing and opening refuse an unknown one |
 | `require_complete_ranking` | bool | |
 | `allow_ties_in_ballot` | bool | |
 | `tiebreak_rule` | enum | `computed` \| `physical` |
@@ -80,6 +80,7 @@ The software is released as open source, one instance per commune. **Non-goals.*
 | `is_sandbox` | bool | immutable after creation; R-3.7 |
 | `state` | enum | `draft` \| `announced` \| `open` \| `closed` \| `published` \| `withdrawn`; `announced` is a mandatory waypoint before `open` (R-3.10, §4, §6.6), `withdrawn` a terminal one reachable only from the four public states (R-3.11, §4, §6.6) |
 | `closure_hash` | bytes(32) | set at `closed` |
+| `published_document`, `published_csv` | text, null until published | the §9 artefacts exactly as served, stored by `publish_poll` and never re-derived; write-once, by trigger (§9, R-10.2) |
 
 A typical configuration: `schulze`, `require_complete_ranking = true`, `allow_ties_in_ballot = false`, three options — the case for which the six-row summary table of §9 applies.
 
@@ -407,7 +408,7 @@ This cuts against the advice above, and the configuration screen should say so r
 
 ## 8. Tally
 
-Pure function `tally(ballots, method, params) → {winner, matrix, derivation}` (R-10.1). No I/O, no clock, no randomness beyond the seeded tie-break. Version-pinned (R-10.2).
+Pure function `tally(ballots, method, params) → {winner, matrix, derivation}` (R-10.1). No I/O, no clock, no randomness beyond the seeded tie-break. Version-pinned (R-10.2): the tally runs the version the poll recorded and refuses one it does not implement, rather than applying the current rules to it. A change to how any method counts is a new version, added beside the old one, which stays reachable for every poll that recorded it. The published result does not rest on this alone: §9 stores the artefacts at publication.
 
 ### 8.1 Schulze
 
@@ -461,6 +462,8 @@ The set hashed is exactly the rows with `status = live` (§3.4), serialised with
 **Reconciliation guard (R-8.6).** Where `paper_requires_reconciliation` is set, closure is refused until the poll admin has entered the reconciliation record on screen 9 (§6.5.9): the count of paper forms the commune retains, checked against the count of paper ballots the system holds, signed. Unlike the countersignature guard above, this one has no override — the requirements name a mandatory-reason escape hatch for R-8.7 bis alone — so a poll that enables the flag and never records the reconciliation simply cannot close by any path, scheduled or manual. Where the flag is unset, R-8.6's own fallback applies without any further mechanism: "the audit log serves as the record", already true of any poll from the paper-ballot audit events §10 requires regardless.
 
 Publish (R-11.2), the JSON as one versioned document whose layout is `docs/publication-format.md`: anonymised ballot list as CSV and JSON (tracking code + ranking); pairwise matrix; derivation; the participation counts frozen at closure — registered electors, ballots by channel, non-voters, and the paper entries a countersignature override left uncounted (R-8.7 bis), as a figure of their own so that the paper count matches the ballot list; `closure_hash`; `opening_seed`; tie-break computation if any.
+
+**The artefacts are stored at publication (R-10.2).** `publish_poll` writes the JSON document and the CSV, as text, onto the poll row in the same transaction that publishes it, and the results page, its `?format=csv`/`?format=json` and screen 9 serve that text from then on. Nothing published is recomputed, so neither a later change to the tally nor to the document's shaping can restate a result readers already downloaded; a trigger makes both columns write-once. A poll published before the artefacts were stored gets them from `manage.py freeze_publications`, run at deploy (decision log #41).
 
 Those counts are computed on entry to `closed` and stored, never derived at publication time. They read from `Registration`, which the retention job deletes (§11), and a late publication would otherwise be unable to produce them — and would in any case be reading them at a different instant from the hash they accompany.
 

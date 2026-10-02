@@ -7,7 +7,11 @@
 
 {% block screen %}
 
-{% if not_closed %}
+{% if unsupported_version %}
+  {% comment %} R-10.2: the poll records a method version this software does not
+     implement; it is not tallied under another version's rules. {% endcomment %}
+  <p class="error" role="alert">{% blocktranslate with version=unsupported_version %}Ce scrutin a été configuré avec la version « {{ version }} » de la méthode de dépouillement, que ce logiciel ne sait pas appliquer. Le dépouillement et la publication sont impossibles tant qu'une version du logiciel qui l'implémente n'est pas installée.{% endblocktranslate %}</p>
+{% elif not_closed %}
   {% comment %}
     §4: online voting stops at closes_at on the write path whatever the state
     says; the scheduled close_poll flips the state at paper_entry_deadline. This

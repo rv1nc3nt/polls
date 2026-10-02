@@ -38,6 +38,12 @@ its public page from that point on.
   `options`, whose key order is the poll's option order and is kept by the
   verifier for display.
 
+## Stored, not recomputed
+
+The application stores this document, and the CSV beside it, when the poll is
+published, and serves the stored text from then on. A later change to the code
+cannot change a document already published.
+
 ## Versioning
 
 `format_version` is a string, `"1"` for the layout below
@@ -57,7 +63,7 @@ rest.
 | `format_version` | string | read | This layout's version. |
 | `poll_id` | string (UUID) | read | Shown in the report. |
 | `tally_method` | `"schulze"` \| `"plurality"` \| `"approval"` | read, **restated** | The method the winner is recomputed under. |
-| `tally_method_version` | string | read | Restated with the method. |
+| `tally_method_version` | string | read | The method version the tally ran. Restated with the method. |
 | `closure_hash` | lower-case hex | **checked** | SHA-256 of the canonical serialisation of `ballots`. |
 | `opening_seed` | lower-case hex | read | Input to the computed tie-break. |
 | `counts` | object | ignored | Participation frozen at closure: `registered`, `ballots_online`, `ballots_paper`, `paper_uncountersigned`, `non_voters`. It is published, but the ballot list does not determine it. |

@@ -122,8 +122,12 @@ Tout est idempotent et propre en `--check`. Un second passage ne change rien.
    archive de l'arbre local), dans un répertoire versionné ; le retour arrière
    est un changement de lien symbolique.
 4. **Virtualenv** depuis `uv.lock` (`uv sync --frozen`), puis `migrate`,
-   `createcachetable`, `collectstatic`, `compilemessages`, et un contrôle
-   « aucune migration en attente ».
+   `createcachetable`, `freeze_publications`, `collectstatic`,
+   `compilemessages`, et un contrôle « aucune migration en attente ».
+   `freeze_publications` conserve une fois pour toutes les fichiers de
+   résultats (document JSON et liste CSV) des scrutins publiés par une version
+   antérieure du logiciel, qui les recalculait à chaque consultation ; il ne
+   fait rien s'il n'y a rien à conserver.
 5. **Fichier d'environnement** rendu en `0600`, propriété du compte de service.
 6. **Service web gunicorn** supervisé + invocation périodique des quatre tâches
    selon `polls_scheduler`.

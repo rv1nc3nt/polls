@@ -196,7 +196,9 @@ def a_template(db: None) -> PollTemplate:
     return PollTemplate.objects.create(
         name="Approbation à un tour",
         tally_method=TallyMethod.APPROVAL,
-        tally_method_version="2",
+        # A supported version (R-10.2): the form offers no other. That the
+        # template's values carry over is shown by ``tally_method`` and the rest.
+        tally_method_version="1",
         require_complete_ranking=False,
         allow_ties_in_ballot=True,
         eligible_list_types=["principale", "complementaire_municipale"],
@@ -210,7 +212,7 @@ def test_the_create_form_is_seeded_from_the_chosen_template(
     response = admin_client.get(CREATE_URL, {"modele": str(a_template.pk)})
     initial = response.context["form"].initial
     assert initial["tally_method"] == TallyMethod.APPROVAL
-    assert initial["tally_method_version"] == "2"
+    assert initial["tally_method_version"] == "1"
     assert initial["require_complete_ranking"] is False
     assert initial["allow_ties_in_ballot"] is True
     assert initial["eligible_list_types"] == ["principale", "complementaire_municipale"]
@@ -259,7 +261,7 @@ def test_creating_from_a_template_carries_the_mechanism_only(
     assert response.status_code == 302
     poll = Poll.objects.get(title_i18n__fr="Choix du revêtement")
     assert poll.tally_method == TallyMethod.APPROVAL
-    assert poll.tally_method_version == "2"
+    assert poll.tally_method_version == "1"
 
 
 # --- screen 13: rename and delete (§6.5.13) ---------------------------------

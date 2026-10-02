@@ -3,20 +3,40 @@
 
 No I/O, no clock, no randomness beyond the seeded tie-break, no database — in
 particular it never reads ``Registration`` (INV-9), which is why this package
-imports no model at all. Version-pinned (R-10.2): ``METHOD_VERSION`` is written
-onto the poll at creation and published with the result, so a later change to
-this file cannot silently restate an old result.
+imports no model at all.
+
+Version-pinned (R-10.2). A poll records the version it is tallied under, chosen
+from ``SUPPORTED_VERSIONS`` before it leaves draft, and ``tally`` runs that
+version or refuses. A change to how any method counts is a new version: it is
+added beside the old one, which stays reachable for every poll that recorded
+it, never edited in place. ``METHOD_VERSION`` is the version new polls get.
+The published artefacts are also stored at publication
+(``elections.closure.freeze_publication``), so a published result does not
+even depend on this rule being kept.
 """
 
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import StrEnum
 
 from apps.core.types import OptionId
 
+#: The version a new poll is configured with.
 METHOD_VERSION = "1"
+
+#: Every version ``tally`` can run. Version 1 is the whole of this module.
+SUPPORTED_VERSIONS: tuple[str, ...] = ("1",)
+
+
+class UnsupportedMethodVersion(ValueError):
+    """A poll recorded a method version this code does not implement (R-10.2).
+
+    Tallying it under whatever the current code does would be exactly the
+    silent restatement the version exists to prevent.
+    """
+
 
 Ranking = Sequence[Sequence[OptionId]]
 
@@ -106,20 +126,28 @@ def tally(
     ballots: Sequence[Ranking],
     options: Sequence[OptionId],
     method: Method,
+    version: str = METHOD_VERSION,
 ) -> TallyResult:
     """``tally(ballots, method, params) → {winner, matrix, derivation}`` (R-10.1).
 
     ``ballots`` is the live set only (§3.4): superseded, deleted and
     ``pending_countersign`` rows are excluded by the caller, which is also what
     the closure hash covers, so the published CSV re-tallies to this result.
+
+    ``version`` is the poll's recorded method version (R-10.2); one this code
+    does not implement raises ``UnsupportedMethodVersion``. There is only
+    version 1 today, so it runs the functions below; a version 2 would
+    dispatch here.
     """
+    if version not in SUPPORTED_VERSIONS:
+        raise UnsupportedMethodVersion(version)
     match method:
         case Method.SCHULZE:
-            return _tally_schulze(ballots, options)
-        case Method.PLURALITY:
-            return _tally_counted(ballots, options, method)
-        case Method.APPROVAL:
-            return _tally_counted(ballots, options, method)
+            result = _tally_schulze(ballots, options)
+        case Method.PLURALITY | Method.APPROVAL:
+            result = _tally_counted(ballots, options, method)
+    # The version that actually ran, which the publication states.
+    return replace(result, method_version=version)
 
 
 def _tally_schulze(ballots: Sequence[Ranking], options: Sequence[OptionId]) -> TallyResult:

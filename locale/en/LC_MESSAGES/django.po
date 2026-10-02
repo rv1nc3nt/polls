@@ -5783,3 +5783,37 @@ msgstr ""
 "Drawn at random at the opening and published from that moment, it can no "
 "longer change. A tie-break depends on it: after publication, check that the "
 "publication document carries exactly this value."
+
+#: src/apps/backoffice/forms.py
+msgid ""
+"Figée avec le scrutin : le dépouillement applique toujours cette version, et "
+"le résultat publié est conservé tel quel, même si le calcul évolue ensuite "
+"pour les scrutins suivants."
+msgstr ""
+"Frozen with the poll: the tally always applies this version, and the "
+"published result is kept as it was, even if the computation changes later "
+"for subsequent polls."
+
+#: src/apps/backoffice/dashboard.py
+msgid ""
+"La version de la méthode de dépouillement n'est pas une version que ce "
+"logiciel sait appliquer : choisissez-en une dans la configuration."
+msgstr ""
+"The tally method version is not one this software can apply: choose one in "
+"the configuration."
+
+#: src/apps/elections/transitions.py
+msgid "Version de la méthode de dépouillement inconnue de ce logiciel."
+msgstr "Tally method version unknown to this software."
+
+#: src/templates/backoffice/results_publish.html
+#, python-format
+msgid ""
+"Ce scrutin a été configuré avec la version « %(version)s » de la méthode de "
+"dépouillement, que ce logiciel ne sait pas appliquer. Le dépouillement et la "
+"publication sont impossibles tant qu'une version du logiciel qui l'implémente "
+"n'est pas installée."
+msgstr ""
+"This poll was configured with version “%(version)s” of the tally method, "
+"which this software cannot apply. Tallying and publication are impossible "
+"until a version of the software that implements it is installed."

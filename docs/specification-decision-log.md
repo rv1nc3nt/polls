@@ -62,6 +62,7 @@ reasoning.
 | 38 | A poll requiring reconciliation cannot be closed early | **open question** for the requirements owner (R-3.4 and R-8.6) |
 | 39 | The back-office trend: switched on by deployment setting, and cut every ten arrivals | **interim**, until the `show_trend` column lands |
 | 40 | The opening seed was published with the result, not at opening | settled in part — published at opening; write-once trigger open |
+| 41 | The method version was free text, and published results were recomputed per request | settled |
 
 ## 1. Retention purge on a poll that closed but was never published
 
@@ -1458,4 +1459,46 @@ readers to compare the seed in the publication with the one shown at opening.
 write-once (NULL to a value, never changed after), so the database itself
 refuses the rewrite; and publishing the closure hash on the poll page at
 closure rather than with the result (review A-3). Both are migrations.
+
+## 41. The method version was free text, and published results were recomputed per request
+
+**Found (2026-10-02, review A-4).** R-10.2 records the method and its version
+with the poll "so that a published result remains reproducible notwithstanding
+subsequent changes to the code". Two things defeated it. `tally_method_version`
+was a free-text field — any string was accepted, frozen at announcement, and
+never read: the tally ran the current code whatever it said. And the
+publication was not stored: the results page, its CSV and JSON and screen 9
+recomputed it from the live set on every request, with the current code. The
+first change to how any method counts would have silently restated every
+result ever published, under a version label that promised the opposite.
+
+**Settled.**
+
+- The field offers only the versions the tally implements
+  (`SUPPORTED_VERSIONS`, `"1"` today). `tally()` takes the poll's version and
+  raises `UnsupportedMethodVersion` for any other; announcing and opening
+  refuse such a poll, while it can still be corrected, and publishing refuses
+  it too. A change to how a method counts becomes a new version, added beside
+  version 1, which stays reachable for every poll that recorded it.
+- `publish_poll` stores the JSON document and the CSV, as the exact text
+  served, on the poll (`published_document`, `published_csv`) in the same
+  transaction that publishes it. Every later read — results page, `?format=`,
+  screen 9 — serves that text; a published poll is never tallied again. The
+  columns are write-once by trigger (migration 0015). The JSON is serialised as
+  `JsonResponse` did, so its bytes are what readers were already downloading.
+- The document's `tally_method_version` now states the version the tally
+  actually ran, not the field's text.
+
+**Polls published before this.** They hold no stored artefacts.
+`manage.py freeze_publications`, run by the deploy after `migrate`, stores what
+the current code computes for each — exactly what its page has been serving —
+once. One whose field held a version the code does not implement was in fact
+tallied under version 1, like every poll before this check; it is frozen under
+version 1, and its document says so rather than repeating the label. A *closed*
+poll in that situation can be neither tallied nor published: screen 9 says
+why, and its configuration is frozen. Before deploying, check
+`SELECT DISTINCT tally_method_version FROM elections_poll`.
+
+The back-office trend (R-11.5 bis) still computes with the current code: it is
+not a published result.
 

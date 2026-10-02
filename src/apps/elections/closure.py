@@ -18,6 +18,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
 
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db import transaction
 from django.utils.translation import gettext as _
 
@@ -100,18 +101,30 @@ def compute_closure(poll: Poll) -> Closure:
     return Closure(closure_hash=closure_hash(live_ballots(poll)), counts=frozen_counts(poll))
 
 
-def tallied(poll: Poll) -> tuple[list[CanonicalBallot], list[OptionId], TallyResult]:
+def tallied(
+    poll: Poll, version: str | None = None
+) -> tuple[list[CanonicalBallot], list[OptionId], TallyResult]:
     """The live set, the option ids and the tally over them (§8).
 
     One code path for the three callers that need the result — the publication
     document, the ``physical`` tie-break guard and screen 9's read model — so a
     tie is reported to all of them the same way. Pure and cheap: recomputed on
-    each call rather than stored, since a later change to ``tally_method`` this
-    file's version pin already forbids (R-10.2).
+    each call rather than stored, while the poll is ``closed``; once published,
+    the result is read from the stored document instead (``document``).
+
+    Tallied under the poll's own recorded method version (R-10.2); one this
+    code does not implement raises ``UnsupportedMethodVersion`` rather than
+    being tallied under the current version's rules. ``version`` overrides
+    it for one caller only, ``freeze_legacy_publication``: see there.
     """
     ballots = live_ballots(poll)
     options = [OptionId(o.option_id) for o in poll.options.all()]
-    result = tally([b.ranking for b in ballots], options, Method(poll.tally_method))
+    result = tally(
+        [b.ranking for b in ballots],
+        options,
+        Method(poll.tally_method),
+        version=version or poll.tally_method_version,
+    )
     return ballots, options, result
 
 
@@ -212,7 +225,7 @@ def published_csv(poll: Poll) -> str:
 PUBLICATION_FORMAT_VERSION = "1"
 
 
-def publication(poll: Poll) -> dict[str, Any]:
+def publication(poll: Poll, version: str | None = None) -> dict[str, Any]:
     """Everything §9 requires published, as one JSON-serialisable document.
 
     Option **labels** appear here as a separate lookup table, never inside a
@@ -220,13 +233,15 @@ def publication(poll: Poll) -> dict[str, Any]:
     independent of the labels (R-10.7, T-23). Labels are frozen at `open`
     (R-3.3, INV-6), so this table shows exactly what voters ranked.
     """
-    ballots, options, result = tallied(poll)
+    ballots, options, result = tallied(poll, version)
 
     document: dict[str, Any] = {
         "format_version": PUBLICATION_FORMAT_VERSION,
         "poll_id": str(poll.id),
         "tally_method": poll.tally_method,
-        "tally_method_version": poll.tally_method_version,
+        # The version the tally actually ran, which is the poll's own save
+        # for a legacy poll frozen under version 1 (``freeze_publication``).
+        "tally_method_version": result.method_version,
         "closure_hash": (poll.closure_hash or b"").hex(),
         "opening_seed": (poll.opening_seed or b"").hex(),
         "counts": poll.frozen_counts,
@@ -287,3 +302,41 @@ def ordering_summary(ballots: list[CanonicalBallot], options: list[OptionId]) ->
         key = ">".join("=".join(sorted(group)) for group in ballot.ranking)
         summary[key] = summary.get(key, 0) + 1
     return dict(sorted(summary.items()))
+
+
+def serialise_document(document: dict[str, Any]) -> str:
+    """The publication document as the JSON text served at ``?format=json``.
+
+    The same encoder and options ``JsonResponse`` used to apply on every
+    request, so a document stored at publication is byte-for-byte what readers
+    of an earlier, recomputed one downloaded.
+    """
+    return json.dumps(document, cls=DjangoJSONEncoder, ensure_ascii=False)
+
+
+def freeze_publication(poll: Poll, version: str | None = None) -> tuple[str, str]:
+    """The §9 artefacts — JSON document and CSV — as the text to store at
+    publication (R-10.2). Computed once, by ``transitions.publish_poll``; every
+    later read serves the stored text (``document``, ``csv_text``). ``version``
+    as for ``tallied``."""
+    return serialise_document(publication(poll, version)), published_csv(poll)
+
+
+def document(poll: Poll) -> dict[str, Any]:
+    """The publication document: the stored one once published (R-10.2),
+    computed from the live set before that (screen 9's preview).
+
+    A poll published before the artefacts were stored has none, and is
+    computed as before; ``manage.py freeze_publications`` stores it.
+    """
+    if poll.published_document is not None:
+        stored: dict[str, Any] = json.loads(poll.published_document)
+        return stored
+    return publication(poll)
+
+
+def csv_text(poll: Poll) -> str:
+    """The ballot CSV, stored once published, computed before (as ``document``)."""
+    if poll.published_csv is not None:
+        return poll.published_csv
+    return published_csv(poll)
