@@ -782,8 +782,10 @@ both left out). The small curve traces the margin since the first point.
 the leading proposition's lead, gives the range the margin very likely lies
 in given the number of ballots received; on the small curve it is the shaded
 band. On the chart of the trend over time, only the leading proposition and
-its closest rival carry that band, so the curves stay legible; hover over a
-point to read every proposition's interval. It narrows as ballots come in. "Uncertain" means it includes zero: the
+its closest rival carry that band, so the curves stay legible, and only once
+the interval is narrower than ±10 points: any wider, it only says that too few
+ballots have come in yet. Hover over a point to read every proposition's
+interval, however wide. It narrows as ballots come in. "Uncertain" means it includes zero: the
 margin is still too small, for the number of ballots, to rule out its
 reversing. It assumes the ballots received resemble those to come, which is
 not guaranteed: electors who vote early are not necessarily those who vote

@@ -106,7 +106,7 @@
           <p class="help">
             {% if is_schulze %}
               {% translate "Pour chaque proposition, l’écart de son duel le plus serré, en points de pourcentage des bulletins : au-dessus de zéro, elle bat chacune des autres ; en dessous, la distance qui la sépare de ne plus perdre aucun duel." %}
-              {% if curves.banded %}{% blocktranslate trimmed %}La bande teintée est l’intervalle à 95 % de la proposition en tête et de sa rivale la plus proche ; survolez un point pour lire celui de chaque proposition.{% endblocktranslate %}{% endif %}
+              {% if curves.banded %}{% blocktranslate with max=curves.band_max trimmed %}La bande teintée est l’intervalle à 95 % de la proposition en tête et de sa rivale la plus proche, tracé là où il est inférieur à ±{{ max }} pts ; survolez un point pour lire celui de chaque proposition.{% endblocktranslate %}{% endif %}
             {% else %}
               {% translate "Part des bulletins obtenue par chaque proposition, en pourcentage." %}
             {% endif %}
