@@ -374,7 +374,7 @@ automate the check:
 |---|---|---|
 | 0 | Every compared value matches. | Nothing: the published result is the one the ballots produce. |
 | 1 | At least one value does not match (`DIFFERS`). | Follow the steps below. |
-| 2 | The verifier could not work: unreadable or incomplete file, unknown flag or flag without a value, or an impossible ballot list (a repeated or malformed tracking code, an empty ranking, an option ranked twice). | Correct the command, or download the file again. An impossible list in a file downloaded as-is from the results page is an anomaly to report like a disagreement. |
+| 2 | The verifier could not work: unreadable or incomplete file, unknown flag or flag without a value, or an impossible ballot list (a repeated or malformed tracking code, an empty ranking, an option ranked twice, an option identifier the platform does not accept). | Correct the command, or download the file again. An impossible list in a file downloaded as-is from the results page is an anomaly to report like a disagreement. |
 | 3 | Nothing was compared (a CSV file without `--closure-hash` or `--winner`). | Add the values to compare, copied from the results page. |
 
 A code 2 or 3 is never a success: it means nothing was verified.

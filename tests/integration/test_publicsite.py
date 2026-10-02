@@ -589,7 +589,7 @@ def test_t36_published_artefacts_cross_check(client: Client, db: None) -> None:
 #: Pinned tracking codes and rankings, so two polls that differ only in their
 #: option labels have a byte-identical canonical serialisation (§9).
 _T23_BALLOTS = [
-    ("TRACKAAAA1", [["a"], ["b"], ["c"]]),
+    ("TRACKAAAA9", [["a"], ["b"], ["c"]]),
     ("TRACKBBBB2", [["a"], ["c"], ["b"]]),
     ("TRACKCCCC3", [["b"], ["a"], ["c"]]),
 ]

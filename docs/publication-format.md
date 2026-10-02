@@ -98,7 +98,7 @@ rest.
 | `opening_seed` | lower-case hex | read | Input to the computed tie-break. |
 | `counts` | object | **checked** | Participation frozen at closure: `registered`, `ballots_online`, `ballots_paper`, `paper_uncountersigned`, `non_voters`, each an integer and each required. The ballot list does not determine them, but they must add up with it: `ballots_online + ballots_paper = ballot_count`, and `registered = ballots_online + ballots_paper + paper_uncountersigned + non_voters`. |
 | `closure_override_reason` | string | ignored | Reason given for closing despite uncountersigned entries, or `""`. |
-| `options` | object: option id → labels by language | read (keys) | The poll's options, including any that no ballot ranks. |
+| `options` | object: option id → labels by language | read (keys) | The poll's options, including any that no ballot ranks. Each key is an id from the alphabet of `canonical-serialisation.md`, "Alphabets"; the verifier refuses any other, as it does in a ranking. |
 | `ballots` | list of `{"tracking_code": string, "ranking": [[option id, …], …]}` | read | The live set, sorted by tracking code, ids sorted within a group; the same records as the CSV. |
 | `ballot_count` | integer | **checked** | Number of entries in `ballots`. |
 | `winner` | option id or `null` | **checked** | The result after any tie-break. `null` only when there are no ballots. |
@@ -117,7 +117,8 @@ Computed (the hash chain of `canonical-serialisation.md`, "The tie-break"):
 
 The verifier replays the draw from `opening_seed` and the recomputed hash, and
 requires `tied` to equal its own set of tied winners and `order` to equal its
-own order.
+own order, compared by `option_id`. Each `draw` is shown for a reader replaying
+the chain by hand and is not compared: the order it produces is.
 
 Physical (a public draw at the mairie, entered on screen 9):
 
@@ -126,6 +127,11 @@ Physical (a public draw at the mairie, entered on screen 9):
 A program cannot replay a physical draw. The verifier checks that `tied`
 equals its own set of tied winners and that `order` is a permutation of them.
 It then takes the first entry of `order` as the winner.
+
+Under either rule, `winner` is **checked**: it must be the first entry of
+`order`, and the document's top-level `winner` is then compared with it like
+any other winner. A `tiebreak` with no `winner`, or one that is not the first
+of its order, disagrees.
 
 With no `tiebreak` member, the recomputation must not tie. With no ballots
 there is no result under any method: no winners, so no tie, and `winner` is

@@ -180,6 +180,9 @@ fn input_error(err: VerifyError) -> ExitCode {
         VerifyError::DuplicateTrackingCode(code) => {
             eprintln!("tracking code {code} appears on more than one ballot: a published ballot list never repeats one")
         }
+        VerifyError::MalformedOptionId(option) => {
+            eprintln!("option {option:?} is not an id the platform accepts (A-Z, a-z, 0-9, _ and -, at most 50)")
+        }
     }
     ExitCode::from(2)
 }

@@ -459,7 +459,7 @@ closure_hash = SHA256 over the canonical serialisation of the live ballot set,
                JSON object {tracking_code, ranking}, newline-separated, UTF-8
 ```
 
-The set hashed is exactly the rows with `status = live` (§3.4), serialised with option **ids**, never labels (§3.8). Document this serialisation precisely in the repository: a third party must be able to recompute the hash from the published CSV alone, and the CSV must therefore contain that set and nothing else.
+The set hashed is exactly the rows with `status = live` (§3.4), serialised with option **ids**, never labels (§3.8). Document this serialisation precisely in the repository: a third party must be able to recompute the hash from the published CSV alone, and the CSV must therefore contain that set and nothing else. Every string the serialisation writes comes from a fixed alphabet — a tracking code from its 32 characters, an option id 1 to 50 characters of `A-Z`, `a-z`, `0-9`, `_` and `-` — so a record needs no escaping rule, and a value outside its alphabet is refused rather than escaped, by the serialiser, by a trigger on `PollOption` and by the verifier (decision log #48).
 
 **Closure guard.** If any ballot is still `pending_countersign` when closure is attempted, the transition is refused; where the attempt is the scheduled `close_poll`, the refusal is loud and the poll stays `open` (§4). The poll admin either has the entries countersigned, or overrides with a mandatory reason which is logged and appears in the publication. Silently dropping uncountersigned ballots at closure is not acceptable.
 

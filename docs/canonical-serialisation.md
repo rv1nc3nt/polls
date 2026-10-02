@@ -47,9 +47,31 @@ could have published.
 
 * keys in exactly that order: `tracking_code`, then `ranking`;
 * no insignificant whitespace — JSON separators are `,` and `:`;
-* non-ASCII characters are emitted as UTF-8, not `\u`-escaped. (Both fields are
-  drawn from restricted alphabets today; the rule is stated so a future option
-  id cannot make the encoding ambiguous.)
+* every string written as-is between its quotes, with no escape sequence, which
+  the alphabets below guarantee is the JSON for it.
+
+## Alphabets
+
+Every string in a record comes from a fixed alphabet:
+
+| String | Alphabet | Length |
+|---|---|---|
+| tracking code | `23456789ABCDEFGHJKLMNPQRSTUVWXYZ` | exactly 10 |
+| option id | `A-Z`, `a-z`, `0-9`, `_`, `-` | 1 to 50 |
+
+JSON escapes none of these characters, so the format needs **no escaping
+rule**: each string's JSON is the string between two quotes. The option-id
+alphabet is the slug the application's forms and model already accept, and a
+database trigger holds stored ids to it.
+
+A string outside its alphabet is **refused, never escaped**: by the
+application's serialiser, which will not hash it, and by the verifier, which
+treats a ballot list or option list holding one as an input error. Escaping
+would need a rule both sides follow to the byte — the application's
+`json.dumps` writes a quote as `\"` and U+0001 as `\u0001`, where a serialiser
+that writes strings raw, as the verifier's does, would not, and the two hashes
+part (review B-7) — and an id that needs one has no use here. Widening an alphabet is therefore a change to this
+contract: it needs that rule first, in Python, in Rust and here together.
 
 ## The document
 
@@ -59,9 +81,7 @@ tracking-code alphabet is ASCII (`23456789ABCDEFGHJKLMNPQRSTUVWXYZ` — no `O`,
 what the verifier must match. `(poll_id, tracking_code)` is unique in the
 database (INV-11), so the sort is total. The verifier refuses a ballot list
 holding a code outside that alphabet, of another length than 10, or repeated:
-the database could not have produced it, and the record format above does not
-escape strings, so only codes from the alphabet serialise identically on both
-sides.
+the database could not have produced it (see "Alphabets" above).
 
 Each record is followed by a single `\n`, **including the last**. The document
 is the concatenation of those lines, encoded UTF-8.

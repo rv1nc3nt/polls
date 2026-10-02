@@ -400,7 +400,7 @@ automatisez la vérification :
 |---|---|---|
 | 0 | Toutes les valeurs comparées concordent. | Rien : le résultat publié est celui que donnent les bulletins. |
 | 1 | Au moins une valeur ne concorde pas (`DIFFERS`). | Suivre les étapes ci-dessous. |
-| 2 | Le vérificateur n'a pas pu travailler : fichier illisible ou incomplet, option inconnue ou sans valeur, ou liste de bulletins impossible (un code de suivi répété ou mal formé, un classement vide, une proposition classée deux fois). | Corriger la commande, ou télécharger à nouveau le fichier. Une liste impossible dans un fichier téléchargé tel quel depuis la page de résultats est une anomalie à signaler comme un désaccord. |
+| 2 | Le vérificateur n'a pas pu travailler : fichier illisible ou incomplet, option inconnue ou sans valeur, ou liste de bulletins impossible (un code de suivi répété ou mal formé, un classement vide, une proposition classée deux fois, un identifiant de proposition que la plateforme n'accepte pas). | Corriger la commande, ou télécharger à nouveau le fichier. Une liste impossible dans un fichier téléchargé tel quel depuis la page de résultats est une anomalie à signaler comme un désaccord. |
 | 3 | Rien n'a été comparé (fichier CSV sans `--closure-hash` ni `--winner`). | Ajouter les valeurs à comparer, recopiées depuis la page de résultats. |
 
 Un code 2 ou 3 n'est jamais un succès : il signifie que rien n'a été vérifié.

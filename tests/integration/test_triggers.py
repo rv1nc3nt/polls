@@ -19,7 +19,7 @@ from apps.audit import services as audit
 from apps.audit.models import Action, AuditEvent
 from apps.ballots.models import Ballot, BallotSource, BallotStatus
 from apps.core.codes import new_tracking_code
-from apps.elections.models import Poll, PollImage
+from apps.elections.models import Poll, PollImage, PollOption
 from tests.conftest import force_announce, force_open
 
 
@@ -246,6 +246,33 @@ def test_t80_poll_image_frozen_outside_draft(open_window_poll: Poll) -> None:
     with pytest.raises(Exception, match="INV-6"), transaction.atomic():
         raw("DELETE FROM elections_pollimage WHERE id = %s", [pk(image)])
     assert PollImage.objects.filter(pk=image.pk, alt_text="").exists()
+
+
+@pytest.mark.parametrize("option_id", ['a"b', "a b", "é", "", "x" * 51])
+def test_an_option_id_outside_the_alphabet_is_refused_by_the_database(
+    db: None, option_id: str
+) -> None:
+    """Review B-7: the canonical serialisation relies on ids JSON never
+    escapes, so a write past the form cannot store one either, on insert or
+    on update, even in a draft."""
+    now = timezone.now()
+    poll = Poll.objects.create(
+        title_i18n={"fr": "Brouillon"},
+        description_i18n={"fr": "…"},
+        languages=["fr"],
+        opens_at=now + timedelta(days=1),
+        closes_at=now + timedelta(days=2),
+        paper_entry_deadline=now + timedelta(days=2),
+    )
+    option = PollOption.objects.create(poll=poll, option_id="ok-1_A", label_i18n={"fr": "A"})
+    with pytest.raises(Exception, match="option id"), transaction.atomic():
+        PollOption.objects.create(poll=poll, option_id=option_id, label_i18n={"fr": "B"})
+    with pytest.raises(Exception, match="option id"), transaction.atomic():
+        raw(
+            "UPDATE elections_polloption SET option_id = %s WHERE id = %s",
+            [option_id, pk(option)],
+        )
+    assert PollOption.objects.get(pk=option.pk).option_id == "ok-1_A"
 
 
 def test_state_machine_is_irreversible(open_window_poll: Poll) -> None:

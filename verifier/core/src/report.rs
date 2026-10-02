@@ -17,8 +17,8 @@
 //! The closure-hash check is method-independent either way.
 
 use crate::canonical::{
-    canonical_serialisation, check_ranking, check_tracking_codes, options_in, parse_csv, parse_hex,
-    Ballot, BallotListError,
+    canonical_serialisation, check_ranking, check_tracking_codes, is_option_id, options_in,
+    parse_csv, parse_hex, Ballot, BallotListError,
 };
 use crate::counted::{self, Method};
 use crate::publication::{parse_publication, Participation, Publication, TiebreakRule};
@@ -90,6 +90,9 @@ pub enum VerifyError {
     /// A ballot's ranking is not one the application could record: the
     /// tracking code, then why (`canonical::check_ranking`).
     MalformedRanking(String, String),
+    /// An option of `Expected::options` is not an id the application
+    /// accepts (`canonical::is_option_id`).
+    MalformedOptionId(String),
 }
 
 impl From<BallotListError> for VerifyError {
@@ -139,6 +142,9 @@ pub fn verify_ballots(ballots: &[Ballot], expected: &Expected) -> Result<Report,
     let options = match expected.options {
         None => ranked,
         Some(listed) => {
+            if let Some(malformed) = listed.iter().find(|o| !is_option_id(o)) {
+                return Err(VerifyError::MalformedOptionId(malformed.clone()));
+            }
             if let Some(unknown) = ranked.iter().find(|o| !listed.contains(o)) {
                 return Err(VerifyError::UnknownOption(unknown.clone()));
             }
@@ -324,6 +330,9 @@ pub fn verify_publication(text: &str) -> Result<PublicationReport, VerifyError> 
         None => tied.then_some(false),
         Some(tiebreak) => Some(
             tied && sorted(&tiebreak.tied) == sorted(&report.winners)
+                // The draw's own winner is its order's first entry; the
+                // top-level `winner` is then compared with that, below.
+                && tiebreak.winner.as_ref() == tiebreak.order.as_ref().and_then(|o| o.first())
                 && match (&tiebreak.rule, &tiebreak.order) {
                     (TiebreakRule::Computed, Some(order)) => {
                         report.tiebreak_order.as_ref() == Some(order)
@@ -720,8 +729,9 @@ mod tests {
             .map(|o| format!(r#"{{"option_id": "{o}", "draw": "00"}}"#))
             .collect();
         let tiebreak = format!(
-            r#"{{"rule": "computed", "tied": ["a", "b", "c"], "order": [{}]}}"#,
-            entries.join(", ")
+            r#"{{"rule": "computed", "tied": ["a", "b", "c"], "order": [{}], "winner": "{}"}}"#,
+            entries.join(", "),
+            order[0]
         );
         let winner = format!("\"{}\"", order[0]);
         let checked = verify_publication(&cyclic_document(&tiebreak, &winner))
@@ -733,8 +743,9 @@ mod tests {
 
         let reversed: Vec<String> = entries.into_iter().rev().collect();
         let tampered = format!(
-            r#"{{"rule": "computed", "tied": ["a", "b", "c"], "order": [{}]}}"#,
-            reversed.join(", ")
+            r#"{{"rule": "computed", "tied": ["a", "b", "c"], "order": [{}], "winner": "{}"}}"#,
+            reversed.join(", "),
+            order[order.len() - 1]
         );
         let checked = verify_publication(&cyclic_document(&tampered, &winner))
             .ok()
@@ -744,7 +755,8 @@ mod tests {
 
     #[test]
     fn a_physical_draw_must_be_among_exactly_the_tied_options() {
-        let drawn = r#"{"rule": "physical", "tied": ["a", "b", "c"], "order": ["b", "c", "a"]}"#;
+        let drawn = r#"{"rule": "physical", "tied": ["a", "b", "c"], "order": ["b", "c", "a"],
+                        "winner": "b"}"#;
         let checked = verify_publication(&cyclic_document(drawn, "\"b\""))
             .ok()
             .expect("reads");
@@ -753,11 +765,61 @@ mod tests {
         assert_eq!(checked.report.final_winner.as_deref(), Some("b"));
         assert!(checked.all_agree());
 
-        let foreign = r#"{"rule": "physical", "tied": ["a", "b", "c"], "order": ["b", "c", "z"]}"#;
+        let foreign = r#"{"rule": "physical", "tied": ["a", "b", "c"], "order": ["b", "c", "z"],
+                          "winner": "b"}"#;
         let checked = verify_publication(&cyclic_document(foreign, "\"b\""))
             .ok()
             .expect("reads");
         assert_eq!(checked.tiebreak_agrees, Some(false));
         assert!(!checked.all_agree());
+    }
+
+    #[test]
+    fn the_tie_break_winner_must_be_the_first_of_its_order() {
+        // Review D-4: `tiebreak.winner` is published, so it is checked: the
+        // first of the drawn order, and through it the top-level `winner`.
+        for winner in [r#", "winner": "c""#, ""] {
+            let drawn = format!(
+                r#"{{"rule": "physical", "tied": ["a", "b", "c"], "order": ["b", "c", "a"]{winner}}}"#
+            );
+            let checked = verify_publication(&cyclic_document(&drawn, "\"b\""))
+                .ok()
+                .expect("reads");
+            assert_eq!(checked.tiebreak_agrees, Some(false), "winner {winner:?}");
+            assert!(!checked.all_agree());
+        }
+    }
+
+    #[test]
+    fn an_option_id_outside_the_alphabet_is_refused() {
+        // Review B-7: the serialisation writes ids unescaped, so an id JSON
+        // would escape cannot be hashed the way the application hashes it.
+        for id in ["a\"b", "a b", "é", "", &"x".repeat(51)] {
+            assert!(!is_option_id(id), "{id:?}");
+            let ballots = [Ballot {
+                tracking_code: "AAAAAAAAAA".into(),
+                ranking: vec![vec![id.to_string()]],
+            }];
+            assert!(matches!(
+                verify_ballots(&ballots, &Expected::default()),
+                Err(VerifyError::MalformedRanking(..))
+            ));
+            let listed = vec!["a".to_string(), id.to_string()];
+            let expected = Expected {
+                options: Some(&listed),
+                ..Expected::default()
+            };
+            let ballots = [Ballot {
+                tracking_code: "AAAAAAAAAA".into(),
+                ranking: vec![vec!["a".into()]],
+            }];
+            assert!(matches!(
+                verify_ballots(&ballots, &expected),
+                Err(VerifyError::MalformedOptionId(ref m)) if m == id
+            ));
+        }
+        for id in ["a", "option-b", "Grille_3", &"x".repeat(50)] {
+            assert!(is_option_id(id), "{id:?}");
+        }
     }
 }

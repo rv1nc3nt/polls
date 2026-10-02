@@ -30,6 +30,8 @@ pub struct Tiebreak {
     /// The drawn order, first the winner; absent only for a physical draw not
     /// yet entered, which publication refuses.
     pub order: Option<Vec<String>>,
+    /// The draw's winner, as the document states it; present with `order`.
+    pub winner: Option<String>,
 }
 
 /// Participation frozen at closure (`counts`, §9): registered electors, the
@@ -256,7 +258,21 @@ pub fn parse_publication(text: &str) -> Result<Publication, String> {
                     TiebreakRule::Physical => strings(order, "\"tiebreak.order\"")?,
                 }),
             };
-            Some(Tiebreak { rule, tied, order })
+            let winner = match value.get("winner") {
+                None => None,
+                Some(winner) => Some(
+                    winner
+                        .as_str()
+                        .ok_or("publication: \"tiebreak.winner\" must be a string")?
+                        .to_string(),
+                ),
+            };
+            Some(Tiebreak {
+                rule,
+                tied,
+                order,
+                winner,
+            })
         }
     };
 

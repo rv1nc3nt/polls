@@ -145,6 +145,11 @@ fn error_message(err: VerifyError) -> String {
             "Le code de suivi {code} figure sur plusieurs bulletins : une liste publiée \
              n'en répète jamais aucun."
         ),
+        VerifyError::MalformedOptionId(option) => format!(
+            "L'option « {option} » n'est pas un identifiant que la plateforme accepte \
+             (lettres sans accent, chiffres, _ et -, 50 au plus) : ce n'est pas l'un de \
+             ses scrutins."
+        ),
     }
 }
 

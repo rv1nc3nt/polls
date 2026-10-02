@@ -69,6 +69,7 @@ reasoning.
 | 45 | The back office ignored a poll's own time zone, and static files kept their names | settled |
 | 46 | Verifier binaries were released unsigned, unchecksummed and from an unpinned compiler | settled |
 | 47 | The verifier read ballot lists leniently and ignored the participation counts | settled |
+| 48 | The serialisation had no escaping rule, and `tiebreak.winner` was unchecked | settled |
 
 ## 1. Retention purge on a poll that closed but was never published
 
@@ -1755,4 +1756,38 @@ recomputed to match.
 The counts still cannot be checked against who actually registered: that list
 is never published, and is deleted at retention. What the check catches is a
 list changed without its counts.
+
+## 48. The serialisation had no escaping rule, and `tiebreak.winner` was unchecked
+
+**Found (2026-10-02, review B-7, D-4).** The canonical record writes each string
+between quotes. Python builds it with `json.dumps`, which escapes a quote, a
+backslash and the control characters; the verifier wrote strings raw. For a
+tracking code holding a quote the two hashes differed. The alphabets made that
+unreachable, but only the tracking code's was written down and checked (B-3,
+#47); the option id's was a property of the form, held nowhere else, and the
+contract stated no escaping rule. Separately, the publication's
+`tiebreak.winner` was published but neither read nor documented.
+
+**Settled.**
+
+- The contract states both alphabets (`docs/canonical-serialisation.md`,
+  "Alphabets"): option ids are 1 to 50 characters of `A-Z`, `a-z`, `0-9`, `_`
+  and `-`, the slug the form and the model already accepted. None of those
+  characters is escaped in JSON, so the format needs no escaping rule, and a
+  string outside its alphabet is refused rather than escaped. Widening an
+  alphabet means writing that rule first, on both sides.
+- `core.canonical` refuses to serialise a tracking code or option id outside
+  its alphabet (`NonCanonicalValue`). Elections migration 0017 adds insert and
+  update triggers on `PollOption.option_id`, so a write past the form cannot
+  store one either; the migration first lists any stored id outside the
+  alphabet and stops, rather than leave it to fail at its poll's closure.
+- The verifier refuses such an id in a ranking (`check_ranking`) and among the
+  listed options (`MalformedOptionId`), as an input error (exit 2).
+- `tiebreak.winner` is read and must be the first entry of `tiebreak.order`;
+  the top-level `winner` is compared with the same value as before. The draw
+  values of a computed order are shown, not compared: the order they produce
+  is.
+
+The shared corpus of vectors the review's D-4 asks each rule to point at does
+not exist yet (D-2); the rules are tested on each side meanwhile.
 

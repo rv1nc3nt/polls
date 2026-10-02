@@ -108,8 +108,10 @@ pub fn check_ranking(ranking: &[Vec<String>]) -> Result<(), String> {
     }
     let mut seen = BTreeSet::new();
     for option in ranking.iter().flatten() {
-        if option.is_empty() {
-            return Err("an option id is empty".to_string());
+        if !is_option_id(option) {
+            return Err(format!(
+                "option id {option:?} is not 1 to {OPTION_ID_MAX_LENGTH} characters of A-Z, a-z, 0-9, _ and -"
+            ));
         }
         if !seen.insert(option.as_str()) {
             return Err(format!("it ranks {option} twice"));
@@ -155,6 +157,20 @@ pub fn canonical_serialisation(ballots: &[Ballot]) -> Vec<u8> {
 pub const TRACKING_CODE_ALPHABET: &str = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
 /// Every tracking code is exactly this many characters of the alphabet.
 pub const TRACKING_CODE_LENGTH: usize = 10;
+
+/// The longest option id (`docs/canonical-serialisation.md`, "Alphabets").
+pub const OPTION_ID_MAX_LENGTH: usize = 50;
+
+/// Whether `id` is 1 to [`OPTION_ID_MAX_LENGTH`] characters of `A-Z`, `a-z`,
+/// `0-9`, `_` and `-`. The serialisation above writes ids unescaped, which is
+/// only the application's JSON for characters JSON never escapes; any other
+/// id is refused rather than escaped one way or the other.
+pub fn is_option_id(id: &str) -> bool {
+    (1..=OPTION_ID_MAX_LENGTH).contains(&id.len())
+        && id
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')
+}
 
 /// Why a ballot list cannot be the live set of a poll, whatever its hash.
 #[derive(Debug, PartialEq, Eq)]
