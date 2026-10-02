@@ -27,6 +27,8 @@ from django.conf import settings
 from django.contrib.auth import password_validation
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.core.validators import URLValidator
+from django.forms.utils import from_current_timezone
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from apps.audit.models import Reason
@@ -86,8 +88,8 @@ class PollConfigForm(forms.Form):
     opens_at = _DateTimeField(
         label=_("Ouverture du scrutin"),
         help_text=_(
-            "Heure locale du serveur. Le scrutin s'ouvre à cette heure, ou plus tard si "
-            "la tâche planifiée a pris du retard."
+            "Heure du fuseau horaire du scrutin, indiqué plus bas. Le scrutin s'ouvre à "
+            "cette heure, ou plus tard si la tâche planifiée a pris du retard."
         ),
     )
     closes_at = _DateTimeField(label=_("Clôture du vote en ligne"))
@@ -262,8 +264,39 @@ class PollConfigForm(forms.Form):
             raise forms.ValidationError(_("Fuseau horaire inconnu.")) from None
         return value
 
+    #: Read as wall-clock times in the poll's own time zone (review A-8).
+    _INSTANTS = ("opens_at", "closes_at", "paper_entry_deadline")
+
+    def _in_poll_zone(self) -> None:
+        """Re-read the dates in the time zone this same submission sets.
+
+        The fields were parsed in the active zone — the poll's own on screen 2
+        (``access.require_poll_role``), the server's on creation. Where the
+        submission sets another, what the operator typed is a wall-clock time
+        *there*. A time that zone skips or repeats at a clock change is refused,
+        as Django refuses one in the active zone, rather than guessed at.
+        """
+        name = self.cleaned_data.get("timezone")
+        if not name:
+            return
+        zone = ZoneInfo(name)
+        active = timezone.get_current_timezone()
+        if getattr(active, "key", None) == zone.key:
+            return
+        for field in self._INSTANTS:
+            value = self.cleaned_data.get(field)
+            if value is None:
+                continue
+            wall = timezone.make_naive(value, active)
+            try:
+                with timezone.override(zone):
+                    self.cleaned_data[field] = from_current_timezone(wall)
+            except forms.ValidationError as error:
+                self.add_error(field, error)
+
     def clean(self) -> dict[str, Any]:
         super().clean()
+        self._in_poll_zone()
         cleaned = self.cleaned_data
         opens_at = cleaned.get("opens_at")
         closes_at = cleaned.get("closes_at")

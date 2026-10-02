@@ -5860,3 +5860,11 @@ msgstr ""
 #: src/apps/backoffice/forms.py
 msgid "Code d'installation"
 msgstr "Setup code"
+
+#: src/apps/backoffice/forms.py
+msgid ""
+"Heure du fuseau horaire du scrutin, indiqué plus bas. Le scrutin s'ouvre à "
+"cette heure, ou plus tard si la tâche planifiée a pris du retard."
+msgstr ""
+"Time in the poll's time zone, set below. The poll opens at this time, or "
+"later if the scheduled task is running behind."

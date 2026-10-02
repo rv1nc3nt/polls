@@ -123,6 +123,10 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "var" / "static"
 STATICFILES_DIRS = [SRC_DIR / "static"]
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+}
 
 # R-3.12, §3.1 bis: the one kind of operator-uploaded file the platform
 # serves back to the public. Distinct from STATIC_ROOT — these are written at

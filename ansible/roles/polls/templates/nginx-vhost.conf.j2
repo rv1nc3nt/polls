@@ -62,10 +62,14 @@ server {
     location /.well-known/acme-challenge/ { root /var/www/html; }
 {% endif %}
 
+    # Every file here is named after its content (ManifestStaticFilesStorage,
+    # prod.py): a changed file is a new name, so each can be cached for good.
+    # `expires`, not `add_header Cache-Control`: an add_header here would drop
+    # every security header the server block sets, for this location only.
     location /static/ {
         alias {{ polls_prefix }}/current/var/static/;
         access_log off;
-        expires 30d;
+        expires max;
     }
 
     # R-3.12: option images. Unlike /static/, not under the release tree —

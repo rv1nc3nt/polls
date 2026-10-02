@@ -66,6 +66,7 @@ reasoning.
 | 42 | Ballot times and order paired ballots with registrations | settled |
 | 43 | A fresh instance, back-office sign-in and nginx's error log were open to abuse | settled |
 | 44 | Poll descriptions could load third-party images, and pages had no Content-Security-Policy | settled |
+| 45 | The back office ignored a poll's own time zone, and static files kept their names | settled |
 
 ## 1. Retention purge on a poll that closed but was never published
 
@@ -1655,4 +1656,33 @@ Checked in a browser: 28 public and back-office pages served with the policy,
 share field and a YouTube embed work; an injected inline script is refused.
 The manual's own pages (`core/manual.py`) still allow `img`: their content is
 the repository's, not an operator's.
+
+## 45. The back office ignored a poll's own time zone, and static files kept their names
+
+**Time zone (review A-8).** A poll stores its time zone (§3.1), and the public
+page shows its dates in it. The back office did not: what an operator typed on
+screen 2 was parsed in the server's zone (Europe/Paris), and most of its
+screens displayed dates in that zone too, while the confirmation page and the
+trend used the poll's. A commune whose poll was set to America/Cayenne typed
+20:00, stored 20:00 Paris time, and was asked to confirm 16:00. The form's own
+help text said "heure locale du serveur".
+
+Every poll-scoped screen now runs in the poll's own zone: `require_poll_role`,
+the gate they all pass through, activates it for the view. Forms parse in it,
+their initial values and every date shown are in it, and the audit log's date
+filter reads in it too. Where the configuration form itself changes the zone,
+the dates in the same submission are read in the new zone, and a time that
+zone skips or repeats at a clock change is refused, as Django refuses one in
+the active zone. The two commune-level lists, which show several polls, give
+each poll's date in its own zone.
+
+**Static files (review A-9).** nginx let browsers cache `/static/` for 30 days
+under fixed names, so after an upgrade a returning browser could run last
+month's script against this month's markup. Production now collects through
+`ManifestStaticFilesStorage`, which names each file after its content
+(`app.<hash>.css`) and rewrites the stylesheet's own font references; nginx
+keeps them with `expires max`. A test collects and renders pages through that
+storage, so a `{% static %}` or `url()` naming a missing file fails in CI, not
+at deploy. Tests and `runserver` keep the plain storage, which needs no
+manifest.
 

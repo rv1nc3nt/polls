@@ -1,5 +1,5 @@
 {% extends "backoffice/base.html" %}
-{% load i18n %}
+{% load i18n tz %}
 {# SPDX-License-Identifier: 0BSD #}
 
 {% block screen_title %}{% translate "Rôles par scrutin" %}{% endblock %}
@@ -62,7 +62,7 @@
             {% if selected_poll and poll.pk == selected_poll.pk %} <span class="tag">{% translate "affiché ci-dessous" %}</span>{% endif %}
           </td>
           <td>{{ poll.get_state_display }}</td>
-          <td>{{ poll.closes_at }}</td>
+          <td>{{ poll.closes_at|timezone:poll.timezone }}</td>
         </tr>
       {% empty %}
         <tr><td colspan="3">{% translate "Aucun scrutin ne correspond." %}</td></tr>
