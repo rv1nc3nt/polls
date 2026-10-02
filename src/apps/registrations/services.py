@@ -41,7 +41,7 @@ from django.utils.translation import gettext as _
 
 from apps.audit import services as audit
 from apps.audit.models import Action, Reason
-from apps.core.crypto import new_token, voter_hash
+from apps.core.crypto import is_well_formed, new_token, voter_hash
 from apps.core.models import User
 from apps.core.names import canonical_email, names_match, parse_dob
 from apps.core.types import Token, TokenSalt
@@ -505,7 +505,7 @@ def find_by_token(poll: Poll, token: Token) -> Registration | None:
     different domain prefix, and the two are separate ``NewType``s precisely so
     that confusing them is a type error (§5.1).
     """
-    if not token:
+    if not token or not is_well_formed(token):
         return None
     digest = voter_hash(TokenSalt(bytes(poll.token_salt)), token)
     return Registration.objects.filter(poll=poll, voter_hash=digest).first()

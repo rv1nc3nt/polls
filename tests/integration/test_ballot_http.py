@@ -108,10 +108,17 @@ def test_the_link_confirms_the_mailbox_and_serves_the_ballot(
     assert registration.state == RegistrationState.ACTIVE
 
 
+@pytest.mark.parametrize(
+    "segment",
+    # Non-ASCII once made the hash input fail to encode: a 500, not this page.
+    ["NOTATOKEN", "%C3%A9t%C3%A9", "%E2%82%AC" * 52],
+    ids=["ascii", "accented", "euro-signs"],
+)
 def test_an_invalid_token_is_a_dead_end_without_a_stack_trace(
-    client: Client, live_poll: Poll
+    client: Client, live_poll: Poll, segment: str
 ) -> None:
-    response = client.get(f"/fr/bulletin/{live_poll.pk}/acces/NOTATOKEN/")
+    client.raise_request_exception = False
+    response = client.get(f"/fr/bulletin/{live_poll.pk}/acces/{segment}/")
     assert response.status_code == 404
     assert "Lien non valide" in response.content.decode()
     assert response["Referrer-Policy"] == "no-referrer"

@@ -520,7 +520,11 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
             return redirect("backoffice:poll_config", poll_id=str(poll.pk))
 
     closing = action == "close_poll"
-    closing_form = ClosureOverrideForm(request.POST if closing else None)
+    # Own ``auto_id``s (here and on the withdrawal form below): the extension,
+    # closure and withdrawal forms each carry a ``reason`` field and can share
+    # one page, and two ``id_reason`` pointed both labels at the first control.
+    # Field names, and so the POST, are unchanged.
+    closing_form = ClosureOverrideForm(request.POST if closing else None, auto_id="id_close_%s")
     if closing:
         # As above: the form only ever renders on an ``open`` poll.
         if poll.state != PollState.OPEN:
@@ -543,7 +547,9 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
                 return redirect("backoffice:poll_config", poll_id=str(poll.pk))
 
     withdrawing = action == "withdraw_poll"
-    withdrawal_form = WithdrawalForm(request.POST if withdrawing else None)
+    withdrawal_form = WithdrawalForm(
+        request.POST if withdrawing else None, auto_id="id_withdraw_%s"
+    )
     if withdrawing:
         # As above: the form only ever renders on a withdrawable poll (below);
         # reaching here otherwise is a forged or stale request.

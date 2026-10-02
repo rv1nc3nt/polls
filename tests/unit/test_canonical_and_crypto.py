@@ -86,3 +86,11 @@ def test_token_redacts_itself() -> None:
     assert "redacted" in repr(token)
     assert "redacted" in f"{token}"
     assert token.reveal() not in f"{token!r} {token} {token:>10}"
+
+
+def test_only_a_token_of_the_issued_shape_is_well_formed() -> None:
+    from apps.core.crypto import is_well_formed, new_token
+
+    assert is_well_formed(new_token())
+    for bad in ["", "WRONG", "été", new_token().reveal().lower(), new_token().reveal() + "A"]:
+        assert not is_well_formed(Token(bad)), bad

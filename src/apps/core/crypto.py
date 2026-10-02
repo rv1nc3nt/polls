@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import re
 import secrets
 
 from .types import BallotHash, Token, TokenSalt, VoterHash
@@ -34,6 +35,21 @@ def new_token() -> Token:
     """A fresh 256-bit token from the system CSPRNG, base32 without padding."""
     raw = secrets.token_bytes(TOKEN_BITS // 8)
     return Token(base64.b32encode(raw).decode("ascii").rstrip("="))
+
+
+#: What ``new_token`` produces: 256 bits as un-padded upper-case base32, 52
+#: characters. Anything else cannot be a token this application issued.
+_TOKEN_SHAPE = re.compile(r"[A-Z2-7]{52}")
+
+
+def is_well_formed(token: Token) -> bool:
+    """True where ``token`` has the shape ``new_token`` gives every token.
+
+    Checked before hashing: a URL segment can carry any character, and one
+    outside ASCII made the hash input fail to encode, turning a mistyped link
+    into a server error instead of "lien non valide".
+    """
+    return _TOKEN_SHAPE.fullmatch(token.reveal()) is not None
 
 
 def new_token_salt() -> TokenSalt:
