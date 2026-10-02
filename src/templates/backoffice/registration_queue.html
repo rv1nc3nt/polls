@@ -50,9 +50,9 @@
             reason; the concordance column is written out, never a colour or an
             icon alone (R-14.1).
           {% endcomment %}
-          <div class="table-scroll">
+          <div class="table-scroll" role="region" aria-labelledby="tblcap-matches-{{ row.registration.pk }}" tabindex="0">
           <table>
-            <caption>{% translate "Choisir l'entrée à rattacher, puis accepter" %}</caption>
+            <caption id="tblcap-matches-{{ row.registration.pk }}">{% translate "Choisir l'entrée à rattacher, puis accepter" %}</caption>
             <thead>
               <tr>
                 <th scope="col">{% translate "Rattacher" %}</th>
@@ -156,9 +156,9 @@
   <h2 id="confirmation">{% translate "En attente de confirmation" %}</h2>
   <p class="help">{% translate "Ces électeurs n'ont pas encore suivi le lien reçu par courriel. Renvoyer un lien en crée un nouveau et invalide le précédent. Vérifiez l'adresse avec l'électeur avant de renvoyer : une adresse erronée ne peut pas être corrigée ici." %}</p>
   {% if awaiting %}
-    <div class="table-scroll">
+    <div class="table-scroll" role="region" aria-labelledby="tblcap-registration-queue-2" tabindex="0">
     <table>
-      <caption>{% translate "Inscriptions dont l'adresse électronique n'est pas confirmée" %}</caption>
+      <caption id="tblcap-registration-queue-2">{% translate "Inscriptions dont l'adresse électronique n'est pas confirmée" %}</caption>
       <thead>
         <tr>
           <th scope="col">{% translate "Électeur" %}</th>

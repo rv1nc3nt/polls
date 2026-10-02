@@ -237,9 +237,9 @@
           <h2 id="trend-matrix-title">{% translate "Matrice des duels" %}</h2>
           <p class="help">{% translate "Chaque case donne le nombre de bulletins qui placent la proposition de la ligne devant celle de la colonne. Une case marquée ✓ sur fond vert : la ligne gagne ce duel ; marquée = : égalité." %}</p>
         </header>
-        <div class="table-scroll">
+        <div class="table-scroll" role="region" aria-labelledby="tblcap-poll-trend-1" tabindex="0">
           <table class="trend-matrix">
-            <caption class="help">
+            <caption id="tblcap-poll-trend-1" class="help">
               {% blocktranslate with date=matrix_point.through|date:"j F Y" count n=matrix_point.ballot_count trimmed %}
                 Au {{ date }}, sur {{ n }} bulletin.
               {% plural %}
@@ -322,9 +322,9 @@
     {# --- table --------------------------------------------------------- #}
     <section class="trend-card" aria-labelledby="trend-table-title">
       <header class="trend-card__head"><h2 id="trend-table-title">{% translate "Données détaillées" %}</h2></header>
-      <div class="table-scroll">
+      <div class="table-scroll" role="region" aria-labelledby="tblcap-poll-trend-2" tabindex="0">
         <table class="trend-table">
-          <caption class="help">
+          <caption id="tblcap-poll-trend-2" class="help">
             {% if is_schulze %}
               {% translate "Rang de chaque proposition et, entre parenthèses, l’écart de son duel le plus serré, en points. Le plus récent en premier." %}
             {% else %}

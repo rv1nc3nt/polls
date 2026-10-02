@@ -51,9 +51,9 @@
         <p class="help">{% translate "La colonne « Participation » indique si l'électeur s'est inscrit et s'il a voté, jamais ce qu'il a voté. Une inscription en attente d'examen n'apparaît pas encore ici : elle figure dans la file d'attente des inscriptions." %}</p>
       {% endif %}
 
-      <div class="table-scroll">
+      <div class="table-scroll" role="region" aria-labelledby="tblcap-roll-status" tabindex="0">
       <table>
-        <caption>
+        <caption id="tblcap-roll-status">
           {% blocktranslate count total=page.paginator.count trimmed %}
             {{ total }} électeur inscrit
           {% plural %}

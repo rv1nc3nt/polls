@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: 0BSD
-"""Two things about the templates that fail silently (§6.5, R-14.1).
+"""Things about the templates that fail silently (§6.5, R-14.1).
 
 Neither produces an error at render time, which is why they are asserted here:
 a template with a syntax error is only found when somebody opens that page, and
@@ -39,3 +39,24 @@ def test_every_template_compiles(path: Path) -> None:
     """A syntax error otherwise waits for somebody to open that one screen."""
     root = Path(__file__).resolve().parents[2] / "src" / "templates"
     get_template(str(path.relative_to(root)))
+
+
+SCROLL_WRAPPER = re.compile(r'<div class="table-scroll"([^>]*)>')
+
+
+@pytest.mark.parametrize(
+    "path",
+    [p for p in TEMPLATES if 'class="table-scroll"' in p.read_text()],
+    ids=lambda p: p.name,
+)
+def test_every_scrolling_table_can_be_reached_by_keyboard(path: Path) -> None:
+    """A table wider than the screen scrolls inside its wrapper, and a keyboard
+    user can only scroll what can take focus (WCAG 2.1.1, RGAA 7.3). Each
+    wrapper is a focusable region named by an element of the same template —
+    usually the table's caption."""
+    text = path.read_text()
+    for attrs in SCROLL_WRAPPER.findall(text):
+        assert 'role="region"' in attrs and 'tabindex="0"' in attrs, attrs
+        labelled = re.search(r'aria-labelledby="([^"]+)"', attrs)
+        assert labelled, f"{path.name}: unnamed scroll region"
+        assert f'id="{labelled.group(1)}"' in text, f"{path.name}: no element {labelled.group(1)}"

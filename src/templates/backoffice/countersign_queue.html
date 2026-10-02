@@ -13,9 +13,9 @@
   {% endcomment %}
   <p class="help">{% translate "Le contreseing doit être apposé par un opérateur autre que celui qui a saisi le bulletin." %}</p>
 
-  <div class="table-scroll">
+  <div class="table-scroll" role="region" aria-labelledby="tblcap-countersign-queue" tabindex="0">
   <table>
-    <caption>{% translate "Bulletins en attente de contreseing" %}</caption>
+    <caption id="tblcap-countersign-queue">{% translate "Bulletins en attente de contreseing" %}</caption>
     <thead>
       <tr>
         <th scope="col">{% translate "Électeur" %}</th>
