@@ -17,11 +17,11 @@
 //! The closure-hash check is method-independent either way.
 
 use crate::canonical::{
-    canonical_serialisation, check_tracking_codes, options_in, parse_csv, parse_hex, Ballot,
-    BallotListError,
+    canonical_serialisation, check_ranking, check_tracking_codes, options_in, parse_csv, parse_hex,
+    Ballot, BallotListError,
 };
 use crate::counted::{self, Method};
-use crate::publication::{parse_publication, Publication, TiebreakRule};
+use crate::publication::{parse_publication, Participation, Publication, TiebreakRule};
 use crate::schulze;
 use crate::sha256::{hex, sha256};
 
@@ -77,6 +77,9 @@ pub enum VerifyError {
     MalformedTrackingCode(String),
     /// Two ballots carry the same tracking code (INV-11).
     DuplicateTrackingCode(String),
+    /// A ballot's ranking is not one the application could record: the
+    /// tracking code, then why (`canonical::check_ranking`).
+    MalformedRanking(String, String),
 }
 
 impl From<BallotListError> for VerifyError {
@@ -103,6 +106,10 @@ pub fn verify(csv_text: &str, expected: &Expected) -> Result<Report, VerifyError
 /// [`verify`], from ballots already read.
 pub fn verify_ballots(ballots: &[Ballot], expected: &Expected) -> Result<Report, VerifyError> {
     check_tracking_codes(ballots)?;
+    for ballot in ballots {
+        check_ranking(&ballot.ranking)
+            .map_err(|why| VerifyError::MalformedRanking(ballot.tracking_code.clone(), why))?;
+    }
     let serialised = canonical_serialisation(ballots);
     let hash = sha256(&serialised);
     let closure_hash = hex(&hash);
@@ -198,6 +205,24 @@ pub struct PublicationReport {
     /// tied options; the draw itself happened at the mairie and is not
     /// something a program can replay.
     pub tiebreak_agrees: Option<bool>,
+    /// The participation counts the document states (`counts`).
+    pub participation: Participation,
+    /// Whether those counts add up (review B-8): the ballots by channel make
+    /// the ballot list's count, and registered electors are exactly those who
+    /// voted, those whose paper entry went uncounted, and those who did not.
+    /// The ballot list cannot say who registered; it can say the counts are
+    /// consistent with it, which a stuffed list with untouched counts is not.
+    pub participation_agrees: bool,
+}
+
+/// The identities `counts` satisfies (`elections.closure.frozen_counts`),
+/// checked without overflow: a sum that overflows does not add up.
+fn participation_adds_up(counts: &Participation, ballot_count: usize) -> bool {
+    let cast = counts.ballots_online.checked_add(counts.ballots_paper);
+    let accounted = cast
+        .and_then(|n| n.checked_add(counts.paper_uncountersigned))
+        .and_then(|n| n.checked_add(counts.non_voters));
+    cast == u64::try_from(ballot_count).ok() && accounted == Some(counts.registered)
 }
 
 impl PublicationReport {
@@ -209,6 +234,7 @@ impl PublicationReport {
             && self.matrix_agrees
             && self.counts_agree != Some(false)
             && self.tiebreak_agrees != Some(false)
+            && self.participation_agrees
     }
 }
 
@@ -302,6 +328,11 @@ pub fn verify_publication(text: &str) -> Result<PublicationReport, VerifyError> 
 
     Ok(PublicationReport {
         ballot_count_agrees: publication.ballot_count == report.ballot_count as u64,
+        participation_agrees: participation_adds_up(
+            &publication.participation,
+            report.ballot_count,
+        ),
+        participation: publication.participation,
         matrix_agrees: matrix_matches(&publication, &report),
         counts_agree,
         tiebreak_agrees,
@@ -473,6 +504,8 @@ mod tests {
                 "opening_seed": "{seed}", "options": {{"a": {{"fr": "A"}}, "b": {{"fr": "B"}},
                 "c": {{"fr": "C"}}, "d": {{"fr": "D"}}}},
                 "ballots": {DIVERGENT_BALLOTS}, "ballot_count": 7, "winner": {winner},
+                "counts": {{"registered": 9, "ballots_online": 5, "ballots_paper": 2,
+                            "paper_uncountersigned": 0, "non_voters": 2}},
                 "matrix": {{"a": {{"b": 3, "c": 3, "d": 7}}, "b": {{"a": 4, "c": 5, "d": 7}},
                             "c": {{"a": 4, "b": 2, "d": 7}}, "d": {{"a": 0, "b": 0, "c": 0}}}},
                 "derivation": {{"counts": {{"a": 3, "b": 2, "c": 2, "d": 0}},
@@ -526,6 +559,8 @@ mod tests {
                 "closure_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
                 "opening_seed": "{seed}", "options": {{"a": {{"fr": "A"}}, "b": {{"fr": "B"}}}},
                 "ballots": [], "ballot_count": 0, "winner": null,
+                "counts": {{"registered": 4, "ballots_online": 0, "ballots_paper": 0,
+                            "paper_uncountersigned": 0, "non_voters": 4}},
                 "matrix": {{"a": {{"b": 0}}, "b": {{"a": 0}}}},
                 "derivation": {{"pairwise": {{}}, "paths": {{}}, "winners": []}}}}"#,
             seed = "00".repeat(32),
@@ -551,6 +586,65 @@ mod tests {
     }
 
     #[test]
+    fn participation_counts_must_add_up_to_the_ballot_list() {
+        // Consistent: 5 online + 2 paper = the 7 ballots listed, and 9
+        // registered = 7 voted + 0 uncounted + 2 who did not vote.
+        let honest = plurality_document("\"a\"", "");
+        assert!(
+            verify_publication(&honest)
+                .ok()
+                .expect("parses")
+                .participation_agrees
+        );
+        // Stuffed: ballots added to the list, counts left as they were.
+        let inflated = honest.replace("\"ballots_online\": 5", "\"ballots_online\": 105");
+        let checked = verify_publication(&inflated).ok().expect("parses");
+        assert!(!checked.participation_agrees);
+        assert!(!checked.all_agree());
+        // Registered that do not account for every elector.
+        let unaccounted = honest.replace("\"non_voters\": 2", "\"non_voters\": 3");
+        assert!(
+            !verify_publication(&unaccounted)
+                .ok()
+                .expect("parses")
+                .participation_agrees
+        );
+        // Overflow is a disagreement, not a panic.
+        let huge = honest.replace("\"non_voters\": 2", "\"non_voters\": 18446744073709551615");
+        assert!(
+            !verify_publication(&huge)
+                .ok()
+                .expect("parses")
+                .participation_agrees
+        );
+    }
+
+    #[test]
+    fn a_publication_without_its_counts_is_refused() {
+        let start = plurality_document("\"a\"", "");
+        let cut = start.find("\"counts\"").expect("has counts");
+        let end = start[cut..].find('}').expect("closes") + cut + 2;
+        let without = format!("{}{}", &start[..cut], &start[end..]);
+        assert!(matches!(
+            verify_publication(&without),
+            Err(VerifyError::Publication(_))
+        ));
+    }
+
+    #[test]
+    fn a_ranking_no_ballot_could_carry_is_refused_in_a_publication_too() {
+        let document = plurality_document("\"a\"", "").replacen(
+            "[[\"a\"], [\"b\"], [\"c\"]]",
+            "[[\"a\"], [\"a\"]]",
+            1,
+        );
+        assert!(matches!(
+            verify_publication(&document),
+            Err(VerifyError::MalformedRanking(_, why)) if why.contains("twice")
+        ));
+    }
+
+    #[test]
     fn a_document_without_a_format_version_is_refused() {
         let document =
             plurality_document("\"a\"", "").replacen("\"format_version\": \"1\", ", "", 1);
@@ -571,6 +665,8 @@ mod tests {
                     {{"tracking_code": "BBBBBBBBBB", "ranking": [["b"], ["c"], ["a"]]}},
                     {{"tracking_code": "CCCCCCCCCC", "ranking": [["c"], ["a"], ["b"]]}}],
                 "ballot_count": 3, "winner": {winner},
+                "counts": {{"registered": 3, "ballots_online": 3, "ballots_paper": 0,
+                            "paper_uncountersigned": 0, "non_voters": 0}},
                 "matrix": {{"a": {{"b": 2, "c": 1}}, "b": {{"a": 1, "c": 2}},
                             "c": {{"a": 2, "b": 1}}}},
                 "derivation": {{}}, "tiebreak": {tiebreak}}}"#,

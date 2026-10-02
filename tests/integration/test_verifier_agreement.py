@@ -35,6 +35,7 @@ from apps.core.types import OptionId, TrackingCode
 from apps.elections import closure
 from apps.elections.models import Poll, PollOption, TiebreakRule
 from apps.elections.transitions import close_poll, publish_poll
+from apps.registrations.models import Channel, Registration, RegistrationState
 from apps.tally.methods import Method, tally
 from apps.tally.tiebreak import tiebreak_order
 from tests.conftest import force_open
@@ -175,6 +176,18 @@ def _published(rows: list[tuple[str, list[list[str]]]], method: Method, rule: st
             ranking=ranking,
             source=BallotSource.ONLINE,
         )
+    # An elector behind every ballot, and one who never voted, so the counts
+    # frozen at closure add up as a real poll's do (the verifier checks them).
+    for k in range(len(rows) + 1):
+        Registration.objects.create(
+            poll=poll,
+            declared_last_name="X",
+            declared_first_names="Y",
+            email=f"v{k}@example.fr",
+            email_canonical=f"v{k}@example.fr",
+            state=RegistrationState.ACTIVE,
+            channel=Channel.ONLINE if k < len(rows) else Channel.NONE,
+        )
     close_poll(poll, early_reason=Reason.ADMINISTRATIVE_DECISION)
     admin = User.objects.create_user(username=f"admin-{poll.pk.hex[:8]}", password="x")
     poll.refresh_from_db()
@@ -278,3 +291,41 @@ def test_a_repeated_tracking_code_is_refused(verifier_binary: Path, tmp_path: Pa
     )
     assert completed.returncode == 2
     assert "more than one ballot" in completed.stderr
+
+
+@pytest.mark.django_db
+def test_published_counts_that_do_not_add_up_are_caught(
+    client: Client, verifier_binary: Path, tmp_path: Path
+) -> None:
+    """Ballots stuffed into the list, the counts frozen at closure left as
+    they were: the ballots by channel no longer make the list (review B-8)."""
+    poll = _published(CLEAR, Method.SCHULZE, TiebreakRule.COMPUTED)
+    data = json.loads(client.get(f"/fr/scrutin/{poll.pk}/resultats/?format=json").content)
+    assert data["counts"]["ballots_online"] == 3 and data["counts"]["non_voters"] == 1
+    data["counts"]["ballots_online"] += 2
+    document = tmp_path / "publication.json"
+    document.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+
+    completed = _run(verifier_binary, document)
+    assert completed.returncode == 1
+    assert "participation   DIFFERS" in completed.stdout
+
+
+@pytest.mark.parametrize(
+    "cell",
+    ['"[[""a""],[""a""]]"', '"[[""a""],[]]"', '"[[a]]"', '[["a"]]'],
+    ids=["ranked-twice", "empty-group", "unquoted-id", "unquoted-cell"],
+)
+def test_a_ranking_the_platform_never_writes_is_refused(
+    cell: str, verifier_binary: Path, tmp_path: Path
+) -> None:
+    """The CSV is read strictly (review B-6): exit 2, never a verdict."""
+    csv_path = tmp_path / "ballots.csv"
+    csv_path.write_text(f"tracking_code,ranking\nAAAAAAAAAA,{cell}\n", encoding="utf-8")
+    completed = subprocess.run(  # noqa: S603
+        [str(verifier_binary), str(csv_path), "--winner", "a"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert completed.returncode == 2, completed.stdout + completed.stderr

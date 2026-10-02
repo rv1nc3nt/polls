@@ -291,7 +291,14 @@ ligne par valeur publiée qu'il a vérifiée :
 `AGREES` signifie que la valeur recalculée à partir des seuls bulletins est
 identique à celle que le site publie ; `DIFFERS` signifierait le contraire
 (voir plus bas). S'y ajoutent une ligne `counts` pour un scrutin majoritaire
-ou par assentiment, et une ligne `tie-break` si un départage a eu lieu.
+ou par assentiment, et une ligne `tie-break` si un départage a eu lieu. Une
+dernière ligne, `participation`, vérifie que les chiffres de participation
+publiés par le site tiennent ensemble : les bulletins en ligne et papier
+doivent faire le nombre de bulletins de la liste, et les inscrits doivent être
+exactement ceux qui ont voté, ceux dont le bulletin papier n'a pas été compté
+et ceux qui n'ont pas voté. La liste ne dit pas qui s'est inscrit, mais une
+liste à laquelle on aurait ajouté des bulletins sans toucher aux chiffres ne
+tient plus.
 
 La méthode de dépouillement est la seule valeur que le vérificateur ne peut
 pas recalculer, puisque c'est elle qui décide du vainqueur : il l'affiche en
@@ -392,7 +399,7 @@ automatisez la vérification :
 |---|---|---|
 | 0 | Toutes les valeurs comparées concordent. | Rien : le résultat publié est celui que donnent les bulletins. |
 | 1 | Au moins une valeur ne concorde pas (`DIFFERS`). | Suivre les étapes ci-dessous. |
-| 2 | Le vérificateur n'a pas pu travailler : fichier illisible ou incomplet, option inconnue ou sans valeur, ou liste de bulletins impossible (un code de suivi répété ou mal formé). | Corriger la commande, ou télécharger à nouveau le fichier. Un code de suivi répété ou mal formé dans un fichier téléchargé tel quel depuis la page de résultats est une anomalie à signaler comme un désaccord. |
+| 2 | Le vérificateur n'a pas pu travailler : fichier illisible ou incomplet, option inconnue ou sans valeur, ou liste de bulletins impossible (un code de suivi répété ou mal formé, un classement vide, une proposition classée deux fois). | Corriger la commande, ou télécharger à nouveau le fichier. Une liste impossible dans un fichier téléchargé tel quel depuis la page de résultats est une anomalie à signaler comme un désaccord. |
 | 3 | Rien n'a été comparé (fichier CSV sans `--closure-hash` ni `--winner`). | Ajouter les valeurs à comparer, recopiées depuis la page de résultats. |
 
 Un code 2 ou 3 n'est jamais un succès : il signifie que rien n'a été vérifié.

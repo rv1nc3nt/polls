@@ -273,7 +273,12 @@ then one line per published value it checked:
 `AGREES` means the value recomputed from the ballots alone is identical to
 the one the site publishes; `DIFFERS` would mean the opposite (see below).
 A `counts` line is added for a plurality or approval poll, and a `tie-break`
-line if a tie-break took place.
+line if a tie-break took place. A last line, `participation`, checks that the
+participation figures the site publishes add up: the online and paper ballots
+must make the number of ballots in the list, and the registered electors must
+be exactly those who voted, those whose paper ballot went uncounted, and those
+who did not vote. The list cannot tell who registered, but a list with ballots
+added and figures left untouched no longer adds up.
 
 The tally method is the one value the verifier cannot recompute, since it is
 what decides the winner: it shows it on its first line (`method`) so you can
@@ -368,7 +373,7 @@ automate the check:
 |---|---|---|
 | 0 | Every compared value matches. | Nothing: the published result is the one the ballots produce. |
 | 1 | At least one value does not match (`DIFFERS`). | Follow the steps below. |
-| 2 | The verifier could not work: unreadable or incomplete file, unknown flag or flag without a value, or an impossible ballot list (a repeated or malformed tracking code). | Correct the command, or download the file again. A repeated or malformed tracking code in a file downloaded as-is from the results page is an anomaly to report like a disagreement. |
+| 2 | The verifier could not work: unreadable or incomplete file, unknown flag or flag without a value, or an impossible ballot list (a repeated or malformed tracking code, an empty ranking, an option ranked twice). | Correct the command, or download the file again. An impossible list in a file downloaded as-is from the results page is an anomaly to report like a disagreement. |
 | 3 | Nothing was compared (a CSV file without `--closure-hash` or `--winner`). | Add the values to compare, copied from the results page. |
 
 A code 2 or 3 is never a success: it means nothing was verified.

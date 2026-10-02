@@ -36,6 +36,11 @@ are independent of the labels and their translations (§3.8). Ids **within a
 group** are sorted by code point, because a tie is unordered and two orderings
 of the same tie must not produce two hashes. Groups keep the voter's order.
 
+A ranking places **at least one** option, has **no empty group**, and ranks
+**no option twice**: the application refuses any other ballot before it is
+stored, and the verifier refuses a ballot list holding one, as a list no poll
+could have published.
+
 ## A record
 
     {"tracking_code":"AAAAAAAAAA","ranking":[["a"],["b"],["c"]]}

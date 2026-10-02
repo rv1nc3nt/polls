@@ -137,6 +137,10 @@ fn error_message(err: VerifyError) -> String {
             "Le code de suivi « {code} » n'est pas de ceux que la plateforme délivre : \
              ce fichier n'est pas une liste de bulletins qu'elle a publiée."
         ),
+        VerifyError::MalformedRanking(code, why) => format!(
+            "Le bulletin {code} porte un classement que la plateforme n'enregistre jamais \
+             ({why}) : ce fichier n'est pas une liste de bulletins qu'elle a publiée."
+        ),
         VerifyError::DuplicateTrackingCode(code) => format!(
             "Le code de suivi {code} figure sur plusieurs bulletins : une liste publiée \
              n'en répète jamais aucun."
@@ -335,6 +339,7 @@ fn publication_verdict(ui: &mut egui::Ui, checked: &PublicationReport) {
         Some(checked.matrix_agrees),
         checked.counts_agree,
         checked.tiebreak_agrees,
+        Some(checked.participation_agrees),
     ];
     headline(
         ui,
@@ -488,6 +493,12 @@ fn show_publication(ui: &mut egui::Ui, checked: &PublicationReport) {
             "Les voix par option NE concordent PAS avec celles publiées.",
         );
     }
+    agreement_label(
+        ui,
+        checked.participation_agrees,
+        "La participation publiée est cohérente avec la liste des bulletins.",
+        "La participation publiée NE concorde PAS avec la liste des bulletins.",
+    );
     if let Some(agrees) = checked.tiebreak_agrees {
         if checked.tiebreak_rule == Some(TiebreakRule::Physical) {
             ui.weak(

@@ -66,7 +66,7 @@ rest.
 | `tally_method_version` | string | read | The method version the tally ran. Restated with the method. |
 | `closure_hash` | lower-case hex | **checked** | SHA-256 of the canonical serialisation of `ballots`. |
 | `opening_seed` | lower-case hex | read | Input to the computed tie-break. |
-| `counts` | object | ignored | Participation frozen at closure: `registered`, `ballots_online`, `ballots_paper`, `paper_uncountersigned`, `non_voters`. It is published, but the ballot list does not determine it. |
+| `counts` | object | **checked** | Participation frozen at closure: `registered`, `ballots_online`, `ballots_paper`, `paper_uncountersigned`, `non_voters`, each an integer and each required. The ballot list does not determine them, but they must add up with it: `ballots_online + ballots_paper = ballot_count`, and `registered = ballots_online + ballots_paper + paper_uncountersigned + non_voters`. |
 | `closure_override_reason` | string | ignored | Reason given for closing despite uncountersigned entries, or `""`. |
 | `options` | object: option id → labels by language | read (keys) | The poll's options, including any that no ballot ranks. |
 | `ballots` | list of `{"tracking_code": string, "ranking": [[option id, …], …]}` | read | The live set, sorted by tracking code, ids sorted within a group; the same records as the CSV. |

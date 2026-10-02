@@ -5868,3 +5868,7 @@ msgid ""
 msgstr ""
 "Time in the poll's time zone, set below. The poll opens at this time, or "
 "later if the scheduled task is running behind."
+
+#: src/apps/ballots/ranking.py
+msgid "Le classement contient un rang vide."
+msgstr "The ranking contains an empty rank."

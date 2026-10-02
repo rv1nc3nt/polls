@@ -68,6 +68,7 @@ reasoning.
 | 44 | Poll descriptions could load third-party images, and pages had no Content-Security-Policy | settled |
 | 45 | The back office ignored a poll's own time zone, and static files kept their names | settled |
 | 46 | Verifier binaries were released unsigned, unchecksummed and from an unpinned compiler | settled |
+| 47 | The verifier read ballot lists leniently and ignored the participation counts | settled |
 
 ## 1. Retention purge on a poll that closed but was never published
 
@@ -1721,4 +1722,37 @@ Not done: the binaries are not code-signed for Windows or notarised for
 macOS, which needs paid certificates and a decision on who holds them; a
 build is not bit-for-bit reproducible across machines, which would let anyone
 re-derive the published digest. Both are noted for later.
+
+## 47. The verifier read ballot lists leniently and ignored the participation counts
+
+**Found (2026-10-02, review B-6, B-8).** The CSV reader parsed a ranking cell
+by hand and took whatever it could from it — an unquoted id, an empty element,
+an empty group, an option ranked twice, a missing or wrong header — so a list
+no poll could have published still produced a verdict. The publication
+document's `counts` were not read at all: ballots added to the list, with the
+counts left as they were at closure, passed every check once the hash was
+recomputed to match.
+
+**Settled.**
+
+- The CSV is read strictly: the exact header, a bare tracking code, and the
+  ranking as a quoted CSV field, parsed by the same strict JSON reader as the
+  publication document. Anything else is an input error (exit 2) naming the
+  line.
+- Every ballot, in both modes, must be a ranking the application could record:
+  at least one option, no empty group, no option twice
+  (`canonical::check_ranking`). The application's own validation gains the
+  empty-group rule, which no ballot form could produce, so the two sides state
+  the same contract (`docs/canonical-serialisation.md`, "A ranking").
+- `counts` is read, each member required, and checked to add up with the ballot
+  list: online and paper ballots make the list's count, and registered
+  electors are exactly those who voted, those whose paper entry went uncounted
+  and those who did not (`elections.closure.frozen_counts` states the same
+  identities). A sum that overflows does not add up. The CLI prints a
+  `participation` line and the GUI a check of its own; either failing is a
+  disagreement (exit 1).
+
+The counts still cannot be checked against who actually registered: that list
+is never published, and is deleted at retention. What the check catches is a
+list changed without its counts.
 

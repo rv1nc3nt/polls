@@ -174,6 +174,9 @@ fn input_error(err: VerifyError) -> ExitCode {
         VerifyError::MalformedTrackingCode(code) => {
             eprintln!("tracking code {code:?} is not one the platform issues: the file is not a ballot list it published")
         }
+        VerifyError::MalformedRanking(code, why) => {
+            eprintln!("ballot {code}: not a ranking the platform records ({why})");
+        }
         VerifyError::DuplicateTrackingCode(code) => {
             eprintln!("tracking code {code} appears on more than one ballot: a published ballot list never repeats one")
         }
@@ -218,6 +221,16 @@ fn check_publication(text: &str) -> ExitCode {
         ok &= agreement("tie-break", agrees);
     }
     ok &= agreement("winner", report.winner_agrees == Some(true));
+    let counts = &checked.participation;
+    println!(
+        "participation  registered {}, online {}, paper {}, paper uncounted {}, non-voters {}",
+        counts.registered,
+        counts.ballots_online,
+        counts.ballots_paper,
+        counts.paper_uncountersigned,
+        counts.non_voters
+    );
+    ok &= agreement("participation", checked.participation_agrees);
 
     if ok {
         ExitCode::SUCCESS

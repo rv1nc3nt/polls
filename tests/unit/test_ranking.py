@@ -188,3 +188,9 @@ def test_form_rejects_a_tie_by_default(open_window_poll: Poll) -> None:
     )
     assert not form.is_valid()
     assert any("ex æquo" in str(error) for error in form.non_field_errors())
+
+
+def test_an_empty_group_is_refused() -> None:
+    """The canonical form has none, and the verifier refuses one."""
+    with pytest.raises(BallotRefused):
+        validate_ranking([["a"], [], ["b"]], OPTIONS, require_complete=False, allow_ties=True)

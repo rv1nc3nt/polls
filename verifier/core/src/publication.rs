@@ -29,6 +29,18 @@ pub struct Tiebreak {
     pub order: Option<Vec<String>>,
 }
 
+/// Participation frozen at closure (`counts`, §9): registered electors, the
+/// ballots by channel, paper entries a countersignature override left
+/// uncounted, and those who did not vote.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Participation {
+    pub registered: u64,
+    pub ballots_online: u64,
+    pub ballots_paper: u64,
+    pub paper_uncountersigned: u64,
+    pub non_voters: u64,
+}
+
 pub struct Publication {
     pub format_version: String,
     pub poll_id: String,
@@ -45,6 +57,7 @@ pub struct Publication {
     pub matrix: Vec<(String, Vec<(String, u64)>)>,
     /// Votes per option (`derivation.counts`), for plurality and approval.
     pub counts: Option<Vec<(String, u64)>>,
+    pub participation: Participation,
     pub tiebreak: Option<Tiebreak>,
 }
 
@@ -166,6 +179,20 @@ pub fn parse_publication(text: &str) -> Result<Publication, String> {
         .map(|(row, cells)| integers(cells, "a matrix row").map(|cells| (row.clone(), cells)))
         .collect::<Result<Vec<_>, _>>()?;
 
+    let frozen = member(&document, "counts")?;
+    let count = |key: &str| -> Result<u64, String> {
+        member(frozen, key)?
+            .as_u64()
+            .ok_or_else(|| format!("publication: \"counts.{key}\" must be a whole number"))
+    };
+    let participation = Participation {
+        registered: count("registered")?,
+        ballots_online: count("ballots_online")?,
+        ballots_paper: count("ballots_paper")?,
+        paper_uncountersigned: count("paper_uncountersigned")?,
+        non_voters: count("non_voters")?,
+    };
+
     let counts = match member(&document, "derivation")?.get("counts") {
         None => None,
         Some(value) => Some(integers(value, "\"derivation.counts\"")?),
@@ -220,6 +247,7 @@ pub fn parse_publication(text: &str) -> Result<Publication, String> {
         winner,
         matrix,
         counts,
+        participation,
         tiebreak,
     })
 }
