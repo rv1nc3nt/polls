@@ -56,6 +56,20 @@ line**, for anyone comfortable with a terminal or who wants to automate
 repeated checks. Both give exactly the same result; choose whichever suits
 you.
 
+### Before publication: note two values
+
+Two values appear on the consultation's public page before the results do,
+and cannot change afterwards:
+
+- the **opening seed**, from the moment voting opens;
+- the **closure hash** and the number of **ballots counted**, from the moment
+  it closes.
+
+If you note them then (a screenshot is enough), you can check after
+publication that the results rest on the same ones. The verifier checks that
+the published files agree with each other; this comparison is what shows they
+were not changed between closure and publication.
+
 ## Downloading the verifier
 
 The verifier is distributed already compiled, so no one needs to install a

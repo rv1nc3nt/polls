@@ -14,6 +14,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+import re
 from datetime import timedelta
 
 import pytest
@@ -239,6 +240,27 @@ def test_a_closed_unpublished_poll_says_the_tally_is_under_way(client: Client, d
     body = client.get(f"/fr/scrutin/{poll.pk}/").content.decode()
     assert "dépouillement" in body.lower()
     assert f"/fr/scrutin/{poll.pk}/resultats/" not in body
+
+
+def test_the_closure_hash_is_public_from_closure_ahead_of_the_result(
+    client: Client, db: None
+) -> None:
+    """R-11.1: published the moment it is computed, with the number of ballots
+    it covers, so the ballot list published later can be checked against a
+    value fixed at closure (decision log #40)."""
+    poll = _make_poll()
+    force_open(poll)
+    _register(poll, "voter1", channel=Channel.ONLINE)
+    _cast(poll, [[["a"], ["b"], ["c"]], [["b"], ["a"], ["c"]]])
+    open_body = client.get(f"/fr/scrutin/{poll.pk}/").content.decode()
+    assert "Empreinte de clôture" not in open_body
+
+    close_poll(poll, early_reason=Reason.ADMINISTRATIVE_DECISION)
+    poll.refresh_from_db()
+    assert poll.closure_hash is not None
+    body = client.get(f"/fr/scrutin/{poll.pk}/").content.decode()
+    assert bytes(poll.closure_hash).hex() in body
+    assert re.search(r"Bulletins retenus</dt>\s*<dd>2</dd>", body)
 
 
 def test_a_published_poll_page_links_to_the_results(client: Client, published_poll: Poll) -> None:

@@ -59,6 +59,21 @@ gens, et une **ligne de commande**, pour qui est à l'aise avec un terminal ou
 souhaite automatiser des vérifications répétées. Les deux donnent exactement
 le même résultat ; choisissez selon votre confort.
 
+### Avant la publication : noter deux valeurs
+
+Deux valeurs paraissent sur la page publique de la consultation avant même
+les résultats, et ne peuvent plus changer ensuite :
+
+- la **graine d'ouverture**, dès l'ouverture du vote ;
+- l'**empreinte de clôture** et le nombre de **bulletins retenus**, dès la
+  clôture.
+
+Si vous les notez à ce moment-là (une capture d'écran suffit), vous pourrez
+vérifier après la publication que les résultats reposent bien sur les mêmes.
+Le vérificateur, lui, contrôle que les fichiers publiés sont cohérents entre
+eux ; c'est cette comparaison qui montre qu'ils n'ont pas été modifiés entre
+la clôture et la publication.
+
 ## Télécharger le vérificateur
 
 Le vérificateur est distribué déjà compilé, pour ne demander à personne

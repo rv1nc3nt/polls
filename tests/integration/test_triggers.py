@@ -433,3 +433,28 @@ def test_a_poll_not_yet_open_admits_no_write_even_past_opens_at(
             email="e@example.fr",
             email_canonical="e@example.fr",
         )
+
+
+def test_the_opening_seed_and_the_closure_hash_are_set_once(open_window_poll: Poll) -> None:
+    """Both are published as soon as they exist (decision log #40); the
+    database refuses to change either afterwards, so a tie-break cannot be
+    re-picked by rewriting the seed once the closure hash is known
+    (R-10.5 bis). Setting each the first time is the transitions' own write."""
+    force_open(open_window_poll)
+    with pytest.raises(Exception, match="R-10.5"), transaction.atomic():
+        raw(
+            "UPDATE elections_poll SET opening_seed = randomblob(32) WHERE id = %s",
+            [pk(open_window_poll)],
+        )
+
+    raw(
+        "UPDATE elections_poll SET closure_hash = randomblob(32) WHERE id = %s",
+        [pk(open_window_poll)],
+    )
+    with pytest.raises(Exception, match="R-10.5"), transaction.atomic():
+        raw(
+            "UPDATE elections_poll SET closure_hash = randomblob(32) WHERE id = %s",
+            [pk(open_window_poll)],
+        )
+    with pytest.raises(Exception, match="R-10.5"), transaction.atomic():
+        raw("UPDATE elections_poll SET closure_hash = NULL WHERE id = %s", [pk(open_window_poll)])
