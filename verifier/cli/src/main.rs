@@ -28,7 +28,10 @@
 //! label is accepted too; Schulze without it), `--options` the poll's option
 //! ids so an option no ballot ranked still gets its row.
 //!
-//! Exit codes: 0 agreement, 1 disagreement, 2 usage or input error.
+//! Exit codes: 0 every compared value agrees, 1 at least one differs, 2 usage
+//! or input error, 3 nothing was compared (a CSV given no value to check).
+//! An unknown flag, a flag without a value or a repeated flag is a usage
+//! error: silently ignoring one would let a mistyped check pass as done.
 //!
 //! This binary is presentation only: `polls-verifier-core` (`../core`) is
 //! where the verification logic lives, shared with the GUI in `../gui`.
@@ -43,12 +46,98 @@ use polls_verifier_core::report::{
 
 const USAGE: &str = "usage: polls-verifier <publication.json>\n       \
     polls-verifier <ballots.csv> [--method schulze|plurality|approval] [--options <id,id,…>] \
-    [--closure-hash <hex>] [--opening-seed <hex>] [--winner <option_id>]";
+    [--closure-hash <hex>] [--opening-seed <hex>] [--winner <option_id>]\n       \
+    polls-verifier --help";
 
-const FLAGS: &[&str] = &["--method", "--options", "--closure-hash", "--opening-seed", "--winner"];
+const HELP: &str = "\
+Recomputes a published poll result from the files its results page offers.
 
-fn arg_value(args: &[String], flag: &str) -> Option<String> {
-    args.iter().position(|a| a == flag).and_then(|i| args.get(i + 1)).cloned()
+  polls-verifier publication.json
+      The publication document (?format=json). It carries every value, and
+      each is checked; no flag applies to it.
+
+  polls-verifier ballots.csv [flags]
+      The ballot list (?format=csv). It carries ballots only, so the flags
+      supply the values to compare, copied from the results page:
+        --method <m>        schulze (default), plurality or approval
+        --options <ids>     the poll's option ids, comma-separated
+        --closure-hash <h>  the published closure hash
+        --opening-seed <h>  the published opening seed, to replay a tie-break
+        --winner <id>       the announced winner
+      Each flag takes its value as the next argument or after '='.
+
+Exit codes:
+  0  every compared value agrees
+  1  at least one value differs
+  2  usage or input error (unreadable file, unknown flag, malformed ballot list)
+  3  nothing was compared: a CSV was given without --closure-hash or --winner";
+
+const FLAGS: &[&str] = &[
+    "--method",
+    "--options",
+    "--closure-hash",
+    "--opening-seed",
+    "--winner",
+];
+
+/// The command line, once every argument has been accounted for.
+#[derive(Debug, Default, PartialEq)]
+struct Args {
+    help: bool,
+    path: Option<String>,
+    /// `(flag, value)` in the order given, each flag at most once.
+    flags: Vec<(String, String)>,
+}
+
+impl Args {
+    fn get(&self, flag: &str) -> Option<&str> {
+        self.flags
+            .iter()
+            .find(|(f, _)| f == flag)
+            .map(|(_, v)| v.as_str())
+    }
+}
+
+/// Parse strictly: every argument must be the one file, a known flag with its
+/// value, or `--help`. Anything else is an error rather than ignored.
+fn parse_args(raw: &[String]) -> Result<Args, String> {
+    let mut args = Args::default();
+    let mut rest = raw.iter();
+    while let Some(arg) = rest.next() {
+        if arg == "--help" || arg == "-h" {
+            args.help = true;
+            continue;
+        }
+        if !arg.starts_with('-') {
+            if let Some(first) = &args.path {
+                return Err(format!("one file at a time: got {first} and {arg}"));
+            }
+            args.path = Some(arg.clone());
+            continue;
+        }
+        let (flag, inline) = match arg.split_once('=') {
+            Some((flag, value)) => (flag, Some(value.to_string())),
+            None => (arg.as_str(), None),
+        };
+        if !FLAGS.contains(&flag) {
+            return Err(format!("unknown option {flag}"));
+        }
+        let value = match inline {
+            Some(value) => value,
+            None => match rest.next() {
+                Some(value) if !value.starts_with("--") => value.clone(),
+                _ => return Err(format!("{flag} needs a value")),
+            },
+        };
+        if value.trim().is_empty() {
+            return Err(format!("{flag} needs a value"));
+        }
+        if args.get(flag).is_some() {
+            return Err(format!("{flag} given twice"));
+        }
+        args.flags.push((flag.to_string(), value));
+    }
+    Ok(args)
 }
 
 fn agreement(label: &str, agrees: bool) -> bool {
@@ -82,6 +171,12 @@ fn input_error(err: VerifyError) -> ExitCode {
         VerifyError::UnknownOption(option) => {
             eprintln!("a ballot ranks {option}, which the option list does not have")
         }
+        VerifyError::MalformedTrackingCode(code) => {
+            eprintln!("tracking code {code:?} is not one the platform issues: the file is not a ballot list it published")
+        }
+        VerifyError::DuplicateTrackingCode(code) => {
+            eprintln!("tracking code {code} appears on more than one ballot: a published ballot list never repeats one")
+        }
     }
     ExitCode::from(2)
 }
@@ -92,7 +187,10 @@ fn check_publication(text: &str) -> ExitCode {
         Err(err) => return input_error(err),
     };
     let report = &checked.report;
-    println!("publication    format {}, poll {}", checked.format_version, checked.poll_id);
+    println!(
+        "publication    format {}, poll {}",
+        checked.format_version, checked.poll_id
+    );
     print_report(report);
     println!(
         "  the method is the document's own statement, version {}: compare it with what \
@@ -128,10 +226,10 @@ fn check_publication(text: &str) -> ExitCode {
     }
 }
 
-fn check_csv(text: &str, args: &[String]) -> ExitCode {
-    let method = match arg_value(args, "--method") {
+fn check_csv(text: &str, args: &Args) -> ExitCode {
+    let method = match args.get("--method") {
         None => Method::Schulze,
-        Some(text) => match Method::parse(&text) {
+        Some(text) => match Method::parse(text) {
             Some(method) => method,
             None => {
                 eprintln!("--method must be schulze, plurality or approval");
@@ -139,18 +237,19 @@ fn check_csv(text: &str, args: &[String]) -> ExitCode {
             }
         },
     };
-    let options: Option<Vec<String>> = arg_value(args, "--options").map(|list| {
-        list.split(',').map(str::trim).filter(|o| !o.is_empty()).map(String::from).collect()
+    let options: Option<Vec<String>> = args.get("--options").map(|list| {
+        list.split(',')
+            .map(str::trim)
+            .filter(|o| !o.is_empty())
+            .map(String::from)
+            .collect()
     });
-    let closure_hash = arg_value(args, "--closure-hash");
-    let opening_seed = arg_value(args, "--opening-seed");
-    let winner = arg_value(args, "--winner");
     let expected = Expected {
         method,
         options: options.as_deref(),
-        closure_hash: closure_hash.as_deref(),
-        opening_seed: opening_seed.as_deref(),
-        winner: winner.as_deref(),
+        closure_hash: args.get("--closure-hash"),
+        opening_seed: args.get("--opening-seed"),
+        winner: args.get("--winner"),
     };
 
     let report = match verify(text, &expected) {
@@ -176,6 +275,14 @@ fn check_csv(text: &str, args: &[String]) -> ExitCode {
         ok &= agreement("winner", matched);
     }
 
+    if report.closure_hash_agrees.is_none() && report.winner_agrees.is_none() {
+        // The recomputation above is not a verification: nothing published
+        // was compared with it. Exit 0 here would read as "verified".
+        println!(
+            "NOTHING COMPARED: pass --closure-hash and/or --winner, copied from the results page"
+        );
+        return ExitCode::from(3);
+    }
     if ok {
         ExitCode::SUCCESS
     } else {
@@ -184,8 +291,19 @@ fn check_csv(text: &str, args: &[String]) -> ExitCode {
 }
 
 fn main() -> ExitCode {
-    let args: Vec<String> = std::env::args().skip(1).collect();
-    let Some(path) = args.first().filter(|a| !a.starts_with("--")) else {
+    let raw: Vec<String> = std::env::args().skip(1).collect();
+    let args = match parse_args(&raw) {
+        Ok(args) => args,
+        Err(message) => {
+            eprintln!("{message}\n{USAGE}");
+            return ExitCode::from(2);
+        }
+    };
+    if args.help {
+        println!("{USAGE}\n\n{HELP}");
+        return ExitCode::SUCCESS;
+    }
+    let Some(path) = &args.path else {
         eprintln!("{USAGE}");
         return ExitCode::from(2);
     };
@@ -201,12 +319,50 @@ fn main() -> ExitCode {
     // By content, not extension: a browser may save the document under any
     // name. The CSV starts with its header, never with '{'.
     if text.trim_start().starts_with('{') {
-        if let Some(flag) = args.iter().find(|a| FLAGS.contains(&a.as_str())) {
+        if let Some((flag, _)) = args.flags.first() {
             eprintln!("{flag} does not apply to a publication document: it carries every value");
             return ExitCode::from(2);
         }
         check_publication(&text)
     } else {
         check_csv(&text, &args)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn parse(line: &str) -> Result<Args, String> {
+        parse_args(
+            &line
+                .split_whitespace()
+                .map(String::from)
+                .collect::<Vec<_>>(),
+        )
+    }
+
+    #[test]
+    fn known_flags_take_their_value_either_way() {
+        let args = parse("b.csv --closure-hash ab --winner=x").expect("parses");
+        assert_eq!(args.path.as_deref(), Some("b.csv"));
+        assert_eq!(args.get("--closure-hash"), Some("ab"));
+        assert_eq!(args.get("--winner"), Some("x"));
+        assert!(parse("--help").expect("parses").help);
+    }
+
+    #[test]
+    fn anything_unrecognised_is_an_error_not_ignored() {
+        for bad in [
+            "b.csv --closure_hash ab",
+            "b.csv --winner",
+            "b.csv --winner --method schulze",
+            "b.csv --winner=",
+            "b.csv --winner a --winner b",
+            "b.csv other.csv",
+            "b.csv -x",
+        ] {
+            assert!(parse(bad).is_err(), "accepted {bad:?}");
+        }
     }
 }

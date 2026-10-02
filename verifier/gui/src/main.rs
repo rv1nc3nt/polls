@@ -53,7 +53,10 @@ impl VerifierApp {
     fn choose_file(&mut self) {
         if let Some(path) = rfd::FileDialog::new()
             .set_title("Choisir le document de publication (JSON) ou la liste des bulletins (CSV)")
-            .add_filter("Document de publication ou liste des bulletins", &["json", "csv"])
+            .add_filter(
+                "Document de publication ou liste des bulletins",
+                &["json", "csv"],
+            )
             .pick_file()
         {
             self.load(path);
@@ -74,7 +77,9 @@ impl VerifierApp {
         let text = match std::fs::read_to_string(path) {
             Ok(text) => text,
             Err(err) => {
-                self.outcome = Some(Outcome::Error(format!("Impossible de lire ce fichier : {err}")));
+                self.outcome = Some(Outcome::Error(format!(
+                    "Impossible de lire ce fichier : {err}"
+                )));
                 return;
             }
         };
@@ -93,7 +98,11 @@ impl VerifierApp {
         let opening_seed = non_empty(&self.expected_opening_seed);
         let winner = non_empty(&self.expected_winner);
         let options: Option<Vec<String>> = non_empty(&self.expected_options).map(|list| {
-            list.split(',').map(str::trim).filter(|o| !o.is_empty()).map(String::from).collect()
+            list.split(',')
+                .map(str::trim)
+                .filter(|o| !o.is_empty())
+                .map(String::from)
+                .collect()
         });
         let expected = Expected {
             method: self.method,
@@ -124,6 +133,14 @@ fn error_message(err: VerifyError) -> String {
             "Un bulletin classe l'option {option}, absente de la liste des options : \
              la liste ou le fichier n'est pas celui de ce scrutin."
         ),
+        VerifyError::MalformedTrackingCode(code) => format!(
+            "Le code de suivi « {code} » n'est pas de ceux que la plateforme délivre : \
+             ce fichier n'est pas une liste de bulletins qu'elle a publiée."
+        ),
+        VerifyError::DuplicateTrackingCode(code) => format!(
+            "Le code de suivi {code} figure sur plusieurs bulletins : une liste publiée \
+             n'en répète jamais aucun."
+        ),
     }
 }
 
@@ -142,11 +159,18 @@ impl eframe::App for VerifierApp {
         // dropped anywhere on the window through the raw input, no dialog
         // needed.
         let dropped: Vec<PathBuf> = ctx.input(|i| {
-            i.raw.dropped_files.iter().filter_map(|f| f.path.clone()).collect()
+            i.raw
+                .dropped_files
+                .iter()
+                .filter_map(|f| f.path.clone())
+                .collect()
         });
         if let Some(path) = dropped.into_iter().next() {
             self.load(path);
         }
+        // Set by any input below; a result computed from other values must
+        // not stay on screen beside the new ones as if it checked them.
+        let mut inputs_changed = false;
 
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Vérificateur indépendant");
@@ -186,59 +210,75 @@ impl eframe::App for VerifierApp {
                     "2. Pour un fichier CSV seulement : valeurs à comparer (facultatif — \
                      affichées sur la page de résultats). Le document JSON les contient toutes.",
                 );
-                egui::Grid::new("expected-values").num_columns(2).spacing([8.0, 6.0]).show(
-                    ui,
-                    |ui| {
+                egui::Grid::new("expected-values")
+                    .num_columns(2)
+                    .spacing([8.0, 6.0])
+                    .show(ui, |ui| {
                         // The CSV does not say which method the poll used; the
                         // results page does, as "Méthode de dépouillement".
                         ui.label("Méthode de dépouillement");
                         ui.horizontal(|ui| {
-                            ui.radio_value(&mut self.method, Method::Schulze, "Schulze");
-                            ui.radio_value(&mut self.method, Method::Plurality, "majoritaire");
-                            ui.radio_value(&mut self.method, Method::Approval, "par assentiment");
+                            for (method, label) in [
+                                (Method::Schulze, "Schulze"),
+                                (Method::Plurality, "majoritaire"),
+                                (Method::Approval, "par assentiment"),
+                            ] {
+                                inputs_changed |=
+                                    ui.radio_value(&mut self.method, method, label).changed();
+                            }
                         });
                         ui.end_row();
 
                         ui.label("Identifiants des options");
-                        ui.add(
-                            egui::TextEdit::singleline(&mut self.expected_options)
-                                .hint_text("séparés par des virgules, ex. option-a, option-b")
-                                .desired_width(400.0),
-                        );
+                        inputs_changed |= ui
+                            .add(
+                                egui::TextEdit::singleline(&mut self.expected_options)
+                                    .hint_text("séparés par des virgules, ex. option-a, option-b")
+                                    .desired_width(400.0),
+                            )
+                            .changed();
                         ui.end_row();
 
                         ui.label("Empreinte de clôture attendue");
-                        ui.add(
-                            egui::TextEdit::singleline(&mut self.expected_closure_hash)
-                                .hint_text("87694cf0…")
-                                .desired_width(400.0),
-                        );
+                        inputs_changed |= ui
+                            .add(
+                                egui::TextEdit::singleline(&mut self.expected_closure_hash)
+                                    .hint_text("87694cf0…")
+                                    .desired_width(400.0),
+                            )
+                            .changed();
                         ui.end_row();
 
                         ui.label("Graine d'ouverture");
-                        ui.add(
-                            egui::TextEdit::singleline(&mut self.expected_opening_seed)
-                                .hint_text("uniquement en cas d'égalité, ex. a1b2c3…")
-                                .desired_width(400.0),
-                        );
+                        inputs_changed |= ui
+                            .add(
+                                egui::TextEdit::singleline(&mut self.expected_opening_seed)
+                                    .hint_text("uniquement en cas d'égalité, ex. a1b2c3…")
+                                    .desired_width(400.0),
+                            )
+                            .changed();
                         ui.end_row();
 
                         ui.label("Vainqueur annoncé");
-                        ui.add(
-                            egui::TextEdit::singleline(&mut self.expected_winner)
-                                .hint_text("identifiant de l'option, ex. option-b")
-                                .desired_width(400.0),
-                        );
+                        inputs_changed |= ui
+                            .add(
+                                egui::TextEdit::singleline(&mut self.expected_winner)
+                                    .hint_text("identifiant de l'option, ex. option-b")
+                                    .desired_width(400.0),
+                            )
+                            .changed();
                         ui.end_row();
-                    },
-                );
+                    });
             });
 
             ui.add_space(8.0);
 
             let can_verify = self.csv_path.is_some();
             if ui
-                .add_enabled(can_verify, egui::Button::new("Vérifier").min_size([120.0, 32.0].into()))
+                .add_enabled(
+                    can_verify,
+                    egui::Button::new("Vérifier").min_size([120.0, 32.0].into()),
+                )
                 .clicked()
             {
                 self.run_verification();
@@ -247,16 +287,78 @@ impl eframe::App for VerifierApp {
             ui.add_space(12.0);
             ui.separator();
 
+            if inputs_changed {
+                self.outcome = None;
+            }
+
             match &self.outcome {
                 None => {}
                 Some(Outcome::Error(err)) => {
                     ui.colored_label(egui::Color32::from_rgb(200, 40, 40), err);
                 }
-                Some(Outcome::Report(report)) => show_report(ui, report),
-                Some(Outcome::Publication(checked)) => show_publication(ui, checked),
+                Some(Outcome::Report(report)) => {
+                    report_verdict(ui, report);
+                    show_report(ui, report);
+                }
+                Some(Outcome::Publication(checked)) => {
+                    publication_verdict(ui, checked);
+                    show_publication(ui, checked);
+                }
             }
         });
     }
+}
+
+/// One line above the detail, so a single ✗ among the ✓ lines cannot be
+/// missed, and a run that compared nothing does not look like a pass.
+fn report_verdict(ui: &mut egui::Ui, report: &Report) {
+    let compared: Vec<bool> = [report.closure_hash_agrees, report.winner_agrees]
+        .into_iter()
+        .flatten()
+        .collect();
+    if compared.is_empty() {
+        ui.colored_label(
+            egui::Color32::from_rgb(170, 110, 0),
+            "⚠ Rien n'a été comparé : renseignez l'empreinte de clôture ou le vainqueur annoncé \
+             (étape 2) pour vérifier quelque chose. Ce qui suit n'est que le recalcul.",
+        );
+    } else {
+        headline(ui, compared.iter().filter(|agrees| !**agrees).count());
+    }
+}
+
+fn publication_verdict(ui: &mut egui::Ui, checked: &PublicationReport) {
+    let compared = [
+        checked.report.closure_hash_agrees,
+        checked.report.winner_agrees,
+        Some(checked.ballot_count_agrees),
+        Some(checked.matrix_agrees),
+        checked.counts_agree,
+        checked.tiebreak_agrees,
+    ];
+    headline(
+        ui,
+        compared
+            .into_iter()
+            .flatten()
+            .filter(|agrees| !agrees)
+            .count(),
+    );
+}
+
+fn headline(ui: &mut egui::Ui, differing: usize) {
+    let text = match differing {
+        0 => "✓ VÉRIFIÉ : toutes les valeurs comparées concordent.".to_string(),
+        1 => "✗ 1 valeur NE concorde PAS : voir le détail ci-dessous.".to_string(),
+        n => format!("✗ {n} valeurs NE concordent PAS : voir le détail ci-dessous."),
+    };
+    let color = if differing == 0 {
+        egui::Color32::from_rgb(30, 140, 60)
+    } else {
+        egui::Color32::from_rgb(200, 40, 40)
+    };
+    ui.heading(egui::RichText::new(text).color(color));
+    ui.add_space(6.0);
 }
 
 fn method_label(method: Method) -> &'static str {
@@ -406,9 +508,15 @@ fn show_publication(ui: &mut egui::Ui, checked: &PublicationReport) {
 
 fn agreement_label(ui: &mut egui::Ui, agrees: bool, when_true: &str, when_false: &str) {
     let (color, text) = if agrees {
-        (egui::Color32::from_rgb(30, 140, 60), format!("✓ {when_true}"))
+        (
+            egui::Color32::from_rgb(30, 140, 60),
+            format!("✓ {when_true}"),
+        )
     } else {
-        (egui::Color32::from_rgb(200, 40, 40), format!("✗ {when_false}"))
+        (
+            egui::Color32::from_rgb(200, 40, 40),
+            format!("✗ {when_false}"),
+        )
     };
     ui.colored_label(color, text);
 }

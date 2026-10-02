@@ -91,4 +91,6 @@ A program cannot replay a physical draw. The verifier checks that `tied`
 equals its own set of tied winners and that `order` is a permutation of them.
 It then takes the first entry of `order` as the winner.
 
-With no `tiebreak` member, the recomputation must not tie.
+With no `tiebreak` member, the recomputation must not tie. With no ballots
+there is no result under any method: no winners, so no tie, and `winner` is
+`null`.

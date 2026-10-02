@@ -64,7 +64,10 @@ const MAX_DEPTH: usize = 64;
 /// Parse one JSON document; anything but whitespace after it is an error.
 /// The message gives the byte offset of the problem.
 pub fn parse(text: &str) -> Result<Value, String> {
-    let mut reader = Reader { bytes: text.as_bytes(), pos: 0 };
+    let mut reader = Reader {
+        bytes: text.as_bytes(),
+        pos: 0,
+    };
     reader.skip_whitespace();
     let value = reader.value(0)?;
     reader.skip_whitespace();
@@ -214,7 +217,9 @@ impl Reader<'_> {
             self.digits();
         }
         // Only ASCII bytes were consumed, so this slice is valid UTF-8.
-        Ok(Value::Number(String::from_utf8_lossy(&self.bytes[start..self.pos]).into_owned()))
+        Ok(Value::Number(
+            String::from_utf8_lossy(&self.bytes[start..self.pos]).into_owned(),
+        ))
     }
 
     fn digits(&mut self) {
@@ -246,9 +251,10 @@ impl Reader<'_> {
             }
             // The input is a &str and the run stops only at ASCII bytes, so it
             // ends on a character boundary.
-            out.push_str(std::str::from_utf8(&self.bytes[start..self.pos]).map_err(|_| {
-                self.error("invalid UTF-8")
-            })?);
+            out.push_str(
+                std::str::from_utf8(&self.bytes[start..self.pos])
+                    .map_err(|_| self.error("invalid UTF-8"))?,
+            );
             match self.peek() {
                 Some(b'"') => {
                     self.pos += 1;
@@ -316,7 +322,10 @@ mod tests {
         assert_eq!(list[1].as_u64(), None);
         assert_eq!(list[2], Value::Bool(true));
         assert_eq!(list[4], Value::Null);
-        assert_eq!(value.get("a").unwrap().get("x").unwrap().as_str(), Some("y"));
+        assert_eq!(
+            value.get("a").unwrap().get("x").unwrap().as_str(),
+            Some("y")
+        );
     }
 
     #[test]

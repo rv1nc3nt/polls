@@ -20,11 +20,14 @@ uv run python manage.py makemigrations --check --dry-run  # models match migrati
 uv run pytest -q                          # fast; no network
 uv run ruff check . && uv run ruff format --check .
 uv run mypy src tests                     # --strict, must stay clean
+cargo fmt --manifest-path verifier/Cargo.toml --all --check
+cargo clippy --manifest-path verifier/Cargo.toml --workspace --all-targets -- -D warnings
 cargo test --manifest-path verifier/Cargo.toml
 uv run python manage.py compilemessages   # needs GNU gettext installed
 ```
 
-All five gates run in CI and must be green before a commit lands.
+Every gate above (all but `uv sync` and `migrate`) runs in CI and must be green
+before a commit lands.
 
 ## Layout
 

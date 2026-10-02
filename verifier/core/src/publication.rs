@@ -49,7 +49,9 @@ pub struct Publication {
 }
 
 fn member<'a>(value: &'a Value, key: &str) -> Result<&'a Value, String> {
-    value.get(key).ok_or_else(|| format!("publication: \"{key}\" is missing"))
+    value
+        .get(key)
+        .ok_or_else(|| format!("publication: \"{key}\" is missing"))
 }
 
 fn string(value: &Value, key: &str) -> Result<String, String> {
@@ -65,7 +67,9 @@ fn strings(value: &Value, what: &str) -> Result<Vec<String>, String> {
         .ok_or_else(|| format!("publication: {what} must be a list"))?
         .iter()
         .map(|item| {
-            item.as_str().map(String::from).ok_or_else(|| format!("publication: {what} must hold strings"))
+            item.as_str()
+                .map(String::from)
+                .ok_or_else(|| format!("publication: {what} must hold strings"))
         })
         .collect()
 }
@@ -93,9 +97,11 @@ pub fn parse_publication(text: &str) -> Result<Publication, String> {
     let format_version = match document.get("format_version").map(Value::as_str) {
         Some(Some(version)) => version.to_string(),
         _ => {
-            return Err("publication: \"format_version\" is missing — this is not a \
+            return Err(
+                "publication: \"format_version\" is missing — this is not a \
                         publication document, or one older than this verifier reads"
-                .to_string())
+                    .to_string(),
+            )
         }
     };
     if !SUPPORTED_FORMAT_VERSIONS.contains(&format_version.as_str()) {
@@ -137,7 +143,10 @@ pub fn parse_publication(text: &str) -> Result<Publication, String> {
             .iter()
             .map(|group| strings(group, &format!("{what}'s ranking")))
             .collect::<Result<Vec<_>, _>>()?;
-        ballots.push(Ballot { tracking_code, ranking });
+        ballots.push(Ballot {
+            tracking_code,
+            ranking,
+        });
     }
 
     let ballot_count = member(&document, "ballot_count")?

@@ -16,7 +16,10 @@
 //!
 //! The closure-hash check is method-independent either way.
 
-use crate::canonical::{canonical_serialisation, options_in, parse_csv, parse_hex, Ballot};
+use crate::canonical::{
+    canonical_serialisation, check_tracking_codes, options_in, parse_csv, parse_hex, Ballot,
+    BallotListError,
+};
 use crate::counted::{self, Method};
 use crate::publication::{parse_publication, Publication, TiebreakRule};
 use crate::schulze;
@@ -70,6 +73,23 @@ pub enum VerifyError {
     /// A ballot ranks an option absent from `Expected::options`: the list or
     /// the file is not this poll's.
     UnknownOption(String),
+    /// A tracking code outside the alphabet, or of the wrong length.
+    MalformedTrackingCode(String),
+    /// Two ballots carry the same tracking code (INV-11).
+    DuplicateTrackingCode(String),
+}
+
+impl From<BallotListError> for VerifyError {
+    fn from(err: BallotListError) -> Self {
+        match err {
+            BallotListError::MalformedTrackingCode(code) => {
+                VerifyError::MalformedTrackingCode(code)
+            }
+            BallotListError::DuplicateTrackingCode(code) => {
+                VerifyError::DuplicateTrackingCode(code)
+            }
+        }
+    }
 }
 
 /// Recompute the closure hash and the result under `expected.method` from the
@@ -82,6 +102,7 @@ pub fn verify(csv_text: &str, expected: &Expected) -> Result<Report, VerifyError
 
 /// [`verify`], from ballots already read.
 pub fn verify_ballots(ballots: &[Ballot], expected: &Expected) -> Result<Report, VerifyError> {
+    check_tracking_codes(ballots)?;
     let serialised = canonical_serialisation(ballots);
     let hash = sha256(&serialised);
     let closure_hash = hex(&hash);
@@ -100,6 +121,10 @@ pub fn verify_ballots(ballots: &[Ballot], expected: &Expected) -> Result<Report,
     // for every method too.
     let matrix = schulze::pairwise(&rankings, &options);
     let (counts, winners) = match expected.method {
+        // No ballots, no result (T-39), as the application publishes it:
+        // every strongest path is zero, which would otherwise make every
+        // option a winner and demand a tie-break the document rightly omits.
+        Method::Schulze if ballots.is_empty() => (None, Vec::new()),
         Method::Schulze => {
             let paths = schulze::strongest_paths(&matrix, &options);
             (None, schulze::winners(&paths, &options))
@@ -117,8 +142,11 @@ pub fn verify_ballots(ballots: &[Ballot], expected: &Expected) -> Result<Report,
     // refusing to judge. `tiebreak_order.is_none()` alongside a multi-winner
     // `winners` is how callers present that — the CLI's "tie among N
     // options; pass --opening-seed to resolve".
-    let mut final_winner =
-        if winners.len() == 1 { winners.first().cloned() } else { None };
+    let mut final_winner = if winners.len() == 1 {
+        winners.first().cloned()
+    } else {
+        None
+    };
     let mut tiebreak_order = None;
     if winners.len() > 1 {
         if let Some(seed_hex) = expected.opening_seed {
@@ -129,9 +157,12 @@ pub fn verify_ballots(ballots: &[Ballot], expected: &Expected) -> Result<Report,
         }
     }
 
-    let closure_hash_agrees =
-        expected.closure_hash.map(|expected| expected.trim().eq_ignore_ascii_case(&closure_hash));
-    let winner_agrees = expected.winner.map(|expected| final_winner.as_deref() == Some(expected));
+    let closure_hash_agrees = expected
+        .closure_hash
+        .map(|expected| expected.trim().eq_ignore_ascii_case(&closure_hash));
+    let winner_agrees = expected
+        .winner
+        .map(|expected| final_winner.as_deref() == Some(expected));
 
     Ok(Report {
         method: expected.method,
@@ -197,9 +228,15 @@ fn matrix_matches(publication: &Publication, report: &Report) -> bool {
                 return false;
             };
             cells.len() == options.len() - 1
-                && options.iter().enumerate().filter(|(j, _)| *j != i).all(|(j, column)| {
-                    cells.iter().any(|(id, n)| id == column && *n == u64::from(report.matrix[i][j]))
-                })
+                && options
+                    .iter()
+                    .enumerate()
+                    .filter(|(j, _)| *j != i)
+                    .all(|(j, column)| {
+                        cells
+                            .iter()
+                            .any(|(id, n)| id == column && *n == u64::from(report.matrix[i][j]))
+                    })
         })
 }
 
@@ -248,15 +285,20 @@ pub fn verify_publication(text: &str) -> Result<PublicationReport, VerifyError> 
     }
     report.winner_agrees = Some(report.final_winner == publication.winner);
 
-    let counts_agree = report.counts.as_ref().map(|counts| match &publication.counts {
-        None => false,
-        Some(published) => {
-            published.len() == counts.len()
-                && report.options.iter().zip(counts).all(|(option, count)| {
-                    published.iter().any(|(id, n)| id == option && *n == u64::from(*count))
-                })
-        }
-    });
+    let counts_agree = report
+        .counts
+        .as_ref()
+        .map(|counts| match &publication.counts {
+            None => false,
+            Some(published) => {
+                published.len() == counts.len()
+                    && report.options.iter().zip(counts).all(|(option, count)| {
+                        published
+                            .iter()
+                            .any(|(id, n)| id == option && *n == u64::from(*count))
+                    })
+            }
+        });
 
     Ok(PublicationReport {
         ballot_count_agrees: publication.ballot_count == report.ballot_count as u64,
@@ -285,9 +327,15 @@ mod tests {
         // A winner comparison against an unresolved tie must always refuse,
         // not agree or disagree depending on which tied option happened to
         // sort first — that was the bug this module was extracted to fix.
-        let report = verify(CYCLIC, &Expected { winner: Some("a"), ..Default::default() })
-            .ok()
-            .expect("parses");
+        let report = verify(
+            CYCLIC,
+            &Expected {
+                winner: Some("a"),
+                ..Default::default()
+            },
+        )
+        .ok()
+        .expect("parses");
         assert_eq!(report.winners.len(), 3);
         assert!(report.tiebreak_order.is_none());
         assert!(report.final_winner.is_none());
@@ -297,7 +345,10 @@ mod tests {
     #[test]
     fn opening_seed_resolves_the_tie_and_then_a_winner_can_agree() {
         let opening_seed = "00".repeat(32);
-        let closure_hash = verify(CYCLIC, &Expected::default()).ok().expect("parses").closure_hash;
+        let closure_hash = verify(CYCLIC, &Expected::default())
+            .ok()
+            .expect("parses")
+            .closure_hash;
         let expected = Expected {
             opening_seed: Some(&opening_seed),
             winner: None,
@@ -306,7 +357,10 @@ mod tests {
         };
         let report = verify(CYCLIC, &expected).ok().expect("parses");
         let drawn = report.tiebreak_order.expect("tie resolved");
-        assert_eq!(report.final_winner.as_deref(), drawn.first().map(String::as_str));
+        assert_eq!(
+            report.final_winner.as_deref(),
+            drawn.first().map(String::as_str)
+        );
     }
 
     /// Three `a > b > c`, two `b > c > a`, two `c > b > a`: plurality elects
@@ -325,13 +379,20 @@ mod tests {
     fn the_winner_is_checked_under_the_method_the_poll_used() {
         // Review note M2: an honest plurality result used to read DIFFERS,
         // because it was compared with the Schulze winner.
-        let plurality = Expected { method: Method::Plurality, winner: Some("a"), ..Default::default() };
+        let plurality = Expected {
+            method: Method::Plurality,
+            winner: Some("a"),
+            ..Default::default()
+        };
         let report = verify(DIVERGENT, &plurality).ok().expect("parses");
         assert_eq!(report.method, Method::Plurality);
         assert_eq!(report.counts, Some(vec![3, 2, 2]));
         assert_eq!(report.winner_agrees, Some(true));
 
-        let schulze = Expected { winner: Some("a"), ..Default::default() };
+        let schulze = Expected {
+            winner: Some("a"),
+            ..Default::default()
+        };
         let report = verify(DIVERGENT, &schulze).ok().expect("parses");
         assert_eq!(report.method, Method::Schulze);
         assert_eq!(report.counts, None);
@@ -342,13 +403,20 @@ mod tests {
     #[test]
     fn an_approval_tie_goes_to_the_tie_break_like_any_other() {
         let seed = "00".repeat(32);
-        let approval = Expected { method: Method::Approval, ..Default::default() };
+        let approval = Expected {
+            method: Method::Approval,
+            ..Default::default()
+        };
         let report = verify(DIVERGENT, &approval).ok().expect("parses");
         assert_eq!(report.counts, Some(vec![7, 7, 7]));
         assert_eq!(report.winners.len(), 3);
         assert!(report.final_winner.is_none());
 
-        let seeded = Expected { method: Method::Approval, opening_seed: Some(&seed), ..Default::default() };
+        let seeded = Expected {
+            method: Method::Approval,
+            opening_seed: Some(&seed),
+            ..Default::default()
+        };
         let report = verify(DIVERGENT, &seeded).ok().expect("parses");
         assert!(report.tiebreak_order.is_some());
         assert!(report.final_winner.is_some());
@@ -358,8 +426,11 @@ mod tests {
     fn a_listed_option_nobody_ranked_is_in_the_matrix_and_the_counts() {
         // Review note L5: the CSV alone cannot show an unranked option.
         let listed: Vec<String> = ["a", "b", "c", "d"].iter().map(|s| s.to_string()).collect();
-        let expected =
-            Expected { method: Method::Plurality, options: Some(&listed), ..Default::default() };
+        let expected = Expected {
+            method: Method::Plurality,
+            options: Some(&listed),
+            ..Default::default()
+        };
         let report = verify(DIVERGENT, &expected).ok().expect("parses");
         assert_eq!(report.options, listed);
         assert_eq!(report.matrix.len(), 4);
@@ -370,7 +441,10 @@ mod tests {
     #[test]
     fn a_ranked_option_missing_from_the_list_is_refused() {
         let listed: Vec<String> = ["a", "b"].iter().map(|s| s.to_string()).collect();
-        let expected = Expected { options: Some(&listed), ..Default::default() };
+        let expected = Expected {
+            options: Some(&listed),
+            ..Default::default()
+        };
         match verify(DIVERGENT, &expected) {
             Err(VerifyError::UnknownOption(option)) => assert_eq!(option, "c"),
             _ => panic!("expected UnknownOption"),
@@ -409,7 +483,9 @@ mod tests {
 
     #[test]
     fn a_consistent_publication_agrees_on_every_count() {
-        let checked = verify_publication(&plurality_document("\"a\"", "")).ok().expect("reads");
+        let checked = verify_publication(&plurality_document("\"a\"", ""))
+            .ok()
+            .expect("reads");
         assert_eq!(checked.report.method, Method::Plurality);
         assert_eq!(checked.report.options, ["a", "b", "c", "d"]);
         assert_eq!(checked.report.closure_hash_agrees, Some(true));
@@ -422,23 +498,66 @@ mod tests {
 
     #[test]
     fn a_publication_claiming_another_winner_disagrees() {
-        let checked = verify_publication(&plurality_document("\"b\"", "")).ok().expect("reads");
+        let checked = verify_publication(&plurality_document("\"b\"", ""))
+            .ok()
+            .expect("reads");
         assert_eq!(checked.report.winner_agrees, Some(false));
         assert!(!checked.all_agree());
     }
 
     #[test]
     fn a_publication_claiming_a_tie_that_is_not_there_disagrees() {
-        let extra = r#", "tiebreak": {"rule": "physical", "tied": ["a", "b"], "order": ["a", "b"]}"#;
-        let checked = verify_publication(&plurality_document("\"a\"", extra)).ok().expect("reads");
+        let extra =
+            r#", "tiebreak": {"rule": "physical", "tied": ["a", "b"], "order": ["a", "b"]}"#;
+        let checked = verify_publication(&plurality_document("\"a\"", extra))
+            .ok()
+            .expect("reads");
         assert_eq!(checked.tiebreak_agrees, Some(false));
         assert!(!checked.all_agree());
     }
 
     #[test]
+    fn a_schulze_poll_with_no_ballots_has_no_winner_and_no_tie() {
+        // T-39: the application publishes "no result", winner null and no
+        // tie-break; the verifier must agree rather than demand a draw.
+        let document = format!(
+            r#"{{"format_version": "1", "poll_id": "p", "tally_method": "schulze",
+                "tally_method_version": "1",
+                "closure_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "opening_seed": "{seed}", "options": {{"a": {{"fr": "A"}}, "b": {{"fr": "B"}}}},
+                "ballots": [], "ballot_count": 0, "winner": null,
+                "matrix": {{"a": {{"b": 0}}, "b": {{"a": 0}}}},
+                "derivation": {{"pairwise": {{}}, "paths": {{}}, "winners": []}}}}"#,
+            seed = "00".repeat(32),
+        );
+        let checked = verify_publication(&document).ok().expect("parses");
+        assert!(checked.report.winners.is_empty());
+        assert_eq!(checked.tiebreak_agrees, None);
+        assert!(checked.all_agree());
+    }
+
+    #[test]
+    fn a_repeated_or_malformed_tracking_code_is_refused() {
+        let repeated = format!("{CYCLIC}AAAAAAAAAA,\"[[\"\"a\"\"]]\"\n");
+        assert!(matches!(
+            verify(&repeated, &Expected::default()),
+            Err(VerifyError::DuplicateTrackingCode(code)) if code == "AAAAAAAAAA"
+        ));
+        let malformed = "tracking_code,ranking\nAAAAA-AAAA,\"[[\"\"a\"\"]]\"\n";
+        assert!(matches!(
+            verify(malformed, &Expected::default()),
+            Err(VerifyError::MalformedTrackingCode(_))
+        ));
+    }
+
+    #[test]
     fn a_document_without_a_format_version_is_refused() {
-        let document = plurality_document("\"a\"", "").replacen("\"format_version\": \"1\", ", "", 1);
-        assert!(matches!(verify_publication(&document), Err(VerifyError::Publication(_))));
+        let document =
+            plurality_document("\"a\"", "").replacen("\"format_version\": \"1\", ", "", 1);
+        assert!(matches!(
+            verify_publication(&document),
+            Err(VerifyError::Publication(_))
+        ));
     }
 
     fn cyclic_document(tiebreak: &str, winner: &str) -> String {
@@ -466,14 +585,18 @@ mod tests {
         let hash = "18b00454878dc9e9204cff5488d6c9c4ec2a4e12c5382c64d1569e42fa6a6edd";
         let tied: Vec<String> = ["a", "b", "c"].iter().map(|s| s.to_string()).collect();
         let order = schulze::tiebreak(&tied, &parse_hex(&seed).unwrap(), &parse_hex(hash).unwrap());
-        let entries: Vec<String> =
-            order.iter().map(|o| format!(r#"{{"option_id": "{o}", "draw": "00"}}"#)).collect();
+        let entries: Vec<String> = order
+            .iter()
+            .map(|o| format!(r#"{{"option_id": "{o}", "draw": "00"}}"#))
+            .collect();
         let tiebreak = format!(
             r#"{{"rule": "computed", "tied": ["a", "b", "c"], "order": [{}]}}"#,
             entries.join(", ")
         );
         let winner = format!("\"{}\"", order[0]);
-        let checked = verify_publication(&cyclic_document(&tiebreak, &winner)).ok().expect("reads");
+        let checked = verify_publication(&cyclic_document(&tiebreak, &winner))
+            .ok()
+            .expect("reads");
         assert_eq!(checked.tiebreak_rule, Some(TiebreakRule::Computed));
         assert_eq!(checked.tiebreak_agrees, Some(true));
         assert!(checked.all_agree());
@@ -483,21 +606,27 @@ mod tests {
             r#"{{"rule": "computed", "tied": ["a", "b", "c"], "order": [{}]}}"#,
             reversed.join(", ")
         );
-        let checked = verify_publication(&cyclic_document(&tampered, &winner)).ok().expect("reads");
+        let checked = verify_publication(&cyclic_document(&tampered, &winner))
+            .ok()
+            .expect("reads");
         assert_eq!(checked.tiebreak_agrees, Some(false));
     }
 
     #[test]
     fn a_physical_draw_must_be_among_exactly_the_tied_options() {
         let drawn = r#"{"rule": "physical", "tied": ["a", "b", "c"], "order": ["b", "c", "a"]}"#;
-        let checked = verify_publication(&cyclic_document(drawn, "\"b\"")).ok().expect("reads");
+        let checked = verify_publication(&cyclic_document(drawn, "\"b\""))
+            .ok()
+            .expect("reads");
         assert_eq!(checked.tiebreak_rule, Some(TiebreakRule::Physical));
         assert_eq!(checked.tiebreak_agrees, Some(true));
         assert_eq!(checked.report.final_winner.as_deref(), Some("b"));
         assert!(checked.all_agree());
 
         let foreign = r#"{"rule": "physical", "tied": ["a", "b", "c"], "order": ["b", "c", "z"]}"#;
-        let checked = verify_publication(&cyclic_document(foreign, "\"b\"")).ok().expect("reads");
+        let checked = verify_publication(&cyclic_document(foreign, "\"b\""))
+            .ok()
+            .expect("reads");
         assert_eq!(checked.tiebreak_agrees, Some(false));
         assert!(!checked.all_agree());
     }

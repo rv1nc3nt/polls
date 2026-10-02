@@ -52,7 +52,11 @@ Records are sorted by tracking code ascending, comparing **UTF-8 bytes**. The
 tracking-code alphabet is ASCII (`23456789ABCDEFGHJKLMNPQRSTUVWXYZ` — no `O`,
 `0`, `I` or `1`), so this is the obvious ordering; it is stated because it is
 what the verifier must match. `(poll_id, tracking_code)` is unique in the
-database (INV-11), so the sort is total.
+database (INV-11), so the sort is total. The verifier refuses a ballot list
+holding a code outside that alphabet, of another length than 10, or repeated:
+the database could not have produced it, and the record format above does not
+escape strings, so only codes from the alphabet serialise identically on both
+sides.
 
 Each record is followed by a single `\n`, **including the last**. The document
 is the concatenation of those lines, encoded UTF-8.

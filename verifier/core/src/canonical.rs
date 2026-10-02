@@ -23,8 +23,8 @@ pub fn parse_csv(text: &str) -> Result<Vec<Ballot>, String> {
         if lineno == 0 && line.starts_with("tracking_code") {
             continue;
         }
-        let (code, ranking) = split_row(line)
-            .ok_or_else(|| format!("line {}: expected two columns", lineno + 1))?;
+        let (code, ranking) =
+            split_row(line).ok_or_else(|| format!("line {}: expected two columns", lineno + 1))?;
         ballots.push(Ballot {
             tracking_code: code,
             ranking: parse_ranking(&ranking)
@@ -63,7 +63,10 @@ fn parse_ranking(cell: &str) -> Option<Vec<Vec<String>>> {
             .map(|s| s.trim().trim_matches('"').to_string())
             .collect();
         groups.push(items);
-        rest = group[end + 1..].trim_start().trim_start_matches(',').trim_start();
+        rest = group[end + 1..]
+            .trim_start()
+            .trim_start_matches(',')
+            .trim_start();
     }
     Some(groups)
 }
@@ -100,6 +103,42 @@ pub fn canonical_serialisation(ballots: &[Ballot]) -> Vec<u8> {
     out
 }
 
+/// The tracking-code alphabet and length (`docs/canonical-serialisation.md`,
+/// "The document"): no `O`, `0`, `I` or `1`.
+pub const TRACKING_CODE_ALPHABET: &str = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+pub const TRACKING_CODE_LENGTH: usize = 10;
+
+/// Why a ballot list cannot be the live set of a poll, whatever its hash.
+#[derive(Debug, PartialEq, Eq)]
+pub enum BallotListError {
+    /// A code outside the alphabet or of the wrong length. The canonical
+    /// serialisation does not escape strings, so only codes from the fixed
+    /// alphabet are guaranteed to serialise as the application does.
+    MalformedTrackingCode(String),
+    /// Two ballots share a code. The database refuses this (INV-11); a
+    /// published list that has it could hide stuffed ballots behind codes
+    /// real voters will still find.
+    DuplicateTrackingCode(String),
+}
+
+/// Refuse a list no poll could have published: a malformed or repeated
+/// tracking code.
+pub fn check_tracking_codes(ballots: &[Ballot]) -> Result<(), BallotListError> {
+    let mut seen = BTreeSet::new();
+    for ballot in ballots {
+        let code = &ballot.tracking_code;
+        let well_formed = code.len() == TRACKING_CODE_LENGTH
+            && code.chars().all(|c| TRACKING_CODE_ALPHABET.contains(c));
+        if !well_formed {
+            return Err(BallotListError::MalformedTrackingCode(code.clone()));
+        }
+        if !seen.insert(code.as_str()) {
+            return Err(BallotListError::DuplicateTrackingCode(code.clone()));
+        }
+    }
+    Ok(())
+}
+
 /// Every option id that appears on at least one ballot, sorted. The CSV
 /// carries no option list, so an option no ballot ranks is absent here; a
 /// caller who knows the poll's options passes them instead (`Expected::options`
@@ -124,7 +163,7 @@ pub fn options_in(ballots: &[Ballot]) -> Vec<String> {
 /// a leading `+`, so `"+f"` decoded (review note L6).
 pub fn parse_hex(text: &str) -> Option<Vec<u8>> {
     let digits = text.trim().as_bytes();
-    if digits.len() % 2 != 0 {
+    if !digits.len().is_multiple_of(2) {
         return None;
     }
     let nibble = |b: u8| (b as char).to_digit(16).filter(|_| b.is_ascii_hexdigit());
@@ -149,6 +188,46 @@ mod tests {
         assert_eq!(parse_hex("é"), None);
         // Four bytes whose first pair ends inside "é": used to panic.
         assert_eq!(parse_hex("aéb"), None);
+    }
+
+    fn ballot(code: &str) -> Ballot {
+        Ballot {
+            tracking_code: code.to_string(),
+            ranking: vec![vec!["a".to_string()]],
+        }
+    }
+
+    #[test]
+    fn tracking_codes_must_be_well_formed_and_unique() {
+        assert_eq!(
+            check_tracking_codes(&[ballot("AAAAAAAAAA"), ballot("23456789ZZ")]),
+            Ok(())
+        );
+        assert_eq!(check_tracking_codes(&[]), Ok(()));
+        for bad in [
+            "AAAAAAAAA",
+            "AAAAAAAAAAA",
+            "AAAAAAAAA0",
+            "AAAAAAAAAI",
+            "aaaaaaaaaa",
+            "AAAA\"AAAAA",
+        ] {
+            assert_eq!(
+                check_tracking_codes(&[ballot(bad)]),
+                Err(BallotListError::MalformedTrackingCode(bad.to_string())),
+                "{bad}"
+            );
+        }
+        assert_eq!(
+            check_tracking_codes(&[
+                ballot("AAAAAAAAAA"),
+                ballot("BBBBBBBBBB"),
+                ballot("AAAAAAAAAA")
+            ]),
+            Err(BallotListError::DuplicateTrackingCode(
+                "AAAAAAAAAA".to_string()
+            ))
+        );
     }
 
     #[test]

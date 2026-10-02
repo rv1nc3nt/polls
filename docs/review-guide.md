@@ -142,6 +142,8 @@ uv run pytest -q                                          # ~850 tests, ~20 s, n
 uv run ruff check . && uv run ruff format --check .
 uv run mypy src tests                                     # --strict
 uv run python manage.py makemigrations --check --dry-run
+cargo fmt --manifest-path verifier/Cargo.toml --all --check
+cargo clippy --manifest-path verifier/Cargo.toml --workspace --all-targets -- -D warnings
 cargo test --manifest-path verifier/Cargo.toml
 uv run python manage.py compilemessages                   # needs GNU gettext
 ```

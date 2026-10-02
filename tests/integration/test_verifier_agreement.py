@@ -65,6 +65,10 @@ DIVERGENT = [
     ("FFFFFFFFFF", [["c"], ["b"], ["a"]]),
     ("GGGGGGGGGG", [["c"], ["b"], ["a"]]),
 ]
+# T-39: no ballots, no result. Under Schulze every strongest path is zero, and
+# a verifier that read that as an all-way tie disagreed with an honest
+# publication (review B-2).
+EMPTY: list[tuple[str, list[list[str]]]] = []
 
 
 @pytest.fixture(scope="module")
@@ -89,7 +93,9 @@ def write_csv(rows: list[tuple[str, list[list[str]]]], path: Path) -> None:
 
 @pytest.mark.parametrize("method", list(Method), ids=lambda m: str(m))
 @pytest.mark.parametrize(
-    "rows", [CYCLIC, CLEAR, DIVERGENT], ids=["cyclic-t9", "clear-winner", "divergent"]
+    "rows",
+    [CYCLIC, CLEAR, DIVERGENT, EMPTY],
+    ids=["cyclic-t9", "clear-winner", "divergent", "empty-t39"],
 )
 def test_t10_verifier_agrees_with_the_python_tally(
     rows: list[tuple[str, list[list[str]]]],
@@ -111,7 +117,9 @@ def test_t10_verifier_agrees_with_the_python_tally(
     result = tally([b.ranking for b in ballots], options, method)
 
     opening_seed = bytes(range(32))
-    winner = result.winner or tiebreak_order(result.tied, opening_seed, expected_hash)[0][0]
+    winner = result.winner or (
+        tiebreak_order(result.tied, opening_seed, expected_hash)[0][0] if result.tied else None
+    )
 
     completed = subprocess.run(  # noqa: S603
         [
@@ -125,8 +133,7 @@ def test_t10_verifier_agrees_with_the_python_tally(
             expected_hash.hex(),
             "--opening-seed",
             opening_seed.hex(),
-            "--winner",
-            str(winner),
+            *(["--winner", str(winner)] if winner else []),
         ],
         capture_output=True,
         text=True,
@@ -189,7 +196,9 @@ def _run(verifier: Path, document: Path) -> subprocess.CompletedProcess[str]:
 @pytest.mark.parametrize("rule", [TiebreakRule.COMPUTED, TiebreakRule.PHYSICAL])
 @pytest.mark.parametrize("method", list(Method), ids=lambda m: str(m))
 @pytest.mark.parametrize(
-    "rows", [CYCLIC, CLEAR, DIVERGENT], ids=["cyclic-t9", "clear-winner", "divergent"]
+    "rows",
+    [CYCLIC, CLEAR, DIVERGENT, EMPTY],
+    ids=["cyclic-t9", "clear-winner", "divergent", "empty-t39"],
 )
 def test_the_verifier_agrees_with_the_published_document(
     rows: list[tuple[str, list[list[str]]]],
@@ -232,3 +241,40 @@ def test_a_tampered_winner_is_caught(client: Client, verifier_binary: Path, tmp_
     completed = _run(verifier_binary, document)
     assert completed.returncode == 1
     assert "winner          DIFFERS" in completed.stdout
+
+
+# --- the command line refuses to pass what it did not check (review B-1) ----
+
+
+@pytest.mark.parametrize(
+    ("extra", "code"),
+    [
+        ([], 3),  # nothing to compare: not a verification
+        (["--closure_hash", "00"], 2),  # misspelt flag
+        (["--winner"], 2),  # flag without a value
+        (["--closure-hash=" + "00" * 32], 1),  # = form is read, and this hash is wrong
+    ],
+    ids=["nothing-compared", "unknown-flag", "missing-value", "equals-form"],
+)
+def test_the_cli_never_exits_zero_without_comparing(
+    extra: list[str], code: int, verifier_binary: Path, tmp_path: Path
+) -> None:
+    csv_path = tmp_path / "ballots.csv"
+    write_csv(CLEAR, csv_path)
+    completed = subprocess.run(  # noqa: S603
+        [str(verifier_binary), str(csv_path), *extra], capture_output=True, text=True, check=False
+    )
+    assert completed.returncode == code, completed.stdout + completed.stderr
+
+
+def test_a_repeated_tracking_code_is_refused(verifier_binary: Path, tmp_path: Path) -> None:
+    csv_path = tmp_path / "ballots.csv"
+    write_csv([*CLEAR, CLEAR[0]], csv_path)
+    completed = subprocess.run(  # noqa: S603
+        [str(verifier_binary), str(csv_path), "--winner", "a"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert completed.returncode == 2
+    assert "more than one ballot" in completed.stderr

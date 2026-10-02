@@ -38,6 +38,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
+      # fmt and clippy as gates, like ruff on the Python side: the verifier is
+      # the part a sceptic reads, so it is held to its own linter too.
+      - run: cargo fmt --manifest-path verifier/Cargo.toml --all --check
+      - run: cargo clippy --manifest-path verifier/Cargo.toml --workspace --all-targets -- -D warnings
       - run: cargo test --manifest-path verifier/Cargo.toml
       - run: uv sync --frozen
       - run: uv run pytest tests/integration/test_verifier_agreement.py -q

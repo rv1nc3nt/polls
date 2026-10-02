@@ -47,7 +47,10 @@ pub fn counts(ballots: &[Vec<Vec<String>>], options: &[String], method: Method) 
     let mut counts = vec![0u32; options.len()];
     for ranking in ballots {
         let chosen: Vec<&String> = match method {
-            Method::Plurality => ranking.first().map(|g| g.iter().collect()).unwrap_or_default(),
+            Method::Plurality => ranking
+                .first()
+                .map(|g| g.iter().collect())
+                .unwrap_or_default(),
             Method::Approval => ranking.iter().flatten().collect(),
             Method::Schulze => Vec::new(),
         };
@@ -67,7 +70,12 @@ pub fn winners(counts: &[u32], options: &[String], ballot_count: usize) -> Vec<S
         return Vec::new();
     }
     let best = counts.iter().copied().max().unwrap_or(0);
-    options.iter().zip(counts).filter(|(_, &c)| c == best).map(|(o, _)| o.clone()).collect()
+    options
+        .iter()
+        .zip(counts)
+        .filter(|(_, &c)| c == best)
+        .map(|(o, _)| o.clone())
+        .collect()
 }
 
 #[cfg(test)]
@@ -106,7 +114,11 @@ mod tests {
     #[test]
     fn approval_counts_every_ranked_option() {
         let options = ids(&["a", "b", "c"]);
-        let ballots = vec![ranking(&[&["a"], &["b"]]), ranking(&[&["b", "c"]]), ranking(&[&["b"]])];
+        let ballots = vec![
+            ranking(&[&["a"], &["b"]]),
+            ranking(&[&["b", "c"]]),
+            ranking(&[&["b"]]),
+        ];
         assert_eq!(counts(&ballots, &options, Method::Approval), vec![1, 3, 1]);
     }
 
