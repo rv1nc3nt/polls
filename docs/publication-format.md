@@ -27,6 +27,36 @@ winner should be. It restates the method so the reader can compare it with the
 one the poll announced. The method is fixed before the poll opens and shown on
 its public page from that point on.
 
+## What a verdict does not establish
+
+Every check above is internal: the document against its own ballots. Agreement
+therefore shows that the published ballots give the published result, and no
+more. Outside it, and stated in the citizen manual as well
+(`docs/manuel/verifier.md`, "Ce que le vérificateur ne prouve pas"):
+
+- **Eligibility and stuffing.** Nothing published links a ballot to a
+  registration (INV-1), so the verifier cannot tell a ballot cast by an
+  elector from one added. `counts` must add up with the list, but nothing
+  checks them against the registrations themselves.
+- **Removal or alteration of a ballot.** Shown only by an elector finding
+  their tracking code, with their ranking, in `ballots`.
+- **When the values were fixed.** A document rebuilt from end to end with a
+  new `opening_seed` or ballot list is as consistent as the original. Only
+  comparing `opening_seed` and `closure_hash` with the values shown on the
+  public page at opening and closure shows that they were not
+  changed afterwards.
+- **CSV against document.** The verifier reads one or the other. They carry
+  the same ballots exactly when their closure hashes are equal.
+- **`tally_method`**, restated rather than checked (above).
+- **The poll's ballot rules.** Every ranking must be one the application
+  could record (`canonical-serialisation.md`, "A ranking"), but
+  `require_complete_ranking` and `allow_ties_in_ballot` are not published, so
+  a ballot that breaks them is not caught.
+- **Labels.** `options` is read for its keys only.
+- **A physical draw**, which cannot be replayed (`tiebreak`, below).
+- **Ballot secrecy**, a property of the platform and its operation, not of
+  anything published.
+
 ## Encoding
 
 - UTF-8 JSON (RFC 8259), one object.

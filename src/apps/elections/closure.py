@@ -41,6 +41,13 @@ class TiebreakRefused(Exception):
     (§8.3)."""
 
 
+class TiebreakInputsMissing(RuntimeError):
+    """A ``computed`` poll's tally is tied but its opening seed or closure hash
+    is absent, so the §8.3 draw cannot be run. Unreachable while ``open_poll``
+    and ``close_poll`` write both; raised rather than publishing the tie under
+    another rule's name (review A-17)."""
+
+
 @dataclass(frozen=True)
 class Closure:
     """What ``transitions.close_poll`` freezes onto the poll: the §9 hash and
@@ -264,7 +271,9 @@ def publication(poll: Poll, version: str | None = None) -> dict[str, Any]:
     }
 
     if result.tied:
-        if poll.tiebreak_rule == TiebreakRule.COMPUTED and poll.closure_hash and poll.opening_seed:
+        if poll.tiebreak_rule == TiebreakRule.COMPUTED:
+            if not (poll.closure_hash and poll.opening_seed):
+                raise TiebreakInputsMissing(str(poll.pk))
             order = tiebreak_order(result.tied, bytes(poll.opening_seed), bytes(poll.closure_hash))
             document["tiebreak"] = {
                 "rule": "computed",
@@ -273,7 +282,7 @@ def publication(poll: Poll, version: str | None = None) -> dict[str, Any]:
                 "winner": order[0][0],
             }
             document["winner"] = order[0][0]
-        else:
+        elif poll.tiebreak_rule == TiebreakRule.PHYSICAL:
             # §8.3: the tally reports the tie and stops; a poll admin enters the
             # result of the physical draw on screen 9 and it is logged. Until
             # then there is no winner — ``unresolved_physical_tiebreak`` refuses
@@ -285,6 +294,8 @@ def publication(poll: Poll, version: str | None = None) -> dict[str, Any]:
                 tiebreak["winner"] = draw_order[0]
                 document["winner"] = draw_order[0]
             document["tiebreak"] = tiebreak
+        else:
+            raise ValueError(f"unknown tie-break rule {poll.tiebreak_rule!r}")
 
     if len(options) <= 4 and poll.tally_method == Method.SCHULZE:
         document["orderings"] = ordering_summary(ballots, options)

@@ -31,7 +31,8 @@ totalement indépendant :
   retrouve exactement ce que le site annonce.
 
 S'il retrouve le même résultat, vous avez la preuve, indépendamment du site,
-que le décompte est correct. S'il ne le retrouve pas, quelque chose ne va
+que le décompte des bulletins publiés est correct — ce qui ne prouve pas tout
+(voir [« Ce que le vérificateur ne prouve pas »](#ce-que-le-vérificateur-ne-prouve-pas)). S'il ne le retrouve pas, quelque chose ne va
 pas, et il faut le signaler (voir [« Que faire en cas de désaccord »](#que-faire-en-cas-de-désaccord)
 plus bas) plutôt que faire confiance à l'un ou l'autre des deux calculs.
 
@@ -414,6 +415,49 @@ Si une ligne affiche `DIFFERS` :
    mairie en indiquant la consultation concernée, la commande exacte que
    vous avez lancée et son résultat complet. C'est exactement le type
    d'anomalie que cette vérifiabilité est censée pouvoir détecter.
+
+## Ce que le vérificateur ne prouve pas
+
+Un `AGREES` sur chaque ligne prouve une chose précise : les bulletins publiés
+donnent bien le résultat publié. Il ne dit rien de la façon dont cette liste
+a été constituée. En particulier, le vérificateur ne peut pas établir :
+
+- **que chaque bulletin vient d'un électeur inscrit, et d'un seul.** La liste
+  publiée est anonyme, et c'est voulu : elle ne dit pas qui a voté. Le
+  vérificateur contrôle que les chiffres de participation tiennent avec la
+  liste, pas qu'ils correspondent aux inscriptions réelles, que personne ne
+  peut consulter hors de la mairie.
+- **qu'aucun bulletin n'a été retiré ni modifié.** Seul l'électeur qui a gardé
+  son code de suivi peut le constater, en retrouvant ce code dans la liste
+  avec le classement qu'il a choisi (voir le [guide de
+  l'électeur](guide-electeur.md#8-vérifier-après-la-clôture)). Plus les
+  électeurs sont nombreux à le faire, plus une altération serait difficile à
+  cacher.
+- **que rien n'a changé depuis la clôture, ni la graine depuis l'ouverture.**
+  Le vérificateur contrôle que le document est cohérent avec lui-même ; un
+  document refait de bout en bout le serait aussi. Seule la comparaison avec
+  les valeurs notées à l'avance le montre (voir [« Avant la publication :
+  noter deux valeurs »](#avant-la-publication-noter-deux-valeurs)). C'est
+  aussi cette empreinte qui relie le fichier CSV au document de publication :
+  le vérificateur lit l'un ou l'autre, jamais les deux ensemble, et ils
+  portent les mêmes bulletins si leur empreinte de clôture est la même.
+- **que la méthode de dépouillement est celle annoncée.** C'est elle qui
+  décide du vainqueur : le vérificateur l'affiche pour que vous la compariez à
+  celle que la consultation annonçait avant son ouverture.
+- **que chaque bulletin respecte les règles de la consultation.** Il refuse un
+  classement qu'aucune consultation n'accepte (vide, ou une proposition
+  classée deux fois), mais il ne connaît pas les règles propres à celle-ci :
+  si les ex æquo étaient permis, ou s'il fallait classer toutes les
+  propositions.
+- **que les libellés publiés sont ceux que les électeurs ont vus.** Il compte
+  sur les identifiants des options ; leurs libellés ne servent qu'à
+  l'affichage.
+- **le tirage au sort physique**, qu'aucun programme ne peut rejouer (voir
+  plus haut).
+- **le secret du vote.** Que personne ne puisse relier un bulletin à un
+  électeur tient à la conception de la plateforme et à la façon dont la mairie
+  l'exploite, pas à ce qui est publié : aucun programme extérieur ne peut le
+  constater.
 
 ## Pour aller plus loin
 

@@ -29,7 +29,8 @@ program:
   whether it finds exactly what the site announces.
 
 If it finds the same result, you have proof, independent of the site, that
-the tally is correct. If it does not, something is wrong, and it should be
+the tally of the published ballots is correct — which does not prove
+everything (see ["What the verifier does not prove"](#what-the-verifier-does-not-prove)). If it does not, something is wrong, and it should be
 reported (see ["What to do in case of disagreement"](#what-to-do-in-case-of-disagreement)
 below) rather than trusting either of the two computations.
 
@@ -388,6 +389,44 @@ If a line shows `DIFFERS`:
    mairie, stating the consultation concerned, the exact command you ran and
    its full output. This is exactly the kind of anomaly this verifiability
    is meant to be able to catch.
+
+## What the verifier does not prove
+
+`AGREES` on every line proves one precise thing: the published ballots do
+give the published result. It says nothing about how that list was put
+together. In particular, the verifier cannot establish:
+
+- **that each ballot comes from a registered elector, and from one only.** The
+  published list is anonymous, by design: it does not say who voted. The
+  verifier checks that the participation figures add up with the list, not
+  that they match the actual registrations, which nobody outside the mairie
+  can see.
+- **that no ballot was removed or changed.** Only an elector who kept their
+  tracking code can see that, by finding the code in the list with the
+  ranking they chose (see the [voter's
+  guide](guide-electeur-en.md#8-verify-after-closure)). The more electors do
+  so, the harder any tampering would be to hide.
+- **that nothing changed since closure, nor the seed since opening.** The
+  verifier checks that the document agrees with itself; a document rebuilt
+  from end to end would too. Only comparing with values noted in advance
+  shows it (see ["Before publication: note two
+  values"](#before-publication-note-two-values)). The closure hash is also
+  what ties the CSV file to the publication document: the verifier reads one
+  or the other, never both together, and they carry the same ballots if their
+  closure hash is the same.
+- **that the tally method is the one announced.** It decides the winner: the
+  verifier displays it so you can compare it with the one the consultation
+  announced before it opened.
+- **that each ballot follows the consultation's rules.** It refuses a ranking
+  no consultation accepts (empty, or an option ranked twice), but it does not
+  know this one's own rules: whether ties were allowed, or whether every
+  option had to be ranked.
+- **that the published labels are the ones electors saw.** It counts on the
+  option identifiers; their labels are only for display.
+- **a physical draw**, which no program can replay (see above).
+- **ballot secrecy.** That nobody can link a ballot to an elector depends on
+  how the platform is built and how the mairie runs it, not on what is
+  published: no outside program can observe it.
 
 ## Going further
 
