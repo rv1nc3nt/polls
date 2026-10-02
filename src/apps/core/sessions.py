@@ -14,7 +14,7 @@ of its last day costs nothing.
 from __future__ import annotations
 
 from datetime import UTC, datetime, time, timedelta
-from typing import Any
+from typing import Any, override
 
 from django.contrib.sessions.backends.db import SessionStore as DatabaseSessionStore
 
@@ -27,5 +27,10 @@ def _next_midnight(moment: datetime) -> datetime:
 
 
 class SessionStore(DatabaseSessionStore):
+    """Django's database sessions, with every expiry rounded up to midnight
+    UTC: an exact expiry dates the request that saved the session, and the
+    one that saves it at casting would date the ballot (INV-1)."""
+
+    @override
     def get_expiry_date(self, **kwargs: Any) -> datetime:
         return _next_midnight(super().get_expiry_date(**kwargs))

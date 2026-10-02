@@ -98,6 +98,7 @@ class TrendPoint:
 
     @property
     def leaders(self) -> tuple[OptionId, ...]:
+        """The options ranked first at this point, several where they tie."""
         return tuple(o for o, rank in self.ranks.items() if rank == 1)
 
     def margin(self, i: OptionId, j: OptionId) -> int:

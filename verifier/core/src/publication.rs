@@ -21,8 +21,11 @@ pub enum TiebreakRule {
     Physical,
 }
 
+/// The document's `tiebreak` member: how a tie was settled.
 pub struct Tiebreak {
+    /// Computed by the hash chain, or drawn at the mairie.
     pub rule: TiebreakRule,
+    /// The options the document says tied.
     pub tied: Vec<String>,
     /// The drawn order, first the winner; absent only for a physical draw not
     /// yet entered, which publication refuses.
@@ -34,30 +37,48 @@ pub struct Tiebreak {
 /// uncounted, and those who did not vote.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Participation {
+    /// Electors registered for the poll.
     pub registered: u64,
+    /// Ballots cast online and counted.
     pub ballots_online: u64,
+    /// Paper ballots counted.
     pub ballots_paper: u64,
+    /// Paper entries left out of the count by a countersignature override.
     pub paper_uncountersigned: u64,
+    /// Registered electors who did not vote.
     pub non_voters: u64,
 }
 
+/// The members of the publication document the verifier reads
+/// (`docs/publication-format.md`, "Members").
 pub struct Publication {
+    /// The layout version, one of [`SUPPORTED_FORMAT_VERSIONS`].
     pub format_version: String,
+    /// The poll's id, shown in the report.
     pub poll_id: String,
+    /// The tally method, restated rather than checked.
     pub method: Method,
+    /// The version of that method the tally ran.
     pub method_version: String,
+    /// The published closure hash, lower-case hex.
     pub closure_hash: String,
+    /// The opening seed, lower-case hex: an input to the computed tie-break.
     pub opening_seed: String,
     /// Option ids in the document's order.
     pub options: Vec<String>,
+    /// The live set, as published.
     pub ballots: Vec<Ballot>,
+    /// The published number of ballots.
     pub ballot_count: u64,
+    /// The published winner, after any tie-break; `None` with no ballots.
     pub winner: Option<String>,
     /// `matrix[i][j]` as published, keyed by option id.
     pub matrix: Vec<(String, Vec<(String, u64)>)>,
     /// Votes per option (`derivation.counts`), for plurality and approval.
     pub counts: Option<Vec<(String, u64)>>,
+    /// Participation frozen at closure.
     pub participation: Participation,
+    /// Present only if the tally tied.
     pub tiebreak: Option<Tiebreak>,
 }
 
@@ -101,6 +122,11 @@ fn integers(value: &Value, what: &str) -> Result<Vec<(String, u64)>, String> {
 }
 
 /// Parse and read a publication document.
+///
+/// # Errors
+///
+/// Invalid JSON, a missing or unsupported `format_version`, or a member the
+/// verifier reads that is absent or of the wrong type. The message names it.
 pub fn parse_publication(text: &str) -> Result<Publication, String> {
     let document = json::parse(text)?;
     if document.as_object().is_none() {

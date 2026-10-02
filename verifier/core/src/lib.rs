@@ -11,6 +11,8 @@
 //! and GUI binaries are separate crates that depend on this one and may take
 //! on dependencies of their own for presentation, without touching this rule.
 
+#![warn(missing_docs, clippy::missing_errors_doc)]
+
 pub mod canonical;
 pub mod counted;
 pub mod json;

@@ -11,9 +11,12 @@
 /// A tally method, as the results page and the publication name it.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Method {
+    /// The Schulze method (§8.1), the default: the CSV does not name one.
     #[default]
     Schulze,
+    /// Most first preferences (§8.2).
     Plurality,
+    /// Most options ranked at all (§8.2).
     Approval,
 }
 

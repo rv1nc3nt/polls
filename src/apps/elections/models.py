@@ -264,6 +264,7 @@ class Poll(models.Model):
         return self.languages[0] if self.languages else "fr"
 
     def title(self, language: str | None = None) -> str:
+        """The title in ``language``, falling back as ``translate`` does."""
         return self.translate(self.title_i18n, language)
 
     def display_title(self, language: str | None = None) -> str:
@@ -282,6 +283,7 @@ class Poll(models.Model):
         return self.title(language) or str(_("(scrutin sans titre)"))
 
     def description(self, language: str | None = None) -> str:
+        """The raw Markdown description; ``richtext`` renders it (§3.1 bis)."""
         return self.translate(self.description_i18n, language)
 
     def translate(self, mapping: dict[str, str], language: str | None = None) -> str:
@@ -344,9 +346,11 @@ class PollOption(models.Model):
         return self.label()
 
     def label(self, language: str | None = None) -> str:
+        """The label in ``language``, falling back as ``Poll.translate`` does."""
         return self.poll.translate(self.label_i18n, language)
 
     def details(self, language: str | None = None) -> str:
+        """The raw Markdown extended description, possibly empty (R-3.12)."""
         return self.poll.translate(self.details_i18n, language)
 
 

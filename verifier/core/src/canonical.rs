@@ -7,6 +7,7 @@ use std::collections::BTreeSet;
 
 /// One row of the published CSV: a tracking code and a ranking.
 pub struct Ballot {
+    /// The ballot's tracking code, checked against [`TRACKING_CODE_ALPHABET`].
     pub tracking_code: String,
     /// Groups of option ids, outer order significant, inner order not.
     pub ranking: Vec<Vec<String>>,
@@ -152,6 +153,7 @@ pub fn canonical_serialisation(ballots: &[Ballot]) -> Vec<u8> {
 /// The tracking-code alphabet and length (`docs/canonical-serialisation.md`,
 /// "The document"): no `O`, `0`, `I` or `1`.
 pub const TRACKING_CODE_ALPHABET: &str = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+/// Every tracking code is exactly this many characters of the alphabet.
 pub const TRACKING_CODE_LENGTH: usize = 10;
 
 /// Why a ballot list cannot be the live set of a poll, whatever its hash.
@@ -169,6 +171,10 @@ pub enum BallotListError {
 
 /// Refuse a list no poll could have published: a malformed or repeated
 /// tracking code.
+///
+/// # Errors
+///
+/// The first malformed code, or the first code seen twice.
 pub fn check_tracking_codes(ballots: &[Ballot]) -> Result<(), BallotListError> {
     let mut seen = BTreeSet::new();
     for ballot in ballots {

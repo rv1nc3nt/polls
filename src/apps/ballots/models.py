@@ -30,6 +30,7 @@ flat refusal rather than the reasoned override R-9.3 first called for.
 from __future__ import annotations
 
 import uuid
+from typing import override
 
 from django.db import models
 from django.utils.translation import gettext_lazy as _
@@ -73,6 +74,7 @@ class LiveBallotManager(models.Manager["Ballot"]):
     say so is what keeps the three in step.
     """
 
+    @override
     def get_queryset(self) -> models.QuerySet[Ballot]:
         return super().get_queryset().filter(status=BallotStatus.LIVE)
 

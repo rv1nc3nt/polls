@@ -35,18 +35,26 @@ pub struct Expected<'a> {
     /// are those some ballot ranks, so one nobody ranked is missing from the
     /// matrix and the counts (it cannot win: every ballot ranks something).
     pub options: Option<&'a [String]>,
+    /// The closure hash to compare with, from the results page.
     pub closure_hash: Option<&'a str>,
+    /// The opening seed that settles a tie by the hash chain (§8.3).
     pub opening_seed: Option<&'a str>,
+    /// The winner to compare with, from the results page.
     pub winner: Option<&'a str>,
 }
 
 /// Everything [`verify`] recomputed, plus the outcome of each comparison
 /// the caller asked for.
 pub struct Report {
+    /// The method the winners were computed under.
     pub method: Method,
+    /// Ballots read.
     pub ballot_count: usize,
+    /// The closure hash recomputed from the ballots, lower-case hex.
     pub closure_hash: String,
+    /// Option ids, in the order of the rows and columns of `matrix`.
     pub options: Vec<String>,
+    /// `matrix[i][j]`: ballots ranking option `i` strictly above option `j`.
     pub matrix: Vec<Vec<u32>>,
     /// Votes per option, in `options` order; `None` under Schulze.
     pub counts: Option<Vec<u32>>,
@@ -54,9 +62,11 @@ pub struct Report {
     pub winners: Vec<String>,
     /// `Some` only once an opening seed resolved a tie (§8.3).
     pub tiebreak_order: Option<Vec<String>>,
+    /// The single winner once any tie is settled; `None` while one is not.
     pub final_winner: Option<String>,
     /// `None` when the caller passed no expected value to compare against.
     pub closure_hash_agrees: Option<bool>,
+    /// `None` when the caller passed no expected winner.
     pub winner_agrees: Option<bool>,
 }
 
@@ -98,12 +108,24 @@ impl From<BallotListError> for VerifyError {
 /// Recompute the closure hash and the result under `expected.method` from the
 /// published CSV alone, then compare them with whatever `expected` supplies.
 /// The opening seed is only used when the winners are tied. Pure: no I/O.
+///
+/// # Errors
+///
+/// [`VerifyError::Csv`] for a file that does not parse, and otherwise as
+/// [`verify_ballots`].
 pub fn verify(csv_text: &str, expected: &Expected) -> Result<Report, VerifyError> {
     let ballots = parse_csv(csv_text).map_err(VerifyError::Csv)?;
     verify_ballots(&ballots, expected)
 }
 
 /// [`verify`], from ballots already read.
+///
+/// # Errors
+///
+/// A list no poll could have published (a malformed or repeated tracking
+/// code, a ranking the application never records), an option outside
+/// `expected.options`, or an opening seed that is not hexadecimal. A value
+/// that merely differs is not an error: it is reported in the [`Report`].
 pub fn verify_ballots(ballots: &[Ballot], expected: &Expected) -> Result<Report, VerifyError> {
     check_tracking_codes(ballots)?;
     for ballot in ballots {
@@ -190,13 +212,19 @@ pub fn verify_ballots(ballots: &[Ballot], expected: &Expected) -> Result<Report,
 /// the recomputation and its hash and winner comparisons; the fields beside
 /// it are the checks only the full document makes possible.
 pub struct PublicationReport {
+    /// The document's layout version.
     pub format_version: String,
+    /// The poll's id.
     pub poll_id: String,
+    /// The tally method version the document states.
     pub method_version: String,
     /// How the document says a tie was settled; `None` when there was none.
     pub tiebreak_rule: Option<TiebreakRule>,
+    /// The recomputation, with its hash and winner compared to the document's.
     pub report: Report,
+    /// Whether `ballot_count` equals the number of ballots listed.
     pub ballot_count_agrees: bool,
+    /// Whether the published matrix equals the recomputed one, cell for cell.
     pub matrix_agrees: bool,
     /// `None` under Schulze, which publishes no counts.
     pub counts_agree: Option<bool>,
@@ -268,6 +296,12 @@ fn matrix_matches(publication: &Publication, report: &Report) -> bool {
 
 /// Recompute everything from the ballots of a publication document, and check
 /// every claim it makes. Pure: no I/O.
+///
+/// # Errors
+///
+/// [`VerifyError::Publication`] for a document that does not parse or lacks
+/// a member, and otherwise as [`verify_ballots`]. A claim that disagrees is
+/// not an error: it is reported in the [`PublicationReport`].
 pub fn verify_publication(text: &str) -> Result<PublicationReport, VerifyError> {
     let publication = parse_publication(text).map_err(VerifyError::Publication)?;
     let rule = publication.tiebreak.as_ref().map(|t| &t.rule);

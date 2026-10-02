@@ -60,10 +60,14 @@ PERMISSIONS_POLICY = ", ".join(
 
 
 class SecurityHeadersMiddleware:
+    """Adds the headers of the module docstring to every response, outside
+    ``DEBUG``, without replacing one a view set itself."""
+
     def __init__(self, get_response: Callable[[HttpRequest], HttpResponse]) -> None:
         self.get_response = get_response
 
     def __call__(self, request: HttpRequest) -> HttpResponse:
+        """The response, with the headers added unless already present."""
         response = self.get_response(request)
         if settings.DEBUG:
             return response

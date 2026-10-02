@@ -27,7 +27,7 @@ import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import IO, Any
+from typing import IO, Any, override
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
@@ -96,12 +96,14 @@ class JobCommand(BaseCommand):
 
     job_name = ""
 
+    @override
     def add_arguments(self, parser: Any) -> None:
         parser.add_argument("--log-file", default=None, help="Also append logs to this file.")
         parser.add_argument(
             "--dry-run", action="store_true", help="Report what would happen; write nothing."
         )
 
+    @override
     def handle(self, *args: Any, **options: Any) -> None:
         if options.get("log_file"):
             handler = logging.FileHandler(options["log_file"])

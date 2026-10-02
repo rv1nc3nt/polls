@@ -61,6 +61,7 @@ def _reason(code: str) -> str:
 
 
 def announce(poll: Poll) -> Confirmation:
+    """Before ``announce_poll``: the configuration freezes here, not at opening (R-3.10)."""
     return Confirmation(
         poll=poll,
         title=_("Annoncer le scrutin ?"),
@@ -74,6 +75,8 @@ def announce(poll: Poll) -> Confirmation:
 
 
 def open_(poll: Poll) -> Confirmation:
+    """Before ``open_poll`` from screen 2, naming the moved ``opens_at`` when the
+    opening is brought forward (R-3.4)."""
     now = timezone.now()
     consequences = [
         _("Les inscriptions et le vote s'ouvrent immédiatement."),
@@ -93,6 +96,8 @@ def open_(poll: Poll) -> Confirmation:
 
 
 def close(poll: Poll, reason: str) -> Confirmation:
+    """Before ``close_poll`` from screen 2: who loses the chance to vote, and
+    which uncountersigned paper ballots the override leaves out (R-8.7 bis)."""
     consequences = [
         _(
             "Plus aucune inscription, aucun vote en ligne ni aucune saisie de bulletin "
@@ -150,6 +155,7 @@ def close(poll: Poll, reason: str) -> Confirmation:
 
 
 def extend(poll: Poll, new_closes_at: datetime, reason: str) -> Confirmation:
+    """Before ``extend_closes_at``: the old and new instants, in the poll's zone."""
     return Confirmation(
         poll=poll,
         title=_("Reporter la clôture ?"),
@@ -167,6 +173,7 @@ def extend(poll: Poll, new_closes_at: datetime, reason: str) -> Confirmation:
 
 
 def withdraw(poll: Poll, reason: str) -> Confirmation:
+    """Before ``withdraw_poll``, which no later action undoes (R-3.11)."""
     return Confirmation(
         poll=poll,
         title=_("Retirer le scrutin ?"),
@@ -184,6 +191,8 @@ def withdraw(poll: Poll, reason: str) -> Confirmation:
 
 
 def publish(poll: Poll) -> Confirmation:
+    """Before ``publish_poll``: names the winner the publication will carry,
+    from the same tally the document is built from."""
     _ballots, _options, result = closure.tallied(poll)
     labels = {o.option_id: o.label(poll.default_language) for o in poll.options.all()}
     consequences = [
@@ -206,6 +215,8 @@ def publish(poll: Poll) -> Confirmation:
 
 
 def reconciliation(poll: Poll, forms_retained: int) -> Confirmation:
+    """Before ``record_reconciliation``: the gap the signed record will hold,
+    computed from the live paper ballots as the record itself is (R-8.6)."""
     recorded = Ballot.live.filter(poll=poll, source=BallotSource.PAPER).count()
     return Confirmation(
         poll=poll,
@@ -223,6 +234,7 @@ def reconciliation(poll: Poll, forms_retained: int) -> Confirmation:
 
 
 def delete_sandbox(poll: Poll) -> Confirmation:
+    """Before ``sandbox.delete_poll``, the one deletion of a poll (R-3.7)."""
     return Confirmation(
         poll=poll,
         title=_("Supprimer ce scrutin d'essai ?"),

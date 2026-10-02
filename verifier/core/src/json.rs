@@ -12,11 +12,18 @@
 /// A parsed JSON value. Objects keep their keys in document order.
 #[derive(Debug, PartialEq)]
 pub enum Value {
+    /// `null`.
     Null,
+    /// `true` or `false`.
     Bool(bool),
+    /// A number, as written: no float ever stands between the document and a
+    /// count.
     Number(String),
+    /// A string, escapes resolved.
     String(String),
+    /// An array.
     Array(Vec<Value>),
+    /// An object's members in document order, each key once.
     Object(Vec<(String, Value)>),
 }
 
@@ -29,6 +36,7 @@ impl Value {
         }
     }
 
+    /// The text of a string; `None` for any other value.
     pub fn as_str(&self) -> Option<&str> {
         match self {
             Value::String(s) => Some(s),
@@ -36,6 +44,7 @@ impl Value {
         }
     }
 
+    /// The items of an array; `None` for any other value.
     pub fn as_array(&self) -> Option<&[Value]> {
         match self {
             Value::Array(items) => Some(items),
@@ -43,6 +52,7 @@ impl Value {
         }
     }
 
+    /// The members of an object; `None` for any other value.
     pub fn as_object(&self) -> Option<&[(String, Value)]> {
         match self {
             Value::Object(members) => Some(members),
@@ -61,8 +71,13 @@ impl Value {
 
 const MAX_DEPTH: usize = 64;
 
-/// Parse one JSON document; anything but whitespace after it is an error.
-/// The message gives the byte offset of the problem.
+/// Parse one JSON document.
+///
+/// # Errors
+///
+/// Text that is not one RFC 8259 document followed only by whitespace, an
+/// object with a duplicate key, or nesting deeper than 64 levels. The message
+/// gives the byte offset of the problem.
 pub fn parse(text: &str) -> Result<Value, String> {
     let mut reader = Reader {
         bytes: text.as_bytes(),

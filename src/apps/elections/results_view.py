@@ -31,6 +31,9 @@ from apps.elections.models import Poll, PollState, TiebreakRule
 
 @dataclass(frozen=True)
 class MatrixCell:
+    """One cell of the published matrix: how many ballots rank the row's
+    option above ``opponent_id``."""
+
     opponent_id: str
     #: ``None`` on the diagonal, where an option is not compared with itself.
     value: int | None
@@ -38,6 +41,8 @@ class MatrixCell:
 
 @dataclass(frozen=True)
 class MatrixRow:
+    """One option's row of the matrix, in the poll's option order."""
+
     option_id: str
     label: str
     cells: list[MatrixCell]
@@ -45,12 +50,16 @@ class MatrixRow:
 
 @dataclass(frozen=True)
 class LabelledOption:
+    """An option id beside its label in the reader's language."""
+
     option_id: str
     label: str
 
 
 @dataclass(frozen=True)
 class Ordering:
+    """One row of the per-ordering summary (R-11.3)."""
+
     #: The ranking as readable labels, groups joined by " = " and " > ".
     label: str
     count: int
