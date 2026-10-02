@@ -61,3 +61,25 @@ def test_tolerates_a_record_with_no_request() -> None:
         exc_info=None,
     )
     assert RedactBallotTokenPath().filter(record) is True
+
+
+def test_redacts_a_token_link_with_no_language_prefix() -> None:
+    """Django redirects ``/bulletin/…`` to ``/fr/bulletin/…``, but the request
+    it redirects carries the token too (review A-11)."""
+    record = _record("/bulletin/1234/acces/SECRETTOKEN/", "Not Found", "ignored")
+    RedactBallotTokenPath().filter(record)
+    assert "SECRETTOKEN" not in record.getMessage()
+
+
+def test_the_pattern_is_the_one_nginx_suppresses() -> None:
+    """The two suppressions must cover the same paths: nginx for its own logs,
+    this filter for Django's. Read back out of the template, not restated."""
+    from pathlib import Path
+
+    from apps.core.logging import _TOKEN_PATH
+
+    template = (
+        Path(__file__).resolve().parents[2] / "ansible/roles/polls/templates/nginx-vhost.conf.j2"
+    ).read_text()
+    assert f'"~*{_TOKEN_PATH.pattern}"' in template  # the access-log map
+    assert f'location ~ "{_TOKEN_PATH.pattern}"' in template  # the error-log location

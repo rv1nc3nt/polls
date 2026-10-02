@@ -13,9 +13,10 @@ from __future__ import annotations
 
 import pytest
 from django.db import IntegrityError, transaction
-from django.test import Client
+from django.test import Client, override_settings
 
 from apps.audit.models import AuditEvent
+from apps.backoffice import firstrun
 from apps.core.models import Commune, PollRole, User
 
 WIZARD_URL = "/fr/mairie/installation/"
@@ -23,6 +24,7 @@ LOGIN_URL = "/fr/mairie/connexion/"
 INDEX_URL = "/fr/mairie/"
 
 VALID = {
+    "setup_code": "test-setup-code",  # settings.test.SETUP_TOKEN
     "commune_name": "Sainte-Marie-du-Mont",
     "data_protection_referent": "Secrétariat de mairie",
     "data_protection_contact": "rgpd@sainte-marie-du-mont.example.fr",
@@ -149,3 +151,53 @@ def test_the_commune_record_cannot_be_duplicated(client: Client, db: None) -> No
         Commune.objects.create(
             id=2, name="Ailleurs", data_protection_referent="x", data_protection_contact="y"
         )
+
+
+# --- the setup code: the instance is not whoever's reaches it first (A-6) ---
+
+
+def test_a_wrong_setup_code_installs_nothing(client: Client, db: None) -> None:
+    response = client.post(WIZARD_URL, {**VALID, "setup_code": "guess"})
+    assert response.status_code == 200
+    assert "Code d&#x27;installation incorrect" in response.content.decode()
+    assert not User.objects.exists()
+    assert not Commune.objects.exists()
+
+
+def test_with_no_setup_code_configured_the_wizard_installs_nothing(
+    client: Client, db: None
+) -> None:
+    """Fail closed: an instance deployed without the code is not open to all."""
+    with override_settings(SETUP_TOKEN=""):
+        response = client.post(WIZARD_URL, VALID)
+    assert "Aucun code d&#x27;installation" in response.content.decode()
+    assert not User.objects.exists()
+
+
+def test_the_setup_code_is_never_put_back_in_the_page(client: Client, db: None) -> None:
+    body = client.post(WIZARD_URL, {**VALID, "raw_password_confirm": "other"}).content.decode()
+    assert "test-setup-code" not in body
+
+
+def test_a_second_install_racing_the_first_writes_nothing(db: None) -> None:
+    """Two submissions can both pass the gate before either writes; the gate
+    is checked again inside the transaction."""
+    firstrun.install(
+        commune_name="A",
+        data_protection_referent="R",
+        data_protection_contact="c@example.fr",
+        username="first",
+        full_name="First",
+        raw_password="corrège-cheval-agrafe-42",
+    )
+    with pytest.raises(firstrun.FirstRunClosed):
+        firstrun.install(
+            commune_name="B",
+            data_protection_referent="R",
+            data_protection_contact="c@example.fr",
+            username="second",
+            full_name="Second",
+            raw_password="corrège-cheval-agrafe-42",
+        )
+    assert list(User.objects.values_list("username", flat=True)) == ["first"]
+    assert Commune.objects.count() == 1

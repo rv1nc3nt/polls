@@ -64,6 +64,7 @@ reasoning.
 | 40 | The opening seed and the closure hash were published with the result, not when they were fixed | settled |
 | 41 | The method version was free text, and published results were recomputed per request | settled |
 | 42 | Ballot times and order paired ballots with registrations | settled |
+| 43 | A fresh instance, back-office sign-in and nginx's error log were open to abuse | settled |
 
 ## 1. Retention purge on a poll that closed but was never published
 
@@ -1570,4 +1571,46 @@ backup (`VACUUM INTO`) carries neither. The optional PostgreSQL backend (§14)
 stores rows in a heap whose physical order follows insertion; it would need its
 own answer before it is offered. The mail relay's log of the receipt sent at
 casting is outside the database altogether (review open question).
+
+## 43. A fresh instance, back-office sign-in and nginx's error log were open to abuse
+
+Three findings of the October 2026 review, fixed together. None is a departure
+from the specification; each is a gap it did not foresee, recorded here so the
+choices are not undone by accident.
+
+**First run (review A-6).** The playbook creates no account, and screen 11
+(§6.5.11) stayed open to the internet until someone completed it: the first
+visitor to a freshly deployed instance became its `commune_admin`. The wizard
+now asks for a setup code, which the deploy writes once to
+`/etc/polls/setup_token` (root only, like `secret_key`) and passes as
+`DJANGO_SETUP_TOKEN`. It is entered in a form field, never in the address, so
+it reaches no access log, and compared in constant time. With none configured
+the wizard refuses rather than opening to anyone. The "no account yet" check is
+also repeated inside `firstrun.install`'s transaction: two submissions could
+both pass it before either wrote.
+
+**Sign-in (review A-7).** Django's sign-in view counts nothing; nginx's
+`20r/m` per address was the only brake. Failures are now counted per caller and
+per account named (`ratelimit.count_failure`), and past either limit the form
+is refused without the password being checked. Only failures count, and a
+correct sign-in clears its account's counter. The per-account counter is what
+stops guesses spread over many addresses, and it also lets a stranger keep a
+known operator out by failing on purpose; so it is looser than the per-address
+one (20 an hour against 10 a quarter-hour). Both fail open on a cache outage,
+like the registration limiter, rather than locking every operator out. Failures
+go to the server log with the caller's digest, never the name typed — sometimes
+a password in the wrong field — and not to the audit log, which records what
+named operators did. A second factor is not part of this.
+
+**nginx's error log (review A-11).** `access_log` was off for the ballot
+routes, `error_log` was not, and nginx writes the request line into every
+upstream error it logs. Run against an upstream that was down, the previous
+configuration wrote both ballot tokens to the error log, and a token on a link
+without a language prefix to the access log as well: the map's pattern required
+the prefix, though Django only redirects such a link after nginx has logged it.
+The ballot routes now have their own `location` logging errors at `crit` only,
+and the pattern, there, in the map and in Django's own log filter
+(`core/logging.py`), allows the prefix to be absent; a test reads the pattern
+out of the template so the two stay in step. Re-run against the same dead
+upstream, neither log holds a token, and an unrelated path is still logged.
 

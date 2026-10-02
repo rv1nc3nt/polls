@@ -18,6 +18,7 @@ the next load, where the dashboard is already naming them as opening blockers
 
 from __future__ import annotations
 
+import hmac
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -656,7 +657,23 @@ class FirstRunForm(forms.Form):
     ``firstrun.install``, which writes both rows in one transaction. The
     username is not checked for uniqueness because the screen only exists while
     there are no accounts (``access.require_first_run``).
+
+    ``setup_code`` is what keeps a fresh instance from belonging to whoever
+    reaches it first (review A-6): the code the deploy wrote on the server
+    (``settings.SETUP_TOKEN``), so only someone with access to it can install.
+    None configured, the wizard refuses rather than opening to anyone.
     """
+
+    setup_code = forms.CharField(
+        label=_("Code d'installation"),
+        max_length=200,
+        strip=True,
+        help_text=_(
+            "Le code écrit sur le serveur au déploiement, dans le fichier "
+            "/etc/polls/setup_token. Il prouve que vous avez accès au serveur."
+        ),
+        widget=forms.PasswordInput(attrs={"autocomplete": "off"}),
+    )
 
     commune_name = forms.CharField(
         label=_("Nom de la commune"),
@@ -709,6 +726,22 @@ class FirstRunForm(forms.Form):
 
     def clean_public_base_url(self) -> str:
         return _clean_public_base_url(self.cleaned_data["public_base_url"])
+
+    def clean_setup_code(self) -> str:
+        expected = settings.SETUP_TOKEN
+        given: str = self.cleaned_data["setup_code"]
+        if not expected:
+            raise forms.ValidationError(
+                _(
+                    "Aucun code d'installation n'est configuré sur ce serveur "
+                    "(DJANGO_SETUP_TOKEN) : l'installation est impossible."
+                )
+            )
+        # Constant time: a comparison that stops at the first wrong character
+        # tells a patient caller how much of the code they already have.
+        if not hmac.compare_digest(given.encode(), expected.encode()):
+            raise forms.ValidationError(_("Code d'installation incorrect."))
+        return given
 
     def clean(self) -> dict[str, Any]:
         super().clean()

@@ -93,3 +93,14 @@
       {{ ('sent to ' ~ polls_smoke_test_email)
          if (not polls_smoke_mail.skipped | default(false)) and polls_smoke_mail.rc == 0
          else 'not sent' }}.
+
+# Review A-6: the first-run wizard asks for a code only someone with access to
+# this server can read. Said once, on the run that created it; never the code
+# itself, which would otherwise sit in whatever keeps this playbook's output.
+- name: Point at the first-run wizard on a fresh install
+  ansible.builtin.debug:
+    msg: >-
+      Fresh instance: finish installing at https://{{ polls_domain }}/fr/mairie/installation/
+      with the code in {{ polls_config_dir }}/setup_token
+      (sudo cat {{ polls_config_dir }}/setup_token on the server).
+  when: polls_setup_token_new is changed

@@ -23,7 +23,7 @@ from __future__ import annotations
 import logging
 import re
 
-_TOKEN_PATH = re.compile(r"^/[a-z]{2}/bulletin/")
+_TOKEN_PATH = re.compile(r"^/(?:[a-z]{2}/)?bulletin/")
 REDACTED = "[adresse supprimée : jeton de bulletin, R-7.4 ter]"
 
 

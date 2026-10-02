@@ -182,6 +182,9 @@ For working on the code itself, not for running a poll:
     uv run python manage.py migrate
     uv run python manage.py runserver
 
+The first-run wizard (`/fr/mairie/installation/`) asks for a code: in
+development it is `dev`.
+
 Tests, lint and types:
 
     uv run pytest -q

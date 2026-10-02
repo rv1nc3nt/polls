@@ -67,6 +67,7 @@ form, the same shape as ``poll_image_upload``/``poll_image_delete``
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -76,6 +77,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, password_validation
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.views import LoginView, LogoutView
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.files.uploadedfile import UploadedFile
@@ -96,7 +98,7 @@ from apps.ballots import services as ballots
 from apps.ballots.forms import RankingForm
 from apps.ballots.models import Ballot, BallotSource, BallotStatus, PaperBallotLink
 from apps.ballots.ranking import BallotRefused
-from apps.core import manual
+from apps.core import manual, ratelimit
 from apps.core.codes import format_tracking_code
 from apps.core.models import Commune, Role, User
 from apps.core.types import OptionId, TrackingCode
@@ -186,6 +188,10 @@ from .forms import (
     option_initial,
 )
 
+#: Sign-in failures and refusals (review A-7): the server log, not the audit
+#: log, which records what named operators did, not who failed to be one.
+_auth_log = logging.getLogger("polls.auth")
+
 
 class OperatorLoginView(LoginView):
     """Sign-in for named operator accounts (R-2.2).
@@ -196,6 +202,13 @@ class OperatorLoginView(LoginView):
 
     On a fresh install there is no account to sign in with, so this redirects
     to the wizard instead of showing a form nobody can pass.
+
+    Failed sign-ins are counted, by caller and by account named, and past
+    either limit the form is refused without checking the password at all
+    (review A-7, ``ratelimit.count_failure``): these accounts open the screens
+    that show who has voted and every paper ballot beside its elector. A
+    failure is logged to the server log with the caller's digest — never the
+    name typed, which is sometimes a password typed in the wrong field.
     """
 
     template_name = "backoffice/login.html"
@@ -205,6 +218,42 @@ class OperatorLoginView(LoginView):
         if firstrun.is_open():
             return redirect("backoffice:first_run")
         return super().dispatch(request, *args, **kwargs)
+
+    def _idents(self) -> tuple[str, str]:
+        return (
+            ratelimit.client_digest(self.request),
+            ratelimit.account_digest(self.request.POST.get("username", "")),
+        )
+
+    def post(self, request: HttpRequest, *args: object, **kwargs: object) -> HttpResponse:
+        address, account = self._idents()
+        if ratelimit.exceeded(
+            "login-address", address, ratelimit.login_address_limit()
+        ) or ratelimit.exceeded("login-account", account, ratelimit.login_account_limit()):
+            _auth_log.warning("sign-in refused, too many failures (client %s)", address)
+            form = self.get_form()
+            form.errors.clear()
+            form.add_error(
+                None,
+                _(
+                    "Trop de tentatives de connexion infructueuses. Réessayez plus tard, "
+                    "ou demandez à l'administration de la commune de vérifier votre compte."
+                ),
+            )
+            return self.render_to_response(self.get_context_data(form=form), status=429)
+        return super().post(request, *args, **kwargs)
+
+    def form_invalid(self, form: AuthenticationForm) -> HttpResponse:
+        address, account = self._idents()
+        ratelimit.count_failure("login-address", address, ratelimit.login_address_limit())
+        ratelimit.count_failure("login-account", account, ratelimit.login_account_limit())
+        _auth_log.warning("sign-in failed (client %s)", address)
+        return super().form_invalid(form)
+
+    def form_valid(self, form: AuthenticationForm) -> HttpResponse:
+        _address, account = self._idents()
+        ratelimit.clear("login-account", account)
+        return super().form_valid(form)
 
 
 class OperatorLogoutView(LogoutView):
@@ -235,15 +284,19 @@ def first_run(request: HttpRequest) -> HttpResponse:
     """
     form = FirstRunForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
-        admin = firstrun.install(
-            commune_name=form.cleaned_data["commune_name"],
-            data_protection_referent=form.cleaned_data["data_protection_referent"],
-            data_protection_contact=form.cleaned_data["data_protection_contact"],
-            public_base_url=form.cleaned_data["public_base_url"],
-            username=form.cleaned_data["username"],
-            full_name=form.cleaned_data["full_name"],
-            raw_password=form.cleaned_data["raw_password"],
-        )
+        try:
+            admin = firstrun.install(
+                commune_name=form.cleaned_data["commune_name"],
+                data_protection_referent=form.cleaned_data["data_protection_referent"],
+                data_protection_contact=form.cleaned_data["data_protection_contact"],
+                public_base_url=form.cleaned_data["public_base_url"],
+                username=form.cleaned_data["username"],
+                full_name=form.cleaned_data["full_name"],
+                raw_password=form.cleaned_data["raw_password"],
+            )
+        except firstrun.FirstRunClosed:
+            # Another submission installed the instance a moment earlier.
+            return redirect("backoffice:login")
         login(request, admin)
         messages.success(
             request,

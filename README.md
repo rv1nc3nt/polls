@@ -198,6 +198,9 @@ Pour travailler sur le code lui-même, pas pour organiser un scrutin :
     uv run python manage.py migrate
     uv run python manage.py runserver
 
+L'assistant de première installation (`/fr/mairie/installation/`) demande un
+code : en développement, c'est `dev`.
+
 Tests, lint et typage :
 
     uv run pytest -q

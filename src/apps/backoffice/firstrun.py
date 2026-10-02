@@ -28,6 +28,10 @@ from apps.core.models import Commune, User
 from . import accounts
 
 
+class FirstRunClosed(Exception):
+    """An account already exists: the wizard has nothing left to install."""
+
+
 def is_open() -> bool:
     """True while the wizard should still run: no account has been created yet.
 
@@ -58,7 +62,14 @@ def install(
     ``DJANGO_PUBLIC_BASE_URL``" (``apps.registrations.mail``) — so nothing here
     defaults it from the environment; a commune that never touches screen 14
     (§6.5.14) afterwards keeps working exactly as before this field existed.
+
+    The wizard's gate is checked again here, inside the transaction: two
+    submissions racing past ``access.require_first_run`` would otherwise both
+    create an administrator. SQLite's writers queue at ``BEGIN``
+    (``transaction_mode = IMMEDIATE``), so the second sees the first's account.
     """
+    if not is_open():
+        raise FirstRunClosed
     Commune.objects.create(
         name=commune_name,
         data_protection_referent=data_protection_referent,

@@ -14,6 +14,7 @@ DEBUG = False
 # the repository is not where those belong.
 MEDIA_ROOT = Path(tempfile.mkdtemp(prefix="polls-test-media-"))
 SECRET_KEY = "test-only-not-a-secret"  # noqa: S105
+SETUP_TOKEN = "test-setup-code"  # noqa: S105
 ALLOWED_HOSTS = ["testserver", "localhost"]
 # The fallback ConfigurableEmailBackend uses while no test has saved a
 # MailSettings row (§6.5.12); django.test.Client / pytest-django read the

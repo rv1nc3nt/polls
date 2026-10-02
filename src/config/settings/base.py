@@ -181,6 +181,11 @@ CACHES = {
 # numbers, and neither should have to edit the source to get them.
 RATE_LIMIT_REGISTRATION = os.environ.get("DJANGO_RATE_LIMIT_REGISTRATION", "5/1h")
 RATE_LIMIT_EMAIL = os.environ.get("DJANGO_RATE_LIMIT_EMAIL", "3/1h")
+# Back-office sign-in failures (review A-7): per caller, and per account named.
+# The second lets a stranger keep an operator out by failing on purpose, so it
+# is looser and slower than the first (decision log #43).
+RATE_LIMIT_LOGIN_ADDRESS = os.environ.get("DJANGO_RATE_LIMIT_LOGIN_ADDRESS", "10/15m")
+RATE_LIMIT_LOGIN_ACCOUNT = os.environ.get("DJANGO_RATE_LIMIT_LOGIN_ACCOUNT", "20/1h")
 # How many proxies append to X-Forwarded-For in front of gunicorn: 1 for the
 # nginx of §14 alone. One too few and the limiter keys on a proxy, so every
 # caller shares one bucket; one too many and a client can forge its address
@@ -212,6 +217,11 @@ APP_VERSION = os.environ.get("APP_VERSION", "0.1.0-dev")
 # The upstream repository by default; a commune running its own fork may point
 # it there. A github.com address gets the GitHub mark, anything else plain text.
 SOURCE_CODE_URL = os.environ.get("DJANGO_SOURCE_CODE_URL", "https://github.com/rv1nc3nt/polls")
+
+# The first-run wizard's code (§6.5.11): whoever reaches a fresh instance first
+# would otherwise become its administrator. The deploy writes a random one to
+# /etc/polls/setup_token and this file (review A-6). Empty, the wizard refuses.
+SETUP_TOKEN = os.environ.get("DJANGO_SETUP_TOKEN", "")
 
 # Directory holding job lock files (§14, self-locking commands).
 JOB_LOCK_DIR = Path(os.environ.get("DJANGO_JOB_LOCK_DIR", BASE_DIR / "var" / "locks"))

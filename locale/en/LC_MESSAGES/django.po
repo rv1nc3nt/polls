@@ -5828,3 +5828,35 @@ msgstr ""
 "Computed at closure over every ballot counted and published from that "
 "moment, it can no longer change. After publication, check that the results "
 "carry exactly this hash and this number of ballots."
+
+#: src/apps/backoffice/forms.py
+msgid ""
+"Le code écrit sur le serveur au déploiement, dans le fichier /etc/polls/"
+"setup_token. Il prouve que vous avez accès au serveur."
+msgstr ""
+"The code written on the server at deployment, in the file /etc/polls/"
+"setup_token. It proves you have access to the server."
+
+#: src/apps/backoffice/forms.py
+msgid ""
+"Aucun code d'installation n'est configuré sur ce serveur "
+"(DJANGO_SETUP_TOKEN) : l'installation est impossible."
+msgstr ""
+"No setup code is configured on this server (DJANGO_SETUP_TOKEN): "
+"installation is impossible."
+
+#: src/apps/backoffice/forms.py
+msgid "Code d'installation incorrect."
+msgstr "Incorrect setup code."
+
+#: src/apps/backoffice/views.py
+msgid ""
+"Trop de tentatives de connexion infructueuses. Réessayez plus tard, ou "
+"demandez à l'administration de la commune de vérifier votre compte."
+msgstr ""
+"Too many failed sign-in attempts. Try again later, or ask the commune's "
+"administration to check your account."
+
+#: src/apps/backoffice/forms.py
+msgid "Code d'installation"
+msgstr "Setup code"

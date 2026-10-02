@@ -180,6 +180,43 @@
     polls_secret_key: "{{ polls_secret_key_slurp.content | b64decode | trim }}"
   no_log: true
 
+- name: Stat the first-run setup code
+  ansible.builtin.stat:
+    path: "{{ polls_config_dir }}/setup_token"
+  register: polls_setup_token_stat
+
+# Review A-6: without it, the first visitor to a fresh instance becomes its
+# administrator. Generated once, like SECRET_KEY; root-only, since only the
+# person installing needs it (the service reads it from polls.env).
+- name: Generate the first-run setup code on first install only
+  ansible.builtin.command:
+    cmd: python3 -c "import secrets; print(secrets.token_urlsafe(24))"
+  register: polls_setup_token_new
+  when: not polls_setup_token_stat.stat.exists
+  changed_when: true
+  no_log: true
+
+- name: Persist the first-run setup code
+  ansible.builtin.copy:
+    dest: "{{ polls_config_dir }}/setup_token"
+    content: "{{ polls_setup_token_new.stdout }}\n"
+    owner: root
+    group: root
+    mode: "0600"
+  when: not polls_setup_token_stat.stat.exists
+  no_log: true
+
+- name: Read the first-run setup code back
+  ansible.builtin.slurp:
+    src: "{{ polls_config_dir }}/setup_token"
+  register: polls_setup_token_slurp
+  no_log: true
+
+- name: Keep the first-run setup code for templating
+  ansible.builtin.set_fact:
+    polls_setup_token: "{{ polls_setup_token_slurp.content | b64decode | trim }}"
+  no_log: true
+
 - name: Render the environment file
   ansible.builtin.template:
     src: polls.env.j2

@@ -179,6 +179,18 @@ fiche commune (nom, référent données personnelles, contact du référent) et 
 ferme définitivement dès qu'un compte existe. Aucune commande
 `createsuperuser` : il n'y en a pas, et `is_superuser` n'ouvre aucun écran.
 
+L'assistant demande un **code d'installation**. Sans lui, le premier visiteur
+à trouver une instance fraîchement déployée en deviendrait l'administrateur. Le
+déploiement l'écrit une fois pour toutes dans `/etc/polls/setup_token`,
+lisible par root seulement, et le playbook rappelle où le trouver à la fin du
+premier déploiement :
+
+    sudo cat /etc/polls/setup_token
+
+Le code n'est saisi que dans le formulaire, jamais dans l'adresse de la page :
+il n'apparaît donc dans aucun journal. Il ne sert plus à rien une fois
+l'installation faite. Une instance sans code configuré refuse l'installation.
+
 Voir le [guide de l'espace mairie](guide-espace-mairie.md), section *Mise en
 route d'une instance neuve*, pour la suite (création des comptes opérateurs,
 import de la liste électorale, premier scrutin).
@@ -330,6 +342,21 @@ remplacés.
   dès la limite atteinte.
 - **Comptes nominatifs** : un compte par personne physique, jamais de
   compte partagé. Le journal d'audit ne survit pas à un login partagé.
+- **Connexion à l'espace mairie** : les échecs sont comptés par adresse de
+  visiteur (10 par quart d'heure) et par compte (20 par heure). Au-delà, la
+  connexion est refusée sans même vérifier le mot de passe, jusqu'à la fin de
+  la fenêtre ; une connexion réussie remet à zéro le compteur du compte. Le
+  second compteur permet à un tiers d'empêcher volontairement un compte connu
+  de se connecter pendant une heure : c'est le prix d'une protection contre
+  les essais répartis sur de nombreuses adresses. Chaque échec est noté dans le
+  journal du service (`journalctl -u polls`, message `sign-in failed`), avec
+  une empreinte de l'adresse, jamais l'identifiant tapé. Les seuils se règlent
+  par `DJANGO_RATE_LIMIT_LOGIN_ADDRESS` et `DJANGO_RATE_LIMIT_LOGIN_ACCOUNT`.
+- **Journaux nginx et liens de vote** : les adresses de bulletin portent le
+  jeton de vote. nginx ne les écrit ni dans son journal d'accès ni, pour les
+  erreurs ordinaires (passerelle indisponible pendant un redémarrage, par
+  exemple), dans son journal d'erreurs : un jeton dans un journal permettrait à
+  qui le lit de voter à la place de l'électeur.
 - **Rétention** : `retention_purge` efface, deux mois après la clôture, les
   enregistrements d'inscription, la copie figée de la liste, l'association
   bulletin papier ↔ électeur, et les champs déclarés « données personnelles »
