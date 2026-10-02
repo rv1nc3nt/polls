@@ -61,6 +61,7 @@ reasoning.
 | 37 | The verifier reads the publication document, and every method | decided |
 | 38 | A poll requiring reconciliation cannot be closed early | **open question** for the requirements owner (R-3.4 and R-8.6) |
 | 39 | The back-office trend: switched on by deployment setting, and cut every ten arrivals | **interim**, until the `show_trend` column lands |
+| 40 | The opening seed was published with the result, not at opening | settled in part — published at opening; write-once trigger open |
 
 ## 1. Retention purge on a poll that closed but was never published
 
@@ -1430,4 +1431,31 @@ value changes the field's `choices`, which is itself a migration. Both the
 access event and the `show_trend` column belong in the same migration, before
 the next release. At that point `TREND_POLL_IDS` is removed, and its polls are
 carried over to `show_trend = true` by a data migration.
+
+## 40. The opening seed was published with the result, not at opening
+
+**Found (2026-10-02, review A-2).** R-10.5 draws the seed and publishes it
+"at the opening of the poll, where it becomes immutable under R-3.3". The code
+drew it at `open` but showed it only on the results page, after publication;
+it was not in the opening audit event either, and no trigger protects it
+(INV-6 treats it as a lifecycle field, not configuration). So nothing a reader
+could compare against fixed the seed before the closure hash was known.
+Whoever can write to the database could have tried seeds offline against that
+hash after closure, kept one that picks a chosen option in a computed tie, and
+published it; the verifier replays the published seed and agrees. R-10.5 bis's
+"not influenceable by the organiser" did not hold against the operator of the
+instance.
+
+**Settled in part.** The seed is now on the public poll page from the moment
+the poll opens, under the calendar, for a `computed` tie-break (a `physical`
+draw never reads it), and in the `POLL_STATE_CHANGED` event of the opening
+(`after.opening_seed`). Publishing it early reveals nothing usable: the
+tie-break also hashes the closure hash, which depends on every ballot and is
+unknown to anyone outside the database until closure. The verifier manual tells
+readers to compare the seed in the publication with the one shown at opening.
+
+**Still open.** A trigger making `opening_seed`, `closure_hash` and `closed_at`
+write-once (NULL to a value, never changed after), so the database itself
+refuses the rewrite; and publishing the closure hash on the poll page at
+closure rather than with the result (review A-3). Both are migrations.
 

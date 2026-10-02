@@ -139,6 +139,33 @@ def test_the_open_poll_page_shows_the_propositions_and_calendar(
     assert f"/fr/inscription/{open_poll_fixture.pk}/" in body
 
 
+def test_the_opening_seed_is_public_from_the_opening(
+    client: Client, open_poll_fixture: Poll
+) -> None:
+    """R-10.5: published at opening, not with the result (decision log #40)."""
+    assert open_poll_fixture.opening_seed is not None
+    seed = bytes(open_poll_fixture.opening_seed).hex()
+    body = client.get(f"/fr/scrutin/{open_poll_fixture.pk}/").content.decode()
+    assert seed in body
+
+
+def test_no_opening_seed_is_shown_before_opening_or_for_a_physical_draw(
+    client: Client, db: None
+) -> None:
+    announced = _make_poll()
+    force_announce(announced)
+    body = client.get(f"/fr/scrutin/{announced.pk}/").content.decode()
+    assert "Graine d'ouverture" not in body
+
+    physical = _make_poll()
+    Poll.objects.filter(pk=physical.pk).update(tiebreak_rule="physical")
+    force_open(physical)
+    physical.refresh_from_db()
+    assert physical.opening_seed is not None
+    body = client.get(f"/fr/scrutin/{physical.pk}/").content.decode()
+    assert bytes(physical.opening_seed).hex() not in body
+
+
 def test_the_page_stops_advertising_the_vote_once_closes_at_has_passed(
     client: Client, db: None
 ) -> None:

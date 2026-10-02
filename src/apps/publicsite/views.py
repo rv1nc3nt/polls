@@ -32,7 +32,7 @@ from django.utils.translation import gettext as _
 from apps.audit.models import Action, AuditEvent, Reason
 from apps.core import manual
 from apps.elections import closure, results_view, richtext, sandbox, transitions, windows
-from apps.elections.models import Poll, PollState
+from apps.elections.models import Poll, PollState, TiebreakRule
 from apps.registrations.models import PARTICIPATING, Channel, Registration
 
 #: The manual documents served publicly (docs/manuel/README.md's own table):
@@ -451,8 +451,23 @@ def _render_poll_detail(
             # instead of repeating the "ouverte" banner (§6.4).
             "online_voting_closed": windows.online_voting_closed(poll),
             "is_published": status == "published",
+            "opening_seed": _published_opening_seed(poll),
         },
     )
+
+
+def _published_opening_seed(poll: Poll) -> str:
+    """The opening seed as hex, from the instant the poll opens (R-10.5).
+
+    R-10.5 publishes it at opening, not with the result: shown only after
+    closure, it could have been rewritten once the closure hash was known, and
+    a computed tie-break re-picked with nothing a reader could compare against
+    (decision log #40). Blank before ``open`` — there is none yet — and for a
+    ``physical`` tie-break, which never reads it.
+    """
+    if poll.tiebreak_rule != TiebreakRule.COMPUTED or not poll.opening_seed:
+        return ""
+    return bytes(poll.opening_seed).hex()
 
 
 def results(request: HttpRequest, poll_id: str) -> HttpResponse:

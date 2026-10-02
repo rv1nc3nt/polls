@@ -1093,9 +1093,11 @@ tbody tr:hover th, tbody tr:hover td { background: var(--accent-soft); }
   font-size: 0.8rem;
 }
 
-/* An audit row's before/after is JSON; let it scroll rather than stretch the
-   table past the viewport. */
-td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
+/* An audit row's before/after is JSON; let it wrap rather than stretch the
+   table past the viewport. Wrap, not scroll: a scrolling box is out of reach of
+   the keyboard (RGAA 7.3), and a hash such as the opening seed is one 64-
+   character word. */
+td code { display: inline-block; max-width: 32rem; overflow-wrap: anywhere; }
 
 /* ---- screen 1: tableau de bord --------------------------------------- */
 

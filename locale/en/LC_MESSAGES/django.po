@@ -5773,3 +5773,13 @@ msgid "%(date)s — %(n)s bulletin"
 msgid_plural "%(date)s — %(n)s bulletins"
 msgstr[0] "%(date)s — %(n)s ballot"
 msgstr[1] "%(date)s — %(n)s ballots"
+
+#: src/templates/publicsite/poll_detail.html
+msgid ""
+"Tirée au sort à l'ouverture et publiée dès cet instant, elle ne peut plus "
+"changer. En cas d'égalité, le départage en dépend : après la publication, "
+"vérifiez que le document de publication reprend exactement cette valeur."
+msgstr ""
+"Drawn at random at the opening and published from that moment, it can no "
+"longer change. A tie-break depends on it: after publication, check that the "
+"publication document carries exactly this value."

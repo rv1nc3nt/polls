@@ -333,6 +333,10 @@ def _open_poll_locked(poll: Poll, actor: User | None, now: datetime | None) -> P
         after={
             "state": PollState.OPEN,
             "opened_at": opened_at.isoformat(),
+            # R-10.5: published at opening and immutable from then on. In the
+            # log too, so the value used at closure can be checked against the
+            # one drawn here (decision log #40).
+            "opening_seed": bytes(poll.opening_seed).hex(),
             **({"opens_at": poll.opens_at.isoformat()} if opened_early else {}),
         },
     )
