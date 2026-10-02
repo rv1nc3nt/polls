@@ -40,7 +40,8 @@ scheme) ·
 closure, retention, `sandbox.py` (sandbox access and deletion, R-3.7), `sharelink.py`, `rollimport.py` (§6.1: parsing, mapping, validation, the
 transactional apply shared by the CLI and screen 3) ·
 `src/apps/registrations/` (§6.2: `services`, `mail`, `forms`, `views`) ·
-`src/apps/ballots/` ·
+`src/apps/ballots/` (`trendpoints.py` records the trend's points as they fall
+due, R-11.5 bis) ·
 `src/apps/audit/` · `src/apps/tally/` pure, imports no model ·
 `src/apps/backoffice/` espace mairie (§6.5, the bulk of the remaining work;
 `access.py` is the role gate every screen goes through, `dashboard.py`,
@@ -68,6 +69,15 @@ find a way round it.
   `registrations` only through `registrations.services`, passing ids and plain
   strings, never a `Registration`. `tests/integration/test_inv1_separation.py`
   asserts all of this, over every module of both apps.
+  Nor may anything *time* or *order* a ballot: a first ballot follows the
+  registration confirmed from the same page within minutes, so a timestamp — or
+  merely an insertion order — pairs them. `Ballot` has no time column and its
+  table is `WITHOUT ROWID` (ballots migration 0004; Django rebuilds a table the
+  ordinary way on some schema changes, which would bring the `rowid` back, and
+  `test_trend_points.py` fails if it does); `Registration` keeps no
+  confirmation instant; session expiries are rounded to the day
+  (`core/sessions.py`). The trend records its points as they fall due
+  (`ballots/trendpoints.py`) rather than rebuilding them from ballot times.
 - **INV-3.** `AuditEvent` has no update or delete path, in the application or
   the database. Events store a reference plus non-identifying state — never a
   name, date of birth or email; `reason` is a code from `audit.models.Reason`, never
@@ -201,6 +211,11 @@ taken — that costs more than it saves.
   imported and when (`docs/specification-decision-log.md` #11). The
   `open_window_poll` fixture seeds one row of it, so a test asserting an exact
   `WorkingRollEntry.objects.count()` after an import must count that row too.
+- A trend point is taken by the ballot *services* as each tenth ballot is
+  counted (`ballots/trendpoints.py`). A test that writes `Ballot` rows directly
+  takes none: give each first version `epoch=trendpoints.current_epoch(poll)`
+  and call `trendpoints.record_due_point(poll)` after it, as
+  `test_trend_points.py` does.
 - Latin-1 decodes every byte 0–255, so a CSV upload can never fail to decode —
   there is no "wrong encoding" a `_read_csv` can catch. §6.1's real defence
   against garbage content is the validation report downstream, not a

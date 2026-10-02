@@ -135,6 +135,9 @@ STATICFILES_DIRS = [SRC_DIR / "static"]
 MEDIA_URL = "media/"
 MEDIA_ROOT = Path(os.environ.get("DJANGO_MEDIA_ROOT", BASE_DIR / "var" / "media"))
 
+# Expiry dates kept to the day: a voter's session is saved as they cast their
+# ballot, and an exact expiry would date it (INV-1, apps/core/sessions.py).
+SESSION_ENGINE = "apps.core.sessions"
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"

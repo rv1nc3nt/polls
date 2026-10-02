@@ -12,6 +12,7 @@ import pytest
 from django.test import Client, override_settings
 from django.utils import timezone
 
+from apps.ballots import trendpoints
 from apps.ballots.models import Ballot, BallotSource, BallotStatus
 from apps.core.codes import new_tracking_code
 from apps.core.models import PollRole, Role, User
@@ -21,9 +22,6 @@ from tests.conftest import force_open
 
 @pytest.fixture
 def poll(open_window_poll: Poll) -> Poll:
-    # Backdated ballots must still fall inside the window the triggers check.
-    Poll.objects.filter(pk=open_window_poll.pk).update(opens_at=timezone.now() - timedelta(days=10))
-    open_window_poll.refresh_from_db()
     return force_open(open_window_poll)
 
 
@@ -39,16 +37,18 @@ def _url(poll: Poll) -> str:
 
 
 def _cast(poll: Poll, ranking: list[list[str]], n: int, *, days_ago: int) -> None:
+    """``n`` first casts as ``ballots.services`` writes them, any point that
+    falls due dated ``days_ago`` days back (decision log #42: ballots carry no
+    date of their own to backdate)."""
     for _ in range(n):
-        ballot = Ballot.objects.create(
+        Ballot.objects.create(
             poll=poll,
             tracking_code=new_tracking_code(),
             ranking=ranking,
             source=BallotSource.ONLINE,
+            epoch=trendpoints.current_epoch(poll),
         )
-        Ballot.objects.filter(pk=ballot.pk).update(
-            created_at=timezone.now() - timedelta(days=days_ago)
-        )
+        trendpoints.record_due_point(poll, today=timezone.localdate() - timedelta(days=days_ago))
 
 
 def _three_points(poll: Poll) -> None:
@@ -157,9 +157,9 @@ def test_the_matrix_shows_the_latest_point_or_the_one_asked_for(
     client.force_login(admin)
     with _enabled(poll):
         latest = client.get(_url(poll)).context
-        assert [p.arrivals for p in latest["matrix_points"]] == [30, 20, 10]
-        earlier = client.get(_url(poll), {"point": "10"}).context
-        bogus = client.get(_url(poll), {"point": "40"}).context
+        assert [p.sequence for p in latest["matrix_points"]] == [3, 2, 1]
+        earlier = client.get(_url(poll), {"point": "1"}).context
+        bogus = client.get(_url(poll), {"point": "4"}).context
     # Row b, column a: 20 of 30 ballots rank b above a.
     assert latest["matrix"][1]["cells"][0] == {
         "self": False,
@@ -170,7 +170,8 @@ def test_the_matrix_shows_the_latest_point_or_the_one_asked_for(
     assert latest["matrix_point"].ballot_count == 30
     assert earlier["matrix_point"].ballot_count == 10
     assert earlier["matrix"][1]["cells"][0]["outcome"] == "loss"
-    # A point not shown — 40 is still waiting — falls back to the latest.
+    # A point not shown — the fourth, at 40, is still waiting — falls back to
+    # the latest.
     assert bogus["matrix_point"].ballot_count == 30
 
 
@@ -181,7 +182,7 @@ def test_ballots_per_ranking_follow_the_chosen_point(
     client.force_login(admin)
     with _enabled(poll):
         latest = client.get(_url(poll)).context["ballot_types"]
-        earlier = client.get(_url(poll), {"point": "10"}).context["ballot_types"]
+        earlier = client.get(_url(poll), {"point": "1"}).context["ballot_types"]
     assert [(r["count"], [[o["label"] for o in g] for g in r["groups"]]) for r in latest] == [
         (20, [["B"], ["C"], ["A"]]),
         (10, [["A"], ["B"], ["C"]]),
@@ -199,7 +200,7 @@ def test_a_modified_ballot_leaves_the_points_already_shown_alone(
     client.force_login(admin)
     with _enabled(poll):
         before = [r["cells"] for r in client.get(_url(poll)).context["rows"]]
-        old = Ballot.objects.filter(poll=poll).order_by("created_at").first()
+        old = Ballot.objects.filter(poll=poll, ranking=[["a"], ["b"], ["c"]]).first()
         assert old is not None
         Ballot.objects.filter(pk=old.pk).update(status=BallotStatus.SUPERSEDED)
         Ballot.objects.create(
@@ -208,6 +209,7 @@ def test_a_modified_ballot_leaves_the_points_already_shown_alone(
             version=2,
             ranking=[["c"], ["b"], ["a"]],
             source=BallotSource.ONLINE,
+            epoch=old.epoch,
         )
         after = [r["cells"] for r in client.get(_url(poll)).context["rows"]]
     assert after == before

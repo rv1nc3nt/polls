@@ -1,17 +1,27 @@
 # SPDX-License-Identifier: 0BSD
-"""The back-office trend (R-11.5 bis), as a pure function: where points fall,
-which version of each ballot they count, ranks, Condorcet winner and Smith set."""
+"""The back-office trend (R-11.5 bis), as pure functions: when a point falls
+due and when it may be shown, how a point is stored, and what it shows — ranks,
+Condorcet winner, Smith set, duels and their intervals. Where points actually
+fall as ballots are written is ``tests/integration/test_trend_points.py``."""
 
 from __future__ import annotations
 
-import itertools
-from datetime import UTC, date, datetime, timedelta
+from datetime import date
 
 import pytest
 
 from apps.core.types import OptionId
 from apps.tally.methods import Method, Ranking, pairwise_matrix
-from apps.tally.trend import Version, smith_set, trend
+from apps.tally.trend import (
+    TrendPoint,
+    decode,
+    due,
+    encode,
+    orderings,
+    shown,
+    smith_set,
+    standing,
+)
 
 A, B, C = OptionId("a"), OptionId("b"), OptionId("c")
 OPTIONS = [A, B, C]
@@ -22,105 +32,42 @@ BCA: Ranking = [[B], [C], [A]]
 CAB: Ranking = [[C], [A], [B]]
 
 
-_clock = itertools.count()
+def _point(*groups: tuple[Ranking, int], method: Method = Method.SCHULZE) -> TrendPoint:
+    ballots = [ranking for ranking, n in groups for _ in range(n)]
+    return standing(DAY, 1, ballots, OPTIONS, method)
 
 
-def _on(day: int, ranking: Ranking | None, n: int, *, ballot: str = "") -> list[Version]:
-    """``n`` arrivals on ``day``, each later than every arrival made before
-    it; ``ballot`` reuses one tracking code (a modification) where given."""
-    out = []
-    for _ in range(n):
-        tick = next(_clock)
-        at = datetime(2026, 9, 1, tzinfo=UTC) + timedelta(days=day, seconds=tick)
-        out.append(Version(at, DAY + timedelta(days=day), ballot or f"T{tick}", ranking))
-    return out
+def test_a_point_falls_due_at_each_further_multiple_of_ten() -> None:
+    assert not due(9, 0)
+    assert due(10, 0)
+    assert not due(10, 1)  # already taken
+    assert not due(19, 1)
+    assert due(20, 1)
+    # A paper deletion lowered the count after point 2: no second point 2.
+    assert not due(19, 2)
 
 
-def test_a_point_every_step_ballots_shown_once_lag_more_follow() -> None:
-    """While the poll is open, the newest point waits for ``lag`` more
-    ballots after it, so nothing after the last point shown is ever fewer
-    than ``lag`` ballots: 10 appears at the 15th ballot, 20 at the 25th, 30 at
-    the 35th."""
-    for cast, shown in ((15, [10]), (24, [10]), (25, [10, 20]), (34, [10, 20]), (35, [10, 20, 30])):
-        points = trend(_on(0, ABC, cast), OPTIONS, Method.SCHULZE, final=False)
-        assert [p.ballot_count for p in points] == shown, cast
+def test_a_point_is_shown_once_five_ballots_cast_after_it_are_counted() -> None:
+    """Epochs count the points taken before each ballot was first cast: a
+    ballot of epoch 1 came after point 1."""
+    assert not shown(1, [0] * 10 + [1] * 4)
+    assert shown(1, [0] * 10 + [1] * 5)
+    assert shown(1, [0] * 10 + [1] * 3 + [2] * 2)
+    assert not shown(2, [0] * 10 + [1] * 10 + [2] * 4)
 
 
-def test_a_modification_does_not_move_a_point_off_its_multiple() -> None:
-    """Points count 10, 20, 30… ballots: a modification is an arrival but adds
-    no ballot, so point 20 waits for the 20th ballot, here the 21st arrival."""
-    ballots = _on(0, ABC, 1, ballot="X") + _on(0, ABC, 14) + _on(0, BCA, 1, ballot="X")
-    ballots += _on(0, ABC, 9)
-    points = trend(ballots, OPTIONS, Method.SCHULZE, final=False)
-    assert [(p.ballot_count, p.arrivals) for p in points] == [(10, 10)]
-    points = trend(ballots + _on(0, ABC, 5), OPTIONS, Method.SCHULZE, final=False)
-    assert [(p.ballot_count, p.arrivals) for p in points] == [(10, 10), (20, 21)]
-
-
-def test_one_elector_modifying_again_and_again_neither_cuts_nor_shows_a_point() -> None:
-    """R-7.1 allows any number of modifications. Were arrivals the measure,
-    ten by one elector would be the whole difference between two points, and
-    five the whole tail before the published result."""
-    again = [v for r in (BCA, CAB) * 5 for v in _on(0, r, 1, ballot="X")]
-    ballots = _on(0, ABC, 1, ballot="X") + _on(0, ABC, 14) + again
-    points = trend(ballots, OPTIONS, Method.SCHULZE, final=False)
-    assert [p.ballot_count for p in points] == [10]
-    ballots = _on(0, ABC, 1, ballot="X") + _on(0, ABC, 19) + again
-    points = trend(ballots, OPTIONS, Method.SCHULZE, final=False)
-    assert [p.ballot_count for p in points] == [10]
-
-
-def test_points_fall_within_a_day_and_need_no_day_boundary() -> None:
-    ballots = _on(0, ABC, 15) + _on(1, BCA, 25)
-    points = trend(ballots, OPTIONS, Method.SCHULZE, final=False)
-    assert [(p.arrivals, p.through) for p in points] == [
-        (10, DAY),
-        (20, DAY + timedelta(days=1)),
-        (30, DAY + timedelta(days=1)),
-    ]
-
-
-def test_once_final_the_last_point_is_the_whole_live_set() -> None:
-    ballots = _on(0, ABC, 23)
-    points = trend(ballots, OPTIONS, Method.SCHULZE, final=True)
-    # 20 has only 3 arrivals after it, fewer than the lag: never shown, since
-    # the published result minus it would be those 3 ballots.
-    assert [(p.arrivals, p.ballot_count) for p in points] == [(10, 10), (23, 23)]
-
-
-def test_too_few_ballots_show_nothing_while_open() -> None:
-    assert trend(_on(0, ABC, 14), OPTIONS, Method.SCHULZE, final=False) == []
-
-
-def test_a_shown_point_does_not_change_when_a_ballot_in_it_is_modified() -> None:
-    """Recomputing from the current live set would drop the old version from
-    every past point, and the difference would be that one ballot."""
-    first = _on(0, ABC, 1, ballot="X") + _on(0, ABC, 19)
-    before = trend(first, OPTIONS, Method.SCHULZE, final=False)
-    after = trend(first + _on(1, BCA, 1, ballot="X"), OPTIONS, Method.SCHULZE, final=False)
-    assert before[0] == after[0]
-    assert before[0].pairwise[A][B] == 10
-
-
-def test_a_modification_replaces_the_ballot_from_its_arrival_on() -> None:
-    ballots = _on(0, ABC, 1, ballot="X") + _on(0, ABC, 9) + _on(1, BCA, 1, ballot="X")
-    (final,) = trend(ballots, OPTIONS, Method.SCHULZE, final=True)[-1:]
-    assert final.ballot_count == 10
-    assert final.arrivals == 11
-    assert final.pairwise[A][B] == 9
-
-
-def test_a_version_that_does_not_count_withdraws_the_ballot() -> None:
-    """A paper correction awaiting countersignature, or a deleted entry."""
-    ballots = _on(0, ABC, 1, ballot="P") + _on(0, ABC, 9) + _on(0, None, 1, ballot="P")
-    (final,) = trend(ballots, OPTIONS, Method.SCHULZE, final=True)[-1:]
-    assert final.ballot_count == 9
+def test_a_stored_table_stands_for_the_same_ballots() -> None:
+    ballots: list[Ranking] = [ABC, ABC, [[B, A], [C]], [[C]]]
+    table = orderings(ballots, OPTIONS)
+    stored = encode(table)
+    assert orderings(decode(stored), OPTIONS) == table
+    assert encode(orderings(decode(stored), OPTIONS)) == stored
+    assert sum(row["count"] for row in stored) == 4  # type: ignore[misc]
 
 
 def test_points_are_cumulative_and_track_the_schulze_order() -> None:
-    ballots = _on(0, ABC, 10) + _on(1, BCA, 20)
-    points = trend(ballots, OPTIONS, Method.SCHULZE, final=True)
-    first, second = points[0], points[-1]
+    first = _point((ABC, 10))
+    second = _point((ABC, 10), (BCA, 20))
     assert first.ranks == {A: 1, B: 2, C: 3}
     assert first.condorcet_winner == A
     assert first.smith_set == (A,)
@@ -131,16 +78,14 @@ def test_points_are_cumulative_and_track_the_schulze_order() -> None:
 
 
 def test_a_cycle_has_no_condorcet_winner_and_a_full_smith_set() -> None:
-    ballots = _on(0, ABC, 10) + _on(0, BCA, 10) + _on(0, CAB, 10)
-    point = trend(ballots, OPTIONS, Method.SCHULZE, final=True)[-1]
+    point = _point((ABC, 10), (BCA, 10), (CAB, 10))
     assert point.condorcet_winner is None
     assert point.smith_set == (A, B, C)
     assert point.ranks == {A: 1, B: 1, C: 1}
 
 
 def test_plurality_ranks_by_first_preferences() -> None:
-    ballots = _on(0, ABC, 6) + _on(0, BCA, 4) + _on(0, CAB, 4)
-    point = trend(ballots, OPTIONS, Method.PLURALITY, final=True)[-1]
+    point = _point((ABC, 6), (BCA, 4), (CAB, 4), method=Method.PLURALITY)
     assert point.ranks == {A: 1, B: 2, C: 2}
 
 
@@ -152,8 +97,7 @@ def test_smith_set_excludes_options_beaten_by_the_whole_top_cycle() -> None:
 
 
 def test_a_point_carries_the_duels_and_each_options_tightest_one() -> None:
-    ballots = _on(0, ABC, 6) + _on(0, BCA, 4)
-    point = trend(ballots, OPTIONS, Method.SCHULZE, final=True)[-1]
+    point = _point((ABC, 6), (BCA, 4))
     assert point.pairwise[A][B] == 6
     assert point.pairwise[B][A] == 4
     assert point.margin(A, B) == 2
@@ -166,16 +110,12 @@ def test_a_point_carries_the_duels_and_each_options_tightest_one() -> None:
 
 
 def test_plurality_points_carry_the_count_per_option() -> None:
-    ballots = _on(0, ABC, 6) + _on(0, BCA, 4)
-    point = trend(ballots, OPTIONS, Method.PLURALITY, final=True)[-1]
+    point = _point((ABC, 6), (BCA, 4), method=Method.PLURALITY)
     assert point.counts == {A: 6, B: 4, C: 0}
 
 
 def test_orderings_count_ballots_per_ranking_ignoring_order_within_a_tie() -> None:
-    ballots = (
-        _on(0, ABC, 3) + _on(0, [[B, A], [C]], 1) + _on(0, [[A, B], [C]], 1) + _on(0, [[C]], 2)
-    )
-    point = trend(ballots, OPTIONS, Method.SCHULZE, final=True, step=1)[-1]
+    point = _point((ABC, 3), ([[B, A], [C]], 1), ([[A, B], [C]], 1), ([[C]], 2))
     assert point.orderings == {((A,), (B,), (C,)): 3, ((A, B), (C,)): 2, ((C,),): 2}
 
 
@@ -184,8 +124,7 @@ def test_the_margin_interval_is_wilsons_on_the_ballots_that_separate_the_two() -
     [0.4618, 0.7239], so the margin lies in [−3.8, +22.4] ballots. Ballots
     preferring neither play no part."""
     neither: Ranking = [[C]]
-    ballots = _on(0, ABC, 30) + _on(0, BCA, 20) + _on(0, neither, 7)
-    point = trend(ballots, OPTIONS, Method.SCHULZE, final=True)[-1]
+    point = _point((ABC, 30), (BCA, 20), (neither, 7))
     lo, hi = point.margin_interval(A, B)
     assert (round(lo, 1), round(hi, 1)) == (-3.8, 22.4)
     assert point.margin_interval(B, A) == pytest.approx((-hi, -lo))
@@ -193,13 +132,12 @@ def test_the_margin_interval_is_wilsons_on_the_ballots_that_separate_the_two() -
 
 def test_the_margin_interval_narrows_as_ballots_accumulate() -> None:
     def width(n: int) -> float:
-        point = trend(_on(0, ABC, 3 * n) + _on(0, BCA, 2 * n), OPTIONS, Method.SCHULZE, final=True)
-        lo, hi = point[-1].margin_interval(A, B)
+        lo, hi = _point((ABC, 3 * n), (BCA, 2 * n)).margin_interval(A, B)
         return (hi - lo) / (5 * n)
 
     assert width(10) > width(40) > width(160)
 
 
 def test_no_ballot_separating_two_options_gives_an_empty_interval() -> None:
-    point = trend(_on(0, [[A, B], [C]], 12), OPTIONS, Method.SCHULZE, final=True)[-1]
+    point = _point(([[A, B], [C]], 12))
     assert point.margin_interval(A, B) == (0.0, 0.0)

@@ -1558,9 +1558,9 @@ def poll_trend(request: HttpRequest, poll: Poll) -> HttpResponse:
             "rows": trend.table(points, options, schulze=schulze),
         }
         # The matrix shows one point: the latest, or the one ``?point=`` names
-        # by its arrival count — only ever one of the points already shown.
-        by_arrivals = {str(p.arrivals): p for p in points}
-        shown = by_arrivals.get(request.GET.get("point") or "", points[-1])
+        # by its place in the series — only ever one of the points already shown.
+        by_sequence = {str(p.sequence): p for p in points}
+        shown = by_sequence.get(request.GET.get("point") or "", points[-1])
         context |= {
             "matrix_point": shown,
             "matrix_points": list(reversed(points)),

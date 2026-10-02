@@ -216,14 +216,14 @@
     {# --- one date in detail: the matrix and the ballots per ranking ----- #}
     {% comment %}
       Both cards below show the same point — the latest, or the one ?point=
-      names by its arrival count — so one control serves the two.
+      names by its place in the series — so one control serves the two.
     {% endcomment %}
     {% if matrix_points|length > 1 %}
       <form method="get" class="trend-matrix__when">
         <label for="trend-matrix-date">{% translate "Matrice et classements au" %}</label>
         <select id="trend-matrix-date" name="point">
           {% for p in matrix_points %}
-            <option value="{{ p.arrivals }}"{% if p.arrivals == matrix_point.arrivals %} selected{% endif %}>{% blocktranslate with date=p.through|date:"j F Y" count n=p.ballot_count %}{{ date }} — {{ n }} bulletin{% plural %}{{ date }} — {{ n }} bulletins{% endblocktranslate %}</option>
+            <option value="{{ p.sequence }}"{% if p.sequence == matrix_point.sequence %} selected{% endif %}>{% blocktranslate with date=p.through|date:"j F Y" count n=p.ballot_count %}{{ date }} — {{ n }} bulletin{% plural %}{{ date }} — {{ n }} bulletins{% endblocktranslate %}</option>
           {% endfor %}
         </select>
         <button type="submit">{% translate "Afficher" %}</button>

@@ -85,7 +85,7 @@ which section of the specification they implement.
 
 | Invariant | Application | Database | Test |
 |---|---|---|---|
-| INV-1 no voter–ballot join | module boundaries, `Ballot` fields | no FK | `test_inv1_separation.py` |
+| INV-1 no voter–ballot join | module boundaries, `Ballot` fields; no ballot time or order | no FK; `ballots_ballot` is `WITHOUT ROWID` | `test_inv1_separation.py`, `test_trend_points.py` |
 | INV-2 voting window | `elections/windows.py` | `inv2_*` triggers | `test_triggers.py`, `test_windows.py` |
 | INV-3 append-only log and ballot history | `audit/services.py`, ballot services | `inv3_*` triggers | `test_triggers.py`, `test_audit_services.py` |
 | INV-4 one registration per roll entry | `registrations.services` | partial unique constraint | `test_registration_flow.py`, `test_one_vote_per_elector.py` |

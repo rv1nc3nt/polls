@@ -63,6 +63,7 @@ reasoning.
 | 39 | The back-office trend: switched on by deployment setting, and cut every ten arrivals | **interim**, until the `show_trend` column lands |
 | 40 | The opening seed and the closure hash were published with the result, not when they were fixed | settled |
 | 41 | The method version was free text, and published results were recomputed per request | settled |
+| 42 | Ballot times and order paired ballots with registrations | settled |
 
 ## 1. Retention purge on a poll that closed but was never published
 
@@ -1512,4 +1513,61 @@ why, and its configuration is frozen. Before deploying, check
 
 The back-office trend (R-11.5 bis) still computes with the current code: it is
 not a published result.
+
+## 42. Ballot times and order paired ballots with registrations
+
+**Found (2026-10-02, review A-1).** §7 promises that "given the two tables, no
+join recovers the correspondence". Time did. One link confirms the mailbox and
+opens the ballot (§6.3), so `Registration.confirmed_at` was stamped on the
+voter's GET and `Ballot.created_at` on their POST from the same page minutes
+later; sorting both lists by time paired them, near exactly in a small commune
+where casts are sparse. Removing the timestamps alone would not have been
+enough: an ordinary SQLite table keeps an insertion-ordered `rowid` beside its
+primary key, and the order of first ballots follows the order of
+confirmations almost as closely. And the voter's session, saved in the casting
+request to carry the receipt across the redirect, recorded an expiry of that
+instant plus two weeks.
+
+The trend (R-11.5 bis, #39) was the one reader of ballot times: it rebuilt its
+points — the standing at each tenth ballot, each counted as it then stood —
+from every version's creation instant.
+
+**Settled.** Nothing dates or orders a ballot any more.
+
+- `Ballot.created_at` is dropped, and `ballots_ballot` is rebuilt
+  `WITHOUT ROWID`, its rows stored by their random UUID (ballots migration
+  0004). Django cannot express this; a test fails if a later migration's table
+  rebuild restores the `rowid`.
+- `Registration.confirmed_at` is dropped (registrations migration 0003);
+  nothing read it. `state` records whether the mailbox was confirmed.
+- Session expiry dates are rounded up to the next midnight, UTC
+  (`core/sessions.py`, `SESSION_ENGINE`), every session's alike.
+- The trend takes each point in the ballot write that brings the count to its
+  multiple of ten, and stores it (`TrendSnapshot`: the number of ballots per
+  distinct ranking, and the day; `ballots/trendpoints.py`). That *is* the rule
+  of R-11.5 bis — each ballot as it stood at that moment — and a stored point
+  cannot change, by trigger. Points are taken for every poll; the setting only
+  decides whether the screen is offered. For the five-ballot wait, each ballot
+  carries its *epoch*, the number of points taken when it was first cast:
+  a bucket of at least ten ballots, the trend's own granularity, kept by every
+  later version so a modification is not dated either.
+- The migration computes every point existing polls had reached, from the
+  instants, by the rule the trend used until now, before dropping them. On a
+  database seeded under the previous code, the trend screen's points before
+  and after are identical.
+
+A countersignature or deletion after a point was taken no longer changes it:
+the point holds what was counted then. Before, such a change was read as of the
+row's creation and could alter a past point.
+
+**What remains.** Day-level dates: a trend point's day, a paper ballot's link
+(deliberate, R-8.2 bis), `Registration.created_at`, which orders the review
+queue. On a day with one ballot and one new registration, the day pairs them;
+the trend showing that day's points already reveals as much. SQLite's write-
+ahead log holds recently written pages in write order until its next
+checkpoint, and a deleted row's bytes can linger in free pages: the nightly
+backup (`VACUUM INTO`) carries neither. The optional PostgreSQL backend (§14)
+stores rows in a heap whose physical order follows insertion; it would need its
+own answer before it is offered. The mail relay's log of the receipt sent at
+casting is outside the database altogether (review open question).
 

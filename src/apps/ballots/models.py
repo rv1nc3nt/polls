@@ -11,6 +11,14 @@ Append-only. A modification inserts ``version + 1`` and marks the prior row
 ``superseded``; a trigger refuses every ``UPDATE`` on a row that is already
 superseded or deleted (INV-3, T-24).
 
+**No time and no order (INV-1, decision log #42).** A ballot records neither
+when it was cast nor in which order: a first ballot usually follows the
+registration confirmed minutes before it, so either would pair the two lists
+§7 makes irreconcilable. Hence no ``created_at``, and a table without SQLite's
+insertion-ordered ``rowid`` (``WITHOUT ROWID``, migration 0004; a test holds
+it). The back-office trend, which needs the standing every ten ballots, records
+it as it happens instead (``TrendSnapshot``).
+
 An elector who has already voted online cannot also be keyed a paper ballot:
 ``enter_paper`` refuses, per R-9.3, because §7 makes the online ballot
 unlocatable from the registration, so a paper entry could neither replace it nor
@@ -98,7 +106,12 @@ class Ballot(models.Model):
     status = models.CharField(
         max_length=20, choices=BallotStatus.choices, default=BallotStatus.LIVE
     )
-    created_at = models.DateTimeField(auto_now_add=True)
+    # R-11.5 bis: how many trend points had been taken when this ballot was
+    # first cast — a bucket of at least ten ballots, never a time or a rank.
+    # Every later version keeps it, so a modification reveals nothing of when
+    # it was made. ``trendpoints.shown`` needs it to wait for five ballots cast
+    # after a point.
+    epoch = models.PositiveIntegerField(default=0)
 
     objects = models.Manager()
     live = LiveBallotManager()
@@ -222,3 +235,33 @@ class ReconciliationRecord(models.Model):
         """Forms counted minus ballots recorded; negative means more ballots
         than forms."""
         return self.forms_retained_count - self.recorded_ballots_count
+
+
+class TrendSnapshot(models.Model):
+    """One point of the back-office trend (R-11.5 bis), recorded the moment it
+    fell due — when the ballots counted reached a further multiple of ten — and
+    never changed after (``trendpoints.record_due_point``).
+
+    It holds the number of ballots per distinct ranking, from which every
+    figure the trend shows is derived, and the day it was taken in the poll's
+    time zone. Nothing per ballot: no tracking code, no id. A trigger refuses
+    any update, and any delete but a sandbox poll's (migration 0004).
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    poll = models.ForeignKey(
+        "elections.Poll", on_delete=models.CASCADE, related_name="trend_snapshots"
+    )
+    sequence = models.PositiveIntegerField()
+    ballot_count = models.PositiveIntegerField()
+    taken_on = models.DateField()
+    # ``tally.trend.encode`` of the standing's orderings.
+    orderings = models.JSONField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["poll", "sequence"], name="uniq_trend_point_sequence"),
+        ]
+
+    def __str__(self) -> str:
+        return f"point {self.sequence} ({self.ballot_count})"
