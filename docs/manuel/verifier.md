@@ -103,6 +103,41 @@ commande :
 Placez le fichier téléchargé dans un dossier facile à retrouver — par
 exemple à côté du document de publication que vous avez déjà téléchargé.
 
+### Vérifier le fichier téléchargé (facultatif)
+
+Un vérificateur ne vaut que si c'est bien le bon programme. Chaque version
+publiée joint, parmi ses fichiers, une liste `SHA256SUMS` : l'empreinte de
+chacun des programmes. Calculez celle du fichier que vous avez téléchargé et
+comparez-la à la ligne qui porte son nom :
+
+**Windows (PowerShell) :**
+
+    Get-FileHash .\polls-verifier-windows-x86_64.exe
+
+**macOS :**
+
+    shasum -a 256 polls-verifier-macos-aarch64
+
+**Linux :**
+
+    sha256sum polls-verifier-linux-x86_64
+
+Les deux suites de caractères doivent être identiques. Si elles diffèrent, ne
+lancez pas le programme : téléchargez-le à nouveau depuis la page des versions.
+
+Pour aller plus loin, chaque programme porte aussi une attestation de
+provenance, signée lors de sa construction, qui prouve qu'il a été compilé à
+partir du code public du projet, par sa procédure de publication et non sur
+l'ordinateur de quelqu'un. Avec l'outil en ligne de commande de GitHub
+(`gh`) :
+
+    gh attestation verify polls-verifier-linux-x86_64 --repo rv1nc3nt/polls
+
+Vous pouvez enfin construire le vérificateur vous-même à partir du code
+source de la version (dossier `verifier/`), avec `rustup` et
+`cargo build --release --manifest-path verifier/Cargo.toml` : le compilateur
+utilisé est fixé dans le fichier `rust-toolchain.toml` du dépôt.
+
 ## Utiliser l'application graphique (recommandé)
 
 ### Windows

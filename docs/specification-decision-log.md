@@ -67,6 +67,7 @@ reasoning.
 | 43 | A fresh instance, back-office sign-in and nginx's error log were open to abuse | settled |
 | 44 | Poll descriptions could load third-party images, and pages had no Content-Security-Policy | settled |
 | 45 | The back office ignored a poll's own time zone, and static files kept their names | settled |
+| 46 | Verifier binaries were released unsigned, unchecksummed and from an unpinned compiler | settled |
 
 ## 1. Retention purge on a poll that closed but was never published
 
@@ -1685,4 +1686,39 @@ keeps them with `expires max`. A test collects and renders pages through that
 storage, so a `{% static %}` or `url()` naming a missing file fails in CI, not
 at deploy. Tests and `runserver` keep the plain storage, which needs no
 manifest.
+
+## 46. Verifier binaries were released unsigned, unchecksummed and from an unpinned compiler
+
+**Found (2026-10-02, review B-5).** The verifier exists so that nobody need
+trust the mairie or the software's publisher (§8, §9); the manual then asks a
+citizen to download a binary and wave it past SmartScreen or Gatekeeper. The
+release workflow built it with whatever `stable` Rust was that day, attached
+it bare — no digest, no signature, no provenance — and ran third-party actions
+by movable tag with the release's write token. The binary was the one thing in
+the chain a reader had to take on trust.
+
+**Settled.**
+
+- `rust-toolchain.toml`, at the repository root, pins the compiler (1.93.1)
+  for CI and releases; at the root because every cargo call passes
+  `--manifest-path` from there and rustup reads the file from the working
+  directory. Each crate states its `rust-version`: 1.87 for the core and the
+  CLI, which have no dependencies; 1.88 for the GUI, whose locked dependencies
+  need it.
+- Each release attaches `SHA256SUMS`, and every binary gets a GitHub
+  build-provenance attestation — a keyless signature tying it to the release
+  workflow, the commit and this repository, checked with
+  `gh attestation verify <file> --repo rv1nc3nt/polls`. No signing key to keep
+  or lose.
+- The release workflow's actions are pinned to commit SHAs (the major versions
+  it already used), since a moved tag would run with write access to the
+  release.
+- Both verifier manuals say how to check a download — the digest, per system,
+  then the attestation — and how to build from source with the pinned
+  compiler.
+
+Not done: the binaries are not code-signed for Windows or notarised for
+macOS, which needs paid certificates and a decision on who holds them; a
+build is not bit-for-bit reproducible across machines, which would let anyone
+re-derive the published digest. Both are noted for later.
 

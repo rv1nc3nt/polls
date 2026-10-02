@@ -2,6 +2,7 @@
 name = "polls-verifier-gui"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.88"  # its locked dependencies (icu_*, image) need 1.88; core and cli need 1.87
 license = "0BSD"
 authors = ["Romain VINCENT"]
 description = "Independent verifier for the commune polling platform (§8, §9) — desktop GUI"

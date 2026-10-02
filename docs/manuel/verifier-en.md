@@ -96,6 +96,40 @@ comfortable with a terminal, otherwise the command line:
 Put the downloaded file somewhere easy to find — next to the publication
 document you already downloaded, for instance.
 
+### Checking the download (optional)
+
+A verifier is only worth anything if it is the right program. Every release
+attaches, among its files, a `SHA256SUMS` list: the fingerprint of each
+program. Compute the fingerprint of the file you downloaded and compare it with
+the line bearing its name:
+
+**Windows (PowerShell):**
+
+    Get-FileHash .\polls-verifier-windows-x86_64.exe
+
+**macOS:**
+
+    shasum -a 256 polls-verifier-macos-aarch64
+
+**Linux:**
+
+    sha256sum polls-verifier-linux-x86_64
+
+The two strings must be identical. If they differ, do not run the program:
+download it again from the releases page.
+
+To go further, every program also carries a provenance attestation, signed
+when it was built, proving it was compiled from the project's public code by
+its release procedure rather than on someone's computer. With GitHub's
+command-line tool (`gh`):
+
+    gh attestation verify polls-verifier-linux-x86_64 --repo rv1nc3nt/polls
+
+Finally, you can build the verifier yourself from the release's source code
+(the `verifier/` folder), with `rustup` and
+`cargo build --release --manifest-path verifier/Cargo.toml`: the compiler used
+is fixed in the repository's `rust-toolchain.toml` file.
+
 ## Using the graphical application (recommended)
 
 ### Windows

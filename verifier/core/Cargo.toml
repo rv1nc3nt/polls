@@ -2,6 +2,7 @@
 name = "polls-verifier-core"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.87"
 license = "0BSD"
 authors = ["Romain VINCENT"]
 description = "Canonical serialisation, closure hash and tally methods for the commune polling platform (§8, §9)"
