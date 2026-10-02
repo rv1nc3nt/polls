@@ -357,12 +357,19 @@ remplacés.
   erreurs ordinaires (passerelle indisponible pendant un redémarrage, par
   exemple), dans son journal d'erreurs : un jeton dans un journal permettrait à
   qui le lit de voter à la place de l'électeur.
-- **Rétention** : `retention_purge` efface, deux mois après la clôture, les
-  enregistrements d'inscription, la copie figée de la liste, l'association
-  bulletin papier ↔ électeur, et les champs déclarés « données personnelles »
-  de chaque catégorie d'événement d'audit — **en conservant l'événement, son
-  auteur, sa date et son motif**. Les bulletins anonymisés, le
-  résultat publié et le journal lui-même sont conservés au-delà.
+- **Rétention** : `retention_purge` efface, deux mois après la clôture (ou
+  après le retrait, pour un scrutin retiré avant d'être clos), les
+  inscriptions, les signalements de tentative d'inscription en double, la
+  copie figée de la liste électorale et l'association bulletin papier ↔
+  électeur. **Le journal d'audit n'est jamais modifié** : ses événements ne
+  contiennent aucune donnée personnelle, seulement une référence à l'objet
+  concerné, son état et un motif codé. Une fois l'objet effacé, l'événement
+  reste lisible (qui a fait quoi, quand, pourquoi) mais ne permet plus de
+  savoir à qui cela se rapportait ; l'écran du journal l'affiche comme
+  « objet supprimé (rétention) ». La liste électorale de travail importée est
+  effacée à part, deux mois après son import, dès qu'aucun scrutin en
+  brouillon ou annoncé ne l'attend. Les bulletins anonymisés, le résultat
+  publié et le journal lui-même sont conservés au-delà.
 - **Un vrai export de liste électorale est la donnée personnelle de tous les
   électeurs de la commune** : il ne va jamais dans le dépôt, la suite
   de tests ou un rapport d'incident. Les données de test sont synthétiques.
