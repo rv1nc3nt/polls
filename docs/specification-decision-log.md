@@ -71,6 +71,7 @@ reasoning.
 | 47 | The verifier read ballot lists leniently and ignored the participation counts | settled |
 | 48 | The serialisation had no escaping rule, and `tiebreak.winner` was unchecked | settled |
 | 49 | An operator's session could hold their own ballot | settled |
+| 50 | No ballot could be cast in a browser: the CSRF check refused `Origin: null` | settled |
 
 ## 1. Retention purge on a poll that closed but was never published
 
@@ -1811,4 +1812,26 @@ goes into a fresh session. The sign-in receiver drops every ballot and receipt
 key (`tokensession.forget_all`). The rest of the public site leaves the
 operator signed in. `tests/integration/test_operator_voter_session.py` checks
 every stored session after each path.
+
+## 50. No ballot could be cast in a browser: the CSRF check refused `Origin: null`
+
+**Found (2026-10-03, review C-8, by the first browser test).** §6.3 and R-7.4 ter
+have the ballot routes send `Referrer-Policy: no-referrer`, so the token in
+their address never travels in a `Referer`. The Fetch standard then has a
+browser send `Origin: null` with a form's POST, same-origin or not, and since
+Django 4.0 `CsrfViewMiddleware` refuses any POST whose `Origin` does not match
+the site. In a real browser, then, casting and modifying a ballot answered 403.
+No HTTP test noticed: Django's test client sends no `Origin` unless told to.
+
+**Settled.** Not by loosening the referrer policy: R-7.4 ter requires that no
+referrer be transmitted, and `strict-origin` would still send one.
+`core/csrf.py` replaces Django's middleware with a subclass that, on the
+`ballots` namespace alone, reads `Origin: null` as the site's own origin and
+then checks as Django does. That keeps the protection that matters: the CSRF
+token is still required, and it is a secret another site cannot read; the CSRF
+cookie is `SameSite=Lax`, so a cross-site POST arrives without it; any other
+`Origin`, another site's included, is still refused; and every other route
+still refuses `null`. `tests/integration/test_ballot_csrf.py` sends the header
+a browser sends, and `tests/browser/test_voter_journey.py` casts a ballot in
+Chromium; both fail with Django's own middleware.
 

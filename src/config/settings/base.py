@@ -43,7 +43,9 @@ MIDDLEWARE = [
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
+    # Django's, but accepting the `Origin: null` the ballot routes' referrer
+    # policy makes browsers send (apps/core/csrf.py, decision log #50).
+    "apps.core.csrf.BallotRouteCsrfMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     # Back-office sessions end eight hours after sign-in (review A-16).
     "apps.core.operatorsession.OperatorSessionMiddleware",

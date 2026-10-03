@@ -306,7 +306,7 @@ Modification, where `allow_ballot_modification` is set: the link resolves the to
 
 Where it is not set, the ballot is cast once. The ballot page MUST say so before submission, not merely in the confirmation, since it changes what the voter is agreeing to. The token is spent on casting and any later use of the link is refused. Operator correction of a **paper** ballot (R-8.5) is unaffected: that is the repair of a keying error, logged and reasoned, not the voter changing their mind.
 
-**Token handling on these routes (MUST).** The token arrives in the URL, so on first use the server exchanges it for a session cookie and redirects to a token-free URL; the token is not resent on subsequent requests. These routes send `Referrer-Policy: no-referrer` and `Cache-Control: no-store`, and the nginx template suppresses request-URI logging for their path prefix. Without all four, §7's requirement that the token never reach a log is false the moment the first voter clicks the link.
+**Token handling on these routes (MUST).** The token arrives in the URL, so on first use the server exchanges it for a session cookie and redirects to a token-free URL; the token is not resent on subsequent requests. These routes send `Referrer-Policy: no-referrer` and `Cache-Control: no-store`, and the nginx template suppresses request-URI logging for their path prefix. Under that referrer policy a browser posts their forms with `Origin: null`, which the CSRF check must accept on these routes alone (decision log #50). Without all four, §7's requirement that the token never reach a log is false the moment the first voter clicks the link.
 
 ### 6.4 Paper entry (R-8)
 
