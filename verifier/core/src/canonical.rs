@@ -7,69 +7,122 @@ use std::collections::BTreeSet;
 
 /// One row of the published CSV: a tracking code and a ranking.
 pub struct Ballot {
+    /// The ballot's tracking code, checked against [`TRACKING_CODE_ALPHABET`].
     pub tracking_code: String,
     /// Groups of option ids, outer order significant, inner order not.
     pub ranking: Vec<Vec<String>>,
 }
 
-/// Parse the two-column published CSV (§9). The header is `tracking_code,ranking`
-/// and the ranking cell is the canonical JSON array of arrays.
+/// The CSV's first line, exactly as the application writes it.
+pub const CSV_HEADER: &str = "tracking_code,ranking";
+
+/// Parse the two-column published CSV (§9): the header, then one row per
+/// ballot — a bare tracking code, a comma, and the ranking as a quoted CSV
+/// field holding the canonical JSON array of arrays.
+///
+/// Strict on purpose (review B-6): anything the application cannot write is
+/// refused, with its line, rather than read leniently into a ballot no poll
+/// cast. The cell is read by the same strict JSON reader as the publication
+/// document; what makes a ranking admissible is `check_ranking`, applied to
+/// both.
+///
+/// # Errors
+///
+/// A message naming the first line that is not what the application writes.
 pub fn parse_csv(text: &str) -> Result<Vec<Ballot>, String> {
+    let mut lines = text.lines().enumerate();
+    match lines.next() {
+        Some((_, header)) if header == CSV_HEADER => {}
+        _ => return Err(format!("line 1: expected the header {CSV_HEADER}")),
+    }
     let mut ballots = Vec::new();
-    for (lineno, line) in text.lines().enumerate() {
-        if line.trim().is_empty() {
+    for (index, line) in lines {
+        let number = index + 1;
+        if line.is_empty() {
             continue;
         }
-        if lineno == 0 && line.starts_with("tracking_code") {
-            continue;
-        }
-        let (code, ranking) = split_row(line)
-            .ok_or_else(|| format!("line {}: expected two columns", lineno + 1))?;
+        let (code, cell) = split_row(line).ok_or_else(|| {
+            format!("line {number}: expected a tracking code, a comma and a quoted ranking")
+        })?;
+        let ranking = crate::json::parse(&cell)
+            .and_then(|value| ranking_from_json(&value))
+            .map_err(|why| format!("line {number}: {why}"))?;
         ballots.push(Ballot {
-            tracking_code: code,
-            ranking: parse_ranking(&ranking)
-                .ok_or_else(|| format!("line {}: malformed ranking", lineno + 1))?,
+            tracking_code: code.to_string(),
+            ranking,
         });
     }
     Ok(ballots)
 }
 
-/// Split `code,ranking`, honouring the doubled-quote escaping a CSV writer uses
-/// for the JSON cell.
-fn split_row(line: &str) -> Option<(String, String)> {
-    let comma = line.find(',')?;
-    let (code, rest) = line.split_at(comma);
-    let rest = &rest[1..];
-    let ranking = if let Some(stripped) = rest.strip_prefix('"') {
-        stripped.strip_suffix('"')?.replace("\"\"", "\"")
-    } else {
-        rest.to_string()
-    };
-    Some((code.trim().to_string(), ranking))
+/// Split `code,"cell"`: the code bare, the cell a quoted CSV field in which
+/// every quote is doubled — which is all a CSV writer ever produces for it.
+fn split_row(line: &str) -> Option<(&str, String)> {
+    let (code, rest) = line.split_once(',')?;
+    let quoted = rest.strip_prefix('"')?.strip_suffix('"')?;
+    if quoted.replace("\"\"", "").contains('"') {
+        return None;
+    }
+    Some((code, quoted.replace("\"\"", "\"")))
 }
 
-/// Read `[["a"],["b","c"]]` without a JSON library: the grammar is fixed by
-/// the canonical serialisation and nothing else may appear in the cell.
-fn parse_ranking(cell: &str) -> Option<Vec<Vec<String>>> {
-    let inner = cell.trim().strip_prefix('[')?.strip_suffix(']')?;
-    let mut groups = Vec::new();
-    let mut rest = inner.trim();
-    while !rest.is_empty() {
-        let group = rest.strip_prefix('[')?;
-        let end = group.find(']')?;
-        let items: Vec<String> = group[..end]
-            .split(',')
-            .filter(|s| !s.trim().is_empty())
-            .map(|s| s.trim().trim_matches('"').to_string())
-            .collect();
-        groups.push(items);
-        rest = group[end + 1..].trim_start().trim_start_matches(',').trim_start();
+/// A ranking from its JSON form: a list of groups, each a list of option ids.
+///
+/// # Errors
+///
+/// A message saying which level of the structure is not what it must be.
+pub fn ranking_from_json(value: &crate::json::Value) -> Result<Vec<Vec<String>>, String> {
+    let groups = value.as_array().ok_or("the ranking is not a list")?;
+    groups
+        .iter()
+        .map(|group| {
+            group
+                .as_array()
+                .ok_or("a group of the ranking is not a list")?
+                .iter()
+                .map(|option| {
+                    option
+                        .as_str()
+                        .map(String::from)
+                        .ok_or_else(|| "an option id is not a string".to_string())
+                })
+                .collect()
+        })
+        .collect()
+}
+
+/// Whether a ranking is one the application could have recorded: it places
+/// at least one option, has no empty group and ranks no option twice — the
+/// rules a ballot is refused under before it is ever stored
+/// (`docs/canonical-serialisation.md`, "A ranking").
+///
+/// # Errors
+///
+/// The first rule it breaks, in words.
+pub fn check_ranking(ranking: &[Vec<String>]) -> Result<(), String> {
+    if ranking.iter().all(Vec::is_empty) {
+        return Err("it places no option".to_string());
     }
-    Some(groups)
+    if ranking.iter().any(Vec::is_empty) {
+        return Err("it has an empty group".to_string());
+    }
+    let mut seen = BTreeSet::new();
+    for option in ranking.iter().flatten() {
+        if !is_option_id(option) {
+            return Err(format!(
+                "option id {option:?} is not 1 to {OPTION_ID_MAX_LENGTH} characters of A-Z, a-z, 0-9, _ and -"
+            ));
+        }
+        if !seen.insert(option.as_str()) {
+            return Err(format!("it ranks {option} twice"));
+        }
+    }
+    Ok(())
 }
 
 /// The canonical serialisation of the live set, byte for byte
 /// (`docs/canonical-serialisation.md`).
+#[must_use]
 pub fn canonical_serialisation(ballots: &[Ballot]) -> Vec<u8> {
     let mut records: Vec<Vec<u8>> = ballots
         .iter()
@@ -100,10 +153,67 @@ pub fn canonical_serialisation(ballots: &[Ballot]) -> Vec<u8> {
     out
 }
 
+/// The tracking-code alphabet and length (`docs/canonical-serialisation.md`,
+/// "The document"): no `O`, `0`, `I` or `1`.
+pub const TRACKING_CODE_ALPHABET: &str = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+/// Every tracking code is exactly this many characters of the alphabet.
+pub const TRACKING_CODE_LENGTH: usize = 10;
+
+/// The longest option id (`docs/canonical-serialisation.md`, "Alphabets").
+pub const OPTION_ID_MAX_LENGTH: usize = 50;
+
+/// Whether `id` is 1 to [`OPTION_ID_MAX_LENGTH`] characters of `A-Z`, `a-z`,
+/// `0-9`, `_` and `-`. The serialisation above writes ids unescaped, which is
+/// only the application's JSON for characters JSON never escapes; any other
+/// id is refused rather than escaped one way or the other.
+#[must_use]
+pub fn is_option_id(id: &str) -> bool {
+    (1..=OPTION_ID_MAX_LENGTH).contains(&id.len())
+        && id
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')
+}
+
+/// Why a ballot list cannot be the live set of a poll, whatever its hash.
+#[derive(Debug, PartialEq, Eq)]
+pub enum BallotListError {
+    /// A code outside the alphabet or of the wrong length. The canonical
+    /// serialisation does not escape strings, so only codes from the fixed
+    /// alphabet are guaranteed to serialise as the application does.
+    MalformedTrackingCode(String),
+    /// Two ballots share a code. The database refuses this (INV-11); a
+    /// published list that has it could hide stuffed ballots behind codes
+    /// real voters will still find.
+    DuplicateTrackingCode(String),
+}
+
+/// Refuse a list no poll could have published: a malformed or repeated
+/// tracking code.
+///
+/// # Errors
+///
+/// The first malformed code, or the first code seen twice.
+pub fn check_tracking_codes(ballots: &[Ballot]) -> Result<(), BallotListError> {
+    let mut seen = BTreeSet::new();
+    for ballot in ballots {
+        let code = &ballot.tracking_code;
+        let well_formed = code.len() == TRACKING_CODE_LENGTH
+            && code.chars().all(|c| TRACKING_CODE_ALPHABET.contains(c));
+        if !well_formed {
+            return Err(BallotListError::MalformedTrackingCode(code.clone()));
+        }
+        if !seen.insert(code.as_str()) {
+            return Err(BallotListError::DuplicateTrackingCode(code.clone()));
+        }
+    }
+    Ok(())
+}
+
 /// Every option id that appears on at least one ballot, sorted. The CSV
 /// carries no option list, so an option no ballot ranks is absent here; a
 /// caller who knows the poll's options passes them instead (`Expected::options`
 /// in `report`), and the matrix then matches the published one row for row.
+#[must_use]
 pub fn options_in(ballots: &[Ballot]) -> Vec<String> {
     let mut set = BTreeSet::new();
     for ballot in ballots {
@@ -122,15 +232,17 @@ pub fn options_in(ballots: &[Ballot]) -> Vec<String> {
 /// Byte-wise on purpose: slicing the `str` two bytes at a time panicked when a
 /// pasted value held a multi-byte character, and `u8::from_str_radix` accepts
 /// a leading `+`, so `"+f"` decoded (review note L6).
+#[must_use]
 pub fn parse_hex(text: &str) -> Option<Vec<u8>> {
     let digits = text.trim().as_bytes();
-    if digits.len() % 2 != 0 {
+    if !digits.len().is_multiple_of(2) {
         return None;
     }
     let nibble = |b: u8| (b as char).to_digit(16).filter(|_| b.is_ascii_hexdigit());
     digits
         .chunks(2)
-        .map(|pair| Some((nibble(pair[0])? * 16 + nibble(pair[1])?) as u8))
+        // Two hex digits make at most 255, so the conversion never fails.
+        .map(|pair| u8::try_from(nibble(pair[0])? * 16 + nibble(pair[1])?).ok())
         .collect()
 }
 
@@ -149,6 +261,90 @@ mod tests {
         assert_eq!(parse_hex("é"), None);
         // Four bytes whose first pair ends inside "é": used to panic.
         assert_eq!(parse_hex("aéb"), None);
+    }
+
+    fn ballot(code: &str) -> Ballot {
+        Ballot {
+            tracking_code: code.to_string(),
+            ranking: vec![vec!["a".to_string()]],
+        }
+    }
+
+    #[test]
+    fn the_csv_is_read_strictly() {
+        let ok = "tracking_code,ranking\nAAAAAAAAAA,\"[[\"\"a\"\"],[\"\"b\"\",\"\"c\"\"]]\"\n";
+        let ballots = parse_csv(ok).expect("parses");
+        assert_eq!(
+            ballots[0].ranking,
+            vec![vec!["a".to_string()], vec!["b".into(), "c".into()]]
+        );
+        assert_eq!(
+            parse_csv("tracking_code,ranking\r\n").map(|b| b.len()),
+            Ok(0)
+        );
+        for bad in [
+            "",
+            "AAAAAAAAAA,\"[[\"\"a\"\"]]\"\n", // no header
+            "code,ranking\n",                 // wrong header
+            "tracking_code,ranking\nAAAAAAAAAA,[[\"a\"]]\n", // cell not quoted
+            "tracking_code,ranking\nAAAAAAAAAA,\"[[a]]\"\n", // unquoted id
+            "tracking_code,ranking\nAAAAAAAAAA,\"[[\"\"a\"\",]]\"\n", // trailing comma
+            "tracking_code,ranking\nAAAAAAAAAA,\"[[\"\"a\"\"]]\",x\n", // a third column
+            "tracking_code,ranking\nAAAAAAAAAA,\"[[1]]\"\n", // id not a string
+            "tracking_code,ranking\nAAAAAAAAAA,\"[\"\"a\"\"]\"\n", // group not a list
+        ] {
+            assert!(parse_csv(bad).is_err(), "accepted {bad:?}");
+        }
+    }
+
+    #[test]
+    fn a_ranking_must_be_one_the_application_could_record() {
+        let r = |groups: &[&[&str]]| -> Vec<Vec<String>> {
+            groups
+                .iter()
+                .map(|g| g.iter().map(|o| (*o).to_string()).collect())
+                .collect()
+        };
+        assert_eq!(check_ranking(&r(&[&["a"], &["b", "c"]])), Ok(()));
+        assert!(check_ranking(&r(&[])).is_err());
+        assert!(check_ranking(&r(&[&[]])).is_err());
+        assert!(check_ranking(&r(&[&["a"], &[]])).is_err());
+        assert!(check_ranking(&r(&[&["a"], &["a"]])).is_err());
+        assert!(check_ranking(&r(&[&["a", "a"]])).is_err());
+        assert!(check_ranking(&r(&[&[""]])).is_err());
+    }
+
+    #[test]
+    fn tracking_codes_must_be_well_formed_and_unique() {
+        assert_eq!(
+            check_tracking_codes(&[ballot("AAAAAAAAAA"), ballot("23456789ZZ")]),
+            Ok(())
+        );
+        assert_eq!(check_tracking_codes(&[]), Ok(()));
+        for bad in [
+            "AAAAAAAAA",
+            "AAAAAAAAAAA",
+            "AAAAAAAAA0",
+            "AAAAAAAAAI",
+            "aaaaaaaaaa",
+            "AAAA\"AAAAA",
+        ] {
+            assert_eq!(
+                check_tracking_codes(&[ballot(bad)]),
+                Err(BallotListError::MalformedTrackingCode(bad.to_string())),
+                "{bad}"
+            );
+        }
+        assert_eq!(
+            check_tracking_codes(&[
+                ballot("AAAAAAAAAA"),
+                ballot("BBBBBBBBBB"),
+                ballot("AAAAAAAAAA")
+            ]),
+            Err(BallotListError::DuplicateTrackingCode(
+                "AAAAAAAAAA".to_string()
+            ))
+        );
     }
 
     #[test]

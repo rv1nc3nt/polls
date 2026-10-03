@@ -73,6 +73,17 @@ def test_t67_opening_by_hand_ahead_of_opens_at_pulls_it_back_to_now(
     assert event.after["opens_at"] == now.isoformat()
 
 
+def test_the_opening_seed_is_recorded_when_the_poll_opens(open_window_poll: Poll) -> None:
+    """R-10.5: the seed is published at opening. The opening event carries it,
+    so the value a tie-break uses after closure can be checked against the one
+    drawn here (decision log #40)."""
+    opened = open_poll(_announced_with_future_opens_at(open_window_poll))
+
+    event = AuditEvent.objects.filter(action=Action.POLL_STATE_CHANGED, poll=opened).latest("at")
+    assert opened.opening_seed
+    assert event.after["opening_seed"] == bytes(opened.opening_seed).hex()
+
+
 def test_t67_the_scheduled_opening_leaves_opens_at_alone(open_window_poll: Poll) -> None:
     poll = _announced_with_future_opens_at(open_window_poll, hours=1)
     planned = poll.opens_at

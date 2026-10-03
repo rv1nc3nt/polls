@@ -24,9 +24,9 @@
   "use strict";
 
   // The `opt-<index>-` segment of a formset field name / id, `__prefix__` in
-  // the <template> pattern.
+  // the <template> pattern. A row cloned from the template keeps `__prefix__`
+  // until `sync` renumbers it, which covers every attribute that carries it.
   var INDEX_RE = /(opt-)(\d+|__prefix__)(-)/;
-  var PLACEHOLDER = /__prefix__/g;
 
   document.addEventListener("DOMContentLoaded", function () {
     var editor = document.querySelector("[data-option-editor]");
@@ -134,9 +134,9 @@
     });
 
     addButton.addEventListener("click", function () {
-      var holder = document.createElement("div");
-      holder.innerHTML = template.innerHTML.replace(PLACEHOLDER, String(rows().length));
-      var row = holder.querySelector("[data-option-row]");
+      // Cloned, not re-parsed from markup (review C-10): no innerHTML, so a
+      // Trusted Types policy can be added to the CSP without an exception.
+      var row = template.content.cloneNode(true).querySelector("[data-option-row]");
       if (!row) {
         return;
       }
@@ -149,7 +149,8 @@
         positionField.value = String(rows().length);
       }
       sync();
-      var first = row.querySelector("input, select, textarea");
+      // Not the hidden `pk` input, which comes first and cannot take focus.
+      var first = row.querySelector('input:not([type="hidden"]), select, textarea');
       if (first) {
         first.focus();
       }

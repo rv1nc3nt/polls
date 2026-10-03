@@ -1,5 +1,5 @@
 {% extends "publicsite/poll_detail.html" %}
-{% load i18n %}
+{% load i18n static %}
 {# SPDX-License-Identifier: 0BSD #}
 {% comment %}
   Draft-only aperçu (§6.5.2). Extends the public template itself, not a copy
@@ -24,7 +24,7 @@
     <h2 id="share-preview">{% translate "Partager cet aperçu" %}</h2>
     <p class="help">{% translate "Génère un lien impossible à deviner qui permet à quiconque le détient de consulter cet aperçu sans compte espace mairie. Contrairement à l'annonce, ce lien ne fige pas la configuration : la page peut changer d'une consultation à l'autre, tout comme le projet lui-même." %}</p>
     {% if preview_link_url %}
-      <p><input type="text" readonly value="{{ preview_link_url }}" onclick="this.select()" aria-label="{% translate 'Lien de partage' %}"></p>
+      <p><input type="text" readonly value="{{ preview_link_url }}" data-select-all aria-label="{% translate 'Lien de partage' %}"></p>
       {% if has_admin_role %}
         <form method="post" class="inline">
           {% csrf_token %}
@@ -54,3 +54,5 @@
 {% block status %}
   <p class="status status--preview"><svg class="ic" aria-hidden="true"><use href="#pub-ico-flag"/></svg><span>{% translate "Brouillon — pas encore annoncé ni visible du public." %}</span></p>
 {% endblock %}
+
+{% block body_end %}{{ block.super }}<script src="{% static 'js/select-all.js' %}" defer></script>{% endblock %}

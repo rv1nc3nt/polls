@@ -17,6 +17,17 @@ Both families are licensed under the [SIL Open Font License 1.1](https://openfon
 which permits exactly this: bundling, self-hosting and redistribution
 alongside software under a different licence, including the project's 0BSD.
 
+The licence travels with the files, as its condition 2 requires of every
+copy: `OFL-sourceserif4.txt` and `OFL-ibmplexmono.txt` are the licence files
+Google Fonts publishes for these families (`google/fonts`, `ofl/<family>/`),
+verbatim, copyright line included, and `collectstatic` serves them beside the
+fonts. Each font also carries its own notice in its `name` table:
+"© 2014 - 2021 Adobe Systems Incorporated (http://www.adobe.com/), with
+Reserved Font Name ‘Source’" and "Copyright 2017 IBM Corp.", with the Reserved
+Font Name "Plex". Neither family is modified here, so neither name needs to
+change. `tests/unit/test_font_licences.py` fails if a family is added without
+its licence.
+
 To refresh a weight (a new variant is added to `app.css`, or Google revises a
 glyph): fetch `https://fonts.googleapis.com/css2?family=<Family>:wght@<weight>`
 with a browser `User-Agent` header (a plain `curl` without one gets old

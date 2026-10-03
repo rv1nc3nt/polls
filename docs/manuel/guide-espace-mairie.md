@@ -47,6 +47,11 @@ interdits par construction. Le nom de la personne connectée est affiché en hau
 de chaque écran : on doit voir d'un coup d'œil au nom de qui le journal d'audit
 va enregistrer les actions.
 
+Une connexion dure **huit heures**, sauf réglage contraire de l'instance :
+passé ce délai, l'espace mairie redemande le mot de passe, même si la fenêtre
+est restée ouverte. Sur un poste partagé, cliquez tout de même sur « Se
+déconnecter » en partant.
+
 **Figure 6 — Connexion à l'espace mairie.**
 
 ![Connexion à l'espace mairie](captures/img/06-mairie-connexion.png)

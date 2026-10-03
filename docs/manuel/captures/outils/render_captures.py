@@ -24,13 +24,16 @@ from apps.elections.models import Poll, PollState
 from apps.registrations import services as reg
 from apps.registrations.models import Channel, Registration, RegistrationState
 
-ROOT = Path("/home/claude/Projects/polls")
+# The repository root, from this file's own place in it (docs/manuel/captures/
+# outils/), so the captures land in the clone the script is run from.
+ROOT = Path(__file__).resolve().parents[4]
 OUT = ROOT / "docs" / "manuel" / "captures"
 OUT.mkdir(parents=True, exist_ok=True)
-CSS = (ROOT / "src" / "static" / "css" / "app.css").read_text(encoding="utf-8")
-TABS_JS = (ROOT / "src" / "static" / "js" / "tabs.js").read_text(encoding="utf-8")
-OPTION_EDITOR_JS = (ROOT / "src" / "static" / "js" / "option-editor.js").read_text(encoding="utf-8")
-BACKTOTOP_JS = (ROOT / "src" / "static" / "js" / "backtotop.js").read_text(encoding="utf-8")
+# The application's own static files, by a path relative to the captures: one
+# stylesheet for the site and its captures alike, not a copy in each capture,
+# and its relative font URLs resolve as they do on the site. The captures open
+# from any checkout of the repository, offline.
+STATIC = os.path.relpath(ROOT / "src" / "static", OUT)
 
 poll = Poll.objects.get(title_i18n__fr__startswith="Réaménagement")
 draft = Poll.objects.get(state=PollState.DRAFT)
@@ -45,51 +48,25 @@ review_reg = Registration.objects.filter(poll=poll, state=RegistrationState.PEND
 
 
 def save(name: str, html: str) -> None:
+    # The stylesheet, then the one screenshot-only rule (outils/capture.css).
     html = re.sub(
         r'<link rel="stylesheet" href="[^"]*app\.css[^"]*">',
-        f"<style>\n{CSS}\n</style>"
-        # `.bo-side` is `position: fixed; bottom: 0` so it stays put while a
-        # real browser window scrolls (§6.5) — it fills the *viewport*, not
-        # the page. A full-page capture has no scrolling viewport, only the
-        # tall `--window-size` asked of headless Chrome, so that background
-        # stretches to the bottom of whatever height was asked for instead of
-        # stopping at the nav's own content, and `convert -trim` then finds
-        # two solid-coloured columns reaching the bottom rather than a
-        # trimmable blank margin. Screenshot-only: let the sidebar's height
-        # follow its content instead, which trim can then crop like any
-        # other page.
-        "\n<style>.bo-side { bottom: auto !important; }</style>",
+        f'<link rel="stylesheet" href="{STATIC}/css/app.css">\n'
+        '  <link rel="stylesheet" href="outils/capture.css">',
         html,
     )
-    # The theme toggle is progressive enhancement (static/js/theme.js); a
-    # stand-alone capture has no server to load it from and does not need it —
-    # the control stays hidden and the OS theme drives the page, as designed.
+    # The theme toggle is progressive enhancement (static/js/theme.js): the
+    # control stays hidden and the OS theme drives the page, as designed.
     html = re.sub(r'\s*<script src="[^"]*theme\.js[^"]*"></script>', "", html)
-    # tabs.js and option-editor.js are *not* dropped the same way: screen 2's
-    # configuration editor (13-mairie-configuration-brouillon) is the tabbed
-    # view, and the capture should show what an operator actually sees, not
-    # the no-JS fallback of every fieldset stacked open. A root-relative
-    # `<script src="/static/...">` 404s under `file://`, so inline both in
-    # place — same treatment as app.css above.
-    # (lambda replacements: the JS source has backslashes re.sub would
-    # otherwise read as backreferences)
+    # Every other script from the application's own files. A root-relative
+    # `/static/...` does not resolve under `file://`. tabs.js and
+    # option-editor.js show screen 2 as an operator sees it, not the no-JS
+    # fallback of every fieldset stacked open; backtotop.js hides its button,
+    # which would otherwise sit over the blank space below the content and
+    # spoil the crop.
     html = re.sub(
-        r'<script src="[^"]*\btabs\.js[^"]*" defer></script>', lambda _: f"<script>\n{TABS_JS}\n</script>", html
-    )
-    html = re.sub(
-        r'<script src="[^"]*\boption-editor\.js[^"]*" defer></script>',
-        lambda _: f"<script>\n{OPTION_EDITOR_JS}\n</script>",
-        html,
-    )
-    # backtotop.js is on every page (base.html) but a no-op absent its link
-    # (poll_detail.html only); left as an unloadable root-relative `src` under
-    # `file://`, its button never gets `.is-hidden` and sits fixed over
-    # whatever whitespace the tall --window-size leaves below the real
-    # content — the same "two solid columns reaching the bottom" trim can't
-    # crop that the .bo-side fix above exists for, just on the public site.
-    html = re.sub(
-        r'<script src="[^"]*\bbacktotop\.js[^"]*" defer></script>',
-        lambda _: f"<script>\n{BACKTOTOP_JS}\n</script>",
+        r'<script src="[^"]*/static/js/([a-z-]+)\.js[^"]*"',
+        lambda m: f'<script src="{STATIC}/js/{m.group(1)}.js"',
         html,
     )
     # Drop `autofocus` (login username, paper-entry search): the headless render
@@ -99,13 +76,14 @@ def save(name: str, html: str) -> None:
     html = re.sub(r"\s+autofocus(?=[\s/>])", "", html)
     # Screen 2's tabs default to whichever panel opens first (tabs.js) — fine
     # everywhere except this one capture, whose whole point (its caption) is
-    # « Annoncer maintenant », which lives on the Actions tab. Click it after
-    # tabs.js's own DOMContentLoaded has wired the tablist up.
+    # « Annoncer maintenant », which lives on the Actions tab. Click it on
+    # `load`, after every DOMContentLoaded handler: tabs.js is a deferred
+    # script now, so its own handler is registered after this one would be.
     if name == "13-mairie-configuration-brouillon.html":
         html = html.replace(
             "</body>",
             "<script>\n"
-            "document.addEventListener(\"DOMContentLoaded\", function () {\n"
+            "window.addEventListener(\"load\", function () {\n"
             "  var tabs = document.querySelectorAll(\".tabs__tab\");\n"
             "  for (var i = 0; i < tabs.length; i++) {\n"
             "    if (tabs[i].textContent.trim() === \"Actions\") { tabs[i].click(); break; }\n"

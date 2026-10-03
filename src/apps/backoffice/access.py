@@ -26,6 +26,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from functools import wraps
+from zoneinfo import ZoneInfo
 
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.auth.views import redirect_to_login
@@ -33,6 +34,7 @@ from django.core.exceptions import PermissionDenied
 from django.db.models import QuerySet
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect
+from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from apps.core.models import PollRole, Role, User
@@ -129,7 +131,13 @@ def require_poll_role(*roles: Role) -> Callable[[PollView], DispatchedView]:
             poll = get_object_or_404(Poll, pk=poll_id)
             if not has_poll_role(request.user, poll, *roles):
                 raise PermissionDenied(_("Vous n'avez pas le rôle requis sur ce scrutin."))
-            return view(request, poll, **kwargs)
+            # The poll's own time zone, for everything the screen reads and
+            # writes (§3.1, review A-8): a date typed into a form is parsed in
+            # it, and every date shown is in it, as the public page shows them.
+            # Without this, a commune whose poll is not in the server's zone
+            # typed one hour and was shown another on the page confirming it.
+            with timezone.override(ZoneInfo(poll.timezone)):
+                return view(request, poll, **kwargs)
 
         return wrapper
 

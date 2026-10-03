@@ -125,6 +125,11 @@ def describe_blocker(code: str) -> str:
             return _("Le scrutin n'est pas ouvert.")
         case "fewer_than_two_options":
             return _("Il faut au moins deux propositions.")
+        case "unsupported_method_version":
+            return _(
+                "La version de la méthode de dépouillement n'est pas une version que ce "
+                "logiciel sait appliquer : choisissez-en une dans la configuration."
+            )
         case "no_roll_to_snapshot":
             return _("Aucune liste électorale importée : rien à figer à l'ouverture.")
         case "pending_countersign":

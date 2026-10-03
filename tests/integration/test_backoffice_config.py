@@ -10,6 +10,7 @@ read-only view from ``poll.state`` alone.
 
 from __future__ import annotations
 
+import re
 from datetime import timedelta
 
 import pytest
@@ -115,6 +116,30 @@ def test_the_draft_screen_offers_an_editable_form(
     assert 'name="opt-0-option_id"' in body
     # R-3.7: the test-poll quality is shown, never offered as a field.
     assert 'name="is_sandbox"' not in body
+
+
+def _ids(body: str) -> list[str]:
+    return re.findall(r'\sid="([^"]+)"', body)
+
+
+@pytest.mark.parametrize("opened", [False, True], ids=["draft", "open"])
+def test_every_label_names_a_control_and_no_id_repeats(
+    client: Client, open_window_poll: Poll, admin_user: User, opened: bool
+) -> None:
+    """RGAA 11.1 / 8.2: a checkbox group got ``<label for="">``, and the
+    withdrawal and extension forms both rendered ``id_reason``, pointing two
+    labels at one control (review C-3, C-4)."""
+    if opened:
+        force_open(open_window_poll)
+    _grant(open_window_poll, admin_user, Role.POLL_ADMIN)
+    client.force_login(admin_user)
+
+    body = client.get(_url(open_window_poll)).content.decode()
+    ids = _ids(body)
+    assert len(ids) == len(set(ids)), sorted({i for i in ids if ids.count(i) > 1})
+    assert 'for=""' not in body
+    for target in re.findall(r'<label for="([^"]+)"', body):
+        assert target in ids, target
 
 
 def test_the_draft_screen_carries_the_add_remove_proposition_enhancement(

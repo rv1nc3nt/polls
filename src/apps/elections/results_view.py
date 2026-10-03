@@ -31,6 +31,9 @@ from apps.elections.models import Poll, PollState, TiebreakRule
 
 @dataclass(frozen=True)
 class MatrixCell:
+    """One cell of the published matrix: how many ballots rank the row's
+    option above ``opponent_id``."""
+
     opponent_id: str
     #: ``None`` on the diagonal, where an option is not compared with itself.
     value: int | None
@@ -38,6 +41,8 @@ class MatrixCell:
 
 @dataclass(frozen=True)
 class MatrixRow:
+    """One option's row of the matrix, in the poll's option order."""
+
     option_id: str
     label: str
     cells: list[MatrixCell]
@@ -45,12 +50,16 @@ class MatrixRow:
 
 @dataclass(frozen=True)
 class LabelledOption:
+    """An option id beside its label in the reader's language."""
+
     option_id: str
     label: str
 
 
 @dataclass(frozen=True)
 class Ordering:
+    """One row of the per-ordering summary (R-11.3)."""
+
     #: The ranking as readable labels, groups joined by " = " and " > ".
     label: str
     count: int
@@ -99,25 +108,30 @@ def _relabel_ordering(key: str, labels: dict[str, str]) -> str:
 
 def result_view(poll: Poll) -> ResultView:
     """The read model. Assumes the poll is ``closed`` or ``published`` — each
-    caller keeps the earlier states on a different branch."""
-    document = closure.publication(poll)
+    caller keeps the earlier states on a different branch.
+
+    Everything shown is read off the publication document: the stored one once
+    published, so the page never re-tallies a published result (R-10.2), and
+    the one computed from the live set while the poll is ``closed``.
+    """
+    document = closure.document(poll)
+    published = poll.state == PollState.PUBLISHED
     labels = _labels(poll)
-    _ballots, options, result = closure.tallied(poll)
-    option_ids = [str(o) for o in options]
+    options_raw = document.get("options")
+    option_ids = [str(o) for o in options_raw] if isinstance(options_raw, dict) else []
+    matrix_raw = document.get("matrix")
+    matrix: dict[str, dict[str, int]] = matrix_raw if isinstance(matrix_raw, dict) else {}
 
     matrix_rows = [
         MatrixRow(
-            option_id=str(i),
-            label=labels.get(str(i), str(i)),
+            option_id=i,
+            label=labels.get(i, i),
             cells=[
-                MatrixCell(
-                    opponent_id=str(j),
-                    value=None if i == j else result.matrix[i][j],
-                )
-                for j in options
+                MatrixCell(opponent_id=j, value=None if i == j else matrix[i][j])
+                for j in option_ids
             ],
         )
-        for i in options
+        for i in option_ids
     ]
 
     tiebreak = document.get("tiebreak")
@@ -141,18 +155,24 @@ def result_view(poll: Poll) -> ResultView:
         for key, count in (orderings_raw.items() if isinstance(orderings_raw, dict) else [])
     ]
 
+    tied_raw = tiebreak.get("tied") if isinstance(tiebreak, dict) else None
+    tied = [str(o) for o in tied_raw] if isinstance(tied_raw, list) else []
+
     return ResultView(
         poll=poll,
-        published=poll.state == PollState.PUBLISHED,
+        published=published,
         document=document,
         option_ids=option_ids,
         matrix_rows=matrix_rows,
         winner=winner,
-        tied=[LabelledOption(str(o), labels.get(str(o), str(o))) for o in result.tied],
+        tied=[LabelledOption(o, labels.get(o, o)) for o in tied],
         tiebreak_rule=poll.tiebreak_rule,
         tiebreak_order=tiebreak_order,
+        # Publication is refused while a draw is owed, so a published poll
+        # never has one pending; asking would re-tally it.
         pending_physical_tiebreak=(
-            poll.tiebreak_rule == TiebreakRule.PHYSICAL
+            not published
+            and poll.tiebreak_rule == TiebreakRule.PHYSICAL
             and closure.unresolved_physical_tiebreak(poll)
         ),
         orderings=orderings,

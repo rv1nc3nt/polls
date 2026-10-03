@@ -155,7 +155,9 @@ commits. They are listed so a reviewer can check the new wording.
   logs, the recipient's provider) can therefore match an email address to a
   published ballot, outside the application and its retention purge. INV-1
   holds inside the database; this is a boundary it does not cover. Is it
-  stated in the threat model and the data-protection notice?
+  stated in the threat model and the data-protection notice? *Stated in the
+  threat model* (`threat-model.md`, "The mail relay"); the data-protection
+  notice is the commune's to update.
 * **Deployment of M3.** Is the production nginx the only proxy in front, or is
   there another hop that would change which `X-Forwarded-For` entry is
   trustworthy? *Answered by configuration:* `polls_trusted_proxy_hops`, documented
@@ -163,5 +165,5 @@ commits. They are listed so a reviewer can check the new wording.
 * **There is no threat-model document.** The receipt-mail question above asks
   whether that linkage is stated "in the threat model", and there is none. Its
   substance is spread over spec §5 and §7, `review-guide.md`
-  ("Security- and privacy-sensitive areas") and this file. Writing one is new
-  work, not yet agreed.
+  ("Security- and privacy-sensitive areas") and this file. *Answered:*
+  `threat-model.md` (review E-9).

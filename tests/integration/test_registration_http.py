@@ -574,3 +574,12 @@ def test_an_announced_poll_past_opens_at_offers_no_registration(
     assert "pas encore ouvertes" in page.content.decode()
     client.post(f"/fr/inscription/{open_window_poll.pk}/", FORM)
     assert not Registration.objects.filter(poll=open_window_poll).exists()
+
+
+def test_the_form_declares_the_purpose_of_each_personal_field(
+    client: Client, live_poll: Poll
+) -> None:
+    """WCAG 1.3.5 / RGAA 11.13 (review C-5)."""
+    body = client.get(f"/fr/inscription/{live_poll.pk}/").content.decode()
+    for token in ("family-name", "given-name", "bday", "email"):
+        assert f'autocomplete="{token}"' in body, token

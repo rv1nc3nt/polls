@@ -61,6 +61,18 @@ reasoning.
 | 37 | The verifier reads the publication document, and every method | decided |
 | 38 | A poll requiring reconciliation cannot be closed early | **open question** for the requirements owner (R-3.4 and R-8.6) |
 | 39 | The back-office trend: switched on by deployment setting, and cut every ten arrivals | **interim**, until the `show_trend` column lands |
+| 40 | The opening seed and the closure hash were published with the result, not when they were fixed | settled |
+| 41 | The method version was free text, and published results were recomputed per request | settled |
+| 42 | Ballot times and order paired ballots with registrations | settled |
+| 43 | A fresh instance, back-office sign-in and nginx's error log were open to abuse | settled |
+| 44 | Poll descriptions could load third-party images, and pages had no Content-Security-Policy | settled |
+| 45 | The back office ignored a poll's own time zone, and static files kept their names | settled |
+| 46 | Verifier binaries were released unsigned, unchecksummed and from an unpinned compiler | settled |
+| 47 | The verifier read ballot lists leniently and ignored the participation counts | settled |
+| 48 | The serialisation had no escaping rule, and `tiebreak.winner` was unchecked | settled |
+| 49 | An operator's session could hold their own ballot | settled |
+| 50 | A browser posting from a ballot page sends `Origin: null`, which the CSRF check refused | settled |
+| 51 | In production the ballot pages sent their token as `Referer`: nginx's referrer policy overrode the application's | settled |
 
 ## 1. Retention purge on a poll that closed but was never published
 
@@ -1430,4 +1442,442 @@ value changes the field's `choices`, which is itself a migration. Both the
 access event and the `show_trend` column belong in the same migration, before
 the next release. At that point `TREND_POLL_IDS` is removed, and its polls are
 carried over to `show_trend = true` by a data migration.
+
+## 40. The opening seed and the closure hash were published with the result, not when they were fixed
+
+**Found (2026-10-02, review A-2).** R-10.5 draws the seed and publishes it
+"at the opening of the poll, where it becomes immutable under R-3.3". The code
+drew it at `open` but showed it only on the results page, after publication;
+it was not in the opening audit event either, and no trigger protects it
+(INV-6 treats it as a lifecycle field, not configuration). So nothing a reader
+could compare against fixed the seed before the closure hash was known.
+Whoever can write to the database could have tried seeds offline against that
+hash after closure, kept one that picks a chosen option in a computed tie, and
+published it; the verifier replays the published seed and agrees. R-10.5 bis's
+"not influenceable by the organiser" did not hold against the operator of the
+instance.
+
+**Settled in part.** The seed is now on the public poll page from the moment
+the poll opens, under the calendar, for a `computed` tie-break (a `physical`
+draw never reads it), and in the `POLL_STATE_CHANGED` event of the opening
+(`after.opening_seed`). Publishing it early reveals nothing usable: the
+tie-break also hashes the closure hash, which depends on every ballot and is
+unknown to anyone outside the database until closure. The verifier manual tells
+readers to compare the seed in the publication with the one shown at opening.
+
+**Settled (2026-10-02, review A-3).** The closure hash had the same flaw. It
+appeared publicly only with the result, so between closure and publication the
+ballots could be changed and the hash recomputed to match: the verifier checks
+that the published files agree with each other, not that they are the ones
+fixed at closure. Only an elector who checked their own tracking code would
+notice a change to their own ballot. The poll's public page now shows the
+closure hash and the number of ballots it covers from the moment the poll
+closes, beside the seed; the closing audit event already recorded the hash.
+
+A trigger makes `opening_seed` and `closure_hash` write-once: each goes from
+NULL to a value once, by the transition that draws or computes it, and is never
+changed after (migration 0016). `closed_at` is left out, though first listed
+here: it is the retention anchor, not a value anyone verifies, and the
+retention tests age it deliberately. The verifier manuals tell readers to note
+both values when they appear and compare them after publication.
+
+## 41. The method version was free text, and published results were recomputed per request
+
+**Found (2026-10-02, review A-4).** R-10.2 records the method and its version
+with the poll "so that a published result remains reproducible notwithstanding
+subsequent changes to the code". Two things defeated it. `tally_method_version`
+was a free-text field — any string was accepted, frozen at announcement, and
+never read: the tally ran the current code whatever it said. And the
+publication was not stored: the results page, its CSV and JSON and screen 9
+recomputed it from the live set on every request, with the current code. The
+first change to how any method counts would have silently restated every
+result ever published, under a version label that promised the opposite.
+
+**Settled.**
+
+- The field offers only the versions the tally implements
+  (`SUPPORTED_VERSIONS`, `"1"` today). `tally()` takes the poll's version and
+  raises `UnsupportedMethodVersion` for any other; announcing and opening
+  refuse such a poll, while it can still be corrected, and publishing refuses
+  it too. A change to how a method counts becomes a new version, added beside
+  version 1, which stays reachable for every poll that recorded it.
+- `publish_poll` stores the JSON document and the CSV, as the exact text
+  served, on the poll (`published_document`, `published_csv`) in the same
+  transaction that publishes it. Every later read — results page, `?format=`,
+  screen 9 — serves that text; a published poll is never tallied again. The
+  columns are write-once by trigger (migration 0015). The JSON is serialised as
+  `JsonResponse` did, so its bytes are what readers were already downloading.
+- The document's `tally_method_version` now states the version the tally
+  actually ran, not the field's text.
+
+**Polls published before this.** They hold no stored artefacts.
+`manage.py freeze_publications`, run by the deploy after `migrate`, stores what
+the current code computes for each — exactly what its page has been serving —
+once. One whose field held a version the code does not implement was in fact
+tallied under version 1, like every poll before this check; it is frozen under
+version 1, and its document says so rather than repeating the label. A *closed*
+poll in that situation can be neither tallied nor published: screen 9 says
+why, and its configuration is frozen. Before deploying, check
+`SELECT DISTINCT tally_method_version FROM elections_poll`.
+
+The back-office trend (R-11.5 bis) still computes with the current code: it is
+not a published result.
+
+## 42. Ballot times and order paired ballots with registrations
+
+**Found (2026-10-02, review A-1).** §7 promises that "given the two tables, no
+join recovers the correspondence". Time did. One link confirms the mailbox and
+opens the ballot (§6.3), so `Registration.confirmed_at` was stamped on the
+voter's GET and `Ballot.created_at` on their POST from the same page minutes
+later; sorting both lists by time paired them, near exactly in a small commune
+where casts are sparse. Removing the timestamps alone would not have been
+enough: an ordinary SQLite table keeps an insertion-ordered `rowid` beside its
+primary key, and the order of first ballots follows the order of
+confirmations almost as closely. And the voter's session, saved in the casting
+request to carry the receipt across the redirect, recorded an expiry of that
+instant plus two weeks.
+
+The trend (R-11.5 bis, #39) was the one reader of ballot times: it rebuilt its
+points — the standing at each tenth ballot, each counted as it then stood —
+from every version's creation instant.
+
+**Settled.** Nothing dates or orders a ballot any more.
+
+- `Ballot.created_at` is dropped, and `ballots_ballot` is rebuilt
+  `WITHOUT ROWID`, its rows stored by their random UUID (ballots migration
+  0004). Django cannot express this; a test fails if a later migration's table
+  rebuild restores the `rowid`.
+- `Registration.confirmed_at` is dropped (registrations migration 0003);
+  nothing read it. `state` records whether the mailbox was confirmed.
+- Session expiry dates are rounded up to the next midnight, UTC
+  (`core/sessions.py`, `SESSION_ENGINE`), every session's alike.
+- The trend takes each point in the ballot write that brings the count to its
+  multiple of ten, and stores it (`TrendSnapshot`: the number of ballots per
+  distinct ranking, and the day; `ballots/trendpoints.py`). That *is* the rule
+  of R-11.5 bis — each ballot as it stood at that moment — and a stored point
+  cannot change, by trigger. Points are taken for every poll; the setting only
+  decides whether the screen is offered. For the five-ballot wait, each ballot
+  carries its *epoch*, the number of points taken when it was first cast:
+  a bucket of at least ten ballots, the trend's own granularity, kept by every
+  later version so a modification is not dated either.
+- The migration computes every point existing polls had reached, from the
+  instants, by the rule the trend used until now, before dropping them. On a
+  database seeded under the previous code, the trend screen's points before
+  and after are identical.
+
+A countersignature or deletion after a point was taken no longer changes it:
+the point holds what was counted then. Before, such a change was read as of the
+row's creation and could alter a past point.
+
+**What remains.** Day-level dates: a trend point's day, a paper ballot's link
+(deliberate, R-8.2 bis), `Registration.created_at`, which orders the review
+queue. On a day with one ballot and one new registration, the day pairs them;
+the trend showing that day's points already reveals as much. SQLite's write-
+ahead log holds recently written pages in write order until its next
+checkpoint, and a deleted row's bytes can linger in free pages: the nightly
+backup (`VACUUM INTO`) carries neither. The optional PostgreSQL backend (§14)
+stores rows in a heap whose physical order follows insertion; it would need its
+own answer before it is offered. The mail relay's log of the receipt sent at
+casting is outside the database altogether (review open question).
+
+## 43. A fresh instance, back-office sign-in and nginx's error log were open to abuse
+
+Three findings of the October 2026 review, fixed together. None is a departure
+from the specification; each is a gap it did not foresee, recorded here so the
+choices are not undone by accident.
+
+**First run (review A-6).** The playbook creates no account, and screen 11
+(§6.5.11) stayed open to the internet until someone completed it: the first
+visitor to a freshly deployed instance became its `commune_admin`. The wizard
+now asks for a setup code, which the deploy writes once to
+`/etc/polls/setup_token` (root only, like `secret_key`) and passes as
+`DJANGO_SETUP_TOKEN`. It is entered in a form field, never in the address, so
+it reaches no access log, and compared in constant time. With none configured
+the wizard refuses rather than opening to anyone. The "no account yet" check is
+also repeated inside `firstrun.install`'s transaction: two submissions could
+both pass it before either wrote.
+
+**Sign-in (review A-7).** Django's sign-in view counts nothing; nginx's
+`20r/m` per address was the only brake. Failures are now counted per caller and
+per account named (`ratelimit.count_failure`), and past either limit the form
+is refused without the password being checked. Only failures count, and a
+correct sign-in clears its account's counter. The per-account counter is what
+stops guesses spread over many addresses, and it also lets a stranger keep a
+known operator out by failing on purpose; so it is looser than the per-address
+one (20 an hour against 10 a quarter-hour). Both fail open on a cache outage,
+like the registration limiter, rather than locking every operator out. Failures
+go to the server log with the caller's digest, never the name typed — sometimes
+a password in the wrong field — and not to the audit log, which records what
+named operators did. A second factor is not part of this.
+
+**nginx's error log (review A-11).** `access_log` was off for the ballot
+routes, `error_log` was not, and nginx writes the request line into every
+upstream error it logs. Run against an upstream that was down, the previous
+configuration wrote both ballot tokens to the error log, and a token on a link
+without a language prefix to the access log as well: the map's pattern required
+the prefix, though Django only redirects such a link after nginx has logged it.
+The ballot routes now have their own `location` logging errors at `crit` only,
+and the pattern, there, in the map and in Django's own log filter
+(`core/logging.py`), allows the prefix to be absent; a test reads the pattern
+out of the template so the two stay in step. Re-run against the same dead
+upstream, neither log holds a token, and an unrelated path is still logged.
+
+## 44. Poll descriptions could load third-party images, and pages had no Content-Security-Policy
+
+**Found (2026-10-02, review A-5, A-10).** §3.1 bis promised "no bare-URL image
+syntax: every image a description shows was uploaded through screen 2", and a
+`class` on an image "only ever populated from this fixed three-value table".
+Neither held: `img` was in the sanitiser's allow-list with `src` and `class`,
+so `![x](https://tracker.example/p.gif)` rendered a tracking pixel on a public
+page, and raw `<img class="…">` kept whatever class the operator chose. And no
+response carried a Content-Security-Policy, the backstop should anything get
+past the sanitiser.
+
+**Settled.**
+
+- Images are emitted the way YouTube embeds already were: a resolved
+  `image:<n>` reference becomes a placeholder, and after sanitisation the
+  renderer swaps it for an `<img>` it builds from the stored file. `img` left
+  the allow-list, so nothing the operator writes becomes an image or a class.
+  §3.1 bis is corrected to say so.
+- Every response carries a strict `Content-Security-Policy` — scripts, styles,
+  images, fonts and connections from the site only, frames from
+  `youtube-nocookie.com` only, no `object`, no `<base>`, forms to the site,
+  framing refused — plus a `Permissions-Policy` switching off camera,
+  microphone, geolocation, payment and the like, and
+  `Cross-Origin-Resource-Policy: same-origin`. Set by middleware
+  (`core/headers.py`), so the hand-installed deployments of `contrib/init/`
+  get it too; not under `DEBUG`, where Django's error page styles itself
+  inline. `DJANGO_CSP_REPORT_ONLY=1` downgrades it to report-only, as a way
+  back.
+- What the policy refused had to go: two `onclick="this.select()"` attributes
+  (now `data-select-all`, `static/js/select-all.js`) and four inline
+  `style="flex-grow: …"` on the trend's bars (now `data-grow`, applied by
+  `trend-chart.js`; without JavaScript the bars, which repeat figures printed
+  beside them, shrink to slivers). A template test fails on any inline
+  script, `<style>`, `style` attribute or event handler.
+
+Checked in a browser: 28 public and back-office pages served with the policy,
+`DEBUG` off, record no violation and no console error; the trend's bars, the
+share field and a YouTube embed work; an injected inline script is refused.
+The manual's own pages (`core/manual.py`) still allow `img`: their content is
+the repository's, not an operator's.
+
+## 45. The back office ignored a poll's own time zone, and static files kept their names
+
+**Time zone (review A-8).** A poll stores its time zone (§3.1), and the public
+page shows its dates in it. The back office did not: what an operator typed on
+screen 2 was parsed in the server's zone (Europe/Paris), and most of its
+screens displayed dates in that zone too, while the confirmation page and the
+trend used the poll's. A commune whose poll was set to America/Cayenne typed
+20:00, stored 20:00 Paris time, and was asked to confirm 16:00. The form's own
+help text said "heure locale du serveur".
+
+Every poll-scoped screen now runs in the poll's own zone: `require_poll_role`,
+the gate they all pass through, activates it for the view. Forms parse in it,
+their initial values and every date shown are in it, and the audit log's date
+filter reads in it too. Where the configuration form itself changes the zone,
+the dates in the same submission are read in the new zone, and a time that
+zone skips or repeats at a clock change is refused, as Django refuses one in
+the active zone. The two commune-level lists, which show several polls, give
+each poll's date in its own zone.
+
+**Static files (review A-9).** nginx let browsers cache `/static/` for 30 days
+under fixed names, so after an upgrade a returning browser could run last
+month's script against this month's markup. Production now collects through
+`ManifestStaticFilesStorage`, which names each file after its content
+(`app.<hash>.css`) and rewrites the stylesheet's own font references; nginx
+keeps them with `expires max`. A test collects and renders pages through that
+storage, so a `{% static %}` or `url()` naming a missing file fails in CI, not
+at deploy. Tests and `runserver` keep the plain storage, which needs no
+manifest.
+
+## 46. Verifier binaries were released unsigned, unchecksummed and from an unpinned compiler
+
+**Found (2026-10-02, review B-5).** The verifier exists so that nobody need
+trust the mairie or the software's publisher (§8, §9); the manual then asks a
+citizen to download a binary and wave it past SmartScreen or Gatekeeper. The
+release workflow built it with whatever `stable` Rust was that day, attached
+it bare — no digest, no signature, no provenance — and ran third-party actions
+by movable tag with the release's write token. The binary was the one thing in
+the chain a reader had to take on trust.
+
+**Settled.**
+
+- `rust-toolchain.toml`, at the repository root, pins the compiler (1.93.1)
+  for CI and releases; at the root because every cargo call passes
+  `--manifest-path` from there and rustup reads the file from the working
+  directory. Each crate states its `rust-version`: 1.87 for the core and the
+  CLI, which have no dependencies; 1.88 for the GUI, whose locked dependencies
+  need it.
+- Each release attaches `SHA256SUMS`, and every binary gets a GitHub
+  build-provenance attestation — a keyless signature tying it to the release
+  workflow, the commit and this repository, checked with
+  `gh attestation verify <file> --repo rv1nc3nt/polls`. No signing key to keep
+  or lose.
+- The release workflow's actions are pinned to commit SHAs (the major versions
+  it already used), since a moved tag would run with write access to the
+  release.
+- Both verifier manuals say how to check a download — the digest, per system,
+  then the attestation — and how to build from source with the pinned
+  compiler.
+
+Not done: the binaries are not code-signed for Windows or notarised for
+macOS, which needs paid certificates and a decision on who holds them; a
+build is not bit-for-bit reproducible across machines, which would let anyone
+re-derive the published digest. Both are noted for later.
+
+## 47. The verifier read ballot lists leniently and ignored the participation counts
+
+**Found (2026-10-02, review B-6, B-8).** The CSV reader parsed a ranking cell
+by hand and took whatever it could from it — an unquoted id, an empty element,
+an empty group, an option ranked twice, a missing or wrong header — so a list
+no poll could have published still produced a verdict. The publication
+document's `counts` were not read at all: ballots added to the list, with the
+counts left as they were at closure, passed every check once the hash was
+recomputed to match.
+
+**Settled.**
+
+- The CSV is read strictly: the exact header, a bare tracking code, and the
+  ranking as a quoted CSV field, parsed by the same strict JSON reader as the
+  publication document. Anything else is an input error (exit 2) naming the
+  line.
+- Every ballot, in both modes, must be a ranking the application could record:
+  at least one option, no empty group, no option twice
+  (`canonical::check_ranking`). The application's own validation gains the
+  empty-group rule, which no ballot form could produce, so the two sides state
+  the same contract (`docs/canonical-serialisation.md`, "A ranking").
+- `counts` is read, each member required, and checked to add up with the ballot
+  list: online and paper ballots make the list's count, and registered
+  electors are exactly those who voted, those whose paper entry went uncounted
+  and those who did not (`elections.closure.frozen_counts` states the same
+  identities). A sum that overflows does not add up. The CLI prints a
+  `participation` line and the GUI a check of its own; either failing is a
+  disagreement (exit 1).
+
+The counts still cannot be checked against who actually registered: that list
+is never published, and is deleted at retention. What the check catches is a
+list changed without its counts.
+
+## 48. The serialisation had no escaping rule, and `tiebreak.winner` was unchecked
+
+**Found (2026-10-02, review B-7, D-4).** The canonical record writes each string
+between quotes. Python builds it with `json.dumps`, which escapes a quote, a
+backslash and the control characters; the verifier wrote strings raw. For a
+tracking code holding a quote the two hashes differed. The alphabets made that
+unreachable, but only the tracking code's was written down and checked (B-3,
+#47); the option id's was a property of the form, held nowhere else, and the
+contract stated no escaping rule. Separately, the publication's
+`tiebreak.winner` was published but neither read nor documented.
+
+**Settled.**
+
+- The contract states both alphabets (`docs/canonical-serialisation.md`,
+  "Alphabets"): option ids are 1 to 50 characters of `A-Z`, `a-z`, `0-9`, `_`
+  and `-`, the slug the form and the model already accepted. None of those
+  characters is escaped in JSON, so the format needs no escaping rule, and a
+  string outside its alphabet is refused rather than escaped. Widening an
+  alphabet means writing that rule first, on both sides.
+- `core.canonical` refuses to serialise a tracking code or option id outside
+  its alphabet (`NonCanonicalValue`). Elections migration 0017 adds insert and
+  update triggers on `PollOption.option_id`, so a write past the form cannot
+  store one either; the migration first lists any stored id outside the
+  alphabet and stops, rather than leave it to fail at its poll's closure.
+- The verifier refuses such an id in a ranking (`check_ranking`) and among the
+  listed options (`MalformedOptionId`), as an input error (exit 2).
+- `tiebreak.winner` is read and must be the first entry of `tiebreak.order`;
+  the top-level `winner` is compared with the same value as before. The draw
+  values of a computed order are shown, not compared: the order they produce
+  is.
+
+The shared corpus of vectors the review's D-4 asks each rule to point at does
+not exist yet (D-2); the rules are tested on each side meanwhile.
+
+## 49. An operator's session could hold their own ballot
+
+**Found (2026-10-03, while settling review A-16).** §6.3 keeps every identifier
+of a voter out of the session, so that the ballot hash or receipt it may hold
+pairs with no one (INV-1, `core/tokensession.py`). A signed-in operator's
+session holds their account id, and an operator is also an elector. Casting or
+modifying from a browser signed in to the espace mairie stored the ballot data
+beside that id; signing in after voting did the same, since Django's `login`
+carries the session's data over. Either way the session table named a person
+beside their ballot, for as long as the session lived.
+
+**Settled.** The two never share a session (`core/operatorsession.py`).
+`OperatorSessionMiddleware.process_view` signs out a signed-in session before
+any view of the `ballots` namespace runs, keyed on the namespace so a ballot
+route added later is covered, and says so on the page; the ballot data then
+goes into a fresh session. The sign-in receiver drops every ballot and receipt
+key (`tokensession.forget_all`). The rest of the public site leaves the
+operator signed in. `tests/integration/test_operator_voter_session.py` checks
+every stored session after each path.
+
+## 50. A browser posting from a ballot page sends `Origin: null`, which the CSRF check refused
+
+**Found (2026-10-03, review C-8, by the first browser test).** §6.3 and R-7.4 ter
+have the ballot routes send `Referrer-Policy: no-referrer`, so the token in
+their address never travels in a `Referer`. The Fetch standard then has a
+browser send `Origin: null` with a form's POST, same-origin or not, and since
+Django 4.0 `CsrfViewMiddleware` refuses any POST whose `Origin` does not match
+the site. Wherever the application's header was the only `Referrer-Policy`,
+then, casting and modifying a ballot answered 403. No HTTP test noticed:
+Django's test client sends no `Origin` unless told to.
+
+**Correction (2026-10-03).** Deployments made with the Ansible role were never
+affected. Their nginx added `Referrer-Policy: same-origin` to every response,
+browsers apply the last of two, and so they sent the real `Origin`. That
+same header is #51's leak, and fixing it makes this exception necessary
+everywhere.
+
+**Settled.** Not by loosening the referrer policy: R-7.4 ter requires that no
+referrer be transmitted, and `strict-origin` would still send one.
+`core/csrf.py` replaces Django's middleware with a subclass that, on the
+`ballots` namespace alone, reads `Origin: null` as the site's own origin and
+then checks as Django does. That keeps the protection that matters: the CSRF
+token is still required, and it is a secret another site cannot read; the CSRF
+cookie is `SameSite=Lax`, so a cross-site POST arrives without it; any other
+`Origin`, another site's included, is still refused; and every other route
+still refuses `null`. `tests/integration/test_ballot_csrf.py` sends the header
+a browser sends, and `tests/browser/test_voter_journey.py` casts a ballot in
+Chromium; both fail with Django's own middleware.
+
+## 51. In production the ballot pages sent their token as `Referer`: nginx's referrer policy overrode the application's
+
+**Found (2026-10-03, while checking #50 against a deployed instance).** The
+nginx template set `add_header Referrer-Policy same-origin always` for the
+whole server, so a ballot page reached the browser with two headers: the
+application's `no-referrer`, then nginx's `same-origin`. Browsers apply the
+last valid one. Checked in Chromium: under the two, a page's form posts with
+its full address as `Referer`, token included; under `no-referrer` alone, with
+none. Every same-origin request from the first ballot page, where the token is
+in the address, therefore carried it. The access log records the `Referer` of
+every route but the ballot ones, `/static/` and `/media/`, so a voter who
+switched language there (a POST to `set_language`) or followed a link to the
+site wrote their token to `polls.access.log`. R-7.4 ter was not honoured on
+any instance deployed with the role, in any release.
+
+**Settled.**
+
+- nginx sets no `Referrer-Policy`. The application sends it on every response
+  (`SECURE_REFERRER_POLICY = "same-origin"`, and `no-referrer` on the ballot
+  routes, `tokensession.protect`), so there is one source and no second
+  header. `tests/unit/test_logging.py` fails if a template sets one again, and
+  the Molecule scenario checks, through nginx, that a ballot route answers
+  `no-referrer` and any other page `same-origin`, once each.
+- With `no-referrer` now in force, a ballot page's forms post with
+  `Origin: null`: #50's exception covers the ballot routes, but the language
+  switcher posts to `set_language`. On the ballot pages it is a pair of links
+  to the same page under the other language prefix instead
+  (`core/templatetags/language_links.py`): no form, no `Referer`, and a
+  destination nginx does not log.
+- The admin guide said nginx set `no-referrer` on the ballot routes; it now
+  says the application does, and that nginx must not add another.
+
+**For an instance already running.** A token may be in the access log. Any
+line of `polls.access.log*` containing `/acces/` is one, since the ballot
+routes themselves are never logged; those lines should be removed. The fix
+must be deployed whole: nginx without its header but the application without
+#50's exception would refuse every ballot.
 

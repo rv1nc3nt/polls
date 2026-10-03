@@ -343,10 +343,10 @@ def test_t54_purge_on_a_published_poll_leaves_inv2_in_force(db: None) -> None:
             "INSERT INTO registrations_registration "
             "(id, poll_id, roll_entry_id, declared_last_name, declared_first_names, "
             "declared_dob, email, email_canonical, declared_on_honour, state, "
-            "review_reason, voter_hash, channel, language, created_at, confirmed_at, "
+            "review_reason, voter_hash, channel, language, created_at, "
             "reminder_sent_at) "
             "VALUES (%s, %s, NULL, 'X', 'Y', '', 'x@example.fr', 'x@example.fr', 0, "
-            "'pending_email', '', NULL, 'none', 'fr', %s, NULL, NULL)",
+            "'pending_email', '', NULL, 'none', 'fr', %s, NULL)",
             [uuid.uuid4().hex, published.pk.hex, _sql_time(now)],
         )
 

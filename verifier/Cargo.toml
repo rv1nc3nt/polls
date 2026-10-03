@@ -5,5 +5,13 @@ members = ["core", "cli", "gui"]
 # `cargo test`/`build` with no --package flag, as the CLAUDE.md commands and CI
 # do, runs every member: the CLI, its zero-dependency core, and the GUI alike.
 
+# Clippy's pedantic group on every crate (review B-12), so CI's
+# `cargo clippy -- -D warnings` keeps it at zero: the verifier is the part a
+# sceptic reads. The toolchain is pinned (rust-toolchain.toml), so a new Clippy
+# cannot add warnings unannounced. Where one is wrong for a given item, it is
+# allowed there, with its reason.
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+
 [profile.release]
 opt-level = 2

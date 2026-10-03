@@ -11,9 +11,12 @@
 /// A tally method, as the results page and the publication name it.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Method {
+    /// The Schulze method (§8.1), the default: the CSV does not name one.
     #[default]
     Schulze,
+    /// Most first preferences (§8.2).
     Plurality,
+    /// Most options ranked at all (§8.2).
     Approval,
 }
 
@@ -21,6 +24,7 @@ impl Method {
     /// Accepts the identifier the publication uses (`schulze`, `plurality`,
     /// `approval`) and the French label the results page shows
     /// (`majoritaire`, `par assentiment`), in any case.
+    #[must_use]
     pub fn parse(text: &str) -> Option<Method> {
         let lowered = text.trim().to_lowercase();
         match lowered.strip_prefix("par ").unwrap_or(&lowered).trim() {
@@ -32,6 +36,7 @@ impl Method {
     }
 
     /// The publication's identifier for this method.
+    #[must_use]
     pub fn id(self) -> &'static str {
         match self {
             Method::Schulze => "schulze",
@@ -43,11 +48,15 @@ impl Method {
 
 /// Votes per option, in `options` order. `method` must be `Plurality` or
 /// `Approval`; Schulze is not a count.
+#[must_use]
 pub fn counts(ballots: &[Vec<Vec<String>>], options: &[String], method: Method) -> Vec<u32> {
     let mut counts = vec![0u32; options.len()];
     for ranking in ballots {
         let chosen: Vec<&String> = match method {
-            Method::Plurality => ranking.first().map(|g| g.iter().collect()).unwrap_or_default(),
+            Method::Plurality => ranking
+                .first()
+                .map(|g| g.iter().collect())
+                .unwrap_or_default(),
             Method::Approval => ranking.iter().flatten().collect(),
             Method::Schulze => Vec::new(),
         };
@@ -62,12 +71,18 @@ pub fn counts(ballots: &[Vec<Vec<String>>], options: &[String], method: Method) 
 
 /// The options with the highest count, in `options` order; none without
 /// ballots. More than one means a tie for the §8.3 tie-break.
+#[must_use]
 pub fn winners(counts: &[u32], options: &[String], ballot_count: usize) -> Vec<String> {
     if ballot_count == 0 {
         return Vec::new();
     }
     let best = counts.iter().copied().max().unwrap_or(0);
-    options.iter().zip(counts).filter(|(_, &c)| c == best).map(|(o, _)| o.clone()).collect()
+    options
+        .iter()
+        .zip(counts)
+        .filter(|(_, &c)| c == best)
+        .map(|(o, _)| o.clone())
+        .collect()
 }
 
 #[cfg(test)]
@@ -75,7 +90,7 @@ mod tests {
     use super::*;
 
     fn ids(list: &[&str]) -> Vec<String> {
-        list.iter().map(|s| s.to_string()).collect()
+        list.iter().copied().map(String::from).collect()
     }
 
     fn ranking(groups: &[&[&str]]) -> Vec<Vec<String>> {
@@ -106,7 +121,11 @@ mod tests {
     #[test]
     fn approval_counts_every_ranked_option() {
         let options = ids(&["a", "b", "c"]);
-        let ballots = vec![ranking(&[&["a"], &["b"]]), ranking(&[&["b", "c"]]), ranking(&[&["b"]])];
+        let ballots = vec![
+            ranking(&[&["a"], &["b"]]),
+            ranking(&[&["b", "c"]]),
+            ranking(&[&["b"]]),
+        ];
         assert_eq!(counts(&ballots, &options, Method::Approval), vec![1, 3, 1]);
     }
 

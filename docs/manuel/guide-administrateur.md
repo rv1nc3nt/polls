@@ -122,8 +122,12 @@ Tout est idempotent et propre en `--check`. Un second passage ne change rien.
    archive de l'arbre local), dans un répertoire versionné ; le retour arrière
    est un changement de lien symbolique.
 4. **Virtualenv** depuis `uv.lock` (`uv sync --frozen`), puis `migrate`,
-   `createcachetable`, `collectstatic`, `compilemessages`, et un contrôle
-   « aucune migration en attente ».
+   `createcachetable`, `freeze_publications`, `collectstatic`,
+   `compilemessages`, et un contrôle « aucune migration en attente ».
+   `freeze_publications` conserve une fois pour toutes les fichiers de
+   résultats (document JSON et liste CSV) des scrutins publiés par une version
+   antérieure du logiciel, qui les recalculait à chaque consultation ; il ne
+   fait rien s'il n'y a rien à conserver.
 5. **Fichier d'environnement** rendu en `0600`, propriété du compte de service.
 6. **Service web gunicorn** supervisé + invocation périodique des quatre tâches
    selon `polls_scheduler`.
@@ -162,6 +166,7 @@ utilisées :
 | `polls_python_version` | `3.13` | `uv` gère son propre interpréteur sous le préfixe. |
 | `polls_bind` | `127.0.0.1:8000` | adresse d'écoute de gunicorn (derrière nginx). |
 | `polls_gunicorn_workers` | `3` | |
+| `polls_operator_session_age` | `28800` | durée, en secondes, pendant laquelle un agent reste connecté à l'espace mairie, comptée depuis sa connexion : huit heures par défaut, une journée de travail. Passé ce délai, il se reconnecte. Un poste de mairie étant souvent partagé, mieux vaut ne pas l'allonger. |
 | `polls_source_code_url` | dépôt du projet sur GitHub | adresse du lien « Code source » en pied de chaque page, à côté de la mention de la licence 0BSD ; à changer pour pointer vers votre propre dépôt si vous exploitez une version modifiée. Hors de GitHub, le lien s'affiche sans le logo GitHub. |
 | `polls_trend_polls` | `[]` | identifiants des scrutins dont l'espace mairie affiche la tendance (guide de l'espace mairie, section 8). Réglage provisoire : il deviendra une option de chaque scrutin, à choisir avant son ouverture. Vide, aucun scrutin ne l'affiche. Dans `inventory.ini`, écrire les identifiants séparés par des virgules, sans crochets ni guillemets : `polls_trend_polls=a71b5307-…,4051c4c3-…`. |
 | `polls_trusted_proxy_hops` | `1` | nombre de relais devant gunicorn : `1` pour le seul nginx du rôle, `2` si TLS est terminé par un autre relais placé devant (section 11). |
@@ -174,6 +179,18 @@ fiche commune (nom, référent données personnelles, contact du référent) et 
 **premier compte administrateur de la commune**. L'assistant se
 ferme définitivement dès qu'un compte existe. Aucune commande
 `createsuperuser` : il n'y en a pas, et `is_superuser` n'ouvre aucun écran.
+
+L'assistant demande un **code d'installation**. Sans lui, le premier visiteur
+à trouver une instance fraîchement déployée en deviendrait l'administrateur. Le
+déploiement l'écrit une fois pour toutes dans `/etc/polls/setup_token`,
+lisible par root seulement, et le playbook rappelle où le trouver à la fin du
+premier déploiement :
+
+    sudo cat /etc/polls/setup_token
+
+Le code n'est saisi que dans le formulaire, jamais dans l'adresse de la page :
+il n'apparaît donc dans aucun journal. Il ne sert plus à rien une fois
+l'installation faite. Une instance sans code configuré refuse l'installation.
 
 Voir le [guide de l'espace mairie](guide-espace-mairie.md), section *Mise en
 route d'une instance neuve*, pour la suite (création des comptes opérateurs,
@@ -313,8 +330,11 @@ remplacés.
 ## 11. Sécurité et conformité — points techniques
 
 - **TLS** obligatoire (certbot par défaut, renouvellement automatique). nginx
-  pose HSTS, `X-Frame-Options: DENY`, `nosniff`, et `Referrer-Policy:
-  no-referrer` sur les routes de bulletin.
+  pose HSTS, `X-Frame-Options: DENY` et `nosniff`. L'application pose
+  elle-même `Referrer-Policy` : aucun référent depuis les pages de bulletin,
+  pour que l'adresse qui porte le jeton de vote ne soit jamais transmise, et le
+  même site seulement ailleurs. nginx ne doit pas en ajouter un second : le
+  navigateur appliquerait le sien.
 - **Limitation de débit** sur l'inscription et l'envoi de courriels ;
   elle compte à travers les workers via la table de cache en base
   (`createcachetable` est lancé par le déploiement). Elle compte par adresse
@@ -326,12 +346,43 @@ remplacés.
   dès la limite atteinte.
 - **Comptes nominatifs** : un compte par personne physique, jamais de
   compte partagé. Le journal d'audit ne survit pas à un login partagé.
-- **Rétention** : `retention_purge` efface, deux mois après la clôture, les
-  enregistrements d'inscription, la copie figée de la liste, l'association
-  bulletin papier ↔ électeur, et les champs déclarés « données personnelles »
-  de chaque catégorie d'événement d'audit — **en conservant l'événement, son
-  auteur, sa date et son motif**. Les bulletins anonymisés, le
-  résultat publié et le journal lui-même sont conservés au-delà.
+- **Connexion à l'espace mairie** : les échecs sont comptés par adresse de
+  visiteur (10 par quart d'heure) et par compte (20 par heure). Au-delà, la
+  connexion est refusée sans même vérifier le mot de passe, jusqu'à la fin de
+  la fenêtre ; une connexion réussie remet à zéro le compteur du compte. Le
+  second compteur permet à un tiers d'empêcher volontairement un compte connu
+  de se connecter pendant une heure : c'est le prix d'une protection contre
+  les essais répartis sur de nombreuses adresses. Chaque échec est noté dans le
+  journal du service (`journalctl -u polls`, message `sign-in failed`), avec
+  une empreinte de l'adresse, jamais l'identifiant tapé. Les seuils se règlent
+  par `DJANGO_RATE_LIMIT_LOGIN_ADDRESS` et `DJANGO_RATE_LIMIT_LOGIN_ACCOUNT`.
+- **En-têtes de sécurité** : chaque page envoie une politique de sécurité du
+  contenu (`Content-Security-Policy`) qui n'autorise que les scripts, styles,
+  images et polices du site lui-même, et les seules vidéos YouTube intégrées
+  aux descriptions ; ainsi qu'une `Permissions-Policy` qui coupe caméra,
+  micro, géolocalisation et paiement. Les descriptions de scrutin ne peuvent
+  afficher que les images téléversées pour ce scrutin, jamais une image
+  hébergée ailleurs. Si un navigateur venait à bloquer quelque chose
+  d'imprévu, `DJANGO_CSP_REPORT_ONLY=1` dans l'environnement fait seulement
+  signaler les blocages dans la console du navigateur, le temps de corriger.
+- **Journaux nginx et liens de vote** : les adresses de bulletin portent le
+  jeton de vote. nginx ne les écrit ni dans son journal d'accès ni, pour les
+  erreurs ordinaires (passerelle indisponible pendant un redémarrage, par
+  exemple), dans son journal d'erreurs : un jeton dans un journal permettrait à
+  qui le lit de voter à la place de l'électeur.
+- **Rétention** : `retention_purge` efface, deux mois après la clôture (ou
+  après le retrait, pour un scrutin retiré avant d'être clos), les
+  inscriptions, les signalements de tentative d'inscription en double, la
+  copie figée de la liste électorale et l'association bulletin papier ↔
+  électeur. **Le journal d'audit n'est jamais modifié** : ses événements ne
+  contiennent aucune donnée personnelle, seulement une référence à l'objet
+  concerné, son état et un motif codé. Une fois l'objet effacé, l'événement
+  reste lisible (qui a fait quoi, quand, pourquoi) mais ne permet plus de
+  savoir à qui cela se rapportait ; l'écran du journal l'affiche comme
+  « objet supprimé (rétention) ». La liste électorale de travail importée est
+  effacée à part, deux mois après son import, dès qu'aucun scrutin en
+  brouillon ou annoncé ne l'attend. Les bulletins anonymisés, le résultat
+  publié et le journal lui-même sont conservés au-delà.
 - **Un vrai export de liste électorale est la donnée personnelle de tous les
   électeurs de la commune** : il ne va jamais dans le dépôt, la suite
   de tests ou un rapport d'incident. Les données de test sont synthétiques.

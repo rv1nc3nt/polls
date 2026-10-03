@@ -20,7 +20,7 @@ from apps.ballots.models import Ballot, BallotStatus, PaperBallotLink
 from apps.core.models import PollRole, Role, User
 from apps.elections.models import Poll, PollOption, RollEntry, WorkingRollEntry
 from apps.registrations.models import Channel, Registration, RegistrationState
-from tests.conftest import force_open
+from tests.conftest import _create_open_poll, force_open
 
 STRICT = {"order": "a,b,c", "rank_a": "1", "rank_b": "2", "rank_c": "3"}
 
@@ -180,9 +180,23 @@ def test_the_auditor_role_cannot_reach_the_entry_screen(
     assert client.get(f"{_base(open_paper_poll)}/bulletin-papier/").status_code == 403
 
 
-def test_an_online_ballot_makes_the_entry_screen_a_dead_end(
-    client: Client, open_paper_poll: Poll, op: User
+@pytest.mark.parametrize("modifiable", [True, False])
+def test_t8_an_online_ballot_makes_the_entry_screen_a_dead_end(
+    client: Client, db: None, op: User, modifiable: bool
 ) -> None:
+    """T-8: refused, since the online ballot cannot be located to displace it
+    (§7); the elector is sent to the online modification link where the poll
+    permits one, and told the online vote is final where it does not (R-9.3)."""
+    now = timezone.now()
+    open_paper_poll = _create_open_poll(
+        title="Aménagement de la place",
+        description="Trois propositions.",
+        opens_at=now - timedelta(days=1),
+        closes_at=now + timedelta(days=1),
+        paper_entry_deadline=now + timedelta(days=1),
+        roll_name=("Dupont", "Émile", "12/05/1970", "1970-05-12"),
+        allow_ballot_modification=modifiable,
+    )
     _grant(open_paper_poll, op)
     client.force_login(op)
     entry = _entry(open_paper_poll)
@@ -201,6 +215,8 @@ def test_an_online_ballot_makes_the_entry_screen_a_dead_end(
     body = shown.content.decode()
     assert "déjà voté en ligne" in body
     assert 'name="action" value="record"' not in body  # no way through
+    assert ("modifie lui-même son bulletin en ligne" in body) is modifiable
+    assert ("le vote en ligne est définitif" in body) is not modifiable
 
     # Even a hand-crafted POST is refused server-side, nothing written.
     forced = client.post(

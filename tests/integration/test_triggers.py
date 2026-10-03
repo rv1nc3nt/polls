@@ -19,7 +19,7 @@ from apps.audit import services as audit
 from apps.audit.models import Action, AuditEvent
 from apps.ballots.models import Ballot, BallotSource, BallotStatus
 from apps.core.codes import new_tracking_code
-from apps.elections.models import Poll, PollImage
+from apps.elections.models import Poll, PollImage, PollOption
 from tests.conftest import force_announce, force_open
 
 
@@ -248,6 +248,33 @@ def test_t80_poll_image_frozen_outside_draft(open_window_poll: Poll) -> None:
     assert PollImage.objects.filter(pk=image.pk, alt_text="").exists()
 
 
+@pytest.mark.parametrize("option_id", ['a"b', "a b", "é", "", "x" * 51])
+def test_an_option_id_outside_the_alphabet_is_refused_by_the_database(
+    db: None, option_id: str
+) -> None:
+    """Review B-7: the canonical serialisation relies on ids JSON never
+    escapes, so a write past the form cannot store one either, on insert or
+    on update, even in a draft."""
+    now = timezone.now()
+    poll = Poll.objects.create(
+        title_i18n={"fr": "Brouillon"},
+        description_i18n={"fr": "…"},
+        languages=["fr"],
+        opens_at=now + timedelta(days=1),
+        closes_at=now + timedelta(days=2),
+        paper_entry_deadline=now + timedelta(days=2),
+    )
+    option = PollOption.objects.create(poll=poll, option_id="ok-1_A", label_i18n={"fr": "A"})
+    with pytest.raises(Exception, match="option id"), transaction.atomic():
+        PollOption.objects.create(poll=poll, option_id=option_id, label_i18n={"fr": "B"})
+    with pytest.raises(Exception, match="option id"), transaction.atomic():
+        raw(
+            "UPDATE elections_polloption SET option_id = %s WHERE id = %s",
+            [option_id, pk(option)],
+        )
+    assert PollOption.objects.get(pk=option.pk).option_id == "ok-1_A"
+
+
 def test_state_machine_is_irreversible(open_window_poll: Poll) -> None:
     """R-3.2. ``draft → announced → open → closed → published``, one step at
     a time; ``draft → open`` direct is no longer a legal edge (R-3.10)."""
@@ -433,3 +460,28 @@ def test_a_poll_not_yet_open_admits_no_write_even_past_opens_at(
             email="e@example.fr",
             email_canonical="e@example.fr",
         )
+
+
+def test_the_opening_seed_and_the_closure_hash_are_set_once(open_window_poll: Poll) -> None:
+    """Both are published as soon as they exist (decision log #40); the
+    database refuses to change either afterwards, so a tie-break cannot be
+    re-picked by rewriting the seed once the closure hash is known
+    (R-10.5 bis). Setting each the first time is the transitions' own write."""
+    force_open(open_window_poll)
+    with pytest.raises(Exception, match="R-10.5"), transaction.atomic():
+        raw(
+            "UPDATE elections_poll SET opening_seed = randomblob(32) WHERE id = %s",
+            [pk(open_window_poll)],
+        )
+
+    raw(
+        "UPDATE elections_poll SET closure_hash = randomblob(32) WHERE id = %s",
+        [pk(open_window_poll)],
+    )
+    with pytest.raises(Exception, match="R-10.5"), transaction.atomic():
+        raw(
+            "UPDATE elections_poll SET closure_hash = randomblob(32) WHERE id = %s",
+            [pk(open_window_poll)],
+        )
+    with pytest.raises(Exception, match="R-10.5"), transaction.atomic():
+        raw("UPDATE elections_poll SET closure_hash = NULL WHERE id = %s", [pk(open_window_poll)])

@@ -28,7 +28,7 @@ from apps.ballots.models import Ballot, BallotSource
 from apps.core.canonical import closure_hash
 from apps.core.codes import new_tracking_code
 from apps.core.models import PollRole, Role, User
-from apps.elections.closure import live_ballots
+from apps.elections.closure import TiebreakInputsMissing, live_ballots, publication
 from apps.elections.models import Poll, PollOption, PollState, TiebreakRule, WorkingRollEntry
 from apps.elections.transitions import close_poll
 from tests.conftest import force_open
@@ -108,6 +108,23 @@ def tied_poll(admin_user: User) -> Poll:
     close_poll(poll, early_reason=Reason.ADMINISTRATIVE_DECISION)
     _grant(poll, admin_user)
     return Poll.objects.get(pk=poll.pk)
+
+
+def test_a_computed_tie_without_its_inputs_is_never_published_as_physical(
+    admin_user: User,
+) -> None:
+    """Review A-17: a ``computed`` tie whose seed is absent used to fall into
+    the ``physical`` branch and be published under that rule's name."""
+    poll = _make_poll()
+    force_open(poll)
+    _cast(poll, CYCLE)
+    close_poll(poll, early_reason=Reason.ADMINISTRATIVE_DECISION)
+    poll = Poll.objects.get(pk=poll.pk)
+    assert publication(poll)["tiebreak"]["rule"] == "computed"
+
+    poll.opening_seed = None  # in memory only: the trigger keeps the stored one
+    with pytest.raises(TiebreakInputsMissing):
+        publication(poll)
 
 
 # --- the gate (§3.7) ---------------------------------------------------------

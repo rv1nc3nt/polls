@@ -65,7 +65,9 @@ which section of the specification they implement.
   `core/logging.py` redacts it from Django's logs. Any new route under that
   prefix inherits these obligations.
 * **The session.** It may hold a `ballot_hash` or a receipt, but never a
-  registration id next to either (`core/tokensession.py` header).
+  registration id next to either (`core/tokensession.py` header), nor an
+  operator's account id: a ballot route signs a signed-in session out first,
+  and signing in drops ballot keys (`core/operatorsession.py`).
 * **The audit log (INV-3).** Append-only by trigger. Events hold references
   and non-identifying state only. `audit/services.py` rejects known personal
   keys at any depth; `reason` is a code, and prose lives on the referenced row.
@@ -85,7 +87,7 @@ which section of the specification they implement.
 
 | Invariant | Application | Database | Test |
 |---|---|---|---|
-| INV-1 no voter–ballot join | module boundaries, `Ballot` fields | no FK | `test_inv1_separation.py` |
+| INV-1 no voter–ballot join | module boundaries, `Ballot` fields; no ballot time or order | no FK; `ballots_ballot` is `WITHOUT ROWID` | `test_inv1_separation.py`, `test_trend_points.py` |
 | INV-2 voting window | `elections/windows.py` | `inv2_*` triggers | `test_triggers.py`, `test_windows.py` |
 | INV-3 append-only log and ballot history | `audit/services.py`, ballot services | `inv3_*` triggers | `test_triggers.py`, `test_audit_services.py` |
 | INV-4 one registration per roll entry | `registrations.services` | partial unique constraint | `test_registration_flow.py`, `test_one_vote_per_elector.py` |
@@ -142,6 +144,8 @@ uv run pytest -q                                          # ~850 tests, ~20 s, n
 uv run ruff check . && uv run ruff format --check .
 uv run mypy src tests                                     # --strict
 uv run python manage.py makemigrations --check --dry-run
+cargo fmt --manifest-path verifier/Cargo.toml --all --check
+cargo clippy --manifest-path verifier/Cargo.toml --workspace --all-targets -- -D warnings
 cargo test --manifest-path verifier/Cargo.toml
 uv run python manage.py compilemessages                   # needs GNU gettext
 ```

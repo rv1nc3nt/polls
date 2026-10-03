@@ -41,3 +41,14 @@ CACHES = {
 }
 
 PUBLIC_BASE_URL = os.environ["DJANGO_PUBLIC_BASE_URL"]
+
+# Static files under content-hashed names (review A-9): app.css becomes
+# app.<hash>.css, and `{% static %}` writes the hashed name from the manifest
+# `collectstatic` leaves beside them. nginx can then let browsers keep each
+# file for good (`expires max`), and a release that changes one changes its
+# name, so no browser runs last month's script against this month's markup.
+# Production only: it needs that manifest, which tests and `runserver` lack.
+STORAGES = {
+    **STORAGES,
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"},
+}

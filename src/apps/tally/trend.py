@@ -1,8 +1,12 @@
 # SPDX-License-Identifier: 0BSD
 """The back-office trend (R-11.5 bis): the result recomputed as ballots arrive.
 
-Pure, like the rest of this package: the caller supplies every ballot version
-with its creation instant and day in the poll's timezone, never a clock.
+Pure, like the rest of this package. The points themselves are recorded by
+``apps.ballots.trendpoints`` at the moment each falls due, as the number of
+ballots per distinct ranking and a date; everything a point shows is derived
+here from that. Ballots carry no time and no order to rebuild a point from
+afterwards: either would line a ballot up with the registration confirmed
+just before it (INV-1, decision log #42).
 
 What is computed is bounded by INV-1 rather than by what would be most
 informative (docs/specification-decision-log.md #39). The audience — the poll
@@ -17,12 +21,14 @@ therefore attributable to the electors who voted in between. So:
   instead would let one elector modifying ``STEP`` times make the whole
   difference between two points (decision log #39);
 * **a point never changes once shown.** Each counts every ballot as it stood
-  when the point's last arrival came in: the version then in force, not the
-  current one. Recomputing past points from the current live set would let a
+  at the moment the point fell due — the version then in force — and is stored
+  then. Recomputing past points from the current live set would let a
   modification remove one ballot's old ranking from them, readable as the
   difference (decision log #39);
 * **the newest point waits.** A point is shown only once ``LAG`` ballots
-  first cast after it are counted. The result published at closure is the
+  first cast after it are counted (``shown``): each ballot records how many
+  points had been taken when it was first cast, its *epoch*, a bucket of at
+  least ``STEP`` ballots. The result published at closure is the
   whole live set, so it minus the last point shown before closure is what came
   after: never fewer than ``LAG`` electors. After closure the final standing is shown too —
   it is the published result. ``LAG`` is shorter than ``STEP`` at the
@@ -36,21 +42,17 @@ group of ``STEP`` electors — or the closing ``LAG`` — that all agree on a
 duel, or all cast the same ranking: the difference then states each one's
 choice. R-11.5 bis accepts that in exchange for the figures.
 
-Paper ballots are the one exception to "never changes": a countersignature or
-a deletion changes a row's status in place, with no instant recorded, so it is
-read as of the row's creation. The link from a paper ballot to its elector is
-deliberate and already on the poll admin's screens (R-8.2 bis), so this
-reveals nothing they could not read there.
+A countersignature or a deletion of a paper ballot after a point was taken
+does not change that point: the point holds what was counted then.
 """
 
 from __future__ import annotations
 
 import math
-from bisect import bisect_right
 from collections import Counter
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date
 
 from apps.core.types import OptionId
 
@@ -71,25 +73,11 @@ Z95 = 1.959964
 
 
 @dataclass(frozen=True)
-class Version:
-    """One ballot version, as the trend reads it.
-
-    ``ballot`` is shared by every version of one ballot (its tracking code,
-    stable across versions, R-7.2). ``ranking`` is ``None`` for a version that
-    does not count — a paper entry awaiting countersignature, or deleted — so
-    from ``at`` on the ballot counts for nothing.
-    """
-
-    at: datetime
-    day: date
-    ballot: str
-    ranking: Ranking | None
-
-
-@dataclass(frozen=True)
 class TrendPoint:
-    """The standing after the ``arrivals``-th arrival, which came in on
-    ``through``.
+    """The standing at the ``sequence``-th point, taken on ``through``.
+
+    ``sequence`` is the point's place in the series, 1 for the first; the
+    final standing added after closure follows the last point taken.
 
     ``ranks[o]`` is 1 for the leading option; options the method cannot
     separate share a rank. ``smith_set`` is in the poll's option order.
@@ -99,7 +87,7 @@ class TrendPoint:
     """
 
     through: date
-    arrivals: int
+    sequence: int
     ballot_count: int
     ranks: dict[OptionId, int]
     condorcet_winner: OptionId | None
@@ -110,6 +98,7 @@ class TrendPoint:
 
     @property
     def leaders(self) -> tuple[OptionId, ...]:
+        """The options ranked first at this point, several where they tie."""
         return tuple(o for o, rank in self.ranks.items() if rank == 1)
 
     def margin(self, i: OptionId, j: OptionId) -> int:
@@ -149,52 +138,49 @@ class TrendPoint:
         return m * (2 * (centre - half) - 1), m * (2 * (centre + half) - 1)
 
 
-def trend(
-    versions: Sequence[Version],
-    options: Sequence[OptionId],
-    method: Method,
-    *,
-    final: bool,
-    step: int = STEP,
-    lag: int = LAG,
-) -> list[TrendPoint]:
-    """The points to show: one each time the ballots counted reach a further
-    multiple of ``step``, once ``lag`` ballots cast after it are counted, and,
-    once ``final``, the final standing."""
-    ordered = sorted(versions, key=lambda v: (v.at, v.ballot))
-    total = len(ordered)
-    in_force: dict[str, Ranking] = {}
-    first_cast: dict[str, int] = {}
-    cuts: list[tuple[Version, int, list[Ranking]]] = []
-    for n, version in enumerate(ordered, start=1):
-        first_cast.setdefault(version.ballot, n)
-        if version.ranking is None:
-            in_force.pop(version.ballot, None)
-        else:
-            in_force[version.ballot] = version.ranking
-        # The count moves by at most one per arrival, so it meets each
-        # multiple exactly; a paper correction can lower it, and the next cut
-        # then waits for the next multiple, not this one again.
-        if len(in_force) == step * (len(cuts) + 1):
-            cuts.append((version, n, list(in_force.values())))
-    cast_at = sorted(first_cast[b] for b in in_force)
-    points = [
-        _point(version.day, n, ballots, options, method)
-        for version, n, ballots in cuts
-        if len(cast_at) - bisect_right(cast_at, n) >= lag
-    ]
-    if final and ordered and (not points or points[-1].arrivals != total):
-        points.append(_point(ordered[-1].day, total, list(in_force.values()), options, method))
-    return points
+def due(ballots_counted: int, points_taken: int, step: int = STEP) -> bool:
+    """Whether a further point falls due now: the ballots counted have reached
+    the next multiple of ``step``. The count moves by at most one per ballot
+    write, so it meets each multiple exactly; a paper deletion can lower it,
+    and the next point then waits for the next multiple, not this one again."""
+    return ballots_counted >= step * (points_taken + 1)
 
 
-def _point(
+def shown(sequence: int, epochs: Iterable[int], lag: int = LAG) -> bool:
+    """Whether point ``sequence`` may be shown: ``lag`` ballots counted now
+    were first cast after it. ``epochs`` are those of the ballots counted now,
+    each the number of points taken before it was first cast."""
+    return sum(1 for epoch in epochs if epoch >= sequence) >= lag
+
+
+def encode(table: Mapping[Ordering, int]) -> list[dict[str, object]]:
+    """``orderings`` as stored: a list, sorted so that equal tables store
+    equal bytes."""
+    rows = [{"ranking": [list(g) for g in key], "count": n} for key, n in table.items()]
+    return sorted(rows, key=lambda row: (str(row["ranking"]), row["count"]))
+
+
+def decode(rows: Iterable[Mapping[str, object]]) -> list[Ranking]:
+    """The ballots a stored table stands for, one ranking per ballot. Enough
+    to recompute every figure of the point, which depends on nothing else."""
+    ballots: list[Ranking] = []
+    for row in rows:
+        groups = row["ranking"]
+        count = row["count"]
+        assert isinstance(groups, list) and isinstance(count, int)
+        ranking = [[OptionId(str(o)) for o in group] for group in groups]
+        ballots.extend([ranking] * count)
+    return ballots
+
+
+def standing(
     through: date,
-    arrivals: int,
+    sequence: int,
     ballots: Sequence[Ranking],
     options: Sequence[OptionId],
     method: Method,
 ) -> TrendPoint:
+    """Every figure of one point, from the ballots it counts."""
     d = pairwise_matrix(ballots, options)
     counts: dict[OptionId, int] | None = None
     if method is Method.SCHULZE:
@@ -209,7 +195,7 @@ def _point(
     condorcet = [i for i in options if all(d[i][j] > d[j][i] for j in options if j != i)]
     return TrendPoint(
         through=through,
-        arrivals=arrivals,
+        sequence=sequence,
         ballot_count=len(ballots),
         ranks=ranks,
         condorcet_winner=condorcet[0] if condorcet else None,

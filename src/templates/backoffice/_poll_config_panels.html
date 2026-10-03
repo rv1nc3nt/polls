@@ -50,12 +50,7 @@
     <legend>{% translate "Contenu du scrutin" %}</legend>
     {% for field in form %}
       {% if field.name|slice:":6" == "title_" or field.name|slice:":12" == "description_" %}
-        <p class="field">
-          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-          {% if field.help_text %}<span class="help">{{ field.help_text }}</span>{% endif %}
-          {{ field }}
-          {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
-        </p>
+        {% include "backoffice/_config_field.html" %}
       {% endif %}
     {% endfor %}
   </fieldset>
@@ -64,12 +59,7 @@
     <legend>{% translate "Langues" %}</legend>
     {% for field in form %}
       {% if field.name == "default_language" or field.name == "extra_languages" %}
-        <p class="field">
-          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-          {% if field.help_text %}<span class="help">{{ field.help_text }}</span>{% endif %}
-          {{ field }}
-          {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
-        </p>
+        {% include "backoffice/_config_field.html" %}
       {% endif %}
     {% endfor %}
   </fieldset>
@@ -169,12 +159,7 @@
     <legend>{% translate "Bulletin et dépouillement" %}</legend>
     {% for field in form %}
       {% if field.name == "tally_method" or field.name == "tally_method_version" or field.name == "require_complete_ranking" or field.name == "allow_ties_in_ballot" or field.name == "tiebreak_rule" or field.name == "allow_ballot_modification" or field.name == "eligible_list_types" or field.name == "show_live_participation" %}
-        <p class="field">
-          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-          {% if field.help_text %}<span class="help">{{ field.help_text }}</span>{% endif %}
-          {{ field }}
-          {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
-        </p>
+        {% include "backoffice/_config_field.html" %}
       {% endif %}
     {% endfor %}
   </fieldset>
@@ -187,12 +172,7 @@
     <legend>{% translate "Bulletins papier" %}</legend>
     {% for field in form %}
       {% if field.name == "paper_requires_signed_form" or field.name == "paper_requires_countersign" or field.name == "paper_requires_reconciliation" %}
-        <p class="field">
-          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-          {% if field.help_text %}<span class="help">{{ field.help_text }}</span>{% endif %}
-          {{ field }}
-          {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
-        </p>
+        {% include "backoffice/_config_field.html" %}
       {% endif %}
     {% endfor %}
   </fieldset>

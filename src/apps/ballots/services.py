@@ -33,6 +33,7 @@ from apps.elections.models import Poll, PollState, RollEntry
 from apps.elections.windows import check_ballot_window
 from apps.registrations import services as registrations
 
+from . import trendpoints
 from .models import Ballot, BallotSource, BallotStatus, PaperBallotLink, ReconciliationRecord
 
 # Re-exported: callers have always caught ``services.BallotRefused``; it now
@@ -108,6 +109,7 @@ def cast_online(poll: Poll, token: Token, ranking: list[list[str]]) -> CastResul
     ballot = _insert(
         poll, ranking, BallotStatus.LIVE, source=BallotSource.ONLINE, ballot_hash=digest
     )
+    trendpoints.record_due_point(poll)
     return CastResult(ballot=ballot, registration_id=registration_id)
 
 
@@ -151,6 +153,7 @@ def modify(poll: Poll, ballot_hash: BallotHash, ranking: list[list[str]]) -> Bal
         tracking_code=locked.tracking_code,
         source=BallotSource.ONLINE,
         ballot_hash=bytes(ballot_hash),
+        epoch=locked.epoch,
     )
 
 
@@ -192,10 +195,13 @@ def _insert(
     tracking_code: str = "",
     source: str = BallotSource.PAPER,
     ballot_hash: bytes | None = None,
+    epoch: int | None = None,
 ) -> Ballot:
     """Insert one ``Ballot``. With no ``tracking_code`` a fresh one is generated
     and re-rolled on the INV-11 collision the caller retries through (§3.4); a
-    modification or ``correct_paper`` passes the code of the version it replaces.
+    modification or ``correct_paper`` passes the code of the version it replaces,
+    and its ``epoch``, so a later version reveals nothing of when it was made. A
+    first version takes the current one (``trendpoints``, R-11.5 bis).
 
     ``ballot_hash`` is set only for an online cast on a modification-enabled
     poll (§7); it is null for every paper row and for a no-modification poll.
@@ -207,6 +213,7 @@ def _insert(
         "source": source,
         "status": status,
         "ballot_hash": ballot_hash,
+        "epoch": trendpoints.current_epoch(poll) if epoch is None else epoch,
     }
     if tracking_code:
         return Ballot.objects.create(tracking_code=tracking_code, **fields)
@@ -297,6 +304,7 @@ def enter_paper(
     )
     ballot = _insert(poll, ranking, status)
     _link(poll, ballot, entry, operator, language, note)
+    trendpoints.record_due_point(poll)
     if channel == _CHANNEL_NONE and not registrations.mark_voted(registration_id, "paper"):
         # An existing registration on the ``none`` channel; a freshly created
         # one is already ``paper`` and needs no second write (§6.4, D2). The
@@ -354,6 +362,7 @@ def correct_paper(
     in_force = locked.status
     prior_version = locked.version
     prior_code = locked.tracking_code
+    prior_epoch = locked.epoch
 
     # Supersede first: ``uniq_ballot_poll_tracking_code`` admits only one
     # non-superseded row per code, so the old version must step aside before the
@@ -361,7 +370,14 @@ def correct_paper(
     locked.status = BallotStatus.SUPERSEDED
     locked.save(update_fields=["status"])
     status = BallotStatus.PENDING_COUNTERSIGN if poll.paper_requires_countersign else in_force
-    new = _insert(poll, ranking, status, version=prior_version + 1, tracking_code=prior_code)
+    new = _insert(
+        poll,
+        ranking,
+        status,
+        version=prior_version + 1,
+        tracking_code=prior_code,
+        epoch=prior_epoch,
+    )
     PaperBallotLink.objects.create(
         poll=poll,
         ballot=new,
@@ -379,6 +395,7 @@ def correct_paper(
         after={"ranking": ranking, "version": new.version, "status": new.status},
         reason=reason,
     )
+    trendpoints.record_due_point(poll)
     return new
 
 
@@ -447,6 +464,7 @@ def countersign(ballot: Ballot, operator_id: str) -> Ballot:
         before={"status": BallotStatus.PENDING_COUNTERSIGN},
         after={"status": BallotStatus.LIVE},
     )
+    trendpoints.record_due_point(locked.poll)
     return locked
 
 

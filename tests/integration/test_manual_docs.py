@@ -9,6 +9,8 @@ to a poll's data, unlike every screen ``test_backoffice_access.py`` covers.
 
 from __future__ import annotations
 
+import re
+
 import pytest
 from django.test import Client
 from django.utils.html import escape
@@ -72,6 +74,17 @@ def test_a_link_from_the_tally_methods_doc_to_verifier_resolves_to_a_real_url(
 ) -> None:
     body = client.get("/fr/aide/depouillement/").content.decode()
     assert 'href="/fr/aide/verifier/"' in body
+
+
+@pytest.mark.parametrize("slug", ["verifier", "depouillement", "electeur"])
+def test_the_english_pages_link_to_served_pages_not_to_source_files(
+    client: Client, db: None, slug: str
+) -> None:
+    """The English sources link to their ``-en`` siblings so they read right in
+    the repository too; on the site each must still resolve to a route (review
+    E-5)."""
+    body = client.get(f"/en/aide/{slug}/").content.decode()
+    assert not re.search(r'href="[^"]*\.md[#"]', body)
 
 
 def test_an_unknown_public_slug_is_a_404(client: Client, db: None) -> None:

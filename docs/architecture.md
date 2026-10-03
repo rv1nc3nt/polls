@@ -33,7 +33,7 @@ keeping that true.
 | audit | `src/apps/audit/` | The append-only `AuditEvent` log and its single writer `services.record` (INV-3, §10). |
 | elections | `src/apps/elections/` | `Poll` and its options, images and templates; the roll (`WorkingRollEntry`, frozen `RollEntry`) and its import; **the only module that changes poll state** (`transitions`); the voting window (`windows`); closure, publication and retention; sandbox polls and share links. |
 | registrations | `src/apps/registrations/` | `Registration` (identity, `voter_hash`, voting `channel`), roll matching, confirmation and reminder mail. |
-| ballots | `src/apps/ballots/` | `Ballot` (anonymous, versioned), `PaperBallotLink`, `ReconciliationRecord`; online cast/modify and paper entry/correction/countersignature. |
+| ballots | `src/apps/ballots/` | `Ballot` (anonymous, versioned, with no time or order), `PaperBallotLink`, `ReconciliationRecord`, `TrendSnapshot`; online cast/modify and paper entry/correction/countersignature; `trendpoints` records the trend's points as they fall due. |
 | publicsite | `src/apps/publicsite/` | Public pages: poll list and detail, results and their CSV/JSON, public manual, `/sante`. |
 | backoffice | `src/apps/backoffice/` | The *espace mairie*: 14 numbered screens plus poll creation and the manual, all behind `access.py`. |
 | verifier | `verifier/` | Independent Rust verifier. `core/` has zero dependencies; `cli/` and `gui/` are front ends. |

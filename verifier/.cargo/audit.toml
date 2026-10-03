@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: 0BSD
+# cargo audit's configuration, read when it runs from verifier/ (review B-10,
+# .github/workflows/audit.yml). Every exception names its reason, and is
+# removed once the dependency that brings it in no longer does.
+
+[advisories]
+ignore = [
+    # ttf-parser is unmaintained (not a vulnerability). It reaches the GUI
+    # only through winit's Wayland window decorations (sctk-adwaita ->
+    # ab_glyph -> owned_ttf_parser), drawing the title bar's text with a
+    # system font; eframe offers no way to leave it out. The core and the CLI
+    # do not depend on it.
+    "RUSTSEC-2026-0192",
+]
+

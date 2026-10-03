@@ -39,6 +39,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from django.contrib.sessions.backends.base import SessionBase
 from django.http import HttpRequest, HttpResponse
 
 _BALLOT_PREFIX = "ballot:"
@@ -93,6 +94,18 @@ def load_receipt(request: HttpRequest, poll_id: str) -> dict[str, Any] | None:
     reload of the receipt page shows it again."""
     value = request.session.get(_receipt_key(poll_id))
     return value if isinstance(value, dict) else None
+
+
+def forget_all(session: SessionBase) -> None:
+    """Drop every poll's ballot hash and receipt from ``session``.
+
+    Called when an operator signs in (``operatorsession``): Django's ``login``
+    keeps the session's data, so a browser that voted and then signed in would
+    otherwise hold the operator's account id beside a ballot hash or receipt,
+    the join of INV-1 with a named person on one side.
+    """
+    for key in [k for k in session.keys() if k.startswith((_BALLOT_PREFIX, _RECEIPT_PREFIX))]:
+        del session[key]
 
 
 def protect(response: HttpResponse) -> HttpResponse:

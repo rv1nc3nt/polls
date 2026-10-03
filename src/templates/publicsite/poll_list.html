@@ -15,13 +15,13 @@
     {% comment %} Same four values as the badge below (apps.publicsite.views._status_key),
        so filtering stays consistent with what each row already shows — a poll counted as
        "closed" here is exactly one whose badge reads "closed" (§5.1). {% endcomment %}
-    <p class="tags" aria-label="{% translate 'Filtrer par état' %}">
+    <div class="tags" role="group" aria-label="{% translate 'Filtrer par état' %}">
       <a href="{% url 'publicsite:poll_list' %}"{% if not status %} class="tag active"{% else %} class="tag"{% endif %}>{% translate "Toutes" %}</a>
       <a href="?statut=preview"{% if status == "preview" %} class="tag active"{% else %} class="tag"{% endif %}>{% translate "À venir" %}</a>
       <a href="?statut=open"{% if status == "open" %} class="tag active"{% else %} class="tag"{% endif %}>{% translate "Ouverte" %}</a>
       <a href="?statut=published"{% if status == "published" %} class="tag active"{% else %} class="tag"{% endif %}>{% translate "Close — résultats publiés" %}</a>
       <a href="?statut=closed"{% if status == "closed" %} class="tag active"{% else %} class="tag"{% endif %}>{% translate "Close — dépouillement en cours" %}</a>
-    </p>
+    </div>
   {% endif %}
 
   {% if rows %}

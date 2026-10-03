@@ -8,3 +8,4 @@ var/
 .pytest_cache/
 locale/*/LC_MESSAGES/*.mo
 verifier/target/
+node_modules/

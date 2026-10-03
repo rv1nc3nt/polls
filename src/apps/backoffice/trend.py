@@ -1,10 +1,12 @@
 # SPDX-License-Identifier: 0BSD
 """Read model for the trend screen (R-11.5 bis).
 
-Reads ``Ballot`` alone — every version's creation instant, tracking code,
-ranking and status — and never ``Registration``: what makes the screen safe is
-how its points are cut (``apps.tally.trend``), not that its readers lack the
-other list (docs/specification-decision-log.md #39).
+Reads the points recorded as they fell due (``TrendSnapshot``,
+``apps.ballots.trendpoints``) and, for the five-ballot wait and the final
+standing, the live ballots' rankings and epochs — never ``Registration``, and
+no ballot time or order, which do not exist (decision log #42). What makes the
+screen safe is how its points are cut (``apps.tally.trend``), not that its
+readers lack the other list (docs/specification-decision-log.md #39).
 """
 
 from __future__ import annotations
@@ -14,13 +16,15 @@ import math
 from zoneinfo import ZoneInfo
 
 from django.conf import settings
+from django.utils import timezone
 from django.utils.formats import number_format
 
-from apps.ballots.models import Ballot, BallotStatus
+from apps.ballots.models import Ballot, TrendSnapshot
 from apps.core.types import OptionId
 from apps.elections.models import Poll, PollState
+from apps.tally import trend as pure
 from apps.tally.methods import Method
-from apps.tally.trend import TrendPoint, Version, trend
+from apps.tally.trend import TrendPoint
 
 #: Withdrawn is absent on purpose: R-3.11 takes every figure of the poll off
 #: view, and draft or announced polls have no ballot to show.
@@ -33,30 +37,43 @@ def enabled(poll: Poll) -> bool:
 
 
 def series(poll: Poll) -> list[TrendPoint]:
-    """The points to show, every version of every ballot considered.
+    """The points to show: each one recorded, once five ballots counted now
+    were first cast after it; and once the poll is closed, the final standing,
+    unless the last point shown already is it.
 
-    Superseded versions count until the next one arrives, which is what keeps
-    a point fixed once shown. Paper entries awaiting countersignature and
-    deleted ones count for nothing (§3.4).
+    A point holds what was counted when it fell due — the version then in
+    force of each ballot, paper entries awaiting countersignature and deleted
+    ones counting for nothing (§3.4) — and never changes after.
     """
-    zone = ZoneInfo(poll.timezone)
-    counted = (BallotStatus.LIVE, BallotStatus.SUPERSEDED)
-    rows = Ballot.objects.filter(poll=poll).values_list(
-        "created_at", "tracking_code", "ranking", "status"
-    )
-    versions = [
-        Version(
-            at=created_at,
-            day=created_at.astimezone(zone).date(),
-            ballot=tracking_code,
-            ranking=[[OptionId(o) for o in g] for g in ranking] if status in counted else None,
-        )
-        for created_at, tracking_code, ranking, status in rows
-    ]
     option_ids = poll.options.order_by("position").values_list("option_id", flat=True)
     options = [OptionId(o) for o in option_ids]
-    final = poll.state != PollState.OPEN
-    return trend(versions, options, Method(poll.tally_method), final=final)
+    method = Method(poll.tally_method)
+    live = list(Ballot.live.filter(poll=poll).values_list("ranking", "epoch"))
+    epochs = [epoch for _ranking, epoch in live]
+    points = [
+        pure.standing(
+            snapshot.taken_on,
+            snapshot.sequence,
+            pure.decode(snapshot.orderings),
+            options,
+            method,
+        )
+        for snapshot in TrendSnapshot.objects.filter(poll=poll).order_by("sequence")
+        if pure.shown(snapshot.sequence, epochs)
+    ]
+    if poll.state != PollState.OPEN and live:
+        ballots = [[[OptionId(o) for o in group] for group in ranking] for ranking, _epoch in live]
+        closed_on = (
+            timezone.localdate(poll.closed_at, ZoneInfo(poll.timezone))
+            if poll.closed_at
+            else (timezone.localdate(timezone=ZoneInfo(poll.timezone)))
+        )
+        final = pure.standing(
+            closed_on, (points[-1].sequence if points else 0) + 1, ballots, options, method
+        )
+        if not points or points[-1].orderings != final.orderings:
+            points.append(final)
+    return points
 
 
 #: Categorical slots the stylesheet defines (``--s1`` … ``--s8``). With more

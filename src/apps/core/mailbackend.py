@@ -16,6 +16,7 @@ an admin deliberately fills the screen in.
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import override
 
 from django.conf import settings
 from django.core.mail import get_connection
@@ -62,6 +63,7 @@ class ConfigurableEmailBackend(BaseEmailBackend):
     """Routes to the DB-configured relay where screen 12 has one, else to the
     environment configuration every deployment already had (§14)."""
 
+    @override
     def send_messages(self, email_messages: Sequence[EmailMessage]) -> int:
         config = MailSettings.current()
         if config is not None and config.host:

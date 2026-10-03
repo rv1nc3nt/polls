@@ -22,8 +22,9 @@ from __future__ import annotations
 
 import logging
 import re
+from typing import override
 
-_TOKEN_PATH = re.compile(r"^/[a-z]{2}/bulletin/")
+_TOKEN_PATH = re.compile(r"^/(?:[a-z]{2}/)?bulletin/")
 REDACTED = "[adresse supprimée : jeton de bulletin, R-7.4 ter]"
 
 
@@ -37,6 +38,7 @@ class RedactBallotTokenPath(logging.Filter):
     to redact.
     """
 
+    @override
     def filter(self, record: logging.LogRecord) -> bool:
         path = getattr(getattr(record, "request", None), "path", None)
         if isinstance(path, str) and _TOKEN_PATH.match(path) and record.args:

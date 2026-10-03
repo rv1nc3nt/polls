@@ -28,6 +28,10 @@ jobs:
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run mypy src tests
+      # test_verifier_agreement.py builds the verifier: with the compiler
+      # rust-toolchain.toml pins, installed explicitly rather than trusting
+      # rustup's auto-install, whose default has changed between versions.
+      - run: rustup toolchain install
       - run: uv run pytest -q
 
   verifier:
@@ -38,9 +42,58 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
+      - run: rustup toolchain install  # the one rust-toolchain.toml pins
+      # fmt and clippy as gates, like ruff on the Python side: the verifier is
+      # the part a sceptic reads, so it is held to its own linter too.
+      - run: cargo fmt --manifest-path verifier/Cargo.toml --all --check
+      - run: cargo clippy --manifest-path verifier/Cargo.toml --workspace --all-targets -- -D warnings
       - run: cargo test --manifest-path verifier/Cargo.toml
       - run: uv sync --frozen
       - run: uv run pytest tests/integration/test_verifier_agreement.py -q
+      # The shared corpus on both sides, then 5000 random polls on a seed of
+      # this run's own (review D-2): the plain test run covers the fixed
+      # default seed, this one explores. A failure prints the seed.
+      - run: >-
+          uv run pytest -q tests/integration/test_vectors.py
+          tests/integration/test_differential.py
+          tests/integration/test_independent_schulze.py
+        env:
+          POLLS_DIFFERENTIAL_SEED: ${{ github.run_id }}
+          POLLS_DIFFERENTIAL_CASES: "5000"
+
+  frontend:
+    # ESLint and stylelint over src/static/ (review C-8). package.json holds
+    # only these tools: the site serves its scripts and stylesheet as written.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+
+  browser:
+    # tests/browser (review C-8): a voter's journey and the back-office editor
+    # in headless Chromium against the live test server, each page checked for
+    # script errors, CSP violations and axe-core's WCAG 2.1 AA rules. The HTTP
+    # tests cannot see any of the three; the Origin a browser sends broke
+    # every ballot without one of them failing (decision log #50).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: uv sync --frozen
+      - run: npm ci  # axe-core
+      - run: uv run playwright install --with-deps --only-shell chromium
+      - run: uv run pytest -q -m browser
 
   services:
     # T-50: service definitions under contrib/init/.

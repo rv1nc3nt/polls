@@ -21,35 +21,73 @@ pub enum TiebreakRule {
     Physical,
 }
 
+/// The document's `tiebreak` member: how a tie was settled.
 pub struct Tiebreak {
+    /// Computed by the hash chain, or drawn at the mairie.
     pub rule: TiebreakRule,
+    /// The options the document says tied.
     pub tied: Vec<String>,
     /// The drawn order, first the winner; absent only for a physical draw not
     /// yet entered, which publication refuses.
     pub order: Option<Vec<String>>,
+    /// The draw's winner, as the document states it; present with `order`.
+    pub winner: Option<String>,
 }
 
+/// Participation frozen at closure (`counts`, §9): registered electors, the
+/// ballots by channel, paper entries a countersignature override left
+/// uncounted, and those who did not vote.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Participation {
+    /// Electors registered for the poll.
+    pub registered: u64,
+    /// Ballots cast online and counted.
+    pub ballots_online: u64,
+    /// Paper ballots counted.
+    pub ballots_paper: u64,
+    /// Paper entries left out of the count by a countersignature override.
+    pub paper_uncountersigned: u64,
+    /// Registered electors who did not vote.
+    pub non_voters: u64,
+}
+
+/// The members of the publication document the verifier reads
+/// (`docs/publication-format.md`, "Members").
 pub struct Publication {
+    /// The layout version, one of [`SUPPORTED_FORMAT_VERSIONS`].
     pub format_version: String,
+    /// The poll's id, shown in the report.
     pub poll_id: String,
+    /// The tally method, restated rather than checked.
     pub method: Method,
+    /// The version of that method the tally ran.
     pub method_version: String,
+    /// The published closure hash, lower-case hex.
     pub closure_hash: String,
+    /// The opening seed, lower-case hex: an input to the computed tie-break.
     pub opening_seed: String,
     /// Option ids in the document's order.
     pub options: Vec<String>,
+    /// The live set, as published.
     pub ballots: Vec<Ballot>,
+    /// The published number of ballots.
     pub ballot_count: u64,
+    /// The published winner, after any tie-break; `None` with no ballots.
     pub winner: Option<String>,
     /// `matrix[i][j]` as published, keyed by option id.
     pub matrix: Vec<(String, Vec<(String, u64)>)>,
     /// Votes per option (`derivation.counts`), for plurality and approval.
     pub counts: Option<Vec<(String, u64)>>,
+    /// Participation frozen at closure.
+    pub participation: Participation,
+    /// Present only if the tally tied.
     pub tiebreak: Option<Tiebreak>,
 }
 
 fn member<'a>(value: &'a Value, key: &str) -> Result<&'a Value, String> {
-    value.get(key).ok_or_else(|| format!("publication: \"{key}\" is missing"))
+    value
+        .get(key)
+        .ok_or_else(|| format!("publication: \"{key}\" is missing"))
 }
 
 fn string(value: &Value, key: &str) -> Result<String, String> {
@@ -65,7 +103,9 @@ fn strings(value: &Value, what: &str) -> Result<Vec<String>, String> {
         .ok_or_else(|| format!("publication: {what} must be a list"))?
         .iter()
         .map(|item| {
-            item.as_str().map(String::from).ok_or_else(|| format!("publication: {what} must hold strings"))
+            item.as_str()
+                .map(String::from)
+                .ok_or_else(|| format!("publication: {what} must hold strings"))
         })
         .collect()
 }
@@ -84,6 +124,14 @@ fn integers(value: &Value, what: &str) -> Result<Vec<(String, u64)>, String> {
 }
 
 /// Parse and read a publication document.
+///
+/// # Errors
+///
+/// Invalid JSON, a missing or unsupported `format_version`, or a member the
+/// verifier reads that is absent or of the wrong type. The message names it.
+// One member after another, in the order of docs/publication-format.md's
+// table, so the two can be read side by side; split up, the contract would be.
+#[allow(clippy::too_many_lines)]
 pub fn parse_publication(text: &str) -> Result<Publication, String> {
     let document = json::parse(text)?;
     if document.as_object().is_none() {
@@ -93,9 +141,11 @@ pub fn parse_publication(text: &str) -> Result<Publication, String> {
     let format_version = match document.get("format_version").map(Value::as_str) {
         Some(Some(version)) => version.to_string(),
         _ => {
-            return Err("publication: \"format_version\" is missing — this is not a \
+            return Err(
+                "publication: \"format_version\" is missing — this is not a \
                         publication document, or one older than this verifier reads"
-                .to_string())
+                    .to_string(),
+            )
         }
     };
     if !SUPPORTED_FORMAT_VERSIONS.contains(&format_version.as_str()) {
@@ -137,7 +187,10 @@ pub fn parse_publication(text: &str) -> Result<Publication, String> {
             .iter()
             .map(|group| strings(group, &format!("{what}'s ranking")))
             .collect::<Result<Vec<_>, _>>()?;
-        ballots.push(Ballot { tracking_code, ranking });
+        ballots.push(Ballot {
+            tracking_code,
+            ranking,
+        });
     }
 
     let ballot_count = member(&document, "ballot_count")?
@@ -156,6 +209,20 @@ pub fn parse_publication(text: &str) -> Result<Publication, String> {
         .iter()
         .map(|(row, cells)| integers(cells, "a matrix row").map(|cells| (row.clone(), cells)))
         .collect::<Result<Vec<_>, _>>()?;
+
+    let frozen = member(&document, "counts")?;
+    let count = |key: &str| -> Result<u64, String> {
+        member(frozen, key)?
+            .as_u64()
+            .ok_or_else(|| format!("publication: \"counts.{key}\" must be a whole number"))
+    };
+    let participation = Participation {
+        registered: count("registered")?,
+        ballots_online: count("ballots_online")?,
+        ballots_paper: count("ballots_paper")?,
+        paper_uncountersigned: count("paper_uncountersigned")?,
+        non_voters: count("non_voters")?,
+    };
 
     let counts = match member(&document, "derivation")?.get("counts") {
         None => None,
@@ -194,7 +261,21 @@ pub fn parse_publication(text: &str) -> Result<Publication, String> {
                     TiebreakRule::Physical => strings(order, "\"tiebreak.order\"")?,
                 }),
             };
-            Some(Tiebreak { rule, tied, order })
+            let winner = match value.get("winner") {
+                None => None,
+                Some(winner) => Some(
+                    winner
+                        .as_str()
+                        .ok_or("publication: \"tiebreak.winner\" must be a string")?
+                        .to_string(),
+                ),
+            };
+            Some(Tiebreak {
+                rule,
+                tied,
+                order,
+                winner,
+            })
         }
     };
 
@@ -211,6 +292,7 @@ pub fn parse_publication(text: &str) -> Result<Publication, String> {
         winner,
         matrix,
         counts,
+        participation,
         tiebreak,
     })
 }

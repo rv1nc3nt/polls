@@ -17,6 +17,20 @@
     {% csrf_token %}
     {% for message in form.non_field_errors %}<p class="error" role="alert">{{ message }}</p>{% endfor %}
 
+    {% comment %} Whoever reaches a fresh instance first would otherwise become its
+       administrator: the code proves access to the server it runs on. A form field,
+       not part of the address, so it reaches no access log. {% endcomment %}
+    {% with field=form.setup_code %}
+      <p class="field">
+        <label for="{{ field.id_for_label }}">
+          {{ field.label }} <span class="required">{% translate "(obligatoire)" %}</span>
+        </label>
+        <span class="help" id="{{ field.auto_id }}-help">{{ field.help_text }}</span>
+        {{ field }}
+        {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+      </p>
+    {% endwith %}
+
     <fieldset>
       <legend>{% translate "La commune" %}</legend>
       {% comment %} R-13.1 : la commune est responsable de traitement. R-13.2 : la notice

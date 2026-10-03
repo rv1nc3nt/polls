@@ -1,0 +1,22 @@
+{# SPDX-License-Identifier: 0BSD #}
+{% comment %}
+  One field of screen 2's configuration form (_poll_config_panels.html), with its
+  label, help text and errors. A checkbox group has no single control a
+  <label for> could name — Django gives it `for=""` — and its <div>s may not sit
+  inside a <p>, so it is a labelled group instead (RGAA 11.5, WCAG 1.3.1).
+{% endcomment %}
+{% if field.widget_type == "checkboxselectmultiple" %}
+  <div class="field" role="group" aria-labelledby="{{ field.auto_id }}_label">
+    <label id="{{ field.auto_id }}_label">{{ field.label }}</label>
+    {% if field.help_text %}<span class="help">{{ field.help_text }}</span>{% endif %}
+    {{ field }}
+    {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+  </div>
+{% else %}
+  <p class="field">
+    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+    {% if field.help_text %}<span class="help">{{ field.help_text }}</span>{% endif %}
+    {{ field }}
+    {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+  </p>
+{% endif %}

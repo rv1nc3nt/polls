@@ -35,6 +35,7 @@ from apps.core.types import OptionId, TrackingCode
 from apps.elections import closure
 from apps.elections.models import Poll, PollOption, TiebreakRule
 from apps.elections.transitions import close_poll, publish_poll
+from apps.registrations.models import Channel, Registration, RegistrationState
 from apps.tally.methods import Method, tally
 from apps.tally.tiebreak import tiebreak_order
 from tests.conftest import force_open
@@ -65,6 +66,10 @@ DIVERGENT = [
     ("FFFFFFFFFF", [["c"], ["b"], ["a"]]),
     ("GGGGGGGGGG", [["c"], ["b"], ["a"]]),
 ]
+# T-39: no ballots, no result. Under Schulze every strongest path is zero, and
+# a verifier that read that as an all-way tie disagreed with an honest
+# publication (review B-2).
+EMPTY: list[tuple[str, list[list[str]]]] = []
 
 
 @pytest.fixture(scope="module")
@@ -89,7 +94,9 @@ def write_csv(rows: list[tuple[str, list[list[str]]]], path: Path) -> None:
 
 @pytest.mark.parametrize("method", list(Method), ids=lambda m: str(m))
 @pytest.mark.parametrize(
-    "rows", [CYCLIC, CLEAR, DIVERGENT], ids=["cyclic-t9", "clear-winner", "divergent"]
+    "rows",
+    [CYCLIC, CLEAR, DIVERGENT, EMPTY],
+    ids=["cyclic-t9", "clear-winner", "divergent", "empty-t39"],
 )
 def test_t10_verifier_agrees_with_the_python_tally(
     rows: list[tuple[str, list[list[str]]]],
@@ -111,7 +118,9 @@ def test_t10_verifier_agrees_with_the_python_tally(
     result = tally([b.ranking for b in ballots], options, method)
 
     opening_seed = bytes(range(32))
-    winner = result.winner or tiebreak_order(result.tied, opening_seed, expected_hash)[0][0]
+    winner = result.winner or (
+        tiebreak_order(result.tied, opening_seed, expected_hash)[0][0] if result.tied else None
+    )
 
     completed = subprocess.run(  # noqa: S603
         [
@@ -125,8 +134,7 @@ def test_t10_verifier_agrees_with_the_python_tally(
             expected_hash.hex(),
             "--opening-seed",
             opening_seed.hex(),
-            "--winner",
-            str(winner),
+            *(["--winner", str(winner)] if winner else []),
         ],
         capture_output=True,
         text=True,
@@ -168,6 +176,18 @@ def _published(rows: list[tuple[str, list[list[str]]]], method: Method, rule: st
             ranking=ranking,
             source=BallotSource.ONLINE,
         )
+    # An elector behind every ballot, and one who never voted, so the counts
+    # frozen at closure add up as a real poll's do (the verifier checks them).
+    for k in range(len(rows) + 1):
+        Registration.objects.create(
+            poll=poll,
+            declared_last_name="X",
+            declared_first_names="Y",
+            email=f"v{k}@example.fr",
+            email_canonical=f"v{k}@example.fr",
+            state=RegistrationState.ACTIVE,
+            channel=Channel.ONLINE if k < len(rows) else Channel.NONE,
+        )
     close_poll(poll, early_reason=Reason.ADMINISTRATIVE_DECISION)
     admin = User.objects.create_user(username=f"admin-{poll.pk.hex[:8]}", password="x")
     poll.refresh_from_db()
@@ -189,7 +209,9 @@ def _run(verifier: Path, document: Path) -> subprocess.CompletedProcess[str]:
 @pytest.mark.parametrize("rule", [TiebreakRule.COMPUTED, TiebreakRule.PHYSICAL])
 @pytest.mark.parametrize("method", list(Method), ids=lambda m: str(m))
 @pytest.mark.parametrize(
-    "rows", [CYCLIC, CLEAR, DIVERGENT], ids=["cyclic-t9", "clear-winner", "divergent"]
+    "rows",
+    [CYCLIC, CLEAR, DIVERGENT, EMPTY],
+    ids=["cyclic-t9", "clear-winner", "divergent", "empty-t39"],
 )
 def test_the_verifier_agrees_with_the_published_document(
     rows: list[tuple[str, list[list[str]]]],
@@ -232,3 +254,78 @@ def test_a_tampered_winner_is_caught(client: Client, verifier_binary: Path, tmp_
     completed = _run(verifier_binary, document)
     assert completed.returncode == 1
     assert "winner          DIFFERS" in completed.stdout
+
+
+# --- the command line refuses to pass what it did not check (review B-1) ----
+
+
+@pytest.mark.parametrize(
+    ("extra", "code"),
+    [
+        ([], 3),  # nothing to compare: not a verification
+        (["--closure_hash", "00"], 2),  # misspelt flag
+        (["--winner"], 2),  # flag without a value
+        (["--closure-hash=" + "00" * 32], 1),  # = form is read, and this hash is wrong
+    ],
+    ids=["nothing-compared", "unknown-flag", "missing-value", "equals-form"],
+)
+def test_the_cli_never_exits_zero_without_comparing(
+    extra: list[str], code: int, verifier_binary: Path, tmp_path: Path
+) -> None:
+    csv_path = tmp_path / "ballots.csv"
+    write_csv(CLEAR, csv_path)
+    completed = subprocess.run(  # noqa: S603
+        [str(verifier_binary), str(csv_path), *extra], capture_output=True, text=True, check=False
+    )
+    assert completed.returncode == code, completed.stdout + completed.stderr
+
+
+def test_a_repeated_tracking_code_is_refused(verifier_binary: Path, tmp_path: Path) -> None:
+    csv_path = tmp_path / "ballots.csv"
+    write_csv([*CLEAR, CLEAR[0]], csv_path)
+    completed = subprocess.run(  # noqa: S603
+        [str(verifier_binary), str(csv_path), "--winner", "a"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert completed.returncode == 2
+    assert "more than one ballot" in completed.stderr
+
+
+@pytest.mark.django_db
+def test_published_counts_that_do_not_add_up_are_caught(
+    client: Client, verifier_binary: Path, tmp_path: Path
+) -> None:
+    """Ballots stuffed into the list, the counts frozen at closure left as
+    they were: the ballots by channel no longer make the list (review B-8)."""
+    poll = _published(CLEAR, Method.SCHULZE, TiebreakRule.COMPUTED)
+    data = json.loads(client.get(f"/fr/scrutin/{poll.pk}/resultats/?format=json").content)
+    assert data["counts"]["ballots_online"] == 3 and data["counts"]["non_voters"] == 1
+    data["counts"]["ballots_online"] += 2
+    document = tmp_path / "publication.json"
+    document.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+
+    completed = _run(verifier_binary, document)
+    assert completed.returncode == 1
+    assert "participation   DIFFERS" in completed.stdout
+
+
+@pytest.mark.parametrize(
+    "cell",
+    ['"[[""a""],[""a""]]"', '"[[""a""],[]]"', '"[[a]]"', '[["a"]]'],
+    ids=["ranked-twice", "empty-group", "unquoted-id", "unquoted-cell"],
+)
+def test_a_ranking_the_platform_never_writes_is_refused(
+    cell: str, verifier_binary: Path, tmp_path: Path
+) -> None:
+    """The CSV is read strictly (review B-6): exit 2, never a verdict."""
+    csv_path = tmp_path / "ballots.csv"
+    csv_path.write_text(f"tracking_code,ranking\nAAAAAAAAAA,{cell}\n", encoding="utf-8")
+    completed = subprocess.run(  # noqa: S603
+        [str(verifier_binary), str(csv_path), "--winner", "a"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert completed.returncode == 2, completed.stdout + completed.stderr

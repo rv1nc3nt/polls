@@ -34,6 +34,8 @@ dev = [
     "pytest>=8.3",
     "pytest-django>=4.9",
     "types-markdown>=3.10.2.20260712",
+    "playwright>=1.63",
+    "votelib==0.4.0",
 ]
 
 [tool.ruff]
@@ -46,14 +48,21 @@ src = ["src"]
 extend-exclude = ["docs"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "DJ", "S", "C4", "RUF"]
+select = ["E", "F", "I", "UP", "B", "DJ", "S", "C4", "RUF", "D100", "D101", "D102", "D103"]
 # The interface, the labels and the comments are French: ambiguous-unicode
 # would flag every typographic apostrophe and accented character (§3.8).
 ignore = ["S101", "RUF001", "RUF002", "RUF003", "RUF012"]
 
 [tool.ruff.lint.per-file-ignores]
-"**/migrations/*" = ["E501", "RUF012"]
-"tests/*" = ["S105", "S106", "RUF043"]
+# D100–D103 (review E-8) hold the project's own API to a docstring. These are
+# Django's hook layers instead — `clean_<field>`, `form_valid`, `handle`, a
+# URL table, an app config — documented by Django, and a docstring on each
+# would only restate the code. An override elsewhere carries
+# `typing.override`, which exempts it and which mypy checks.
+"**/migrations/*" = ["E501", "RUF012", "D1"]
+"src/apps/*/{forms,views,urls,apps}.py" = ["D1"]
+"src/apps/*/management/commands/*" = ["D1"]
+"tests/*" = ["S105", "S106", "RUF043", "D1"]
 "src/config/settings/*" = ["F403", "F405"]
 
 [tool.mypy]
@@ -64,7 +73,7 @@ plugins = ["mypy_django_plugin.main"]
 exclude = ["migrations/"]
 
 [[tool.mypy.overrides]]
-module = ["openpyxl.*"]
+module = ["openpyxl.*", "votelib.*"]
 ignore_missing_imports = true
 
 [tool.django-stubs]
@@ -75,3 +84,6 @@ DJANGO_SETTINGS_MODULE = "config.settings.test"
 pythonpath = ["src"]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
+# tests/browser drive a real browser (review C-8): opt in with `-m browser`.
+markers = ["browser: needs Playwright's Chromium and `npm ci` (tests/browser/conftest.py)"]
+addopts = "-m 'not browser'"

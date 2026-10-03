@@ -105,6 +105,30 @@
       {% endif %}
     </dl>
 
+    {% if opening_seed %}
+      {% comment %} R-10.5: the seed is published the moment the poll opens, so a
+         reader can check that the one used by the tie-break after closure is
+         this one (decision log #40). {% endcomment %}
+      <dl class="facts">
+        <dt id="graine">{% translate "Graine d'ouverture" %}</dt>
+        <dd><code>{{ opening_seed }}</code></dd>
+      </dl>
+      <p class="help">{% translate "Tirée au sort à l'ouverture et publiée dès cet instant, elle ne peut plus changer. En cas d'égalité, le départage en dépend : après la publication, vérifiez que le document de publication reprend exactement cette valeur." %}</p>
+    {% endif %}
+
+    {% if closure_commitment %}
+      {% comment %} R-11.1: the closure hash is published the moment it is computed, ahead
+         of the result, so the ballot list published later can be checked against a
+         value fixed at closure (decision log #40). {% endcomment %}
+      <dl class="facts">
+        <dt id="empreinte">{% translate "Empreinte de clôture (SHA-256)" %}</dt>
+        <dd><code>{{ closure_commitment.hash }}</code></dd>
+        <dt>{% translate "Bulletins retenus" %}</dt>
+        <dd>{{ closure_commitment.ballots }}</dd>
+      </dl>
+      <p class="help">{% translate "Calculée à la clôture sur l'ensemble des bulletins retenus et publiée dès cet instant, elle ne peut plus changer. Après la publication, vérifiez que les résultats reprennent exactement cette empreinte et ce nombre de bulletins." %}</p>
+    {% endif %}
+
     {% if extensions %}
       {% comment %} R-3.4: an extension of the closing date is recorded in the audit log
          with a reason and displayed here. The operator who made it is not named —

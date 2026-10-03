@@ -5,8 +5,14 @@ from __future__ import annotations
 
 import hashlib
 
+import pytest
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_slug
+
 from apps.core.canonical import (
+    OPTION_ID,
     CanonicalBallot,
+    NonCanonicalValue,
     canonical_record,
     canonical_serialisation,
     closure_hash,
@@ -60,6 +66,36 @@ def test_t42_empty_live_set_still_has_a_closure_hash() -> None:
     assert closure_hash([]) == hashlib.sha256(b"").digest()
 
 
+@pytest.mark.parametrize(
+    "option",
+    ['a"b', "a\\b", "a\nb", "a\x7fb", "é", "a b", "", "x" * 51],
+)
+def test_an_option_id_outside_the_alphabet_is_refused_not_escaped(option: str) -> None:
+    """Review B-7: ``json.dumps`` and the verifier escape these differently, so
+    the two hashes would split; rule 7 refuses them instead."""
+    with pytest.raises(NonCanonicalValue):
+        canonical_record(ballot("AAAAABBBBB", [option]))
+
+
+@pytest.mark.parametrize("code", ["AAAAABBBB1", "AAAAABBBB", 'AAAAABBBB"', "aaaaabbbbb"])
+def test_a_tracking_code_outside_the_alphabet_is_refused(code: str) -> None:
+    with pytest.raises(NonCanonicalValue):
+        canonical_serialisation([ballot(code, ["a"])])
+
+
+@pytest.mark.parametrize("option", ["a", "option-b", "Grille_3", "x" * 50, "a\n", "a-é"])
+def test_the_option_id_alphabet_is_the_slug_the_forms_and_model_accept(option: str) -> None:
+    """``PollOption.option_id`` and the screen-2 field are slugs: what they
+    accept is what rule 7 accepts, up to the 50 characters of their
+    ``max_length``."""
+    try:
+        validate_slug(option)
+        slug = len(option) <= 50
+    except ValidationError:
+        slug = False
+    assert slug == bool(OPTION_ID.fullmatch(option))
+
+
 def test_t43_voter_and_ballot_hashes_differ_and_are_stable() -> None:
     # ``bytes(...)`` is needed on the first line and is the point: under
     # ``mypy --strict`` a direct ``voter_hash(...) != ballot_hash(...)`` is a
@@ -86,3 +122,11 @@ def test_token_redacts_itself() -> None:
     assert "redacted" in repr(token)
     assert "redacted" in f"{token}"
     assert token.reveal() not in f"{token!r} {token} {token:>10}"
+
+
+def test_only_a_token_of_the_issued_shape_is_well_formed() -> None:
+    from apps.core.crypto import is_well_formed, new_token
+
+    assert is_well_formed(new_token())
+    for bad in ["", "WRONG", "été", new_token().reveal().lower(), new_token().reveal() + "A"]:
+        assert not is_well_formed(Token(bad)), bad

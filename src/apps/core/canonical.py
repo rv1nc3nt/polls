@@ -27,17 +27,43 @@ The rules, in full:
 6.  ``closure_hash = SHA256`` of those bytes. An empty live set serialises to
     zero bytes and hashes to SHA256 of the empty string — a poll with no
     ballots still has a closure hash.
+7.  Every string is drawn from a fixed alphabet: a tracking code is
+    ``LENGTH`` characters of ``codes.ALPHABET``, an option id 1 to 50 of
+    ``[A-Za-z0-9_-]`` (the slug ``PollOption.option_id`` already is). JSON
+    escapes none of those characters, so the record needs no escaping rule,
+    and two implementations cannot disagree over one (review B-7). Anything
+    else is refused, never escaped: ``json.dumps`` and the verifier would
+    escape a quote, a backslash or a control character differently.
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections.abc import Iterable, Sequence
 
+from . import codes
 from .types import OptionId, TrackingCode
 
 Ranking = Sequence[Sequence[OptionId]]
+
+#: Rule 7. ``elections`` migration 0017 holds stored option ids to the same.
+OPTION_ID = re.compile(r"[A-Za-z0-9_-]{1,50}")
+
+
+class NonCanonicalValue(ValueError):
+    """A tracking code or option id outside its alphabet (rule 7)."""
+
+
+def check_alphabets(ballot: CanonicalBallot) -> None:
+    """Refuse a ballot rule 7 does not cover, rather than serialise it."""
+    code = str(ballot.tracking_code)
+    if len(code) != codes.LENGTH or any(c not in codes.ALPHABET for c in code):
+        raise NonCanonicalValue(f"tracking code {code!r}")
+    for option in (o for group in ballot.ranking for o in group):
+        if not OPTION_ID.fullmatch(option):
+            raise NonCanonicalValue(f"option id {option!r}")
 
 
 class CanonicalBallot:
@@ -51,7 +77,11 @@ class CanonicalBallot:
 
 
 def canonical_record(ballot: CanonicalBallot) -> bytes:
-    """Rule 2 and 3: one ballot as its canonical JSON object, without newline."""
+    """Rule 2 and 3: one ballot as its canonical JSON object, without newline.
+
+    Raises ``NonCanonicalValue`` for a string outside rule 7.
+    """
+    check_alphabets(ballot)
     ranking = [sorted(group) for group in ballot.ranking]
     payload = {"tracking_code": str(ballot.tracking_code), "ranking": ranking}
     return json.dumps(

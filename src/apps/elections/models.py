@@ -124,7 +124,8 @@ class Poll(models.Model):
       ``transitions.extend_closes_at``;
     * **lifecycle** — ``state``, ``opening_seed``, ``closure_hash``,
       ``closed_at``, ``withdrawn_at``, ``frozen_counts``,
-      ``closure_override_reason``, written only by ``transitions`` (and
+      ``closure_override_reason``, ``published_document``,
+      ``published_csv``, written only by ``transitions`` (and
       ``physical_tiebreak_order`` by ``closure``);
     * **access** — ``preview_token``, written by ``sharelink``.
 
@@ -195,6 +196,16 @@ class Poll(models.Model):
     # is logged. An ordering of the tied option ids; empty until entered. A
     # lifecycle field, not configuration — set once, after closure.
     physical_tiebreak_order = models.JSONField(default=list, blank=True)
+    # R-10.2: the §9 artefacts exactly as served, written once by
+    # ``publish_poll`` and never re-derived, so neither a later change to the
+    # tally code nor to the document's shaping can restate a published result.
+    # Text, not JSON: the bytes a reader downloaded are what is kept. NULL
+    # until published — nullable rather than blank so SQLite adds the columns
+    # in place, without the table rebuild that trips every trigger reading
+    # this table (migration 0010's comment) — then write-once, by trigger
+    # (migration 0015).
+    published_document = models.TextField(null=True, blank=True)  # noqa: DJ001
+    published_csv = models.TextField(null=True, blank=True)  # noqa: DJ001
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -253,6 +264,7 @@ class Poll(models.Model):
         return self.languages[0] if self.languages else "fr"
 
     def title(self, language: str | None = None) -> str:
+        """The title in ``language``, falling back as ``translate`` does."""
         return self.translate(self.title_i18n, language)
 
     def display_title(self, language: str | None = None) -> str:
@@ -271,6 +283,7 @@ class Poll(models.Model):
         return self.title(language) or str(_("(scrutin sans titre)"))
 
     def description(self, language: str | None = None) -> str:
+        """The raw Markdown description; ``richtext`` renders it (§3.1 bis)."""
         return self.translate(self.description_i18n, language)
 
     def translate(self, mapping: dict[str, str], language: str | None = None) -> str:
@@ -333,9 +346,11 @@ class PollOption(models.Model):
         return self.label()
 
     def label(self, language: str | None = None) -> str:
+        """The label in ``language``, falling back as ``Poll.translate`` does."""
         return self.poll.translate(self.label_i18n, language)
 
     def details(self, language: str | None = None) -> str:
+        """The raw Markdown extended description, possibly empty (R-3.12)."""
         return self.poll.translate(self.details_i18n, language)
 
 

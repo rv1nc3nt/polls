@@ -30,9 +30,9 @@ in [`docs/specification-decision-log.md`](docs/specification-decision-log.md).
   [Licence](#licence) below.
 - **No one can see how a resident voted — not even the town hall.** A
   registration proves who is entitled to vote; a ballot is anonymous from the
-  moment it is cast. The two are never joined, in the application or in the
-  database (`INV-1`, enforced by a database trigger, not just application
-  code).
+  moment it is cast. The two share no column, key or reference, in the
+  application or in the database (`INV-1`: the data model defines no relation
+  between them, and a test fails the build if one appears).
 - **The count is public, not just announced.** Closing a poll publishes the
   anonymised ballots and a fingerprint of the result. Anyone can download the
   free [verifier](docs/manuel/verifier-en.md) and check the outcome
@@ -60,9 +60,9 @@ for.
 ## Main features
 
 - **Electoral roll import and registration** (§6.1–6.2) — the commune imports
-  its working roll as a CSV; residents register online and are matched against
-  it by name and address, with anything ambiguous sent to manual review rather
-  than guessed at.
+  its working roll as a CSV or Excel file; residents register online and are
+  matched against it by name and date of birth, with anything ambiguous sent
+  to manual review rather than guessed at.
 - **Voting, online and on paper** (§6.3–6.4) — electors cast or revise an
   online ballot up to closure; a council member can key in a paper ballot
   instead, with automatic detection if that elector already voted online.
@@ -182,12 +182,25 @@ For working on the code itself, not for running a poll:
     uv run python manage.py migrate
     uv run python manage.py runserver
 
+The first-run wizard (`/fr/mairie/installation/`) asks for a code: in
+development it is `dev`.
+
 Tests, lint and types:
 
     uv run pytest -q
     uv run ruff check .
     uv run mypy src tests
+    cargo fmt --manifest-path verifier/Cargo.toml --all --check
+    cargo clippy --manifest-path verifier/Cargo.toml --workspace --all-targets -- -D warnings
     cargo test --manifest-path verifier/Cargo.toml
+    npm ci && npm run lint          # ESLint and stylelint over src/static/
+
+The browser tests (`tests/browser`, a voter's journey and the back-office
+editor in headless Chromium, with an axe-core accessibility pass on each page)
+are left out of `pytest -q`. After `npm ci`:
+
+    uv run playwright install --only-shell chromium
+    uv run pytest -q -m browser
 
 ## Layout
 
@@ -230,7 +243,7 @@ Implemented and tested — the CI gates (`compilemessages`, `makemigrations
   INV-2, INV-3, INV-6 and INV-7;
 - the transition function and its guards, the voting window, closure, the
   closure hash and publication artefacts, the tally, the tie-break, retention;
-- the anonymity scheme (§7), name and address matching;
+- the anonymity scheme (§7), name and date-of-birth matching;
 - the roll import (§6.1), the registration and review flow (§6.2), online
   casting and modification (§6.3), paper entry, correction, deletion and
   countersignature (§6.4);
@@ -242,7 +255,9 @@ Implemented and tested — the CI gates (`compilemessages`, `makemigrations
 - the independent Rust verifier and its cross-check against the Python tally;
 - the Ansible role — `provision`, `deploy`, `backup`, `restore`, `smoke` (§15).
 
-Every acceptance test T-1…T-81 (§12) has a test or a Molecule scenario.
+Every acceptance test of §12 (T-1…T-94) has a test or a Molecule scenario that
+cites it by number, and `tests/unit/test_acceptance_traceability.py` fails the
+build when one does not.
 
 Outstanding:
 

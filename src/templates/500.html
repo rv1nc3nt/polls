@@ -1,0 +1,23 @@
+{% load i18n static %}<!doctype html>
+{# SPDX-License-Identifier: 0BSD #}
+{% comment %} Deliberately not extending base.html (review A-14). Django renders this page
+   without the request, so no context processor runs, and the error may have
+   come from the database or from base.html itself: nothing here may query
+   either. The stylesheet and the translations need neither. {% endcomment %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE|default:'fr' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% translate "Erreur du serveur" %}</title>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body>
+  <main id="contenu">
+    <h1>{% translate "Erreur du serveur" %}</h1>
+    <p>{% translate "Le serveur a rencontré une erreur et n'a pas pu afficher cette page. L'erreur est enregistrée dans son journal." %}</p>
+    <p>{% translate "Réessayez dans quelques instants. Si elle persiste, prévenez la mairie." %}</p>
+    <p><a href="/">{% translate "Revenir à l'accueil" %}</a></p>
+  </main>
+</body>
+</html>

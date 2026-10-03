@@ -1,0 +1,19 @@
+{
+  "name": "polls-frontend-lint",
+  "private": true,
+  "description": "Linters for src/static/ only: the site ships its scripts and stylesheet as written, with no build step (review C-8).",
+  "license": "0BSD",
+  "scripts": {
+    "lint": "npm run lint:js && npm run lint:css",
+    "lint:js": "eslint src/static/js eslint.config.js stylelint.config.js",
+    "lint:css": "stylelint \"src/static/css/**/*.css\""
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "axe-core": "4.13.0",
+    "eslint": "10.12.0",
+    "globals": "17.13.0",
+    "stylelint": "17.16.0",
+    "stylelint-config-recommended": "18.0.0"
+  }
+}

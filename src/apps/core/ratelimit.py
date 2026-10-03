@@ -100,3 +100,59 @@ def registration_limit() -> Limit:
 def email_limit() -> Limit:
     """``settings.RATE_LIMIT_EMAIL``, parsed like ``registration_limit``."""
     return Limit.parse(settings.RATE_LIMIT_EMAIL)
+
+
+# --- sign-in failures (review A-7) ---------------------------------------------
+#
+# Unlike ``allow``, which counts every attempt, these count only *failures*:
+# an operator who signs in correctly costs nothing, and one locked out is
+# locked out by wrong passwords alone. Two counters, by caller and by account:
+# the first stops one address guessing at many accounts, the second one
+# account being guessed from many addresses. The second can be used to keep an
+# operator out on purpose, which is why its window is wider than the first's
+# and its count higher (decision log #43). Both fail open, like ``allow``.
+
+
+def account_digest(username: str) -> str:
+    """The account a sign-in names, salted like ``client_digest``, case-folded
+    so ``Admin`` and ``admin`` share one counter."""
+    salted = f"{settings.SECRET_KEY}:account:{username.strip().casefold()}".encode()
+    return hashlib.sha256(salted).hexdigest()[:32]
+
+
+def exceeded(bucket: str, ident: str, limit: Limit) -> bool:
+    """Whether ``ident`` has already used up ``limit`` in ``bucket``."""
+    try:
+        return int(cache.get(f"ratelimit:{bucket}:{ident}", 0)) >= limit.count
+    except Exception:  # a cache outage must not lock every operator out
+        return False
+
+
+def count_failure(bucket: str, ident: str, limit: Limit) -> None:
+    """Record one failure for ``ident`` in ``bucket``."""
+    key = f"ratelimit:{bucket}:{ident}"
+    try:
+        cache.add(key, 0, timeout=limit.window)
+        cache.incr(key)
+    except ValueError:
+        cache.set(key, 1, timeout=limit.window)
+    except Exception:  # noqa: S110 — fail open, as above
+        pass
+
+
+def clear(bucket: str, ident: str) -> None:
+    """Forget ``ident``'s failures in ``bucket``: a correct sign-in."""
+    try:
+        cache.delete(f"ratelimit:{bucket}:{ident}")
+    except Exception:  # noqa: S110 — fail open, as above
+        pass
+
+
+def login_address_limit() -> Limit:
+    """``settings.RATE_LIMIT_LOGIN_ADDRESS``: failures per caller."""
+    return Limit.parse(settings.RATE_LIMIT_LOGIN_ADDRESS)
+
+
+def login_account_limit() -> Limit:
+    """``settings.RATE_LIMIT_LOGIN_ACCOUNT``: failures per account named."""
+    return Limit.parse(settings.RATE_LIMIT_LOGIN_ACCOUNT)

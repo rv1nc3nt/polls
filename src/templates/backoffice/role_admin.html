@@ -1,5 +1,5 @@
 {% extends "backoffice/base.html" %}
-{% load i18n %}
+{% load i18n tz %}
 {# SPDX-License-Identifier: 0BSD #}
 
 {% block screen_title %}{% translate "Rôles par scrutin" %}{% endblock %}
@@ -30,12 +30,12 @@
     <button type="submit">{% translate "Rechercher" %}</button>
   </form>
 
-  <p class="tags" aria-label="{% translate 'Filtrer par état' %}">
+  <div class="tags" role="group" aria-label="{% translate 'Filtrer par état' %}">
     <a href="?q={{ query }}"{% if not etat %} class="tag active"{% else %} class="tag"{% endif %}>{% translate "Tous" %}</a>
     {% for value, label in etat_choices %}
       <a href="?q={{ query }}&etat={{ value }}"{% if etat == value %} class="tag active"{% else %} class="tag"{% endif %}>{{ label }}</a>
     {% endfor %}
-  </p>
+  </div>
 
   <div class="table-scroll" role="region" aria-labelledby="tblcap-role-admin-1" tabindex="0">
   <table>
@@ -62,7 +62,7 @@
             {% if selected_poll and poll.pk == selected_poll.pk %} <span class="tag">{% translate "affiché ci-dessous" %}</span>{% endif %}
           </td>
           <td>{{ poll.get_state_display }}</td>
-          <td>{{ poll.closes_at }}</td>
+          <td>{{ poll.closes_at|timezone:poll.timezone }}</td>
         </tr>
       {% empty %}
         <tr><td colspan="3">{% translate "Aucun scrutin ne correspond." %}</td></tr>
@@ -72,17 +72,15 @@
   </div>
 
   {% if page.has_other_pages %}
-    {% with keep="&q="|add:query|add:"&etat="|add:etat %}
     <nav class="pagination" aria-label="{% translate 'Pages de la liste' %}">
       {% if page.has_previous %}
-        <a href="?page={{ page.previous_page_number }}{{ keep }}">{% translate "Page précédente" %}</a>
+        <a href="{% querystring page=page.previous_page_number %}">{% translate "Page précédente" %}</a>
       {% endif %}
       <span>{% blocktranslate with current=page.number total=page.paginator.num_pages %}Page {{ current }} sur {{ total }}{% endblocktranslate %}</span>
       {% if page.has_next %}
-        <a href="?page={{ page.next_page_number }}{{ keep }}">{% translate "Page suivante" %}</a>
+        <a href="{% querystring page=page.next_page_number %}">{% translate "Page suivante" %}</a>
       {% endif %}
     </nav>
-    {% endwith %}
   {% endif %}
 
   {% if selected_poll %}
@@ -124,20 +122,22 @@
           <tr>
             <th scope="col">{% translate "Compte" %}</th>
             {% for role_value, role_label in roles %}
-              <th scope="col">{{ role_label }}</th>
+              <th scope="col" id="role-col-{{ role_value }}">{{ role_label }}</th>
             {% endfor %}
           </tr>
         </thead>
         <tbody>
           {% for row in grid %}
             <tr>
-              <th scope="row">
+              <th scope="row" id="role-row-{{ row.account.pk }}">
                 {{ row.account.username }}
                 <input type="hidden" name="grid_account" value="{{ row.account.pk }}">
               </th>
               {% for cell in row.cells %}
                 <td>
-                  <input type="checkbox" name="role__{{ row.account.pk }}__{{ cell.role }}" value="1"{% if cell.checked %} checked{% endif %}>
+                  {% comment %} Named by its two headers, "Administrateur du scrutin alice":
+                     a bare checkbox in a grid reads "case à cocher" twelve times over (RGAA). {% endcomment %}
+                  <input type="checkbox" aria-labelledby="role-col-{{ cell.role }} role-row-{{ row.account.pk }}" name="role__{{ row.account.pk }}__{{ cell.role }}" value="1"{% if cell.checked %} checked{% endif %}>
                 </td>
               {% endfor %}
             </tr>

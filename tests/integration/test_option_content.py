@@ -56,6 +56,7 @@ def test_poll_description_is_rendered_as_markdown(open_window_poll: Poll) -> Non
 def test_markdown_is_rendered_and_scripts_and_iframes_are_stripped(
     open_window_poll: Poll,
 ) -> None:
+    """T-79: typed ``<script>`` and ``<iframe>`` never reach the page."""
     option = open_window_poll.options.first()
     assert option is not None
     option.details_i18n = {
@@ -77,6 +78,7 @@ def test_markdown_is_rendered_and_scripts_and_iframes_are_stripped(
 
 
 def test_youtube_fence_becomes_the_one_sandboxed_iframe(open_window_poll: Poll) -> None:
+    """T-79: a fence with a valid id embeds, from ``youtube-nocookie.com``."""
     option = open_window_poll.options.first()
     assert option is not None
     option.details_i18n = {"fr": "Texte avant.\n\n```youtube\ndQw4w9WgXcQ\n```\n\nTexte après."}
@@ -92,7 +94,7 @@ def test_youtube_fence_becomes_the_one_sandboxed_iframe(open_window_poll: Poll) 
 def test_youtube_fence_with_an_invalid_id_is_dropped_not_guessed_at(
     open_window_poll: Poll,
 ) -> None:
-    """An id that fails the eleven-character check — including one carrying
+    """T-79. An id that fails the eleven-character check — including one carrying
     an injection attempt — drops the whole block rather than emitting
     anything built from it (§3.1 bis)."""
     option = open_window_poll.options.first()
@@ -106,6 +108,7 @@ def test_youtube_fence_with_an_invalid_id_is_dropped_not_guessed_at(
 
 
 def test_youtube_url_alone_on_its_line_becomes_an_iframe_too(open_window_poll: Poll) -> None:
+    """T-79: a bare ``youtu.be`` link alone on its line embeds."""
     option = open_window_poll.options.first()
     assert option is not None
     option.details_i18n = {"fr": "Texte avant.\n\nhttps://youtu.be/dQw4w9WgXcQ\n\nTexte après."}
@@ -151,7 +154,7 @@ def test_youtube_watch_url_with_extra_query_params_embeds(open_window_poll: Poll
 def test_youtube_link_as_markdown_link_or_mid_sentence_stays_a_link(
     open_window_poll: Poll,
 ) -> None:
-    """Only a line that is *nothing but* the URL is an embed request — the
+    """T-79. Only a line that is *nothing but* the URL is an embed request — the
     operator who deliberately wrote a link keeps a link (§3.1 bis)."""
     option = open_window_poll.options.first()
     assert option is not None
@@ -171,7 +174,7 @@ def test_youtube_link_as_markdown_link_or_mid_sentence_stays_a_link(
 def test_image_reference_resolves_across_the_poll_but_not_a_foreign_poll(
     open_window_poll: Poll, admin_user: User
 ) -> None:
-    """The library is shared by the whole poll (R-3.12): the same image
+    """T-79 (foreign image). The library is shared by the whole poll (R-3.12): the same image
     resolves from the poll's own description and from any of its options —
     but not from a different poll's content."""
     option_a, option_b = list(open_window_poll.options.all())[:2]
@@ -234,7 +237,7 @@ def test_image_reference_with_empty_alt_falls_back_to_the_library_alt_text(
 def test_image_reference_size_suffix_selects_a_css_class(
     open_window_poll: Poll, admin_user: User
 ) -> None:
-    """The optional ``:small``/``:medium``/``:large`` suffix on an
+    """T-86. The optional ``:small``/``:medium``/``:large`` suffix on an
     ``image:<n>`` reference (docs/specification-decision-log.md #23) picks a
     display-size class; omitted, the image renders exactly as it always has,
     with no class attribute at all."""
@@ -244,12 +247,13 @@ def test_image_reference_size_suffix_selects_a_css_class(
         open_window_poll, SimpleUploadedFile("a.png", _PNG), alt_text="Vue", actor=admin_user
     )
 
-    option.details_i18n = {"fr": f"![](image:{image.short_id}:large)"}
-    option.save(update_fields=["details_i18n"])
-    html = richtext.render_option_details(option)
-    assert 'class="poll-image--large"' in html
-    assert 'alt="Vue"' in html
-    assert image.file.url in html
+    for size in ("small", "medium", "large"):
+        option.details_i18n = {"fr": f"![](image:{image.short_id}:{size})"}
+        option.save(update_fields=["details_i18n"])
+        html = richtext.render_option_details(option)
+        assert f'class="poll-image--{size}"' in html
+        assert 'alt="Vue"' in html
+        assert image.file.url in html
 
     option.details_i18n = {"fr": f"![](image:{image.short_id})"}
     option.save(update_fields=["details_i18n"])
@@ -259,7 +263,7 @@ def test_image_reference_size_suffix_selects_a_css_class(
 def test_image_reference_size_suffix_alt_text_is_escaped(
     open_window_poll: Poll, admin_user: User
 ) -> None:
-    """The sized path builds a raw ``<img>`` tag itself (§3.1 bis point 3),
+    """T-86. The sized path builds a raw ``<img>`` tag itself (§3.1 bis point 3),
     so an override alt text carrying a quote must not break out of the
     attribute it sits in."""
     option = open_window_poll.options.first()
@@ -278,7 +282,7 @@ def test_image_reference_size_suffix_alt_text_is_escaped(
 def test_image_reference_bad_size_suffix_is_not_recognised(
     open_window_poll: Poll, admin_user: User
 ) -> None:
-    """Only the three named sizes are a size suffix at all — anything else
+    """T-86. Only the three named sizes are a size suffix at all — anything else
     after the colon is just part of an unresolved reference, dropped like any
     other malformed ``image:`` syntax rather than guessed at."""
     option = open_window_poll.options.first()
@@ -316,12 +320,16 @@ def test_a_plain_link_to_an_image_id_is_never_resolved(
 
 
 def test_image_reference_to_a_missing_id_degrades_quietly(open_window_poll: Poll) -> None:
+    """T-79 (non-existent image): dropped silently, the rest of the text kept."""
     option = open_window_poll.options.first()
     assert option is not None
-    option.details_i18n = {"fr": "![alt](image:999)"}
+    option.details_i18n = {"fr": "Avant. ![alt](image:999) Après."}
     option.save(update_fields=["details_i18n"])
     # No exception, no broken <img> pointed nowhere real.
-    assert "<img" not in richtext.render_option_details(option)
+    html = richtext.render_option_details(option)
+    assert "<img" not in html
+    assert "Avant." in html
+    assert "Après." in html
 
 
 # --- upload and removal (apps.elections.pollimages) -------------------------
@@ -516,3 +524,46 @@ def test_the_public_page_renders_the_description_and_extended_description(
     body = client.get(f"/fr/scrutin/{open_window_poll.pk}/").content.decode()
     assert "<strong>Description</strong>" in body
     assert "<strong>Détails</strong>" in body
+
+
+# --- images come only from the poll's own library (review A-5) ---------------
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "![pixel](https://tracker.example/p.gif)",
+        '<img src="https://evil.example/x.png">',
+        '<img src="/media/anything.png" class="skip-link visually-hidden">',
+        '<p class="error">no class from the operator</p>',
+    ],
+    ids=["markdown-url", "raw-html", "raw-html-with-class", "class-on-other-tag"],
+)
+def test_no_image_or_class_the_operator_wrote_survives(open_window_poll: Poll, raw: str) -> None:
+    """A public page must not load anything from elsewhere (it would report
+    its visitors to a third party), nor take a class the operator chose,
+    which could restyle or hide the page's own furniture."""
+    open_window_poll.description_i18n = {"fr": raw}
+    open_window_poll.save(update_fields=["description_i18n"])
+    html = richtext.render_poll_description(open_window_poll)
+    assert "<img" not in html
+    assert "class=" not in html
+    assert "tracker.example" not in html and "evil.example" not in html
+
+
+def test_a_library_image_still_renders_inside_text_and_links(
+    open_window_poll: Poll, admin_user: User
+) -> None:
+    image = pollimages.add_poll_image(
+        open_window_poll, SimpleUploadedFile("c.png", _PNG), alt_text="Plan", actor=admin_user
+    )
+    open_window_poll.description_i18n = {
+        "fr": f"Voir [![](image:{image.short_id}:small)](https://example.org) ci-dessus."
+    }
+    open_window_poll.save(update_fields=["description_i18n"])
+    html = richtext.render_poll_description(open_window_poll)
+    assert (
+        f'<a href="https://example.org" rel="noopener noreferrer nofollow ugc">'
+        f'<img src="{image.file.url}" alt="Plan" class="poll-image--small"></a>'
+    ) in html
+    assert "POLLIMAGE" not in html

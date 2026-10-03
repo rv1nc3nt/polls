@@ -36,12 +36,11 @@ from dataclasses import dataclass
 from typing import Any
 
 from django.db import IntegrityError, transaction
-from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from apps.audit import services as audit
 from apps.audit.models import Action, Reason
-from apps.core.crypto import new_token, voter_hash
+from apps.core.crypto import is_well_formed, new_token, voter_hash
 from apps.core.models import User
 from apps.core.names import canonical_email, names_match, parse_dob
 from apps.core.types import Token, TokenSalt
@@ -266,8 +265,8 @@ def _adopt_paper_shell(
     created or the attempt refused as a duplicate of itself.
 
     Goes back through ``pending_email`` like any registration: the address is
-    new and unproven, so ``confirmed_at`` is cleared and the mailed token is
-    what activates it (§6.2 step 5). Returns ``None`` if a concurrent adoption
+    new and unproven, so it goes back to ``pending_email`` and the mailed token
+    is what activates it (§6.2 step 5). Returns ``None`` if a concurrent adoption
     got there first, leaving the caller to refuse.
     """
     locked = Registration.objects.select_for_update().get(pk=shell.pk)
@@ -281,7 +280,6 @@ def _adopt_paper_shell(
     locked.declared_on_honour = fields["declared_on_honour"]
     locked.language = language
     locked.state = RegistrationState.PENDING_EMAIL
-    locked.confirmed_at = None
     locked.save(
         update_fields=[
             "declared_last_name",
@@ -292,7 +290,6 @@ def _adopt_paper_shell(
             "declared_on_honour",
             "language",
             "state",
-            "confirmed_at",
         ]
     )
     return locked, issue_token(locked)
@@ -505,7 +502,7 @@ def find_by_token(poll: Poll, token: Token) -> Registration | None:
     different domain prefix, and the two are separate ``NewType``s precisely so
     that confusing them is a type error (§5.1).
     """
-    if not token:
+    if not token or not is_well_formed(token):
         return None
     digest = voter_hash(TokenSalt(bytes(poll.token_salt)), token)
     return Registration.objects.filter(poll=poll, voter_hash=digest).first()
@@ -530,8 +527,7 @@ def confirm_mailbox(registration: Registration) -> Registration:
         raise RegistrationRefused(_("Cette inscription ne peut pas être confirmée."))
 
     registration.state = RegistrationState.ACTIVE
-    registration.confirmed_at = timezone.now()
-    registration.save(update_fields=["state", "confirmed_at"])
+    registration.save(update_fields=["state"])
     return registration
 
 
@@ -616,7 +612,6 @@ def ensure_paper_registration(poll: Poll, roll_entry_id: str) -> tuple[str, str]
         declared_dob=entry.date_of_birth,
         email="",
         email_canonical="",
-        confirmed_at=timezone.now(),
     )
     return str(registration.pk), str(Channel.PAPER)
 

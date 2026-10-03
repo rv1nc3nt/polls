@@ -20,11 +20,18 @@ uv run python manage.py makemigrations --check --dry-run  # models match migrati
 uv run pytest -q                          # fast; no network
 uv run ruff check . && uv run ruff format --check .
 uv run mypy src tests                     # --strict, must stay clean
+cargo fmt --manifest-path verifier/Cargo.toml --all --check
+cargo clippy --manifest-path verifier/Cargo.toml --workspace --all-targets -- -D warnings
 cargo test --manifest-path verifier/Cargo.toml
+(cd verifier && cargo audit --deny warnings)  # also weekly; exceptions in verifier/.cargo/audit.toml
 uv run python manage.py compilemessages   # needs GNU gettext installed
+npm ci && npm run lint                    # ESLint + stylelint over src/static/
+uv run playwright install --only-shell chromium && uv run pytest -m browser  # after npm ci
 ```
 
-All five gates run in CI and must be green before a commit lands.
+Every gate above (all but `uv sync` and `migrate`) runs in CI and must be green
+before a commit lands. The plain `pytest` run leaves out `tests/browser`, which
+need a browser; `-m browser` runs them, and CI does both.
 
 ## Layout
 
@@ -37,7 +44,8 @@ scheme) ·
 closure, retention, `sandbox.py` (sandbox access and deletion, R-3.7), `sharelink.py`, `rollimport.py` (§6.1: parsing, mapping, validation, the
 transactional apply shared by the CLI and screen 3) ·
 `src/apps/registrations/` (§6.2: `services`, `mail`, `forms`, `views`) ·
-`src/apps/ballots/` ·
+`src/apps/ballots/` (`trendpoints.py` records the trend's points as they fall
+due, R-11.5 bis) ·
 `src/apps/audit/` · `src/apps/tally/` pure, imports no model ·
 `src/apps/backoffice/` espace mairie (§6.5, the bulk of the remaining work;
 `access.py` is the role gate every screen goes through, `dashboard.py`,
@@ -65,6 +73,15 @@ find a way round it.
   `registrations` only through `registrations.services`, passing ids and plain
   strings, never a `Registration`. `tests/integration/test_inv1_separation.py`
   asserts all of this, over every module of both apps.
+  Nor may anything *time* or *order* a ballot: a first ballot follows the
+  registration confirmed from the same page within minutes, so a timestamp — or
+  merely an insertion order — pairs them. `Ballot` has no time column and its
+  table is `WITHOUT ROWID` (ballots migration 0004; Django rebuilds a table the
+  ordinary way on some schema changes, which would bring the `rowid` back, and
+  `test_trend_points.py` fails if it does); `Registration` keeps no
+  confirmation instant; session expiries are rounded to the day
+  (`core/sessions.py`). The trend records its points as they fall due
+  (`ballots/trendpoints.py`) rather than rebuilding them from ballot times.
 - **INV-3.** `AuditEvent` has no update or delete path, in the application or
   the database. Events store a reference plus non-identifying state — never a
   name, date of birth or email; `reason` is a code from `audit.models.Reason`, never
@@ -78,7 +95,8 @@ find a way round it.
 - **The closure hash** covers exactly the `status = live` ballots, serialised
   with option ids and tracking codes only. `docs/canonical-serialisation.md` is
   the contract between Python, the published CSV and the Rust verifier; change
-  one and you change all three, deliberately. `docs/publication-format.md` is
+  one and you change all three, deliberately. `tests/vectors/` holds the cases
+  both sides run; a vector is never edited to make one side pass. `docs/publication-format.md` is
   the same kind of contract for the JSON publication document the verifier
   reads; it is versioned (`closure.PUBLICATION_FORMAT_VERSION`), and removing,
   renaming or re-typing a member the verifier reads is a new version.
@@ -98,7 +116,10 @@ find a way round it.
   (`apps/core/tokensession.py`) stores only the `ballot_hash`, and the
   receipt only a tracking code and a ranking — never the token, and never a
   registration id or anything else that identifies a voter, which beside a
-  ballot hash would be the join INV-1 forbids.
+  ballot hash would be the join INV-1 forbids. An operator's account id is
+  such a thing, since an operator is also an elector: a ballot route signs a
+  signed-in session out before its view runs, and signing in drops any ballot
+  keys (`apps/core/operatorsession.py`).
 - **No Django admin**, in any environment.
 - **Every poll-scoped back-office screen goes through `require_poll_role`**
   (`apps/backoffice/access.py`). `commune_admin` is commune-level and grants
@@ -146,6 +167,14 @@ on `main`, named `v` followed by that version exactly (`v1.0.0`, `v1.0.0b1`).
 The tag must always match `version` in `pyproject.toml` — bump
 `pyproject.toml` in the same commit that gets tagged and released, not before
 and not after, so the two never drift apart.
+
+That release commit also:
+
+- adds the version's section to `CHANGELOG.md`, the same text as the GitHub
+  release's notes;
+- regenerates the manual's captures (`docs/manuel/captures/README.md`,
+  "Régénérer") and commits whatever changed, so the manual shows the screens
+  being released.
 
 ## Pushing back
 
@@ -198,6 +227,25 @@ taken — that costs more than it saves.
   imported and when (`docs/specification-decision-log.md` #11). The
   `open_window_poll` fixture seeds one row of it, so a test asserting an exact
   `WorkingRollEntry.objects.count()` after an import must count that row too.
+- A trend point is taken by the ballot *services* as each tenth ballot is
+  counted (`ballots/trendpoints.py`). A test that writes `Ballot` rows directly
+  takes none: give each first version `epoch=trendpoints.current_epoch(poll)`
+  and call `trendpoints.record_due_point(poll)` after it, as
+  `test_trend_points.py` does.
+- The Content-Security-Policy (`core/headers.py`) admits scripts and styles
+  from the site only: an inline `<script>`, a `style="…"` attribute or an
+  `onclick="…"` is refused by the browser, silently, and the page just
+  misbehaves. Put behaviour in a file under `static/js/` and a value it needs
+  in a `data-*` attribute (see `data-grow` on the trend screen);
+  `tests/unit/test_templates.py` fails on the inline forms. The policy is not
+  sent under `DEBUG`, so a dev server will not show the breakage.
+- Django's test client sends no `Origin` header; a browser does, and on the
+  ballot routes — `Referrer-Policy: no-referrer`, R-7.4 ter — it sends
+  `Origin: null`, which Django's CSRF check refuses. `core/csrf.py` accepts it
+  there and nowhere else (decision log #50). An HTTP test cannot see this
+  class of bug; `tests/browser` can. And nginx must not add a
+  `Referrer-Policy` of its own: browsers apply the last of two, which is how
+  the ballot pages sent their token as `Referer` in production (#51).
 - Latin-1 decodes every byte 0–255, so a CSV upload can never fail to decode —
   there is no "wrong encoding" a `_read_csv` can catch. §6.1's real defence
   against garbage content is the validation report downstream, not a

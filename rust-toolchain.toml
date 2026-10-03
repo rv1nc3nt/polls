@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: 0BSD
+# The Rust toolchain the verifier is built and released with (review B-5): a
+# release binary is then the output of a known compiler, and anyone can rebuild
+# it with the same one. Here at the repository root, not in verifier/: every
+# cargo call passes --manifest-path from the root, and rustup reads this file
+# from the directory cargo runs in. A cargo installed without rustup ignores
+# it. The oldest compiler the crates accept is their `rust-version`.
+[toolchain]
+channel = "1.93.1"
+profile = "minimal"
+components = ["rustfmt", "clippy"]

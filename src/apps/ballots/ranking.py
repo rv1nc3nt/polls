@@ -62,7 +62,9 @@ def validate_ranking(
 ) -> None:
     """Raise ``BallotRefused`` unless ``ranking`` is admissible for the poll.
 
-    In order: the ranking is non-empty, every id is a real option of the poll,
+    In order: the ranking is non-empty and has no empty group (the canonical
+    form a published ballot list holds, which the verifier also checks —
+    ``docs/canonical-serialisation.md``), every id is a real option of the poll,
     no id appears twice across groups, ties appear only where the poll permits
     them (R-6.1), and — where the poll requires it — every option is placed
     (R-6.1; otherwise the missing ones rank equal-last, R-10.4).
@@ -72,6 +74,11 @@ def validate_ranking(
 
     if not flat:
         raise BallotRefused(_("Le classement est vide."))
+    if any(not group for group in ranking):
+        # The ballot form never builds one; refused here so no other path can
+        # record a ranking the published list would carry and the verifier
+        # reject.
+        raise BallotRefused(_("Le classement contient un rang vide."))
     if any(option_id not in options for option_id in flat):
         raise BallotRefused(_("Le classement contient une option inconnue."))
     if len(flat) != len(set(flat)):

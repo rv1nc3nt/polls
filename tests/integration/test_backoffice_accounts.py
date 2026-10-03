@@ -285,6 +285,21 @@ def test_the_grid_lists_only_active_accounts_ticked_with_their_current_roles(
     assert f"role__{inactive.pk}__" not in body
 
 
+def test_each_grid_checkbox_is_named_by_its_role_and_account(
+    admin_client: Client, open_window_poll: Poll, plain_operator: User
+) -> None:
+    """RGAA 11.1: without a name, a screen reader announced a bare "case à
+    cocher" for every cell of the grid (review C-1)."""
+    body = admin_client.get(ROLES_URL, {"scrutin": str(open_window_poll.pk)}).content.decode()
+    labelled = (
+        f'aria-labelledby="role-col-{Role.POLL_ADMIN} role-row-{plain_operator.pk}" '
+        f'name="role__{plain_operator.pk}__{Role.POLL_ADMIN}"'
+    )
+    assert labelled in body
+    assert f'id="role-col-{Role.POLL_ADMIN}"' in body
+    assert f'id="role-row-{plain_operator.pk}"' in body
+
+
 def test_one_bulk_submission_grants_and_revokes_together(
     admin_client: Client, open_window_poll: Poll, plain_operator: User
 ) -> None:

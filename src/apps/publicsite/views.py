@@ -30,9 +30,10 @@ from django.utils.dateparse import parse_datetime
 from django.utils.translation import gettext as _
 
 from apps.audit.models import Action, AuditEvent, Reason
+from apps.ballots.models import Ballot
 from apps.core import manual
 from apps.elections import closure, results_view, richtext, sandbox, transitions, windows
-from apps.elections.models import Poll, PollState
+from apps.elections.models import Poll, PollState, TiebreakRule
 from apps.registrations.models import PARTICIPATING, Channel, Registration
 
 #: The manual documents served publicly (docs/manuel/README.md's own table):
@@ -451,8 +452,44 @@ def _render_poll_detail(
             # instead of repeating the "ouverte" banner (§6.4).
             "online_voting_closed": windows.online_voting_closed(poll),
             "is_published": status == "published",
+            "opening_seed": _published_opening_seed(poll),
+            "closure_commitment": _closure_commitment(poll),
         },
     )
+
+
+def _closure_commitment(poll: Poll) -> dict[str, object] | None:
+    """The closure hash and the number of ballots it covers, from the moment
+    the poll closes (R-11.1, decision log #40).
+
+    Shown before the result is, so the published ballot list can be checked
+    against a value fixed at closure, not one that arrives with it: otherwise
+    the hash check proves only that the published files agree with each
+    other. ``None`` before closure. The count is that of the live set the
+    hash covers (§9) — the publication's ``ballot_count`` — which the ballot
+    triggers keep from changing once the poll is closed; a bare total, joined
+    to nothing (INV-1).
+    """
+    if poll.closure_hash is None:
+        return None
+    return {
+        "hash": bytes(poll.closure_hash).hex(),
+        "ballots": Ballot.live.filter(poll=poll).count(),
+    }
+
+
+def _published_opening_seed(poll: Poll) -> str:
+    """The opening seed as hex, from the instant the poll opens (R-10.5).
+
+    R-10.5 publishes it at opening, not with the result: shown only after
+    closure, it could have been rewritten once the closure hash was known, and
+    a computed tie-break re-picked with nothing a reader could compare against
+    (decision log #40). Blank before ``open`` — there is none yet — and for a
+    ``physical`` tie-break, which never reads it.
+    """
+    if poll.tiebreak_rule != TiebreakRule.COMPUTED or not poll.opening_seed:
+        return ""
+    return bytes(poll.opening_seed).hex()
 
 
 def results(request: HttpRequest, poll_id: str) -> HttpResponse:
@@ -475,11 +512,14 @@ def results(request: HttpRequest, poll_id: str) -> HttpResponse:
         raise Http404
 
     fmt = request.GET.get("format")
+    # R-10.2: served from the copy stored at publication, never recomputed.
     if fmt == "csv":
-        response = HttpResponse(closure.published_csv(poll), content_type="text/csv; charset=utf-8")
+        response = HttpResponse(closure.csv_text(poll), content_type="text/csv; charset=utf-8")
         response["Content-Disposition"] = f'attachment; filename="bulletins-{poll.pk}.csv"'
         return response
     if fmt == "json":
+        if poll.published_document is not None:
+            return HttpResponse(poll.published_document, content_type="application/json")
         return JsonResponse(closure.publication(poll), json_dumps_params={"ensure_ascii": False})
     if fmt is not None:
         raise Http404

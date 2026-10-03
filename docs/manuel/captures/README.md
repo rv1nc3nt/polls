@@ -2,33 +2,46 @@
 
 # Captures d'écran du manuel
 
-- `*.html` — le balisage réel de chaque écran, feuille de style intégrée, donc
-  consultable hors ligne dans n'importe quel navigateur. C'est la **source**.
+- `*.html` — le balisage réel de chaque écran. C'est la **source**. Chaque
+  fichier renvoie à la feuille de style et aux scripts de l'application
+  elle-même (`src/static/`), par un chemin relatif : il n'en existe qu'un
+  exemplaire, et une modification du style n'apparaît qu'une fois dans
+  l'historique. Une capture s'ouvre hors ligne depuis n'importe quelle copie
+  du dépôt. `outils/capture.css` ne contient qu'une règle propre aux captures.
 - `img/*.png` — le rendu de ces mêmes pages, c'est ce que le manuel affiche.
 
 ## Régénérer
 
+À chaque version publiée, avant l'étiquette : les captures suivent les gabarits,
+et un écran modifié depuis la dernière régénération apparaîtrait autrement
+dans le manuel tel qu'il était.
+
 ```sh
-# 1. base de démonstration (settings dev, SQLite jetable)
-rm -f var/dev.sqlite3
-DJANGO_SETTINGS_MODULE=config.settings.dev PYTHONPATH=src \
-  uv run python manage.py migrate
-PYTHONPATH=src uv run python docs/manuel/captures/outils/demo_seed.py
+# 1. base de démonstration, jetable : DJANGO_DB_PATH la tient à l'écart de
+#    var/dev.sqlite3, que cette recette ne touche pas
+export DJANGO_SETTINGS_MODULE=config.settings.dev PYTHONPATH=src
+export DJANGO_DB_PATH="$(mktemp -d)/captures.sqlite3"
+uv run python manage.py migrate
+uv run python docs/manuel/captures/outils/demo_seed.py
 
 # 2. HTML de chaque écran dans docs/manuel/captures/
-DJANGO_SETTINGS_MODULE=config.settings.dev PYTHONPATH=src \
-  uv run python docs/manuel/captures/outils/render_captures.py
+uv run python docs/manuel/captures/outils/render_captures.py
 
 # 3. HTML -> PNG dans docs/manuel/captures/img/ (navigateur sans affichage)
 mkdir -p docs/manuel/captures/img
 for f in docs/manuel/captures/*.html; do
   b=$(basename "$f" .html)
   chrome-headless-shell --headless --disable-gpu --no-sandbox --hide-scrollbars \
+    --allow-file-access-from-files \
     --window-size=1360,9000 --screenshot="docs/manuel/captures/img/$b.png" "file://$PWD/$f"
   convert "docs/manuel/captures/img/$b.png" -bordercolor white -border 1 \
     -trim +repage -bordercolor white -border 24 "docs/manuel/captures/img/$b.png"
 done
 ```
+
+`--allow-file-access-from-files` laisse la page charger, sous `file://`, les
+polices que la feuille de style désigne : sans lui, le navigateur les refuse et
+la capture s'affiche dans une police de substitution.
 
 Toute commande de capture d'un navigateur sans affichage convient à l'étape 3
 (`chromium --headless`, `google-chrome --headless`, Playwright…). Le

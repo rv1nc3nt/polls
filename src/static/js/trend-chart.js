@@ -81,4 +81,15 @@
   }
 
   Array.prototype.forEach.call(document.querySelectorAll("[data-trend-chart]"), wire);
+
+  /*
+    Proportional bars (the duels, the ballots per ranking): each segment's
+    share is in `data-grow`, applied here because the Content-Security-Policy
+    refuses inline `style` attributes (apps/core/headers.py). The bars are
+    decoration — every figure they draw is printed beside them — so without
+    this script they merely shrink to slivers.
+  */
+  Array.prototype.forEach.call(document.querySelectorAll("[data-grow]"), function (segment) {
+    segment.style.flexGrow = segment.getAttribute("data-grow");
+  });
 })();

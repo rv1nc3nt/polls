@@ -178,9 +178,9 @@
                 <span class="trend-s{{ duel.right.slot }}"><span class="trend-key" aria-hidden="true"></span>{{ duel.right.label }}</span>
               </p>
               <div class="trend-duel__bar" aria-hidden="true">
-                <span class="trend-duel__seg trend-s{{ duel.left.slot }}" style="flex-grow: {{ duel.left.count }}"></span>
-                {% if duel.neither %}<span class="trend-duel__seg trend-duel__seg--neither" style="flex-grow: {{ duel.neither }}"></span>{% endif %}
-                <span class="trend-duel__seg trend-s{{ duel.right.slot }}" style="flex-grow: {{ duel.right.count }}"></span>
+                <span class="trend-duel__seg trend-s{{ duel.left.slot }}" data-grow="{{ duel.left.count }}"></span>
+                {% if duel.neither %}<span class="trend-duel__seg trend-duel__seg--neither" data-grow="{{ duel.neither }}"></span>{% endif %}
+                <span class="trend-duel__seg trend-s{{ duel.right.slot }}" data-grow="{{ duel.right.count }}"></span>
               </div>
               <p class="trend-duel__figures">
                 <span><strong>{{ duel.left.pct|floatformat:0 }} %</strong> ({{ duel.left.count }})</span>
@@ -216,14 +216,14 @@
     {# --- one date in detail: the matrix and the ballots per ranking ----- #}
     {% comment %}
       Both cards below show the same point — the latest, or the one ?point=
-      names by its arrival count — so one control serves the two.
+      names by its place in the series — so one control serves the two.
     {% endcomment %}
     {% if matrix_points|length > 1 %}
       <form method="get" class="trend-matrix__when">
         <label for="trend-matrix-date">{% translate "Matrice et classements au" %}</label>
         <select id="trend-matrix-date" name="point">
           {% for p in matrix_points %}
-            <option value="{{ p.arrivals }}"{% if p.arrivals == matrix_point.arrivals %} selected{% endif %}>{% blocktranslate with date=p.through|date:"j F Y" count n=p.ballot_count %}{{ date }} — {{ n }} bulletin{% plural %}{{ date }} — {{ n }} bulletins{% endblocktranslate %}</option>
+            <option value="{{ p.sequence }}"{% if p.sequence == matrix_point.sequence %} selected{% endif %}>{% blocktranslate with date=p.through|date:"j F Y" count n=p.ballot_count %}{{ date }} — {{ n }} bulletin{% plural %}{{ date }} — {{ n }} bulletins{% endblocktranslate %}</option>
           {% endfor %}
         </select>
         <button type="submit">{% translate "Afficher" %}</button>
@@ -309,7 +309,7 @@
                   {% for option in row.unranked %}{{ option.label }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>
               {% endif %}
             </p>
-            <span class="trend-types__bar" aria-hidden="true"><span style="flex-grow: {{ row.bar }}"></span>{% if row.rest %}<span class="trend-types__rest" style="flex-grow: {{ row.rest }}"></span>{% endif %}</span>
+            <span class="trend-types__bar" aria-hidden="true"><span data-grow="{{ row.bar }}"></span>{% if row.rest %}<span class="trend-types__rest" data-grow="{{ row.rest }}"></span>{% endif %}</span>
             <p class="trend-types__figures">
               <strong>{% blocktranslate count n=row.count %}{{ n }} bulletin{% plural %}{{ n }} bulletins{% endblocktranslate %}</strong>
               <span>{{ row.pct|floatformat:0 }} %</span>

@@ -86,7 +86,11 @@ _ALLOWED_ATTRIBUTES = {
 _H1 = re.compile(r"(?m)^#[ \t]+(.+?)[ \t]*$")
 _H2 = re.compile(r"(?m)^##[ \t]+(.+?)[ \t]*$")
 _ANY_H2 = re.compile(r"(?m)^##[ \t]")
-_DOC_LINK = re.compile(r"\]\((?P<name>[a-z][a-z-]*)\.md(?P<fragment>#[^)]*)?\)")
+#: ``verifier.md`` and ``verifier-en.md`` both resolve to the ``verifier``
+#: document: the English files link to their English siblings so they also
+#: read correctly in the repository, and the site serves whichever language
+#: the request asks for either way.
+_DOC_LINK = re.compile(r"\]\((?P<name>[a-z][a-z-]*?)(?:-en)?\.md(?P<fragment>#[^)]*)?\)")
 
 
 @dataclass(frozen=True)

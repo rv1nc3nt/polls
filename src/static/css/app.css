@@ -568,6 +568,10 @@ body.bo main { padding: 0; }
 }
 .langswitch, .themeswitch { display: flex; gap: 0.5rem; align-items: end; flex-wrap: wrap; margin-top: 0.75rem; }
 .langswitch label { font-weight: 400; }
+/* On the ballot pages the language choice is a pair of links, not a form
+   (base.html, decision log #51); the current language is plain text. */
+.langswitch--links { align-items: center; font-size: 0.9rem; }
+.langswitch--links [aria-current] { font-weight: 600; }
 
 /* Theme control (static/js/theme.js). Progressive enhancement: it is hidden
    until the script reveals it, since without JavaScript it does nothing and
@@ -1100,9 +1104,11 @@ tbody tr:hover th, tbody tr:hover td { background: var(--accent-soft); }
   font-size: 0.8rem;
 }
 
-/* An audit row's before/after is JSON; let it scroll rather than stretch the
-   table past the viewport. */
-td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
+/* An audit row's before/after is JSON; let it wrap rather than stretch the
+   table past the viewport. Wrap, not scroll: a scrolling box is out of reach of
+   the keyboard (RGAA 7.3), and a hash such as the opening seed is one 64-
+   character word. */
+td code { display: inline-block; max-width: 32rem; overflow-wrap: anywhere; }
 
 /* ---- screen 1: tableau de bord --------------------------------------- */
 

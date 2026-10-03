@@ -2378,6 +2378,54 @@ msgstr ""
 msgid "Page introuvable"
 msgstr "Page not found"
 
+#: src/apps/core/operatorsession.py
+msgid ""
+"Vous avez été déconnecté de l'espace mairie : un vote ne se fait jamais "
+"depuis une session d'agent."
+msgstr ""
+"You have been signed out of the mairie area: a vote is never cast from an "
+"operator's session."
+
+#: src/templates/500.html
+msgid "Erreur du serveur"
+msgstr "Server error"
+
+#: src/templates/403_csrf.html
+msgid "Formulaire non envoyé"
+msgstr "Form not sent"
+
+#: src/templates/400.html
+msgid "Requête incorrecte"
+msgstr "Bad request"
+
+#: src/templates/400.html
+msgid "Le serveur n'a pas pu traiter cette demande. Vérifiez l'adresse de la page, ou revenez à l'accueil."
+msgstr "The server could not process this request. Check the page's address, or go back to the home page."
+
+#: src/templates/403_csrf.html
+msgid "Par sécurité, ce formulaire n'a pas été pris en compte : rien n'a été enregistré."
+msgstr "For security, this form was not accepted: nothing has been saved."
+
+#: src/templates/403_csrf.html
+msgid "Cela arrive quand la page est restée ouverte pendant qu'on se connectait dans un autre onglet, ou quand le navigateur refuse les cookies de ce site."
+msgstr "This happens when the page stayed open while someone signed in in another tab, or when the browser refuses this site's cookies."
+
+#: src/templates/403_csrf.html
+msgid "Revenez à la page précédente, rechargez-la, puis recommencez."
+msgstr "Go back to the previous page, reload it, then try again."
+
+#: src/templates/500.html
+msgid "Le serveur a rencontré une erreur et n'a pas pu afficher cette page. L'erreur est enregistrée dans son journal."
+msgstr "The server ran into an error and could not display this page. The error has been recorded in its log."
+
+#: src/templates/500.html
+msgid "Réessayez dans quelques instants. Si elle persiste, prévenez la mairie."
+msgstr "Try again in a few moments. If it persists, let the mairie know."
+
+#: src/templates/500.html
+msgid "Revenir à l'accueil"
+msgstr "Back to the home page"
+
 #: src/templates/404.html:7
 msgid "Cette adresse ne correspond à aucune page."
 msgstr "This address matches no page."
@@ -5777,3 +5825,102 @@ msgid "%(date)s — %(n)s bulletin"
 msgid_plural "%(date)s — %(n)s bulletins"
 msgstr[0] "%(date)s — %(n)s ballot"
 msgstr[1] "%(date)s — %(n)s ballots"
+
+#: src/templates/publicsite/poll_detail.html
+msgid ""
+"Tirée au sort à l'ouverture et publiée dès cet instant, elle ne peut plus "
+"changer. En cas d'égalité, le départage en dépend : après la publication, "
+"vérifiez que le document de publication reprend exactement cette valeur."
+msgstr ""
+"Drawn at random at the opening and published from that moment, it can no "
+"longer change. A tie-break depends on it: after publication, check that the "
+"publication document carries exactly this value."
+
+#: src/apps/backoffice/forms.py
+msgid ""
+"Figée avec le scrutin : le dépouillement applique toujours cette version, et "
+"le résultat publié est conservé tel quel, même si le calcul évolue ensuite "
+"pour les scrutins suivants."
+msgstr ""
+"Frozen with the poll: the tally always applies this version, and the "
+"published result is kept as it was, even if the computation changes later "
+"for subsequent polls."
+
+#: src/apps/backoffice/dashboard.py
+msgid ""
+"La version de la méthode de dépouillement n'est pas une version que ce "
+"logiciel sait appliquer : choisissez-en une dans la configuration."
+msgstr ""
+"The tally method version is not one this software can apply: choose one in "
+"the configuration."
+
+#: src/apps/elections/transitions.py
+msgid "Version de la méthode de dépouillement inconnue de ce logiciel."
+msgstr "Tally method version unknown to this software."
+
+#: src/templates/backoffice/results_publish.html
+#, python-format
+msgid ""
+"Ce scrutin a été configuré avec la version « %(version)s » de la méthode de "
+"dépouillement, que ce logiciel ne sait pas appliquer. Le dépouillement et la "
+"publication sont impossibles tant qu'une version du logiciel qui l'implémente "
+"n'est pas installée."
+msgstr ""
+"This poll was configured with version “%(version)s” of the tally method, "
+"which this software cannot apply. Tallying and publication are impossible "
+"until a version of the software that implements it is installed."
+
+#: src/templates/publicsite/poll_detail.html
+msgid ""
+"Calculée à la clôture sur l'ensemble des bulletins retenus et publiée dès "
+"cet instant, elle ne peut plus changer. Après la publication, vérifiez que "
+"les résultats reprennent exactement cette empreinte et ce nombre de "
+"bulletins."
+msgstr ""
+"Computed at closure over every ballot counted and published from that "
+"moment, it can no longer change. After publication, check that the results "
+"carry exactly this hash and this number of ballots."
+
+#: src/apps/backoffice/forms.py
+msgid ""
+"Le code écrit sur le serveur au déploiement, dans le fichier /etc/polls/"
+"setup_token. Il prouve que vous avez accès au serveur."
+msgstr ""
+"The code written on the server at deployment, in the file /etc/polls/"
+"setup_token. It proves you have access to the server."
+
+#: src/apps/backoffice/forms.py
+msgid ""
+"Aucun code d'installation n'est configuré sur ce serveur "
+"(DJANGO_SETUP_TOKEN) : l'installation est impossible."
+msgstr ""
+"No setup code is configured on this server (DJANGO_SETUP_TOKEN): "
+"installation is impossible."
+
+#: src/apps/backoffice/forms.py
+msgid "Code d'installation incorrect."
+msgstr "Incorrect setup code."
+
+#: src/apps/backoffice/views.py
+msgid ""
+"Trop de tentatives de connexion infructueuses. Réessayez plus tard, ou "
+"demandez à l'administration de la commune de vérifier votre compte."
+msgstr ""
+"Too many failed sign-in attempts. Try again later, or ask the commune's "
+"administration to check your account."
+
+#: src/apps/backoffice/forms.py
+msgid "Code d'installation"
+msgstr "Setup code"
+
+#: src/apps/backoffice/forms.py
+msgid ""
+"Heure du fuseau horaire du scrutin, indiqué plus bas. Le scrutin s'ouvre à "
+"cette heure, ou plus tard si la tâche planifiée a pris du retard."
+msgstr ""
+"Time in the poll's time zone, set below. The poll opens at this time, or "
+"later if the scheduled task is running behind."
+
+#: src/apps/ballots/ranking.py
+msgid "Le classement contient un rang vide."
+msgstr "The ranking contains an empty rank."

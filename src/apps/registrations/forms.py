@@ -22,16 +22,23 @@ class RegistrationForm(forms.Form):
         label=_("Nom de famille"),
         max_length=200,
         help_text=_("Votre nom de naissance ou votre nom d'usage : les deux sont acceptés."),
+        # WCAG 1.3.5 (RGAA 11.13): the purpose of a field about the user is
+        # declared, so a browser or an assistive tool can fill it.
+        widget=forms.TextInput(attrs={"autocomplete": "family-name"}),
     )
     first_names = forms.CharField(
         label=_("Prénom(s)"),
         max_length=200,
         help_text=_("Tous vos prénoms, tels qu'ils figurent sur votre carte électorale."),
+        widget=forms.TextInput(attrs={"autocomplete": "given-name"}),
     )
     date_of_birth = forms.CharField(
         label=_("Date de naissance"),
         max_length=40,
         help_text=_("Au format JJ/MM/AAAA."),
+        # No ``inputmode="numeric"``: several phone keypads it brings up have
+        # no "/" key, and the format asks for one.
+        widget=forms.TextInput(attrs={"autocomplete": "bday"}),
     )
     email = forms.EmailField(
         label=_("Adresse électronique"),
@@ -40,6 +47,7 @@ class RegistrationForm(forms.Form):
             "de vote, et ce lien vaut droit de vote. Une même adresse ne peut servir qu'une "
             "fois ; deux personnes partageant une adresse doivent voter à la mairie."
         ),
+        widget=forms.EmailInput(attrs={"autocomplete": "email"}),
     )
     declared_on_honour = forms.BooleanField(
         label=_(

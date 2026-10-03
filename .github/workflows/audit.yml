@@ -1,0 +1,35 @@
+# SPDX-License-Identifier: 0BSD
+# The verifier's dependencies against the RustSec advisory database (review
+# B-10). Its own workflow rather than a step of ci.yml, so it can also run on a
+# schedule: an advisory is published against a crate that has not changed, and
+# a lockfile nobody touches would otherwise never be checked again.
+name: Audit
+
+on:
+  push:
+    branches: [main]
+    paths: ["verifier/**", ".github/workflows/audit.yml"]
+  pull_request:
+    paths: ["verifier/**", ".github/workflows/audit.yml"]
+  schedule:
+    - cron: "17 6 * * 1"  # Mondays
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cargo-audit:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        # cargo audit reads verifier/.cargo/audit.toml, its reasoned
+        # exceptions, from the directory it runs in.
+        working-directory: verifier
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+      - run: rustup toolchain install  # the one rust-toolchain.toml pins
+      - run: cargo install cargo-audit --locked --version 0.22.2
+      # Warnings too: a yanked or unmaintained crate fails the run unless
+      # audit.toml records why it is accepted.
+      - run: cargo audit --deny warnings

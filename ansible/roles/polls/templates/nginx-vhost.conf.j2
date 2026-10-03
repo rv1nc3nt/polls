@@ -14,9 +14,12 @@
 # operational value is lost, and a future token-bearing route cannot leak by
 # omission. The old /inscription/.../confirmation/ route named in earlier notes
 # was retired (apps/core/tokensession.py); /inscription/ carries no token now.
+#
+# The language prefix is optional: a link without one (/bulletin/…/acces/…/)
+# still carries the token, on the request Django answers with a redirect.
 map $request_uri $polls_loggable {
-    default                    1;
-    "~*^/[a-z]{2}/bulletin/"   0;
+    default                          1;
+    "~*^/(?:[a-z]{2}/)?bulletin/"    0;
 }
 
 limit_req_zone $binary_remote_addr zone=polls_write:10m rate=20r/m;
@@ -51,7 +54,11 @@ server {
 
     add_header X-Content-Type-Options nosniff always;
     add_header X-Frame-Options DENY always;
-    add_header Referrer-Policy same-origin always;
+    # No Referrer-Policy here: Django sends it on every response, `no-referrer`
+    # on the ballot routes and `same-origin` elsewhere. An add_header here comes
+    # in addition, and browsers apply the last one, so the ballot pages ran on
+    # `same-origin` and sent their token in the Referer of every same-origin
+    # request (decision log #51).
 {% if tls_live %}
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
 {% endif %}
@@ -59,10 +66,14 @@ server {
     location /.well-known/acme-challenge/ { root /var/www/html; }
 {% endif %}
 
+    # Every file here is named after its content (ManifestStaticFilesStorage,
+    # prod.py): a changed file is a new name, so each can be cached for good.
+    # `expires`, not `add_header Cache-Control`: an add_header here would drop
+    # every security header the server block sets, for this location only.
     location /static/ {
         alias {{ polls_prefix }}/current/var/static/;
         access_log off;
-        expires 30d;
+        expires max;
     }
 
     # R-3.12: option images. Unlike /static/, not under the release tree —
@@ -83,6 +94,26 @@ server {
     # /<lang>/aide/… (public) and /<lang>/mairie/aide/… (espace mairie), the
     # same language-prefix shape $polls_loggable matches above.
     location ~ "^/[a-z]{2}/(mairie/)?aide/" {
+        proxy_pass http://{{ polls_bind }};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto {% if tls_live %}https{% else %}$scheme{% endif %};
+
+        proxy_redirect off;
+        proxy_connect_timeout 5s;
+        proxy_read_timeout 30s;
+    }
+
+    # The ballot routes, where the token travels (map above). access_log is
+    # already off for them; error_log is not, and nginx writes the request
+    # line — token included — into every upstream error it logs: a 502 while
+    # gunicorn restarts, a 504 on a slow write, a limit_req rejection (review
+    # A-11). Only `crit` and worse are kept here, and none of those carry a
+    # request. Otherwise the same as `location /` below.
+    location ~ "^/(?:[a-z]{2}/)?bulletin/" {
+        error_log /var/log/nginx/polls.error.log crit;
+        limit_req zone=polls_write burst=10 nodelay;
         proxy_pass http://{{ polls_bind }};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;

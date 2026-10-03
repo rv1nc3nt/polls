@@ -67,6 +67,7 @@ form, the same shape as ``poll_image_upload``/``poll_image_delete``
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -76,6 +77,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, password_validation
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.views import LoginView, LogoutView
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.files.uploadedfile import UploadedFile
@@ -96,7 +98,7 @@ from apps.ballots import services as ballots
 from apps.ballots.forms import RankingForm
 from apps.ballots.models import Ballot, BallotSource, BallotStatus, PaperBallotLink
 from apps.ballots.ranking import BallotRefused
-from apps.core import manual
+from apps.core import manual, ratelimit
 from apps.core.codes import format_tracking_code
 from apps.core.models import Commune, Role, User
 from apps.core.types import OptionId, TrackingCode
@@ -140,7 +142,7 @@ from apps.publicsite.views import _draft_preview_context
 from apps.registrations import mail as registration_mail
 from apps.registrations import services as registrations
 from apps.registrations.models import Channel, Registration
-from apps.tally.methods import Method
+from apps.tally.methods import SUPPORTED_VERSIONS, Method
 from apps.tally.trend import LAG, STEP
 
 from . import (
@@ -186,6 +188,10 @@ from .forms import (
     option_initial,
 )
 
+#: Sign-in failures and refusals (review A-7): the server log, not the audit
+#: log, which records what named operators did, not who failed to be one.
+_auth_log = logging.getLogger("polls.auth")
+
 
 class OperatorLoginView(LoginView):
     """Sign-in for named operator accounts (R-2.2).
@@ -196,6 +202,13 @@ class OperatorLoginView(LoginView):
 
     On a fresh install there is no account to sign in with, so this redirects
     to the wizard instead of showing a form nobody can pass.
+
+    Failed sign-ins are counted, by caller and by account named, and past
+    either limit the form is refused without checking the password at all
+    (review A-7, ``ratelimit.count_failure``): these accounts open the screens
+    that show who has voted and every paper ballot beside its elector. A
+    failure is logged to the server log with the caller's digest — never the
+    name typed, which is sometimes a password typed in the wrong field.
     """
 
     template_name = "backoffice/login.html"
@@ -205,6 +218,42 @@ class OperatorLoginView(LoginView):
         if firstrun.is_open():
             return redirect("backoffice:first_run")
         return super().dispatch(request, *args, **kwargs)
+
+    def _idents(self) -> tuple[str, str]:
+        return (
+            ratelimit.client_digest(self.request),
+            ratelimit.account_digest(self.request.POST.get("username", "")),
+        )
+
+    def post(self, request: HttpRequest, *args: object, **kwargs: object) -> HttpResponse:
+        address, account = self._idents()
+        if ratelimit.exceeded(
+            "login-address", address, ratelimit.login_address_limit()
+        ) or ratelimit.exceeded("login-account", account, ratelimit.login_account_limit()):
+            _auth_log.warning("sign-in refused, too many failures (client %s)", address)
+            form = self.get_form()
+            form.errors.clear()
+            form.add_error(
+                None,
+                _(
+                    "Trop de tentatives de connexion infructueuses. Réessayez plus tard, "
+                    "ou demandez à l'administration de la commune de vérifier votre compte."
+                ),
+            )
+            return self.render_to_response(self.get_context_data(form=form), status=429)
+        return super().post(request, *args, **kwargs)
+
+    def form_invalid(self, form: AuthenticationForm) -> HttpResponse:
+        address, account = self._idents()
+        ratelimit.count_failure("login-address", address, ratelimit.login_address_limit())
+        ratelimit.count_failure("login-account", account, ratelimit.login_account_limit())
+        _auth_log.warning("sign-in failed (client %s)", address)
+        return super().form_invalid(form)
+
+    def form_valid(self, form: AuthenticationForm) -> HttpResponse:
+        _address, account = self._idents()
+        ratelimit.clear("login-account", account)
+        return super().form_valid(form)
 
 
 class OperatorLogoutView(LogoutView):
@@ -235,15 +284,19 @@ def first_run(request: HttpRequest) -> HttpResponse:
     """
     form = FirstRunForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
-        admin = firstrun.install(
-            commune_name=form.cleaned_data["commune_name"],
-            data_protection_referent=form.cleaned_data["data_protection_referent"],
-            data_protection_contact=form.cleaned_data["data_protection_contact"],
-            public_base_url=form.cleaned_data["public_base_url"],
-            username=form.cleaned_data["username"],
-            full_name=form.cleaned_data["full_name"],
-            raw_password=form.cleaned_data["raw_password"],
-        )
+        try:
+            admin = firstrun.install(
+                commune_name=form.cleaned_data["commune_name"],
+                data_protection_referent=form.cleaned_data["data_protection_referent"],
+                data_protection_contact=form.cleaned_data["data_protection_contact"],
+                public_base_url=form.cleaned_data["public_base_url"],
+                username=form.cleaned_data["username"],
+                full_name=form.cleaned_data["full_name"],
+                raw_password=form.cleaned_data["raw_password"],
+            )
+        except firstrun.FirstRunClosed:
+            # Another submission installed the instance a moment earlier.
+            return redirect("backoffice:login")
         login(request, admin)
         messages.success(
             request,
@@ -520,7 +573,11 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
             return redirect("backoffice:poll_config", poll_id=str(poll.pk))
 
     closing = action == "close_poll"
-    closing_form = ClosureOverrideForm(request.POST if closing else None)
+    # Own ``auto_id``s (here and on the withdrawal form below): the extension,
+    # closure and withdrawal forms each carry a ``reason`` field and can share
+    # one page, and two ``id_reason`` pointed both labels at the first control.
+    # Field names, and so the POST, are unchanged.
+    closing_form = ClosureOverrideForm(request.POST if closing else None, auto_id="id_close_%s")
     if closing:
         # As above: the form only ever renders on an ``open`` poll.
         if poll.state != PollState.OPEN:
@@ -543,7 +600,9 @@ def poll_config(request: HttpRequest, poll: Poll) -> HttpResponse:
                 return redirect("backoffice:poll_config", poll_id=str(poll.pk))
 
     withdrawing = action == "withdraw_poll"
-    withdrawal_form = WithdrawalForm(request.POST if withdrawing else None)
+    withdrawal_form = WithdrawalForm(
+        request.POST if withdrawing else None, auto_id="id_withdraw_%s"
+    )
     if withdrawing:
         # As above: the form only ever renders on a withdrawable poll (below);
         # reaching here otherwise is a forged or stale request.
@@ -1552,9 +1611,9 @@ def poll_trend(request: HttpRequest, poll: Poll) -> HttpResponse:
             "rows": trend.table(points, options, schulze=schulze),
         }
         # The matrix shows one point: the latest, or the one ``?point=`` names
-        # by its arrival count — only ever one of the points already shown.
-        by_arrivals = {str(p.arrivals): p for p in points}
-        shown = by_arrivals.get(request.GET.get("point") or "", points[-1])
+        # by its place in the series — only ever one of the points already shown.
+        by_sequence = {str(p.sequence): p for p in points}
+        shown = by_sequence.get(request.GET.get("point") or "", points[-1])
         context |= {
             "matrix_point": shown,
             "matrix_points": list(reversed(points)),
@@ -1644,12 +1703,24 @@ def results_publish(request: HttpRequest, poll: Poll) -> HttpResponse:
             },
         )
 
+    if poll.state == PollState.CLOSED and poll.tally_method_version not in SUPPORTED_VERSIONS:
+        # R-10.2: a version nothing here implements is not tallied under the
+        # current rules instead. Announcing and opening now refuse it, so only
+        # a poll configured before that check can reach this.
+        return render(
+            request,
+            "backoffice/results_publish.html",
+            {"poll": poll, "unsupported_version": poll.tally_method_version},
+        )
+
     fmt = request.GET.get("format")
     if fmt == "csv":
-        response = HttpResponse(closure.published_csv(poll), content_type="text/csv; charset=utf-8")
+        response = HttpResponse(closure.csv_text(poll), content_type="text/csv; charset=utf-8")
         response["Content-Disposition"] = f'attachment; filename="bulletins-{poll.pk}.csv"'
         return response
     if fmt == "json":
+        if poll.published_document is not None:
+            return HttpResponse(poll.published_document, content_type="application/json")
         return JsonResponse(closure.publication(poll), json_dumps_params={"ensure_ascii": False})
 
     if request.method == "POST":

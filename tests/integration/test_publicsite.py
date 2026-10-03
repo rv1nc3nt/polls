@@ -14,6 +14,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+import re
 from datetime import timedelta
 
 import pytest
@@ -139,6 +140,33 @@ def test_the_open_poll_page_shows_the_propositions_and_calendar(
     assert f"/fr/inscription/{open_poll_fixture.pk}/" in body
 
 
+def test_the_opening_seed_is_public_from_the_opening(
+    client: Client, open_poll_fixture: Poll
+) -> None:
+    """R-10.5: published at opening, not with the result (decision log #40)."""
+    assert open_poll_fixture.opening_seed is not None
+    seed = bytes(open_poll_fixture.opening_seed).hex()
+    body = client.get(f"/fr/scrutin/{open_poll_fixture.pk}/").content.decode()
+    assert seed in body
+
+
+def test_no_opening_seed_is_shown_before_opening_or_for_a_physical_draw(
+    client: Client, db: None
+) -> None:
+    announced = _make_poll()
+    force_announce(announced)
+    body = client.get(f"/fr/scrutin/{announced.pk}/").content.decode()
+    assert "Graine d'ouverture" not in body
+
+    physical = _make_poll()
+    Poll.objects.filter(pk=physical.pk).update(tiebreak_rule="physical")
+    force_open(physical)
+    physical.refresh_from_db()
+    assert physical.opening_seed is not None
+    body = client.get(f"/fr/scrutin/{physical.pk}/").content.decode()
+    assert bytes(physical.opening_seed).hex() not in body
+
+
 def test_the_page_stops_advertising_the_vote_once_closes_at_has_passed(
     client: Client, db: None
 ) -> None:
@@ -212,6 +240,27 @@ def test_a_closed_unpublished_poll_says_the_tally_is_under_way(client: Client, d
     body = client.get(f"/fr/scrutin/{poll.pk}/").content.decode()
     assert "dépouillement" in body.lower()
     assert f"/fr/scrutin/{poll.pk}/resultats/" not in body
+
+
+def test_the_closure_hash_is_public_from_closure_ahead_of_the_result(
+    client: Client, db: None
+) -> None:
+    """R-11.1: published the moment it is computed, with the number of ballots
+    it covers, so the ballot list published later can be checked against a
+    value fixed at closure (decision log #40)."""
+    poll = _make_poll()
+    force_open(poll)
+    _register(poll, "voter1", channel=Channel.ONLINE)
+    _cast(poll, [[["a"], ["b"], ["c"]], [["b"], ["a"], ["c"]]])
+    open_body = client.get(f"/fr/scrutin/{poll.pk}/").content.decode()
+    assert "Empreinte de clôture" not in open_body
+
+    close_poll(poll, early_reason=Reason.ADMINISTRATIVE_DECISION)
+    poll.refresh_from_db()
+    assert poll.closure_hash is not None
+    body = client.get(f"/fr/scrutin/{poll.pk}/").content.decode()
+    assert bytes(poll.closure_hash).hex() in body
+    assert re.search(r"Bulletins retenus</dt>\s*<dd>2</dd>", body)
 
 
 def test_a_published_poll_page_links_to_the_results(client: Client, published_poll: Poll) -> None:
@@ -540,7 +589,7 @@ def test_t36_published_artefacts_cross_check(client: Client, db: None) -> None:
 #: Pinned tracking codes and rankings, so two polls that differ only in their
 #: option labels have a byte-identical canonical serialisation (§9).
 _T23_BALLOTS = [
-    ("TRACKAAAA1", [["a"], ["b"], ["c"]]),
+    ("TRACKAAAA9", [["a"], ["b"], ["c"]]),
     ("TRACKBBBB2", [["a"], ["c"], ["b"]]),
     ("TRACKCCCC3", [["b"], ["a"], ["c"]]),
 ]

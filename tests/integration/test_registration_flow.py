@@ -413,11 +413,16 @@ def test_confirming_the_mailbox_activates_once_and_is_idempotent(live_poll: Poll
     registration, _ = _register(live_poll)
     confirmed = services.confirm_mailbox(registration)
     assert confirmed.state == RegistrationState.ACTIVE
-    assert confirmed.confirmed_at is not None
 
-    stamp = confirmed.confirmed_at
     again = services.confirm_mailbox(confirmed)
-    assert again.confirmed_at == stamp, "a second visit must not restamp"
+    assert again.state == RegistrationState.ACTIVE, "a second visit is not an error"
+
+
+def test_no_record_is_kept_of_when_the_mailbox_was_confirmed() -> None:
+    """INV-1 (decision log #42): the first ballot is cast from the same page
+    minutes after the confirmation, so its instant would pair the two."""
+    names = {f.name for f in Registration._meta.get_fields()}
+    assert not any("confirm" in name for name in names), names
 
 
 def test_a_token_resolves_to_its_registration_and_nothing_else(live_poll: Poll) -> None:
@@ -613,7 +618,6 @@ def test_r94_an_elector_whose_paper_ballot_was_deleted_can_register_online(
     registration.refresh_from_db()
     assert registration.state == RegistrationState.PENDING_EMAIL
     assert registration.channel == Channel.NONE
-    assert registration.confirmed_at is None
     assert registration.email_canonical == "emile.dupont@example.fr"
     assert not DuplicateAttempt.objects.filter(poll=live).exists()
 

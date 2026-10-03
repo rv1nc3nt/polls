@@ -35,9 +35,10 @@ spécification sont consignés dans
   ses propres données ; voir [Licence](#licence) plus bas.
 - **Personne ne peut voir comment un administré a voté — pas même la
   mairie.** Une inscription prouve qui a le droit de voter ; un bulletin est
-  anonyme dès l'instant où il est exprimé. Les deux ne sont jamais reliés, ni
-  dans l'application ni dans la base de données (`INV-1`, imposé par un
-  déclencheur de base de données, pas seulement par le code applicatif).
+  anonyme dès l'instant où il est exprimé. Les deux ne partagent aucune
+  colonne, clé ni référence, ni dans l'application ni dans la base de données
+  (`INV-1` : le modèle de données ne définit aucune relation entre eux, et un
+  test fait échouer la construction si l'une apparaît).
 - **Le dépouillement est public, pas seulement annoncé.** La clôture d'un
   scrutin publie les bulletins anonymisés et une empreinte du résultat.
   N'importe qui peut télécharger le [vérificateur](docs/manuel/verifier.md)
@@ -66,9 +67,10 @@ couvre pas.
 ## Fonctionnalités principales
 
 - **Import de la liste électorale et inscriptions** (§6.1–6.2) — la commune
-  importe sa liste de travail sous forme de CSV ; les administrés s'inscrivent
-  en ligne et sont rapprochés de la liste par nom et adresse, tout cas
-  ambigu étant envoyé en examen manuel plutôt que deviné.
+  importe sa liste de travail sous forme de fichier CSV ou Excel ; les
+  administrés s'inscrivent en ligne et sont rapprochés de la liste par nom et
+  date de naissance, tout cas ambigu étant envoyé en examen manuel plutôt que
+  deviné.
 - **Vote, en ligne et sur papier** (§6.3–6.4) — les électeurs expriment ou
   modifient un bulletin en ligne jusqu'à la clôture ; un membre du conseil
   municipal peut saisir un bulletin papier à la place, avec détection
@@ -196,12 +198,26 @@ Pour travailler sur le code lui-même, pas pour organiser un scrutin :
     uv run python manage.py migrate
     uv run python manage.py runserver
 
+L'assistant de première installation (`/fr/mairie/installation/`) demande un
+code : en développement, c'est `dev`.
+
 Tests, lint et typage :
 
     uv run pytest -q
     uv run ruff check .
     uv run mypy src tests
+    cargo fmt --manifest-path verifier/Cargo.toml --all --check
+    cargo clippy --manifest-path verifier/Cargo.toml --workspace --all-targets -- -D warnings
     cargo test --manifest-path verifier/Cargo.toml
+    npm ci && npm run lint          # ESLint et stylelint sur src/static/
+
+Les tests en navigateur (`tests/browser` : le parcours d'un électeur et
+l'éditeur de l'espace mairie dans Chromium sans affichage, avec un contrôle
+d'accessibilité axe-core sur chaque page) sont exclus de `pytest -q`. Après
+`npm ci` :
+
+    uv run playwright install --only-shell chromium
+    uv run pytest -q -m browser
 
 ## Arborescence
 
@@ -253,7 +269,7 @@ et les `cargo test` Rust sont au vert :
 - la fonction de transition et ses gardes, la fenêtre de vote, la clôture,
   l'empreinte de clôture et les artefacts de publication, le dépouillement,
   le départage, la conservation ;
-- le schéma d'anonymat (§7), le rapprochement de noms et d'adresses ;
+- le schéma d'anonymat (§7), le rapprochement par nom et date de naissance ;
 - l'import de la liste électorale (§6.1), le parcours d'inscription et
   d'examen (§6.2), le vote en ligne et sa modification (§6.3), la saisie, la
   correction, la suppression et le contreseing des bulletins papier (§6.4) ;
@@ -267,8 +283,10 @@ et les `cargo test` Rust sont au vert :
 - le rôle Ansible — `provision`, `deploy`, `backup`, `restore`, `smoke`
   (§15).
 
-Chaque test d'acceptation T-1…T-81 (§12) dispose d'un test ou d'un scénario
-Molecule.
+Chaque test d'acceptation du §12 (T-1…T-94) dispose d'un test ou d'un scénario
+Molecule qui le cite par son numéro, et
+`tests/unit/test_acceptance_traceability.py` fait échouer la construction
+quand ce n'est pas le cas.
 
 Reste à faire :
 

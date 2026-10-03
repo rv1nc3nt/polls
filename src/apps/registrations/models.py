@@ -123,7 +123,10 @@ class Registration(models.Model):
     language = models.CharField(max_length=10, default="fr")
 
     created_at = models.DateTimeField(auto_now_add=True)
-    confirmed_at = models.DateTimeField(null=True, blank=True)
+    # No record of *when* the mailbox was confirmed: the first ballot follows
+    # the confirmation within minutes, in the same visit, so the instant would
+    # pair the two lists §7 keeps apart (INV-1, decision log #42). ``state``
+    # says whether it was.
     reminder_sent_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:

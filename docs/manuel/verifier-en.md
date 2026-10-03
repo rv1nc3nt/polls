@@ -29,7 +29,8 @@ program:
   whether it finds exactly what the site announces.
 
 If it finds the same result, you have proof, independent of the site, that
-the tally is correct. If it does not, something is wrong, and it should be
+the tally of the published ballots is correct — which does not prove
+everything (see ["What the verifier does not prove"](#what-the-verifier-does-not-prove)). If it does not, something is wrong, and it should be
 reported (see ["What to do in case of disagreement"](#what-to-do-in-case-of-disagreement)
 below) rather than trusting either of the two computations.
 
@@ -39,7 +40,7 @@ Two things:
 
 1. the consultation's **publication document** — the "Full publication
    document (JSON)" link on its results page (figure 20 of the [voter's
-   guide](guide-electeur.md#8-verify-after-closure)). It contains the
+   guide](guide-electeur-en.md#8-verify-after-closure)). It contains the
    anonymised list of ballots and every value the site publishes: tally
    method, options, closure hash, pairwise matrix, winner and, where
    applicable, the tie-break;
@@ -55,6 +56,20 @@ The verifier comes in two forms, built from the same verification code: a
 line**, for anyone comfortable with a terminal or who wants to automate
 repeated checks. Both give exactly the same result; choose whichever suits
 you.
+
+### Before publication: note two values
+
+Two values appear on the consultation's public page before the results do,
+and cannot change afterwards:
+
+- the **opening seed**, from the moment voting opens;
+- the **closure hash** and the number of **ballots counted**, from the moment
+  it closes.
+
+If you note them then (a screenshot is enough), you can check after
+publication that the results rest on the same ones. The verifier checks that
+the published files agree with each other; this comparison is what shows they
+were not changed between closure and publication.
 
 ## Downloading the verifier
 
@@ -81,6 +96,40 @@ comfortable with a terminal, otherwise the command line:
 
 Put the downloaded file somewhere easy to find — next to the publication
 document you already downloaded, for instance.
+
+### Checking the download (optional)
+
+A verifier is only worth anything if it is the right program. Every release
+attaches, among its files, a `SHA256SUMS` list: the fingerprint of each
+program. Compute the fingerprint of the file you downloaded and compare it with
+the line bearing its name:
+
+**Windows (PowerShell):**
+
+    Get-FileHash .\polls-verifier-windows-x86_64.exe
+
+**macOS:**
+
+    shasum -a 256 polls-verifier-macos-aarch64
+
+**Linux:**
+
+    sha256sum polls-verifier-linux-x86_64
+
+The two strings must be identical. If they differ, do not run the program:
+download it again from the releases page.
+
+To go further, every program also carries a provenance attestation, signed
+when it was built, proving it was compiled from the project's public code by
+its release procedure rather than on someone's computer. With GitHub's
+command-line tool (`gh`):
+
+    gh attestation verify polls-verifier-linux-x86_64 --repo rv1nc3nt/polls
+
+Finally, you can build the verifier yourself from the release's source code
+(the `verifier/` folder), with `rustup` and
+`cargo build --release --manifest-path verifier/Cargo.toml`: the compiler used
+is fixed in the repository's `rust-toolchain.toml` file.
 
 ## Using the graphical application (recommended)
 
@@ -128,11 +177,17 @@ document, only the first and the last are needed:
    assentiment — approval), the **option identifiers** separated by commas,
    the **expected closure hash**, the **opening seed** in case of a tie and
    the **announced winner**. All are optional — without them, the
-   application still shows what it recomputed, simply without comparing
-   anything.
+   application still shows what it recomputed, but says so at the top of
+   the result: "Nothing was compared". That is not a verification.
 3. Click **Verify**.
 
-With the publication document, the result starts with a green "✓ …
+The result opens with a summary line: "✓ VERIFIED: every compared value
+matches" in green, or "✗ … do NOT match" in red. (The application is in
+French: it reads « ✓ VÉRIFIÉ » or « ✗ … NE concordent PAS ».) If you change a
+value in step 2 after clicking **Verify**, that result is cleared: click again
+to check the new values.
+
+With the publication document, it continues with a green "✓ …
 matches" or red "✗ … does NOT match" line for each published value: number
 of ballots, pairwise matrix, votes per option (plurality or approval poll),
 tie-break if there was one, closure hash and winner. Then come the tally
@@ -219,7 +274,12 @@ then one line per published value it checked:
 `AGREES` means the value recomputed from the ballots alone is identical to
 the one the site publishes; `DIFFERS` would mean the opposite (see below).
 A `counts` line is added for a plurality or approval poll, and a `tie-break`
-line if a tie-break took place.
+line if a tie-break took place. A last line, `participation`, checks that the
+participation figures the site publishes add up: the online and paper ballots
+must make the number of ballots in the list, and the registered electors must
+be exactly those who voted, those whose paper ballot went uncounted, and those
+who did not vote. The list cannot tell who registered, but a list with ballots
+added and figures left untouched no longer adds up.
 
 The tally method is the one value the verifier cannot recompute, since it is
 what decides the winner: it shows it on its first line (`method`) so you can
@@ -244,6 +304,12 @@ the list of options, the pairwise matrix and the winner(s) — then, on the
 last useful line:
 
     closure hash    AGREES
+
+Without `--closure-hash` or `--winner` the program has nothing to compare:
+it shows its recomputation, then `NOTHING COMPARED`, and ends with an error
+code, never with success. A misspelt flag, or one given without a value, is
+refused rather than ignored. Each flag can be written `--closure-hash
+87694cf0...` or `--closure-hash=87694cf0...`.
 
 `AGREES` means the hash you recomputed is identical to the one published on
 the site: the CSV file has not been altered since the closure computation.
@@ -287,13 +353,31 @@ second hexadecimal string, distinct from the closure hash. Add it with
 
     ./polls-verifier-macos-aarch64 ballots.csv --closure-hash 87694cf0... --method schulze --opening-seed a1b2c3... --winner option-b
 
+The opening seed is drawn when the consultation opens and shown from that
+moment on its public page, under the calendar. If you noted it then, check
+that the one in the publication document is exactly the same: a seed changed
+afterwards could pick the outcome of a tie-break, and the recomputation would
+still agree.
+
 The tie-break uses no drawing of lots and no programming-language function:
 it is entirely determined by the closure hash and the opening seed, which is
 exactly what this command checks. See [Tally methods,
-explained](methodes-de-depouillement.md#ties-and-the-tie-break) for the
+explained](methodes-de-depouillement-en.md#ties-and-the-tie-break) for the
 detail of this computation.
 
 ## What to do in case of disagreement
+
+The command line ends with a code that sums up the outcome, useful if you
+automate the check:
+
+| Code | Meaning | What to do |
+|---|---|---|
+| 0 | Every compared value matches. | Nothing: the published result is the one the ballots produce. |
+| 1 | At least one value does not match (`DIFFERS`). | Follow the steps below. |
+| 2 | The verifier could not work: unreadable or incomplete file, unknown flag or flag without a value, or an impossible ballot list (a repeated or malformed tracking code, an empty ranking, an option ranked twice, an option identifier the platform does not accept). | Correct the command, or download the file again. An impossible list in a file downloaded as-is from the results page is an anomaly to report like a disagreement. |
+| 3 | Nothing was compared (a CSV file without `--closure-hash` or `--winner`). | Add the values to compare, copied from the results page. |
+
+A code 2 or 3 is never a success: it means nothing was verified.
 
 If a line shows `DIFFERS`:
 
@@ -303,8 +387,48 @@ If a line shows `DIFFERS`:
    and no missing character**.
 2. If the disagreement persists, **do not keep it to yourself**: contact the
    mairie, stating the consultation concerned, the exact command you ran and
-   its full output. This is exactly the kind of anomaly this verifiability
+   its full output, and the verifier's version: `polls-verifier --version`
+   prints it on the command line, and the graphical application shows it
+   under its title. This is exactly the kind of anomaly this verifiability
    is meant to be able to catch.
+
+## What the verifier does not prove
+
+`AGREES` on every line proves one precise thing: the published ballots do
+give the published result. It says nothing about how that list was put
+together. In particular, the verifier cannot establish:
+
+- **that each ballot comes from a registered elector, and from one only.** The
+  published list is anonymous, by design: it does not say who voted. The
+  verifier checks that the participation figures add up with the list, not
+  that they match the actual registrations, which nobody outside the mairie
+  can see.
+- **that no ballot was removed or changed.** Only an elector who kept their
+  tracking code can see that, by finding the code in the list with the
+  ranking they chose (see the [voter's
+  guide](guide-electeur-en.md#8-verify-after-closure)). The more electors do
+  so, the harder any tampering would be to hide.
+- **that nothing changed since closure, nor the seed since opening.** The
+  verifier checks that the document agrees with itself; a document rebuilt
+  from end to end would too. Only comparing with values noted in advance
+  shows it (see ["Before publication: note two
+  values"](#before-publication-note-two-values)). The closure hash is also
+  what ties the CSV file to the publication document: the verifier reads one
+  or the other, never both together, and they carry the same ballots if their
+  closure hash is the same.
+- **that the tally method is the one announced.** It decides the winner: the
+  verifier displays it so you can compare it with the one the consultation
+  announced before it opened.
+- **that each ballot follows the consultation's rules.** It refuses a ranking
+  no consultation accepts (empty, or an option ranked twice), but it does not
+  know this one's own rules: whether ties were allowed, or whether every
+  option had to be ranked.
+- **that the published labels are the ones electors saw.** It counts on the
+  option identifiers; their labels are only for display.
+- **a physical draw**, which no program can replay (see above).
+- **ballot secrecy.** That nobody can link a ballot to an elector depends on
+  how the platform is built and how the mairie runs it, not on what is
+  published: no outside program can observe it.
 
 ## Going further
 
@@ -315,4 +439,4 @@ anyone can read exactly what this program does, or write their own version
 in another language to verify things even more independently. To understand exactly
 what the verifier recomputes — the Schulze, plurality or approval method,
 and the tie-break — see [Tally methods,
-explained](methodes-de-depouillement.md).
+explained](methodes-de-depouillement-en.md).

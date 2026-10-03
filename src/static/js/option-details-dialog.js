@@ -56,7 +56,11 @@
 
       var body = document.createElement("div");
       body.className = "details-dialog__body option-details";
-      body.innerHTML = container.innerHTML;
+      // Cloned, not re-parsed (review C-10): the content is the server's
+      // sanitised render, and copying nodes keeps innerHTML out of the page.
+      Array.prototype.forEach.call(container.childNodes, function (node) {
+        body.appendChild(node.cloneNode(true));
+      });
 
       dialog.appendChild(header);
       dialog.appendChild(body);

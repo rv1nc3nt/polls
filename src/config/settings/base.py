@@ -38,11 +38,17 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # CSP, Permissions-Policy, CORP (review A-10): apps/core/headers.py.
+    "apps.core.headers.SecurityHeadersMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
+    # Django's, but accepting the `Origin: null` the ballot routes' referrer
+    # policy makes browsers send (apps/core/csrf.py, decision log #50).
+    "apps.core.csrf.BallotRouteCsrfMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    # Back-office sessions end eight hours after sign-in (review A-16).
+    "apps.core.operatorsession.OperatorSessionMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -121,6 +127,10 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "var" / "static"
 STATICFILES_DIRS = [SRC_DIR / "static"]
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+}
 
 # R-3.12, §3.1 bis: the one kind of operator-uploaded file the platform
 # serves back to the public. Distinct from STATIC_ROOT — these are written at
@@ -135,12 +145,22 @@ STATICFILES_DIRS = [SRC_DIR / "static"]
 MEDIA_URL = "media/"
 MEDIA_ROOT = Path(os.environ.get("DJANGO_MEDIA_ROOT", BASE_DIR / "var" / "media"))
 
+# Expiry dates kept to the day: a voter's session is saved as they cast their
+# ballot, and an exact expiry would date it (INV-1, apps/core/sessions.py).
+SESSION_ENGINE = "apps.core.sessions"
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
+# Seconds an operator stays signed in, counted from sign-in: a working day,
+# not Django's two weeks, since a mairie's PC is often shared
+# (apps/core/operatorsession.py, review A-16). Voters' sessions are unaffected.
+OPERATOR_SESSION_AGE = int(os.environ.get("DJANGO_OPERATOR_SESSION_AGE", 8 * 3600))
 CSRF_COOKIE_SAMESITE = "Lax"
 X_FRAME_OPTIONS = "DENY"
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "same-origin"
+# The Content-Security-Policy is enforced; "1" sends it report-only instead,
+# a way back should a browser refuse something unforeseen (apps/core/headers.py).
+CSP_REPORT_ONLY = os.environ.get("DJANGO_CSP_REPORT_ONLY", "") == "1"
 
 # §6.5: the back-office is the only authenticated area, and it is reached by
 # named accounts only (R-2.2). There is no self-service signup and no password
@@ -178,6 +198,11 @@ CACHES = {
 # numbers, and neither should have to edit the source to get them.
 RATE_LIMIT_REGISTRATION = os.environ.get("DJANGO_RATE_LIMIT_REGISTRATION", "5/1h")
 RATE_LIMIT_EMAIL = os.environ.get("DJANGO_RATE_LIMIT_EMAIL", "3/1h")
+# Back-office sign-in failures (review A-7): per caller, and per account named.
+# The second lets a stranger keep an operator out by failing on purpose, so it
+# is looser and slower than the first (decision log #43).
+RATE_LIMIT_LOGIN_ADDRESS = os.environ.get("DJANGO_RATE_LIMIT_LOGIN_ADDRESS", "10/15m")
+RATE_LIMIT_LOGIN_ACCOUNT = os.environ.get("DJANGO_RATE_LIMIT_LOGIN_ACCOUNT", "20/1h")
 # How many proxies append to X-Forwarded-For in front of gunicorn: 1 for the
 # nginx of §14 alone. One too few and the limiter keys on a proxy, so every
 # caller shares one bucket; one too many and a client can forge its address
@@ -209,6 +234,11 @@ APP_VERSION = os.environ.get("APP_VERSION", "0.1.0-dev")
 # The upstream repository by default; a commune running its own fork may point
 # it there. A github.com address gets the GitHub mark, anything else plain text.
 SOURCE_CODE_URL = os.environ.get("DJANGO_SOURCE_CODE_URL", "https://github.com/rv1nc3nt/polls")
+
+# The first-run wizard's code (§6.5.11): whoever reaches a fresh instance first
+# would otherwise become its administrator. The deploy writes a random one to
+# /etc/polls/setup_token and this file (review A-6). Empty, the wizard refuses.
+SETUP_TOKEN = os.environ.get("DJANGO_SETUP_TOKEN", "")
 
 # Directory holding job lock files (§14, self-locking commands).
 JOB_LOCK_DIR = Path(os.environ.get("DJANGO_JOB_LOCK_DIR", BASE_DIR / "var" / "locks"))

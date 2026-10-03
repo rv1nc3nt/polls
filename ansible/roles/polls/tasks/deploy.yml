@@ -102,6 +102,7 @@
           tar --create --gzip --file {{ polls_src_archive }}
           --exclude-vcs
           --exclude=./.venv --exclude=./var --exclude=./node_modules
+          --exclude=./verifier/target
           --exclude=./.molecule --exclude=./.pytest_cache
           --exclude=./.mypy_cache --exclude=./.ruff_cache --exclude=./__pycache__
           -C {{ polls_source_tree }} .
@@ -178,6 +179,43 @@
 - name: Keep the SECRET_KEY for templating
   ansible.builtin.set_fact:
     polls_secret_key: "{{ polls_secret_key_slurp.content | b64decode | trim }}"
+  no_log: true
+
+- name: Stat the first-run setup code
+  ansible.builtin.stat:
+    path: "{{ polls_config_dir }}/setup_token"
+  register: polls_setup_token_stat
+
+# Review A-6: without it, the first visitor to a fresh instance becomes its
+# administrator. Generated once, like SECRET_KEY; root-only, since only the
+# person installing needs it (the service reads it from polls.env).
+- name: Generate the first-run setup code on first install only
+  ansible.builtin.command:
+    cmd: python3 -c "import secrets; print(secrets.token_urlsafe(24))"
+  register: polls_setup_token_new
+  when: not polls_setup_token_stat.stat.exists
+  changed_when: true
+  no_log: true
+
+- name: Persist the first-run setup code
+  ansible.builtin.copy:
+    dest: "{{ polls_config_dir }}/setup_token"
+    content: "{{ polls_setup_token_new.stdout }}\n"
+    owner: root
+    group: root
+    mode: "0600"
+  when: not polls_setup_token_stat.stat.exists
+  no_log: true
+
+- name: Read the first-run setup code back
+  ansible.builtin.slurp:
+    src: "{{ polls_config_dir }}/setup_token"
+  register: polls_setup_token_slurp
+  no_log: true
+
+- name: Keep the first-run setup code for templating
+  ansible.builtin.set_fact:
+    polls_setup_token: "{{ polls_setup_token_slurp.content | b64decode | trim }}"
   no_log: true
 
 - name: Render the environment file
@@ -267,6 +305,19 @@
       environment: "{{ polls_manage_env }}"
       register: polls_cachetable
       changed_when: "'already exists' not in polls_cachetable.stdout"
+
+    # R-10.2: a poll published before its artefacts were stored gets them now,
+    # once (decision log #41). Idempotent: a second run finds nothing to do,
+    # which keeps T-38's idempotence check meaningful.
+    - name: Store the artefacts of polls published before they were stored
+      ansible.builtin.command:
+        cmd: "{{ polls_py }} manage.py freeze_publications"
+        chdir: "{{ polls_release_dir }}"
+      become: true
+      become_user: "{{ polls_user }}"
+      environment: "{{ polls_manage_env }}"
+      register: polls_freeze
+      changed_when: "'frozen ' in polls_freeze.stdout"
 
     - name: Collect static files
       ansible.builtin.command:

@@ -29,6 +29,7 @@ from apps.audit.models import Action, Reason
 from apps.ballots.models import BallotStatus, ReconciliationRecord
 from apps.core.crypto import new_opening_seed
 from apps.core.models import User
+from apps.tally.methods import SUPPORTED_VERSIONS
 
 from .models import Poll, PollState, RollEntry, WorkingRollEntry
 from .windows import online_voting_closed
@@ -77,6 +78,10 @@ def announcing_blockers(poll: Poll, now: datetime | None = None) -> list[str]:
         blockers.append("opens_at_not_in_future")
     if poll.options.count() < 2:
         blockers.append("fewer_than_two_options")
+    if poll.tally_method_version not in SUPPORTED_VERSIONS:
+        # R-10.2: frozen from here on, so a version nothing can tally must be
+        # caught while it can still be corrected.
+        blockers.append("unsupported_method_version")
     blockers += [f"missing_translation:{gap}" for gap in poll.missing_translations()]
     return blockers
 
@@ -97,6 +102,8 @@ def opening_blockers(poll: Poll) -> list[str]:
         blockers.append("not_announced")
     if poll.options.count() < 2:
         blockers.append("fewer_than_two_options")
+    if poll.tally_method_version not in SUPPORTED_VERSIONS:
+        blockers.append("unsupported_method_version")
     blockers += [f"missing_translation:{gap}" for gap in poll.missing_translations()]
     if not WorkingRollEntry.objects.exists():
         blockers.append("no_roll_to_snapshot")
@@ -333,6 +340,10 @@ def _open_poll_locked(poll: Poll, actor: User | None, now: datetime | None) -> P
         after={
             "state": PollState.OPEN,
             "opened_at": opened_at.isoformat(),
+            # R-10.5: published at opening and immutable from then on. In the
+            # log too, so the value used at closure can be checked against the
+            # one drawn here (decision log #40).
+            "opening_seed": bytes(poll.opening_seed).hex(),
             **({"opens_at": poll.opens_at.isoformat()} if opened_early else {}),
         },
     )
@@ -471,14 +482,29 @@ def publish_poll(poll: Poll, actor: User) -> Poll:
     pure function of the live set (§8) and is logged here, at the instant its
     derivation is frozen into the public record, rather than on every screen
     view.
+
+    The artefacts themselves are stored in the same write (R-10.2): the JSON
+    document and the CSV are served from the poll row from now on, never
+    recomputed, so no later change to the code can restate this result.
+    Refused for a method version this code does not implement, rather than
+    tallying it under another version's rules.
     """
-    from .closure import tallied, unresolved_physical_tiebreak  # local: closure imports the tally
+    from .closure import (  # local: closure imports the tally
+        freeze_publication,
+        tallied,
+        unresolved_physical_tiebreak,
+    )
 
     poll = Poll.objects.select_for_update().get(pk=poll.pk)
     if poll.state != PollState.CLOSED:
         raise TransitionRefused(_("Seul un scrutin clos peut être publié."), ["not_closed"])
     if poll.closure_hash is None:
         raise TransitionRefused(_("Aucune empreinte de clôture."), ["no_closure_hash"])
+    if poll.tally_method_version not in SUPPORTED_VERSIONS:
+        raise TransitionRefused(
+            _("Version de la méthode de dépouillement inconnue de ce logiciel."),
+            ["unsupported_method_version"],
+        )
     if unresolved_physical_tiebreak(poll):
         raise TransitionRefused(
             _("Départage par tirage au sort physique non saisi."), ["tiebreak_pending"]
@@ -499,8 +525,9 @@ def publish_poll(poll: Poll, actor: User) -> Poll:
         },
     )
 
+    poll.published_document, poll.published_csv = freeze_publication(poll)
     poll.state = PollState.PUBLISHED
-    poll.save(update_fields=["state"])
+    poll.save(update_fields=["state", "published_document", "published_csv"])
     audit.record(
         action=Action.RESULTS_PUBLISHED,
         poll=poll,
@@ -510,6 +537,31 @@ def publish_poll(poll: Poll, actor: User) -> Poll:
         after={"state": PollState.PUBLISHED},
     )
     return poll
+
+
+@transaction.atomic
+def freeze_legacy_publication(poll: Poll) -> bool:
+    """Store the artefacts of a poll published before ``publish_poll`` stored
+    them (R-10.2, decision log #41), and say whether this call did.
+
+    Its results were recomputed on every request until now, so storing what
+    the code computes today keeps serving exactly what readers have been
+    downloading, and fixes it there. Before the version was checked, any text
+    could be recorded, and every poll was tallied under version 1 whatever it
+    said; one recording a version this code does not implement is therefore
+    frozen under version 1 — what it was published under — and its document
+    says so. Idempotent: a poll already holding its document, or not
+    published, is left alone. Run by ``freeze_publications`` at deploy.
+    """
+    from .closure import freeze_publication  # local: closure imports the tally
+
+    poll = Poll.objects.select_for_update().get(pk=poll.pk)
+    if poll.state != PollState.PUBLISHED or poll.published_document is not None:
+        return False
+    served = poll.tally_method_version if poll.tally_method_version in SUPPORTED_VERSIONS else "1"
+    poll.published_document, poll.published_csv = freeze_publication(poll, served)
+    poll.save(update_fields=["published_document", "published_csv"])
+    return True
 
 
 @transaction.atomic

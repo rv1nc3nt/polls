@@ -5,6 +5,14 @@ name: Verifier release binaries
 # meant to be run by anyone auditing a poll, not just people with a Rust
 # toolchain — so every project release gets prebuilt binaries attached for the
 # desktop platforms someone might audit from, alongside the source tag.
+#
+# A sceptic's first question is whether the binary is the code (review B-5).
+# So: the compiler is the one rust-toolchain.toml pins; SHA256SUMS lists every
+# file's digest; and each file carries a GitHub build-provenance attestation, a
+# keyless signature tying it to this workflow, this commit and this repository
+# (`gh attestation verify <file> --repo rv1nc3nt/polls`). Third-party actions,
+# which run with the release's write token, are pinned to a commit, not a tag
+# someone could move.
 on:
   release:
     types: [published]
@@ -32,11 +40,17 @@ jobs:
             cli_artifact: polls-verifier-macos-x86_64
             gui_artifact: polls-verifier-gui-macos-x86_64
     runs-on: ${{ matrix.os }}
+    # What `polls-verifier --version` and the GUI report (core::build, review
+    # B-11): the release tag, empty on a manual run, and the commit.
+    env:
+      POLLS_RELEASE: ${{ github.event.release.tag_name }}
+      POLLS_COMMIT: ${{ github.sha }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+      # rustup is on every runner; with no argument it installs the
+      # toolchain rust-toolchain.toml names, and the target is added to it.
+      - run: rustup toolchain install
+      - run: rustup target add ${{ matrix.target }}
       - run: cargo test --manifest-path verifier/Cargo.toml --target ${{ matrix.target }}
       - run: cargo build --manifest-path verifier/Cargo.toml --release --target ${{ matrix.target }}
       - name: Rename binaries to their published artifact names
@@ -49,11 +63,11 @@ jobs:
           [ -f "$gui.exe" ] && gui="$gui.exe"
           cp "$cli" "${{ matrix.cli_artifact }}"
           cp "$gui" "${{ matrix.gui_artifact }}"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
           name: ${{ matrix.cli_artifact }}
           path: ${{ matrix.cli_artifact }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
           name: ${{ matrix.gui_artifact }}
           path: ${{ matrix.gui_artifact }}
@@ -66,12 +80,20 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write  # the attestation's keyless signature
+      attestations: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
         with:
           path: dist
           merge-multiple: true
-      - uses: softprops/action-gh-release@v2
+      - name: List every file's SHA-256
+        working-directory: dist
+        run: sha256sum polls-verifier-* > SHA256SUMS && cat SHA256SUMS
+      - uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be  # v2
+        with:
+          subject-path: dist/polls-verifier-*
+      - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65  # v2
         with:
           tag_name: ${{ github.event.release.tag_name }}
           files: dist/*

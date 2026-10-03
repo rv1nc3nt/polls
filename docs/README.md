@@ -36,6 +36,8 @@ itself, so their paths and names are fixed: renaming one breaks the site.
 | [`specification-decision-log.md`](specification-decision-log.md) | find where and why the code departs from the specification, and which departures are still open (status table at the top). Cited as `#n` in code and commits. |
 | [`review-notes.md`](review-notes.md) | see the suspected defects found in the September 2026 documentation pass, with their severity. |
 | [`roadmap.md`](roadmap.md) | see the changes agreed in principle but deferred, and what each would touch. |
+| [`threat-model.md`](threat-model.md) | know who could learn or change what — the public, the mail relay, a copy of the database, back-office operators, the instance operator — what stops each, and where the guarantees end. |
+| [`../CHANGELOG.md`](../CHANGELOG.md) | see what each release changed, and whether it deploys while a poll is open. |
 
 Rules for the whole tree (self-sufficiency of `manuel/`, French authoritative, where
 a departure from the specification is recorded) are in the root `CLAUDE.md`,

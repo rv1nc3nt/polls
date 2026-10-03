@@ -122,7 +122,11 @@ def force_open(poll: Poll) -> Poll:
         poll=poll,
         object_ref=audit.ref(poll),
         before={"state": previous_state},
-        after={"state": PollState.OPEN, "opened_at": timezone.now().isoformat()},
+        after={
+            "state": PollState.OPEN,
+            "opened_at": timezone.now().isoformat(),
+            "opening_seed": bytes(poll.opening_seed or b"").hex(),
+        },
     )
     return poll
 

@@ -73,6 +73,8 @@ polls_trusted_proxy_hops: 1
 # The "code source" link in every page's footer. The upstream repository; a
 # commune running its own fork points it at that fork.
 polls_source_code_url: "https://github.com/rv1nc3nt/polls"
+# Seconds an operator stays signed in to the espace mairie, from sign-in.
+polls_operator_session_age: 28800
 # Poll ids whose back office shows the running trend (R-11.5 bis): a list, or
 # from an INI inventory a comma-separated string (inventory.example.ini).
 # Interim, until the poll carries its own setting (decision log #39); empty
