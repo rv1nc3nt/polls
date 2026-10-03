@@ -131,6 +131,9 @@ Named accounts in the espace mairie, each with a role on given polls
   published artefacts are stored once, by trigger (#41).
 - Definitive actions pass a confirmation page first (R-2.4), against mistakes
   rather than malice.
+- A sign-in lasts eight hours from the moment it was made, enforced on the
+  server rather than by the cookie alone, so a browser left signed in on a
+  shared mairie PC does not keep these screens open for days (review A-16).
 
 ### The instance operator
 

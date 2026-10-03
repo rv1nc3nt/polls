@@ -45,6 +45,8 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    # Back-office sessions end eight hours after sign-in (review A-16).
+    "apps.core.operatorsession.OperatorSessionMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -146,6 +148,10 @@ MEDIA_ROOT = Path(os.environ.get("DJANGO_MEDIA_ROOT", BASE_DIR / "var" / "media"
 SESSION_ENGINE = "apps.core.sessions"
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
+# Seconds an operator stays signed in, counted from sign-in: a working day,
+# not Django's two weeks, since a mairie's PC is often shared
+# (apps/core/operatorsession.py, review A-16). Voters' sessions are unaffected.
+OPERATOR_SESSION_AGE = int(os.environ.get("DJANGO_OPERATOR_SESSION_AGE", 8 * 3600))
 CSRF_COOKIE_SAMESITE = "Lax"
 X_FRAME_OPTIONS = "DENY"
 SECURE_CONTENT_TYPE_NOSNIFF = True

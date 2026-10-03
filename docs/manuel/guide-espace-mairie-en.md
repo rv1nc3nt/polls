@@ -45,6 +45,10 @@ forbidden by construction. The signed-in person's name is shown at the top
 of every screen: at a glance, you should be able to see under whose name the
 audit log will record the actions taken.
 
+A sign-in lasts **eight hours**, unless the instance is set otherwise: after
+that, the mairie area asks for the password again, even if the window stayed
+open. On a shared computer, click "Se déconnecter" when you leave all the same.
+
 **Figure 6 — Signing in to the mairie area.**
 
 ![Signing in to the mairie area](captures/img/06-mairie-connexion.png)

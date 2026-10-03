@@ -166,6 +166,7 @@ utilisées :
 | `polls_python_version` | `3.13` | `uv` gère son propre interpréteur sous le préfixe. |
 | `polls_bind` | `127.0.0.1:8000` | adresse d'écoute de gunicorn (derrière nginx). |
 | `polls_gunicorn_workers` | `3` | |
+| `polls_operator_session_age` | `28800` | durée, en secondes, pendant laquelle un agent reste connecté à l'espace mairie, comptée depuis sa connexion : huit heures par défaut, une journée de travail. Passé ce délai, il se reconnecte. Un poste de mairie étant souvent partagé, mieux vaut ne pas l'allonger. |
 | `polls_source_code_url` | dépôt du projet sur GitHub | adresse du lien « Code source » en pied de chaque page, à côté de la mention de la licence 0BSD ; à changer pour pointer vers votre propre dépôt si vous exploitez une version modifiée. Hors de GitHub, le lien s'affiche sans le logo GitHub. |
 | `polls_trend_polls` | `[]` | identifiants des scrutins dont l'espace mairie affiche la tendance (guide de l'espace mairie, section 8). Réglage provisoire : il deviendra une option de chaque scrutin, à choisir avant son ouverture. Vide, aucun scrutin ne l'affiche. Dans `inventory.ini`, écrire les identifiants séparés par des virgules, sans crochets ni guillemets : `polls_trend_polls=a71b5307-…,4051c4c3-…`. |
 | `polls_trusted_proxy_hops` | `1` | nombre de relais devant gunicorn : `1` pour le seul nginx du rôle, `2` si TLS est terminé par un autre relais placé devant (section 11). |
