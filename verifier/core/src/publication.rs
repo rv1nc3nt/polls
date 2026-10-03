@@ -129,6 +129,9 @@ fn integers(value: &Value, what: &str) -> Result<Vec<(String, u64)>, String> {
 ///
 /// Invalid JSON, a missing or unsupported `format_version`, or a member the
 /// verifier reads that is absent or of the wrong type. The message names it.
+// One member after another, in the order of docs/publication-format.md's
+// table, so the two can be read side by side; split up, the contract would be.
+#[allow(clippy::too_many_lines)]
 pub fn parse_publication(text: &str) -> Result<Publication, String> {
     let document = json::parse(text)?;
     if document.as_object().is_none() {

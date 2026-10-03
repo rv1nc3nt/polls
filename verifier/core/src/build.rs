@@ -15,6 +15,7 @@ pub const RELEASE: Option<&str> = option_env!("POLLS_RELEASE");
 pub const COMMIT: Option<&str> = option_env!("POLLS_COMMIT");
 
 /// One line naming this build, then the publication format versions it reads.
+#[must_use]
 pub fn describe() -> String {
     // Set but empty, as on a workflow run that is not a release, is unset.
     let given = |value: Option<&'static str>| value.filter(|v| !v.is_empty());

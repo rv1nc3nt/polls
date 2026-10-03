@@ -122,6 +122,7 @@ pub fn check_ranking(ranking: &[Vec<String>]) -> Result<(), String> {
 
 /// The canonical serialisation of the live set, byte for byte
 /// (`docs/canonical-serialisation.md`).
+#[must_use]
 pub fn canonical_serialisation(ballots: &[Ballot]) -> Vec<u8> {
     let mut records: Vec<Vec<u8>> = ballots
         .iter()
@@ -165,6 +166,7 @@ pub const OPTION_ID_MAX_LENGTH: usize = 50;
 /// `0-9`, `_` and `-`. The serialisation above writes ids unescaped, which is
 /// only the application's JSON for characters JSON never escapes; any other
 /// id is refused rather than escaped one way or the other.
+#[must_use]
 pub fn is_option_id(id: &str) -> bool {
     (1..=OPTION_ID_MAX_LENGTH).contains(&id.len())
         && id
@@ -211,6 +213,7 @@ pub fn check_tracking_codes(ballots: &[Ballot]) -> Result<(), BallotListError> {
 /// carries no option list, so an option no ballot ranks is absent here; a
 /// caller who knows the poll's options passes them instead (`Expected::options`
 /// in `report`), and the matrix then matches the published one row for row.
+#[must_use]
 pub fn options_in(ballots: &[Ballot]) -> Vec<String> {
     let mut set = BTreeSet::new();
     for ballot in ballots {
@@ -229,6 +232,7 @@ pub fn options_in(ballots: &[Ballot]) -> Vec<String> {
 /// Byte-wise on purpose: slicing the `str` two bytes at a time panicked when a
 /// pasted value held a multi-byte character, and `u8::from_str_radix` accepts
 /// a leading `+`, so `"+f"` decoded (review note L6).
+#[must_use]
 pub fn parse_hex(text: &str) -> Option<Vec<u8>> {
     let digits = text.trim().as_bytes();
     if !digits.len().is_multiple_of(2) {
@@ -237,7 +241,8 @@ pub fn parse_hex(text: &str) -> Option<Vec<u8>> {
     let nibble = |b: u8| (b as char).to_digit(16).filter(|_| b.is_ascii_hexdigit());
     digits
         .chunks(2)
-        .map(|pair| Some((nibble(pair[0])? * 16 + nibble(pair[1])?) as u8))
+        // Two hex digits make at most 255, so the conversion never fails.
+        .map(|pair| u8::try_from(nibble(pair[0])? * 16 + nibble(pair[1])?).ok())
         .collect()
 }
 

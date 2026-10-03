@@ -22,3 +22,6 @@ rfd = { version = "0.17", default-features = false, features = ["xdg-portal"] }
 
 [target.'cfg(not(target_os = "linux"))'.dependencies]
 rfd = { version = "0.17", default-features = false }
+
+[lints]
+workspace = true

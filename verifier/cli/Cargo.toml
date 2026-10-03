@@ -13,3 +13,6 @@ polls-verifier-core = { path = "../core" }
 [[bin]]
 name = "polls-verifier"
 path = "src/main.rs"
+
+[lints]
+workspace = true

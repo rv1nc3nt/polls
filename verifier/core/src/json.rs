@@ -29,6 +29,7 @@ pub enum Value {
 
 impl Value {
     /// The member `key` of an object; `None` if absent or not an object.
+    #[must_use]
     pub fn get(&self, key: &str) -> Option<&Value> {
         match self {
             Value::Object(members) => members.iter().find(|(k, _)| k == key).map(|(_, v)| v),
@@ -37,6 +38,7 @@ impl Value {
     }
 
     /// The text of a string; `None` for any other value.
+    #[must_use]
     pub fn as_str(&self) -> Option<&str> {
         match self {
             Value::String(s) => Some(s),
@@ -45,6 +47,7 @@ impl Value {
     }
 
     /// The items of an array; `None` for any other value.
+    #[must_use]
     pub fn as_array(&self) -> Option<&[Value]> {
         match self {
             Value::Array(items) => Some(items),
@@ -53,6 +56,7 @@ impl Value {
     }
 
     /// The members of an object; `None` for any other value.
+    #[must_use]
     pub fn as_object(&self) -> Option<&[(String, Value)]> {
         match self {
             Value::Object(members) => Some(members),
@@ -61,6 +65,7 @@ impl Value {
     }
 
     /// A non-negative integer with no fraction or exponent.
+    #[must_use]
     pub fn as_u64(&self) -> Option<u64> {
         match self {
             Value::Number(text) if text.bytes().all(|b| b.is_ascii_digit()) => text.parse().ok(),

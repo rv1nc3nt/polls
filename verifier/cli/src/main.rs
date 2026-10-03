@@ -183,19 +183,19 @@ fn input_error(err: VerifyError) -> ExitCode {
         VerifyError::Csv(message) | VerifyError::Publication(message) => eprintln!("{message}"),
         VerifyError::OpeningSeedNotHex => eprintln!("--opening-seed must be hex"),
         VerifyError::UnknownOption(option) => {
-            eprintln!("a ballot ranks {option}, which the option list does not have")
+            eprintln!("a ballot ranks {option}, which the option list does not have");
         }
         VerifyError::MalformedTrackingCode(code) => {
-            eprintln!("tracking code {code:?} is not one the platform issues: the file is not a ballot list it published")
+            eprintln!("tracking code {code:?} is not one the platform issues: the file is not a ballot list it published");
         }
         VerifyError::MalformedRanking(code, why) => {
             eprintln!("ballot {code}: not a ranking the platform records ({why})");
         }
         VerifyError::DuplicateTrackingCode(code) => {
-            eprintln!("tracking code {code} appears on more than one ballot: a published ballot list never repeats one")
+            eprintln!("tracking code {code} appears on more than one ballot: a published ballot list never repeats one");
         }
         VerifyError::MalformedOptionId(option) => {
-            eprintln!("option {option:?} is not an id the platform accepts (A-Z, a-z, 0-9, _ and -, at most 50)")
+            eprintln!("option {option:?} is not an id the platform accepts (A-Z, a-z, 0-9, _ and -, at most 50)");
         }
     }
     ExitCode::from(2)
@@ -259,13 +259,14 @@ fn check_publication(text: &str) -> ExitCode {
 fn check_csv(text: &str, args: &Args) -> ExitCode {
     let method = match args.get("--method") {
         None => Method::Schulze,
-        Some(text) => match Method::parse(text) {
-            Some(method) => method,
-            None => {
+        Some(text) => {
+            if let Some(method) = Method::parse(text) {
+                method
+            } else {
                 eprintln!("--method must be schulze, plurality or approval");
                 return ExitCode::from(2);
             }
-        },
+        }
     };
     let options: Option<Vec<String>> = args.get("--options").map(|list| {
         list.split(',')

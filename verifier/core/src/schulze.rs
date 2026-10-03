@@ -5,6 +5,7 @@ use crate::sha256::sha256;
 
 /// `d[i][j]`: ballots ranking `i` strictly above `j`. Options a ballot does not
 /// rank are equal-last (R-10.4).
+#[must_use]
 pub fn pairwise(ballots: &[Vec<Vec<String>>], options: &[String]) -> Vec<Vec<u32>> {
     let n = options.len();
     let mut d = vec![vec![0u32; n]; n];
@@ -29,6 +30,7 @@ pub fn pairwise(ballots: &[Vec<Vec<String>>], options: &[String]) -> Vec<Vec<u32
 }
 
 /// The strongest-path strengths, exactly the loop of §8.1.
+#[must_use]
 pub fn strongest_paths(d: &[Vec<u32>], options: &[String]) -> Vec<Vec<u32>> {
     let n = options.len();
     let mut p = vec![vec![0u32; n]; n];
@@ -57,6 +59,7 @@ pub fn strongest_paths(d: &[Vec<u32>], options: &[String]) -> Vec<Vec<u32>> {
 
 /// The options not beaten by any other on strongest paths, in `options`
 /// order. More than one means a tie for [`tiebreak`].
+#[must_use]
 pub fn winners(p: &[Vec<u32>], options: &[String]) -> Vec<String> {
     let n = options.len();
     (0..n)
@@ -67,6 +70,7 @@ pub fn winners(p: &[Vec<u32>], options: &[String]) -> Vec<String> {
 
 /// §8.3: order tied options by ascending `SHA256(seed || option_id)`, where
 /// `seed = SHA256(opening_seed || closure_hash)`. No PRNG, no seeded sort.
+#[must_use]
 pub fn tiebreak(tied: &[String], opening_seed: &[u8], closure_hash: &[u8]) -> Vec<String> {
     let mut input = opening_seed.to_vec();
     input.extend_from_slice(closure_hash);
@@ -94,7 +98,7 @@ mod tests {
 
     #[test]
     fn cyclic_majority_is_a_three_way_tie() {
-        let options: Vec<String> = ["a", "b", "c"].iter().map(|s| s.to_string()).collect();
+        let options: Vec<String> = ["a", "b", "c"].into_iter().map(String::from).collect();
         let ballots = vec![
             strict(&["a", "b", "c"]),
             strict(&["b", "c", "a"]),
@@ -107,7 +111,7 @@ mod tests {
 
     #[test]
     fn tiebreak_matches_the_python_vector() {
-        let options: Vec<String> = ["a", "b", "c"].iter().map(|s| s.to_string()).collect();
+        let options: Vec<String> = ["a", "b", "c"].into_iter().map(String::from).collect();
         let opening_seed: Vec<u8> = (0u8..32).collect();
         let closure_hash: Vec<u8> = (32u8..64).collect();
         assert_eq!(

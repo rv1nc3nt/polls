@@ -14,3 +14,6 @@ description = "Canonical serialisation, closure hash and tally methods for the c
 # this crate and may take on presentation dependencies of their own — that
 # rule stops at this boundary, it does not extend to them.
 [dependencies]
+
+[lints]
+workspace = true

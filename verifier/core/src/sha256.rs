@@ -4,6 +4,14 @@
 //! The point of this binary is that it shares no code with the application
 //! (§14); a dependency both sides could have used would weaken that, and the
 //! algorithm is small enough to state in full.
+//!
+//! The constants are written exactly as FIPS 180-4 §4.2.2 and §5.3.3 print
+//! them, and the working variables keep the standard's names `a` to `h`, so
+//! the code can be checked against the text line by line; hence the two
+//! pedantic lints allowed below (review B-12).
+#![allow(clippy::unreadable_literal, clippy::many_single_char_names)]
+
+use std::fmt::Write;
 
 const K: [u32; 64] = [
     0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
@@ -17,6 +25,7 @@ const K: [u32; 64] = [
 ];
 
 /// The SHA-256 digest of `data`.
+#[must_use]
 pub fn sha256(data: &[u8]) -> [u8; 32] {
     let mut h: [u32; 8] = [
         0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab,
@@ -88,8 +97,15 @@ pub fn sha256(data: &[u8]) -> [u8; 32] {
 }
 
 /// Lower-case hexadecimal, two digits per byte.
+#[must_use]
 pub fn hex(bytes: &[u8]) -> String {
-    bytes.iter().map(|b| format!("{b:02x}")).collect()
+    bytes
+        .iter()
+        .fold(String::with_capacity(bytes.len() * 2), |mut out, b| {
+            // Writing to a String cannot fail.
+            let _ = write!(out, "{b:02x}");
+            out
+        })
 }
 
 #[cfg(test)]

@@ -261,6 +261,7 @@ fn participation_adds_up(counts: &Participation, ballot_count: usize) -> bool {
 
 impl PublicationReport {
     /// Every check passed.
+    #[must_use]
     pub fn all_agree(&self) -> bool {
         self.report.closure_hash_agrees != Some(false)
             && self.report.winner_agrees != Some(false)
@@ -349,7 +350,7 @@ pub fn verify_publication(text: &str) -> Result<PublicationReport, VerifyError> 
             // The drawn order is the document's to state; checked above to be
             // a draw among exactly the tied options.
             report.final_winner = tiebreak.order.as_ref().and_then(|o| o.first().cloned());
-            report.tiebreak_order = tiebreak.order.clone();
+            report.tiebreak_order.clone_from(&tiebreak.order);
         }
     }
     report.winner_agrees = Some(report.final_winner == publication.winner);
@@ -499,7 +500,7 @@ mod tests {
     #[test]
     fn a_listed_option_nobody_ranked_is_in_the_matrix_and_the_counts() {
         // Review note L5: the CSV alone cannot show an unranked option.
-        let listed: Vec<String> = ["a", "b", "c", "d"].iter().map(|s| s.to_string()).collect();
+        let listed: Vec<String> = ["a", "b", "c", "d"].into_iter().map(String::from).collect();
         let expected = Expected {
             method: Method::Plurality,
             options: Some(&listed),
@@ -514,7 +515,7 @@ mod tests {
 
     #[test]
     fn a_ranked_option_missing_from_the_list_is_refused() {
-        let listed: Vec<String> = ["a", "b"].iter().map(|s| s.to_string()).collect();
+        let listed: Vec<String> = ["a", "b"].into_iter().map(String::from).collect();
         let expected = Expected {
             options: Some(&listed),
             ..Default::default()
@@ -722,7 +723,7 @@ mod tests {
         // Draw the order the hash chain gives, then publish it — and a wrong one.
         let seed = "00".repeat(32);
         let hash = "18b00454878dc9e9204cff5488d6c9c4ec2a4e12c5382c64d1569e42fa6a6edd";
-        let tied: Vec<String> = ["a", "b", "c"].iter().map(|s| s.to_string()).collect();
+        let tied: Vec<String> = ["a", "b", "c"].into_iter().map(String::from).collect();
         let order = schulze::tiebreak(&tied, &parse_hex(&seed).unwrap(), &parse_hex(hash).unwrap());
         let entries: Vec<String> = order
             .iter()

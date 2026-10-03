@@ -163,6 +163,10 @@ fn non_empty(text: &str) -> Option<&str> {
 }
 
 impl eframe::App for VerifierApp {
+    // The one screen, laid out top to bottom in the order a citizen fills it
+    // in; each section is a few widget calls, and splitting them would only
+    // move the layout away from what it draws.
+    #[allow(clippy::too_many_lines)]
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         // Drag-and-drop, in addition to the browse button: egui reports files
         // dropped anywhere on the window through the raw input, no dialog
