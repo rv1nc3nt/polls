@@ -108,6 +108,29 @@ rest.
 | `tiebreak` | object, present only if the tally tied | **checked** | See below. |
 | `orderings` | object: ordering → integer | ignored | Summary table, published for a Schulze poll with at most four options. |
 
+## Vectors
+
+The rules of this page concern a whole document, which the ballot-level corpus
+of `tests/vectors/` does not hold; each is pinned instead by a test of the
+verifier's core (`verifier/core/src/`) and, against documents the application
+really publishes, by `tests/integration/test_verifier_agreement.py`.
+
+| Rule | Verifier test | Agreement test |
+|---|---|---|
+| Encoding: unique keys | `json.rs`: `refuses_a_duplicate_key` | |
+| Versioning: no or unknown `format_version` refused | `report.rs`: `a_document_without_a_format_version_is_refused` | |
+| `closure_hash`, `ballot_count`, `matrix`, `counts` checked | `report.rs`: `a_consistent_publication_agrees_on_every_count` | `test_the_verifier_agrees_with_the_published_document` |
+| `winner` checked | `report.rs`: `a_publication_claiming_another_winner_disagrees` | `test_a_tampered_winner_is_caught` |
+| participation `counts` add up | `report.rs`: `participation_counts_must_add_up_to_the_ballot_list`, `a_publication_without_its_counts_is_refused` | `test_published_counts_that_do_not_add_up_are_caught` |
+| `ballots` hold only rankings the application records | `report.rs`: `a_ranking_no_ballot_could_carry_is_refused_in_a_publication_too` | `test_a_ranking_the_platform_never_writes_is_refused` |
+| `ballots`: tracking codes well formed and unique | `report.rs`: `a_repeated_or_malformed_tracking_code_is_refused` | `test_a_repeated_tracking_code_is_refused` |
+| `options`: ids from the alphabet | `report.rs`: `an_option_id_outside_the_alphabet_is_refused` | |
+| No ballots: `winner` null, no tie | `report.rs`: `a_schulze_poll_with_no_ballots_has_no_winner_and_no_tie` | |
+| `tiebreak` only where the tally ties | `report.rs`: `a_publication_claiming_a_tie_that_is_not_there_disagrees` | |
+| computed `tiebreak`: replayed, order compared | `report.rs`: `a_computed_tie_break_is_replayed_and_must_match` | |
+| physical `tiebreak`: a draw among exactly the tied options | `report.rs`: `a_physical_draw_must_be_among_exactly_the_tied_options` | |
+| `tiebreak.winner` is the first of `order` | `report.rs`: `the_tie_break_winner_must_be_the_first_of_its_order` | |
+
 ### `tiebreak`
 
 Computed (the hash chain of `canonical-serialisation.md`, "The tie-break"):

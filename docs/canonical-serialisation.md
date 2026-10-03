@@ -110,6 +110,29 @@ by the verifier's own tests. It is also the case "T-42 worked vector" of
 `tests/vectors/`, the corpus both implementations run, with the rules of
 "Alphabets" and "A ranking" as cases to refuse.
 
+## Vectors
+
+Each rule above, and the case of `tests/vectors/` that holds it. Both the
+application (`tests/integration/test_vectors.py`) and the verifier
+(`verifier/core/tests/vectors.rs`) run every case; the names are those of the
+cases' `name` member.
+
+| Rule | Cases |
+|---|---|
+| The set; an empty set hashes to SHA-256 of nothing | `empty live set` |
+| A ranking: ids within a group sorted | `ids within a tie are sorted` |
+| A ranking: unranked options are equal-last | `partial ranking: the unranked are equal-last`, `an option nobody ranks keeps its row` |
+| A ranking: at least one option, no empty group, no option twice | `a ranking that places nothing`, `an empty group`, `an option ranked twice`, `an option twice in one group` |
+| A record, the document, the hash | `T-42 worked vector` |
+| The document: sorted by tracking code | `records sorted by tracking code, not by input order` |
+| Alphabets: tracking codes | `a tracking code with a 1`, `a tracking code of nine characters`, `a lower-case tracking code`, `a tracking code holding a quote` |
+| Alphabets: option ids | `a ranked id holding a quote`, `a ranked id with an accent`, `a ranked id of 51 characters`, `a listed option id with a space` |
+| The document: one record per tracking code (INV-11) | `one tracking code on two ballots` |
+| The tie-break | `T-9 cyclic majority: a three-way tie, broken by the hash chain`, `a tie with another seed`, `approval tie broken by the hash chain` |
+
+`T-42 worked vector` and the T-9 case are also derived from this page alone,
+with standard tools, by `tests/vectors/derive-by-hand.sh`.
+
 ## The tie-break, for completeness
 
     tiebreak_seed = SHA256(opening_seed || closure_hash)

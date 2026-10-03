@@ -13,6 +13,7 @@ cases it hands the verifier.
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 from datetime import timedelta
@@ -164,3 +165,41 @@ def test_the_corpus_agrees_with_a_derivation_by_hand() -> None:
     assert lines[1].split() == cyclic["expect"]["tiebreak_order"]
     # T-44, the vector tests/unit/test_tally.py and the verifier's schulze.rs hold.
     assert lines[2].split() == ["c", "a", "b"]
+
+
+def test_the_contracts_name_only_vectors_and_tests_that_exist() -> None:
+    """Review D-4: each rule of the two contracts points at what holds it.
+    A renamed case or test must not leave a pointer to nothing."""
+    root = VECTORS.parents[1]
+    names = {
+        case["name"]
+        for path in VECTORS.glob("*.json")
+        for case in json.loads(path.read_text(encoding="utf-8"))["cases"]
+    }
+    canonical = (root / "docs/canonical-serialisation.md").read_text(encoding="utf-8")
+    table = canonical[canonical.index("## Vectors") : canonical.index("## The tie-break")]
+    cited = {
+        name
+        for row in table.splitlines()
+        if row.startswith("| ") and not row.startswith("| Rule")
+        for name in re.findall(r"`([^`]+)`", row.split("|")[2])
+    }
+    assert cited and cited <= names, sorted(cited - names)
+
+    publication = (root / "docs/publication-format.md").read_text(encoding="utf-8")
+    table = publication[publication.index("## Vectors") : publication.index("### `tiebreak`")]
+    sources = "".join(
+        p.read_text(encoding="utf-8") for p in (root / "verifier/core/src").glob("*.rs")
+    ) + (root / "tests/integration/test_verifier_agreement.py").read_text(encoding="utf-8")
+    tests = {
+        name
+        for row in table.splitlines()
+        if row.startswith("| ") and not row.startswith("| Rule")
+        for cell in row.split("|")[2:4]
+        for name in re.findall(r"`([a-z_]+)`", cell)
+        if not name.endswith("_rs")
+    }
+    missing = sorted(
+        name for name in tests if f"fn {name}(" not in sources and f"def {name}(" not in sources
+    )
+    assert tests and missing == [], missing
