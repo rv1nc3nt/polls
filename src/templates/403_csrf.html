@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD #}
+{% comment %} Django's CSRF refusal (review A-14). Its own page is English and technical;
+   this one says what usually causes it and what to do. The reason Django
+   gives is not shown: it is meant for a developer. {% endcomment %}
+{% block title %}{% translate "Formulaire non envoyé" %}{% endblock %}
+{% block content %}
+  <h1>{% translate "Formulaire non envoyé" %}</h1>
+  <p>{% translate "Par sécurité, ce formulaire n'a pas été pris en compte : rien n'a été enregistré." %}</p>
+  <p>{% translate "Cela arrive quand la page est restée ouverte pendant qu'on se connectait dans un autre onglet, ou quand le navigateur refuse les cookies de ce site." %}</p>
+  <p>{% translate "Revenez à la page précédente, rechargez-la, puis recommencez." %}</p>
+{% endblock %}

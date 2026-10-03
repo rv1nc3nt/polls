@@ -2378,6 +2378,46 @@ msgstr ""
 msgid "Page introuvable"
 msgstr "Page not found"
 
+#: src/templates/500.html
+msgid "Erreur du serveur"
+msgstr "Server error"
+
+#: src/templates/403_csrf.html
+msgid "Formulaire non envoyé"
+msgstr "Form not sent"
+
+#: src/templates/400.html
+msgid "Requête incorrecte"
+msgstr "Bad request"
+
+#: src/templates/400.html
+msgid "Le serveur n'a pas pu traiter cette demande. Vérifiez l'adresse de la page, ou revenez à l'accueil."
+msgstr "The server could not process this request. Check the page's address, or go back to the home page."
+
+#: src/templates/403_csrf.html
+msgid "Par sécurité, ce formulaire n'a pas été pris en compte : rien n'a été enregistré."
+msgstr "For security, this form was not accepted: nothing has been saved."
+
+#: src/templates/403_csrf.html
+msgid "Cela arrive quand la page est restée ouverte pendant qu'on se connectait dans un autre onglet, ou quand le navigateur refuse les cookies de ce site."
+msgstr "This happens when the page stayed open while someone signed in in another tab, or when the browser refuses this site's cookies."
+
+#: src/templates/403_csrf.html
+msgid "Revenez à la page précédente, rechargez-la, puis recommencez."
+msgstr "Go back to the previous page, reload it, then try again."
+
+#: src/templates/500.html
+msgid "Le serveur a rencontré une erreur et n'a pas pu afficher cette page. L'erreur est enregistrée dans son journal."
+msgstr "The server ran into an error and could not display this page. The error has been recorded in its log."
+
+#: src/templates/500.html
+msgid "Réessayez dans quelques instants. Si elle persiste, prévenez la mairie."
+msgstr "Try again in a few moments. If it persists, let the mairie know."
+
+#: src/templates/500.html
+msgid "Revenir à l'accueil"
+msgstr "Back to the home page"
+
 #: src/templates/404.html:7
 msgid "Cette adresse ne correspond à aucune page."
 msgstr "This address matches no page."
