@@ -36,7 +36,7 @@ from apps.elections.transitions import (
 )
 from apps.tally.methods import (
     METHOD_VERSION,
-    SUPPORTED_VERSIONS,
+    SELECTABLE_VERSIONS,
     Method,
     UnsupportedMethodVersion,
     tally,
@@ -100,9 +100,9 @@ def test_the_tally_refuses_a_version_it_does_not_implement() -> None:
     assert tally([], options, Method.SCHULZE, version="1").method_version == "1"
 
 
-def test_the_form_offers_only_implemented_versions() -> None:
+def test_the_form_offers_only_selectable_versions() -> None:
     field = PollConfigForm.base_fields["tally_method_version"]
-    assert [value for value, _label in field.choices] == list(SUPPORTED_VERSIONS)  # type: ignore[attr-defined]
+    assert [value for value, _label in field.choices] == list(SELECTABLE_VERSIONS)  # type: ignore[attr-defined]
     with pytest.raises(ValidationError):
         field.clean("v1")
 
@@ -122,6 +122,9 @@ def test_a_poll_recording_an_unknown_version_cannot_be_announced() -> None:
 def test_a_closed_poll_with_an_unknown_version_is_neither_tallied_nor_published(
     client: Client, admin: User
 ) -> None:
+    """A version this release does not know, as after a downgrade, and not a
+    pre-check label (no ``legacy_tallied_as``): never tallied under another
+    version's rules (#52)."""
     poll = _closed("9")
     PollRole.objects.create(poll=poll, user=admin, role=Role.POLL_ADMIN)
     client.force_login(admin)
@@ -225,6 +228,7 @@ def test_a_legacy_poll_with_an_unknown_version_is_frozen_as_published_under_vers
     """Before the check, every poll was tallied under version 1 whatever its
     field said: that is what readers downloaded, and what is stored."""
     poll = _published_without_artefacts("9")
+    _as_migration_0018_leaves_it(poll)
     call_command("freeze_publications")
     poll.refresh_from_db()
 
@@ -233,3 +237,99 @@ def test_a_legacy_poll_with_an_unknown_version_is_frozen_as_published_under_vers
     assert document["winner"] == "a"
     response = client.get(f"/fr/scrutin/{poll.pk}/resultats/?format=json")
     assert json.loads(response.content) == document
+
+
+def _as_migration_0018_leaves_it(poll: Poll) -> None:
+    """A poll frozen before versions were checked, under a label naming none."""
+    Poll.objects.filter(pk=poll.pk).update(legacy_tallied_as="1")
+    poll.refresh_from_db()
+
+
+# --- legacy and retired versions (decision log #52) ---------------------------
+
+
+@pytest.mark.django_db
+def test_a_closed_poll_frozen_before_the_check_publishes_under_version_1(
+    client: Client, admin: User
+) -> None:
+    """Its free-text label was never read: version 1 is what it was always
+    going to be tallied under, and what its publication says."""
+    poll = _closed("v1.0")
+    _as_migration_0018_leaves_it(poll)
+    PollRole.objects.create(poll=poll, user=admin, role=Role.POLL_ADMIN)
+    client.force_login(admin)
+
+    body = client.get(f"/fr/mairie/scrutin/{poll.pk}/depouillement/").content.decode()
+    assert "« v1.0 »" not in body
+    published = publish_poll(poll, admin)
+    document = json.loads(published.published_document or "")
+    assert document["tally_method_version"] == "1"
+    assert document["winner"] == "a"
+    assert published.tally_method_version == "v1.0"  # the frozen label is kept
+
+
+@pytest.mark.django_db
+def test_a_retired_version_cannot_be_announced_but_still_runs(
+    monkeypatch: pytest.MonkeyPatch, admin: User
+) -> None:
+    """Retiring takes a version out of SELECTABLE_VERSIONS only: no new poll
+    takes it, and a poll that already recorded it opens, closes and publishes
+    under it."""
+    from apps.elections import transitions
+
+    draft = _poll(opens_in=timedelta(days=1))
+    poll = _closed()
+    monkeypatch.setattr(transitions, "SELECTABLE_VERSIONS", ())
+    assert "unsupported_method_version" in announcing_blockers(draft)
+    assert "unsupported_method_version" not in transitions.opening_blockers(poll)
+    published = publish_poll(poll, admin)
+    assert json.loads(published.published_document or "")["tally_method_version"] == "1"
+
+
+@pytest.mark.django_db
+def test_a_template_seeds_only_a_selectable_version(monkeypatch: pytest.MonkeyPatch) -> None:
+    from apps.elections import polltemplates
+    from apps.elections.models import PollTemplate
+
+    template = PollTemplate.objects.create(name="Ancien", tally_method_version="v1.0")
+    assert polltemplates.scalars(template)["tally_method_version"] == METHOD_VERSION
+    template = PollTemplate.objects.create(name="Retirée", tally_method_version="1")
+    monkeypatch.setattr(polltemplates, "SELECTABLE_VERSIONS", ())
+    monkeypatch.setattr(polltemplates, "METHOD_VERSION", "2")
+    assert polltemplates.scalars(template)["tally_method_version"] == "2"
+
+
+@pytest.mark.django_db
+def test_migration_0018_marks_only_frozen_polls_with_unknown_labels() -> None:
+    import importlib
+
+    from django.apps import apps
+
+    migration = importlib.import_module("apps.elections.migrations.0018_legacy_tallied_as")
+    draft = _poll("v1.0", opens_in=timedelta(days=1))
+    known = _closed()
+    legacy = _closed("v1.0")
+    migration.mark_legacy_labels(apps, None)
+    for poll, expected in ((draft, None), (known, None), (legacy, "1")):
+        poll.refresh_from_db()
+        assert poll.legacy_tallied_as == expected, poll.tally_method_version
+
+
+@pytest.mark.django_db
+def test_the_poll_table_keeps_its_triggers_through_migration_0018() -> None:
+    """The column is nullable so SQLite adds it in place: a rebuild would
+    have dropped these."""
+    from django.db import connection
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'trigger' AND tbl_name = 'elections_poll'"
+        )
+        triggers = {name for (name,) in cursor.fetchall()}
+    assert triggers >= {
+        "inv3_poll_commitments_write_once",
+        "inv3_poll_no_delete",
+        "inv3_poll_publication_write_once",
+        "inv6_poll_config_frozen",
+        "poll_state_irreversible",
+    }

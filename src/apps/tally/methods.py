@@ -5,11 +5,15 @@ No I/O, no clock, no randomness beyond the seeded tie-break, no database — in
 particular it never reads ``Registration`` (INV-9), which is why this package
 imports no model at all.
 
-Version-pinned (R-10.2). A poll records the version it is tallied under, chosen
-from ``SUPPORTED_VERSIONS`` before it leaves draft, and ``tally`` runs that
-version or refuses. A change to how any method counts is a new version: it is
-added beside the old one, which stays reachable for every poll that recorded
-it, never edited in place. ``METHOD_VERSION`` is the version new polls get.
+Version-pinned (R-10.2). A poll records the version it is tallied under, and
+``tally`` runs that version or refuses. A change to how any method counts is a
+new version: it is added beside the old one, never edited in place. Two lists
+keep the old ones alive (decision log #52): ``IMPLEMENTED_VERSIONS``, every
+version a poll may have recorded, which ``tally`` runs for as long as this code
+exists; and ``SELECTABLE_VERSIONS``, the ones a poll may still be configured
+with. Retiring a version takes it out of the second list only: no new poll uses
+it, and every poll that recorded it is still tallied and published under it.
+``METHOD_VERSION`` is the version new polls get.
 The published artefacts are also stored at publication
 (``elections.closure.freeze_publication``), so a published result does not
 even depend on this rule being kept.
@@ -26,8 +30,14 @@ from apps.core.types import OptionId
 #: The version a new poll is configured with.
 METHOD_VERSION = "1"
 
-#: Every version ``tally`` can run. Version 1 is the whole of this module.
-SUPPORTED_VERSIONS: tuple[str, ...] = ("1",)
+#: Every version ``tally`` can run. A version is never removed from here: a
+#: poll that recorded it must stay reproducible (R-10.2). Version 1 is the whole
+#: of this module.
+IMPLEMENTED_VERSIONS: tuple[str, ...] = ("1",)
+
+#: The versions a poll may still be configured and announced with: implemented
+#: ones that are not retired.
+SELECTABLE_VERSIONS: tuple[str, ...] = ("1",)
 
 
 class UnsupportedMethodVersion(ValueError):
@@ -36,6 +46,23 @@ class UnsupportedMethodVersion(ValueError):
     Tallying it under whatever the current code does would be exactly the
     silent restatement the version exists to prevent.
     """
+
+
+def version_to_run(recorded: str, legacy_tallied_as: str | None) -> str:
+    """The version a poll is tallied under: the one it recorded, if this code
+    implements it; else, for a poll frozen before versions were checked, the
+    version every such poll was in fact tallied under (``legacy_tallied_as``,
+    set by migration only, decision log #52).
+
+    Raises ``UnsupportedMethodVersion`` otherwise: a poll recording a version
+    this code does not know, as an older release would meet one recorded by a
+    newer, is never tallied under another version's rules.
+    """
+    if recorded in IMPLEMENTED_VERSIONS:
+        return recorded
+    if legacy_tallied_as in IMPLEMENTED_VERSIONS:
+        return legacy_tallied_as
+    raise UnsupportedMethodVersion(recorded)
 
 
 Ranking = Sequence[Sequence[OptionId]]
@@ -139,7 +166,7 @@ def tally(
     version 1 today, so it runs the functions below; a version 2 would
     dispatch here.
     """
-    if version not in SUPPORTED_VERSIONS:
+    if version not in IMPLEMENTED_VERSIONS:
         raise UnsupportedMethodVersion(version)
     match method:
         case Method.SCHULZE:

@@ -28,6 +28,7 @@ from django.utils.translation import gettext as _
 from apps.audit import services as audit
 from apps.audit.models import Action
 from apps.core.models import User
+from apps.tally.methods import METHOD_VERSION, SELECTABLE_VERSIONS
 
 from .models import Poll, PollTemplate
 
@@ -83,7 +84,13 @@ def scalars(template: PollTemplate) -> dict[str, object]:
     — seeds "Nouveau scrutin" (§6.5) with everything but title, description
     and options, which a template never carries. Pure read; the poll it seeds
     is still created by ``elections.config.create_poll`` as normal."""
-    return {field: getattr(template, field) for field in TEMPLATE_FIELDS}
+    values = {field: getattr(template, field) for field in TEMPLATE_FIELDS}
+    # A new poll takes only a version still selectable (#52): a template saved
+    # under a retired one, or under a free-text label from before versions
+    # were checked, seeds the current one instead.
+    if values["tally_method_version"] not in SELECTABLE_VERSIONS:
+        values["tally_method_version"] = METHOD_VERSION
+    return values
 
 
 @transaction.atomic

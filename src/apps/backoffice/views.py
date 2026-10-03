@@ -142,7 +142,7 @@ from apps.publicsite.views import _draft_preview_context
 from apps.registrations import mail as registration_mail
 from apps.registrations import services as registrations
 from apps.registrations.models import Channel, Registration
-from apps.tally.methods import SUPPORTED_VERSIONS, Method
+from apps.tally.methods import Method
 from apps.tally.trend import LAG, STEP
 
 from . import (
@@ -1703,10 +1703,11 @@ def results_publish(request: HttpRequest, poll: Poll) -> HttpResponse:
             },
         )
 
-    if poll.state == PollState.CLOSED and poll.tally_method_version not in SUPPORTED_VERSIONS:
-        # R-10.2: a version nothing here implements is not tallied under the
-        # current rules instead. Announcing and opening now refuse it, so only
-        # a poll configured before that check can reach this.
+    if poll.state == PollState.CLOSED and not poll.method_version_runnable:
+        # R-10.2: a version nothing here implements is not tallied under another
+        # version's rules. A retired version still runs, and so does a poll
+        # frozen before versions were checked (#52): this is a poll recording a
+        # version this release does not know, as after a downgrade.
         return render(
             request,
             "backoffice/results_publish.html",

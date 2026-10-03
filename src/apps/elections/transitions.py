@@ -29,7 +29,7 @@ from apps.audit.models import Action, Reason
 from apps.ballots.models import BallotStatus, ReconciliationRecord
 from apps.core.crypto import new_opening_seed
 from apps.core.models import User
-from apps.tally.methods import SUPPORTED_VERSIONS
+from apps.tally.methods import SELECTABLE_VERSIONS
 
 from .models import Poll, PollState, RollEntry, WorkingRollEntry
 from .windows import online_voting_closed
@@ -78,9 +78,9 @@ def announcing_blockers(poll: Poll, now: datetime | None = None) -> list[str]:
         blockers.append("opens_at_not_in_future")
     if poll.options.count() < 2:
         blockers.append("fewer_than_two_options")
-    if poll.tally_method_version not in SUPPORTED_VERSIONS:
-        # R-10.2: frozen from here on, so a version nothing can tally must be
-        # caught while it can still be corrected.
+    if poll.tally_method_version not in SELECTABLE_VERSIONS:
+        # R-10.2: frozen from here on, so a version no new poll may use, retired
+        # or unknown, is caught while it can still be corrected (#52).
         blockers.append("unsupported_method_version")
     blockers += [f"missing_translation:{gap}" for gap in poll.missing_translations()]
     return blockers
@@ -102,7 +102,9 @@ def opening_blockers(poll: Poll) -> list[str]:
         blockers.append("not_announced")
     if poll.options.count() < 2:
         blockers.append("fewer_than_two_options")
-    if poll.tally_method_version not in SUPPORTED_VERSIONS:
+    # Announced already, so frozen: any version this code still tallies opens,
+    # a retired one included (#52).
+    if not poll.method_version_runnable:
         blockers.append("unsupported_method_version")
     blockers += [f"missing_translation:{gap}" for gap in poll.missing_translations()]
     if not WorkingRollEntry.objects.exists():
@@ -500,7 +502,7 @@ def publish_poll(poll: Poll, actor: User) -> Poll:
         raise TransitionRefused(_("Seul un scrutin clos peut être publié."), ["not_closed"])
     if poll.closure_hash is None:
         raise TransitionRefused(_("Aucune empreinte de clôture."), ["no_closure_hash"])
-    if poll.tally_method_version not in SUPPORTED_VERSIONS:
+    if not poll.method_version_runnable:
         raise TransitionRefused(
             _("Version de la méthode de dépouillement inconnue de ce logiciel."),
             ["unsupported_method_version"],
@@ -549,17 +551,17 @@ def freeze_legacy_publication(poll: Poll) -> bool:
     downloading, and fixes it there. Before the version was checked, any text
     could be recorded, and every poll was tallied under version 1 whatever it
     said; one recording a version this code does not implement is therefore
-    frozen under version 1 — what it was published under — and its document
-    says so. Idempotent: a poll already holding its document, or not
-    published, is left alone. Run by ``freeze_publications`` at deploy.
+    frozen under version 1 — what it was published under, and what migration
+    0018 records in ``legacy_tallied_as`` (#52) — and its document says so.
+    Idempotent: a poll already holding its document, or not published, is
+    left alone. Run by ``freeze_publications`` at deploy.
     """
     from .closure import freeze_publication  # local: closure imports the tally
 
     poll = Poll.objects.select_for_update().get(pk=poll.pk)
     if poll.state != PollState.PUBLISHED or poll.published_document is not None:
         return False
-    served = poll.tally_method_version if poll.tally_method_version in SUPPORTED_VERSIONS else "1"
-    poll.published_document, poll.published_csv = freeze_publication(poll, served)
+    poll.published_document, poll.published_csv = freeze_publication(poll)
     poll.save(update_fields=["published_document", "published_csv"])
     return True
 
