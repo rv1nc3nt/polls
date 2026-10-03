@@ -25,8 +25,9 @@ from playwright.sync_api import Browser, ConsoleMessage, Page, sync_playwright
 
 AXE = Path(__file__).resolve().parents[2] / "node_modules" / "axe-core" / "axe.min.js"
 
-#: WCAG 2.1 A and AA, the level RGAA 4 (R-14.1) is built on.
-AXE_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]
+#: WCAG 2.1 A and AA, the level RGAA 4 (R-14.1) is built on, and the criteria
+#: WCAG 2.2 adds at AA (review C-3).
+AXE_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]
 
 _RECORD_CSP = """
 window.__cspViolations = [];
@@ -92,7 +93,7 @@ def page(browser: Browser, live_server: Any, _flushable_db: None) -> Iterator[Pa
 
 
 def check_page(page: Page) -> None:
-    """No script error, no CSP violation, and no WCAG 2.1 AA violation axe can
+    """No script error, no CSP violation, and no WCAG 2.2 AA violation axe can
     detect, on the page as it now stands."""
     assert getattr(page, "script_errors") == []  # noqa: B009
     assert page.evaluate("window.__cspViolations") == []

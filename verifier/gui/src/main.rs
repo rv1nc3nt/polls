@@ -397,6 +397,8 @@ fn publication_verdict(ui: &mut egui::Ui, checked: &PublicationReport) {
         checked.report.winner_agrees,
         Some(checked.ballot_count_agrees),
         Some(checked.matrix_agrees),
+        checked.derivation_agrees,
+        checked.orderings_agree,
         checked.counts_agree,
         checked.tiebreak_agrees,
         Some(checked.participation_agrees),
@@ -563,6 +565,22 @@ fn show_publication(ui: &mut egui::Ui, checked: &PublicationReport) {
         "La matrice des duels concorde avec celle publiée.",
         "La matrice des duels NE concorde PAS avec celle publiée.",
     );
+    if let Some(agrees) = checked.derivation_agrees {
+        agreement_label(
+            ui,
+            agrees,
+            "Le raisonnement publié concorde avec le recalcul.",
+            "Le raisonnement publié NE concorde PAS avec le recalcul.",
+        );
+    }
+    if let Some(agrees) = checked.orderings_agree {
+        agreement_label(
+            ui,
+            agrees,
+            "Le nombre de bulletins par ordre de classement concorde avec celui publié.",
+            "Le nombre de bulletins par ordre de classement NE concorde PAS avec celui publié.",
+        );
+    }
     if let Some(agrees) = checked.counts_agree {
         agreement_label(
             ui,

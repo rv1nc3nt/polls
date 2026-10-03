@@ -24,6 +24,9 @@ cargo fmt --manifest-path verifier/Cargo.toml --all --check
 cargo clippy --manifest-path verifier/Cargo.toml --workspace --all-targets -- -D warnings
 cargo test --manifest-path verifier/Cargo.toml
 (cd verifier && cargo audit --deny warnings)  # also weekly; exceptions in verifier/.cargo/audit.toml
+uv export --frozen --all-groups --all-extras --no-emit-project --no-hashes -o req.txt \
+  && uvx pip-audit==2.10.1 --strict -r req.txt   # audit.yml, also weekly
+npm audit --omit=dev                      # audit.yml: what a deployment would ship
 uv run python manage.py compilemessages   # needs GNU gettext installed
 npm ci && npm run lint                    # ESLint + stylelint over src/static/
 uv run playwright install --only-shell chromium && uv run pytest -m browser  # after npm ci

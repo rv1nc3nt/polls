@@ -75,9 +75,9 @@ jobs:
       - run: npm run lint
 
   browser:
-    # tests/browser (review C-8): a voter's journey and the back-office editor
-    # in headless Chromium against the live test server, each page checked for
-    # script errors, CSP violations and axe-core's WCAG 2.1 AA rules. The HTTP
+    # tests/browser (review C-8): a voter's journey, the back-office editor
+    # and every main page type (review C-3) in headless Chromium against the live test server, each page checked for
+    # script errors, CSP violations and axe-core's WCAG 2.2 AA rules. The HTTP
     # tests cannot see any of the three; the Origin a browser sends broke
     # every ballot without one of them failing (decision log #50).
     runs-on: ubuntu-latest

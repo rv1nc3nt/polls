@@ -309,8 +309,14 @@ identique à celle que le site publie ; `DIFFERS` signifierait le contraire
 l'empreinte que vous avez notée, et `seed at opening` la graine. Sans
 `--closure-hash`, le programme termine par `NOT ANCHORED` et un code qui
 n'est pas celui d'un succès : le document concorde avec lui-même, comme le
-ferait un document refait de bout en bout. S'y ajoutent une ligne `counts` pour un scrutin majoritaire
-ou par assentiment, et une ligne `tie-break` si un départage a eu lieu. Une
+ferait un document refait de bout en bout.
+
+S'y ajoutent une ligne `derivation`, qui recalcule le raisonnement publié ;
+une ligne `orderings` pour le tableau du nombre de bulletins par ordre de
+classement que la page de résultats affiche (scrutin selon la méthode de
+Schulze, à quatre propositions au plus) ; une ligne `counts` pour un scrutin
+majoritaire ou par assentiment ; et une ligne `tie-break` si un départage a
+eu lieu. Une
 dernière ligne, `participation`, vérifie que les chiffres de participation
 publiés par le site tiennent ensemble : les bulletins en ligne et papier
 doivent faire le nombre de bulletins de la liste, et les inscrits doivent être

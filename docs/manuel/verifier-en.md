@@ -291,8 +291,10 @@ The `hash at closure` line compares the ballots with the hash you noted, and
 `seed at opening` the seed. Without `--closure-hash`, the program ends with
 `NOT ANCHORED` and a code that is not a success: the document agrees with
 itself, as one rebuilt from end to end would.
-A `counts` line is added for a plurality or approval poll, and a `tie-break`
-line if a tie-break took place. A last line, `participation`, checks that the
+A `derivation` line is added, recomputing the published reasoning; an
+`orderings` line for the table of ballots per ranking order the results page
+shows (a Schulze poll with at most four proposals); a `counts` line for a
+plurality or approval poll; and a `tie-break` line if a tie-break took place. A last line, `participation`, checks that the
 participation figures the site publishes add up: the online and paper ballots
 must make the number of ballots in the list, and the registered electors must
 be exactly those who voted, those whose paper ballot went uncounted, and those

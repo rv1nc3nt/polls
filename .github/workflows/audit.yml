@@ -1,16 +1,30 @@
 # SPDX-License-Identifier: 0BSD
-# The verifier's dependencies against the RustSec advisory database (review
-# B-10). Its own workflow rather than a step of ci.yml, so it can also run on a
-# schedule: an advisory is published against a crate that has not changed, and
-# a lockfile nobody touches would otherwise never be checked again.
+# Every lockfile against its advisory database: the verifier's crates against
+# RustSec (review B-10), the application's Python packages against PyPI's, and
+# the npm packages against npm's (review C-4). Its own workflow rather than a
+# step of ci.yml, so it can also run on a schedule: an advisory is published
+# against a package that has not changed, and a lockfile nobody touches would
+# otherwise never be checked again.
 name: Audit
 
 on:
   push:
     branches: [main]
-    paths: ["verifier/**", ".github/workflows/audit.yml"]
+    paths:
+      - "verifier/**"
+      - "uv.lock"
+      - "pyproject.toml"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/audit.yml"
   pull_request:
-    paths: ["verifier/**", ".github/workflows/audit.yml"]
+    paths:
+      - "verifier/**"
+      - "uv.lock"
+      - "pyproject.toml"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/audit.yml"
   schedule:
     - cron: "17 6 * * 1"  # Mondays
   workflow_dispatch:
@@ -33,3 +47,30 @@ jobs:
       # Warnings too: a yanked or unmaintained crate fails the run unless
       # audit.toml records why it is accepted.
       - run: cargo audit --deny warnings
+
+  pip-audit:
+    # The application's Python packages, every group and extra included: the
+    # deploy installs `--extra deploy`, and the dev group runs in CI.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+      - uses: astral-sh/setup-uv@v5
+      - run: >-
+          uv export --frozen --all-groups --all-extras --no-emit-project --no-hashes
+          --output-file requirements-audit.txt
+      - run: uvx pip-audit==2.10.1 --strict --progress-spinner off -r requirements-audit.txt
+
+  npm-audit:
+    # The packages a deployment would ship. package.json holds only the
+    # linters and axe-core, all devDependencies, so today this audits nothing
+    # shipped and passes; it is here so that adding a runtime dependency is
+    # audited from the start. The linters' own advisories are not gated: one
+    # (braces, via stylelint) has no fixed release, and lint tools never reach
+    # a visitor.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm audit --omit=dev

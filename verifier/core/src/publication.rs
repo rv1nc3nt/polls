@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: 0BSD
 //! Reading the publication document (`?format=json`), whose layout is
 //! `docs/publication-format.md`. Only the members the verifier checks are
-//! read; the rest (labels, the derivation beyond the counts) is ignored, and a
-//! member it needs that is missing or of the wrong type is an error naming it.
+//! read; the rest (labels, `serialisation_bytes`) is ignored, and a member it
+//! needs that is missing or of the wrong type is an error naming it.
 
 use crate::canonical::Ballot;
 use crate::counted::Method;
@@ -39,6 +39,9 @@ pub struct Tiebreak {
     /// The draw's winner, as the document states it; present with `order`.
     pub winner: Option<String>,
 }
+
+/// `{row: {column: n}}`, rows and cells in document order.
+pub type Table = Vec<(String, Vec<(String, u64)>)>;
 
 /// Participation frozen at closure (`counts`, §9): registered electors, the
 /// ballots by channel, paper entries a countersignature override left
@@ -81,9 +84,18 @@ pub struct Publication {
     /// The published winner, after any tie-break; `None` with no ballots.
     pub winner: Option<String>,
     /// `matrix[i][j]` as published, keyed by option id.
-    pub matrix: Vec<(String, Vec<(String, u64)>)>,
+    pub matrix: Table,
     /// Votes per option (`derivation.counts`), for plurality and approval.
     pub counts: Option<Vec<(String, u64)>>,
+    /// The tally's winners before any tie-break (`derivation.winners`).
+    pub derivation_winners: Option<Vec<String>>,
+    /// Schulze's `derivation.pairwise`, the matrix again.
+    pub derivation_pairwise: Option<Table>,
+    /// Schulze's strongest paths (`derivation.paths`).
+    pub derivation_paths: Option<Table>,
+    /// Ballots per distinct ordering (`orderings`), published for a small
+    /// Schulze poll and shown on its results page (R-11.3).
+    pub orderings: Option<Vec<(String, u64)>>,
     /// Participation frozen at closure.
     pub participation: Participation,
     /// Present only if the tally tied.
@@ -112,6 +124,17 @@ fn strings(value: &Value, what: &str) -> Result<Vec<String>, String> {
             item.as_str()
                 .map(String::from)
                 .ok_or_else(|| format!("publication: {what} must hold strings"))
+        })
+        .collect()
+}
+
+fn table(value: &Value, what: &str) -> Result<Table, String> {
+    value
+        .as_object()
+        .ok_or_else(|| format!("publication: {what} must be an object"))?
+        .iter()
+        .map(|(row, cells)| {
+            integers(cells, &format!("a row of {what}")).map(|cells| (row.clone(), cells))
         })
         .collect()
 }
@@ -217,12 +240,7 @@ pub fn parse_publication(text: &str) -> Result<Publication, String> {
         _ => return Err("publication: \"winner\" must be a string or null".to_string()),
     };
 
-    let matrix = member(&document, "matrix")?
-        .as_object()
-        .ok_or("publication: \"matrix\" must be an object")?
-        .iter()
-        .map(|(row, cells)| integers(cells, "a matrix row").map(|cells| (row.clone(), cells)))
-        .collect::<Result<Vec<_>, _>>()?;
+    let matrix = table(member(&document, "matrix")?, "\"matrix\"")?;
 
     let frozen = member(&document, "counts")?;
     let count = |key: &str| -> Result<u64, String> {
@@ -238,9 +256,26 @@ pub fn parse_publication(text: &str) -> Result<Publication, String> {
         non_voters: count("non_voters")?,
     };
 
-    let counts = match member(&document, "derivation")?.get("counts") {
+    let derivation = member(&document, "derivation")?;
+    let counts = match derivation.get("counts") {
         None => None,
         Some(value) => Some(integers(value, "\"derivation.counts\"")?),
+    };
+    let derivation_winners = match derivation.get("winners") {
+        None => None,
+        Some(value) => Some(strings(value, "\"derivation.winners\"")?),
+    };
+    let derivation_pairwise = match derivation.get("pairwise") {
+        None => None,
+        Some(value) => Some(table(value, "\"derivation.pairwise\"")?),
+    };
+    let derivation_paths = match derivation.get("paths") {
+        None => None,
+        Some(value) => Some(table(value, "\"derivation.paths\"")?),
+    };
+    let orderings = match document.get("orderings") {
+        None => None,
+        Some(value) => Some(integers(value, "\"orderings\"")?),
     };
 
     let tiebreak = match document.get("tiebreak") {
@@ -306,6 +341,10 @@ pub fn parse_publication(text: &str) -> Result<Publication, String> {
         winner,
         matrix,
         counts,
+        derivation_winners,
+        derivation_pairwise,
+        derivation_paths,
+        orderings,
         participation,
         tiebreak,
     })

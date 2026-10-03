@@ -74,6 +74,13 @@ server {
         alias {{ polls_prefix }}/current/var/static/;
         access_log off;
         expires max;
+        # app.css is 67 kB as written and 19 kB compressed (review C-2); the
+        # fonts are woff2, compressed already. Only these files: compressing
+        # the application's pages, which carry a CSRF token beside what the
+        # visitor typed, is the shape BREACH exploits.
+        gzip on;
+        gzip_vary on;
+        gzip_types text/css application/javascript;
     }
 
     # R-3.12: option images. Unlike /static/, not under the release tree —

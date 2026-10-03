@@ -245,6 +245,12 @@ fn check_publication(text: &str, args: &Args) -> ExitCode {
     agreement("closure hash", report.closure_hash_agrees == Some(true));
     agreement("ballot count", checked.ballot_count_agrees);
     agreement("matrix", checked.matrix_agrees);
+    if let Some(agrees) = checked.derivation_agrees {
+        agreement("derivation", agrees);
+    }
+    if let Some(agrees) = checked.orderings_agree {
+        agreement("orderings", agrees);
+    }
     if let Some(agrees) = checked.counts_agree {
         agreement("counts", agrees);
     }

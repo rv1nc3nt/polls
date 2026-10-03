@@ -113,10 +113,10 @@ rest.
 | `ballot_count` | integer | **checked** | Number of entries in `ballots`. |
 | `winner` | option id or `null` | **checked** | The result after any tie-break. `null` only when there are no ballots. |
 | `matrix` | object: id → (object: other id → integer) | **checked** | `d[i][j]`, the number of ballots ranking `i` strictly above `j`, for every ordered pair of distinct options. |
-| `derivation` | object | `counts` **checked** | Schulze: `pairwise`, `paths`, `winners`. Plurality and approval: `counts` (id → integer) and `winners`. |
+| `derivation` | object | **checked** | Schulze: `pairwise` (the matrix again), `paths` (strongest paths; each option's row empty when there are no ballots) and `winners`. Plurality and approval: `counts` (id → integer) and `winners`. `winners` are the tally's, before any tie-break, compared as a set. Each member present is recomputed and compared. |
 | `serialisation_bytes` | integer | ignored | Length of the canonical serialisation. |
 | `tiebreak` | object, present only if the tally tied | **checked** | See below. |
-| `orderings` | object: ordering → integer | ignored | Summary table, published for a Schulze poll with at most four options. |
+| `orderings` | object: ordering → integer | **checked** when present | Summary table, published for a Schulze poll with at most four options and shown on the results page. Each key is a ballot's groups in ranking order joined by `>`, the ids of a group sorted and joined by `=`; options a ballot does not rank are left out. Recomputed from `ballots`: the same keys, each with the same count. |
 
 ## Vectors
 
@@ -133,6 +133,7 @@ really publishes, by `tests/integration/test_verifier_agreement.py`.
 | `tally_method`: the three identifiers only | `report.rs`: `the_tally_method_must_be_one_of_the_three_identifiers` | |
 | `tally_method_version`: only those the verifier implements | `report.rs`: `a_method_version_this_verifier_does_not_implement_is_refused` | `test_a_method_version_the_verifier_does_not_implement_is_refused` |
 | `closure_hash`: lower-case hex | `report.rs`: `the_documents_own_closure_hash_must_be_lower_case` | |
+| `derivation` and `orderings` recomputed | `report.rs`: `the_published_derivation_and_orderings_are_recomputed`, `a_tampered_orderings_table_disagrees`, `a_tampered_derivation_disagrees` | `test_the_verifier_agrees_with_the_published_document`, `test_a_tampered_derivation_or_orderings_table_is_caught` |
 | `closure_hash`, `ballot_count`, `matrix`, `counts` checked | `report.rs`: `a_consistent_publication_agrees_on_every_count` | `test_the_verifier_agrees_with_the_published_document` |
 | `winner` checked | `report.rs`: `a_publication_claiming_another_winner_disagrees` | `test_a_tampered_winner_is_caught` |
 | participation `counts` add up | `report.rs`: `participation_counts_must_add_up_to_the_ballot_list`, `a_publication_without_its_counts_is_refused` | `test_published_counts_that_do_not_add_up_are_caught` |

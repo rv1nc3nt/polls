@@ -24,7 +24,9 @@ use crate::canonical::{
     parse_csv, parse_hex, Ballot, BallotListError,
 };
 use crate::counted::{self, Method};
-use crate::publication::{parse_publication, Participation, Publication, TiebreakRule};
+use std::collections::BTreeMap;
+
+use crate::publication::{parse_publication, Participation, Publication, Table, TiebreakRule};
 use crate::schulze;
 use crate::sha256::{hex, sha256};
 
@@ -257,6 +259,13 @@ pub struct PublicationReport {
     pub ballot_count_agrees: bool,
     /// Whether the published matrix equals the recomputed one, cell for cell.
     pub matrix_agrees: bool,
+    /// Whether the derivation (winners before any tie-break, and Schulze's
+    /// pairwise matrix and strongest paths) matches the recomputation;
+    /// `None` when the document publishes none of it.
+    pub derivation_agrees: Option<bool>,
+    /// Whether the per-ordering table, which the results page shows, counts
+    /// the ballots as they are; `None` when the document has none.
+    pub orderings_agree: Option<bool>,
     /// `None` under Schulze, which publishes no counts.
     pub counts_agree: Option<bool>,
     /// `None` when neither the document nor the recomputation has a tie. For
@@ -314,6 +323,8 @@ impl PublicationReport {
             && self.report.winner_agrees != Some(false)
             && self.ballot_count_agrees
             && self.matrix_agrees
+            && self.derivation_agrees != Some(false)
+            && self.orderings_agree != Some(false)
             && self.counts_agree != Some(false)
             && self.tiebreak_agrees != Some(false)
             && self.participation_agrees
@@ -344,11 +355,10 @@ fn sorted(items: &[String]) -> Vec<String> {
 
 /// Does the published `{row: {column: n}}` hold exactly the recomputed values,
 /// with no row or cell more or fewer?
-fn matrix_matches(publication: &Publication, report: &Report) -> bool {
-    let options = &report.options;
-    publication.matrix.len() == options.len()
+fn table_matches(table: &Table, options: &[String], values: &[Vec<u64>]) -> bool {
+    table.len() == options.len()
         && options.iter().enumerate().all(|(i, row)| {
-            let Some((_, cells)) = publication.matrix.iter().find(|(id, _)| id == row) else {
+            let Some((_, cells)) = table.iter().find(|(id, _)| id == row) else {
                 return false;
             };
             cells.len() == options.len() - 1
@@ -359,9 +369,65 @@ fn matrix_matches(publication: &Publication, report: &Report) -> bool {
                     .all(|(j, column)| {
                         cells
                             .iter()
-                            .any(|(id, n)| id == column && *n == report.matrix[i][j])
+                            .any(|(id, n)| id == column && *n == values[i][j])
                     })
         })
+}
+
+/// Ballots per distinct ordering, keyed as the publication keys them
+/// (`docs/publication-format.md`, `orderings`): groups in ranking order
+/// joined by `>`, the ids of a group sorted and joined by `=`.
+fn ordering_summary(ballots: &[Ballot]) -> BTreeMap<String, u64> {
+    let mut summary = BTreeMap::new();
+    for ballot in ballots {
+        let key = ballot
+            .ranking
+            .iter()
+            .map(|group| {
+                let mut ids: Vec<&str> = group.iter().map(String::as_str).collect();
+                ids.sort_unstable();
+                ids.join("=")
+            })
+            .collect::<Vec<_>>()
+            .join(">");
+        *summary.entry(key).or_insert(0) += 1;
+    }
+    summary
+}
+
+/// Does every derivation member the document publishes match the
+/// recomputation? `None` when it publishes none of them. With no ballots the
+/// application writes each option's strongest-path row empty.
+fn derivation_matches(
+    publication: &Publication,
+    report: &Report,
+    paths: &[Vec<u64>],
+    no_ballots: bool,
+) -> Option<bool> {
+    let winners = publication
+        .derivation_winners
+        .as_ref()
+        .map(|published| sorted(published) == sorted(&report.winners));
+    let pairwise = publication
+        .derivation_pairwise
+        .as_ref()
+        .map(|table| table_matches(table, &report.options, &report.matrix));
+    let strongest = publication.derivation_paths.as_ref().map(|table| {
+        if no_ballots {
+            table.len() == report.options.len()
+                && report
+                    .options
+                    .iter()
+                    .all(|option| table.iter().any(|(id, row)| id == option && row.is_empty()))
+        } else {
+            table_matches(table, &report.options, paths)
+        }
+    });
+    let checked: Vec<bool> = [winners, pairwise, strongest]
+        .into_iter()
+        .flatten()
+        .collect();
+    (!checked.is_empty()).then(|| checked.iter().all(|agrees| *agrees))
 }
 
 /// Recompute everything from the ballots of a publication document, check
@@ -447,6 +513,20 @@ pub fn verify_publication(text: &str, anchors: &Anchors) -> Result<PublicationRe
             }
         });
 
+    // Recomputed and compared like any other claim (review C-1): the results
+    // page shows the orderings table, and both are published as the result's
+    // derivation.
+    let no_ballots = publication.ballots.is_empty();
+    let paths = schulze::strongest_paths(&report.matrix, &report.options);
+    let derivation_agrees = derivation_matches(&publication, &report, &paths, no_ballots);
+    let orderings_agree = publication.orderings.as_ref().map(|published| {
+        let recomputed = ordering_summary(&publication.ballots);
+        published.len() == recomputed.len()
+            && published
+                .iter()
+                .all(|(key, n)| recomputed.get(key) == Some(n))
+    });
+
     Ok(PublicationReport {
         ballot_count_agrees: u64::try_from(report.ballot_count)
             .is_ok_and(|count| count == publication.ballot_count),
@@ -457,7 +537,9 @@ pub fn verify_publication(text: &str, anchors: &Anchors) -> Result<PublicationRe
             report.ballot_count,
         ),
         participation: publication.participation,
-        matrix_agrees: matrix_matches(&publication, &report),
+        matrix_agrees: table_matches(&publication.matrix, &report.options, &report.matrix),
+        derivation_agrees,
+        orderings_agree,
         counts_agree,
         tiebreak_agrees,
         tiebreak_rule: publication.tiebreak.map(|t| t.rule),
@@ -681,7 +763,8 @@ mod tests {
                 "counts": {{"registered": 4, "ballots_online": 0, "ballots_paper": 0,
                             "paper_uncountersigned": 0, "non_voters": 4}},
                 "matrix": {{"a": {{"b": 0}}, "b": {{"a": 0}}}},
-                "derivation": {{"pairwise": {{}}, "paths": {{}}, "winners": []}}}}"#,
+                "derivation": {{"pairwise": {{"a": {{"b": 0}}, "b": {{"a": 0}}}},
+                                "paths": {{"a": {{}}, "b": {{}}}}, "winners": []}}}}"#,
             seed = "00".repeat(32),
         );
         let checked = verify_publication(&document, &Anchors::default()).expect("parses");
@@ -1014,6 +1097,64 @@ mod tests {
         match verify(CYCLIC, &expected) {
             Err(VerifyError::DuplicateOption(option)) => assert_eq!(option, "a"),
             _ => panic!("expected DuplicateOption"),
+        }
+    }
+
+    // --- the derivation and the orderings table (review C-1) ------------------
+
+    /// The cyclic poll with the derivation and orderings the application
+    /// publishes for it; every strongest path is 2, and all three tie.
+    const CYCLIC_DERIVATION: &str = r#""derivation": {
+            "pairwise": {"a": {"b": 2, "c": 1}, "b": {"a": 1, "c": 2}, "c": {"a": 2, "b": 1}},
+            "paths": {"a": {"b": 2, "c": 2}, "b": {"a": 2, "c": 2}, "c": {"a": 2, "b": 2}},
+            "winners": ["a", "b", "c"]},
+        "orderings": {"a>b>c": 1, "b>c>a": 1, "c>a>b": 1}"#;
+
+    fn derived(tamper: (&str, &str)) -> PublicationReport {
+        let tiebreak = r#"{"rule": "physical", "tied": ["a", "b", "c"],
+                           "order": ["b", "a", "c"], "winner": "b"}"#;
+        let document = cyclic_document(tiebreak, "\"b\"").replace(
+            r#""derivation": {}"#,
+            &CYCLIC_DERIVATION.replace(tamper.0, tamper.1),
+        );
+        verify_publication(&document, &Anchors::default()).expect("reads")
+    }
+
+    #[test]
+    fn the_published_derivation_and_orderings_are_recomputed() {
+        let checked = derived(("", ""));
+        assert_eq!(checked.derivation_agrees, Some(true));
+        assert_eq!(checked.orderings_agree, Some(true));
+        assert!(checked.all_agree());
+    }
+
+    #[test]
+    fn a_tampered_orderings_table_disagrees() {
+        // The table the results page shows (R-11.3) is a claim like any other.
+        for tamper in [
+            (r#""b>c>a": 1"#, r#""b>c>a": 2"#),
+            (r#""c>a>b": 1"#, r#""c>a>b": 1, "a=b>c": 1"#),
+            (r#", "c>a>b": 1"#, ""),
+        ] {
+            let checked = derived(tamper);
+            assert_eq!(checked.orderings_agree, Some(false), "{tamper:?}");
+            assert!(!checked.all_agree());
+        }
+    }
+
+    #[test]
+    fn a_tampered_derivation_disagrees() {
+        for tamper in [
+            (r#""c": {"a": 2, "b": 2}}"#, r#""c": {"a": 2, "b": 3}}"#),
+            (r#""winners": ["a", "b", "c"]"#, r#""winners": ["b"]"#),
+            (
+                r#""b": {"a": 1, "c": 2}, "c""#,
+                r#""b": {"a": 1, "c": 3}, "c""#,
+            ),
+        ] {
+            let checked = derived(tamper);
+            assert_eq!(checked.derivation_agrees, Some(false), "{tamper:?}");
+            assert!(!checked.all_agree());
         }
     }
 }

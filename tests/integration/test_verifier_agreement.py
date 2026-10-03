@@ -244,6 +244,9 @@ def test_the_verifier_agrees_with_the_published_document(
     assert completed.returncode == 0, completed.stdout + completed.stderr
     assert "DIFFERS" not in completed.stdout
     assert "hash at closure AGREES" in completed.stdout
+    assert "derivation      AGREES" in completed.stdout
+    if method == Method.SCHULZE and rows is not EMPTY:
+        assert "orderings       AGREES" in completed.stdout
     assert f"method         {method}" in completed.stdout
     tiebreak = json.loads(response.content).get("tiebreak")
     if tiebreak is not None:
@@ -349,6 +352,30 @@ def test_a_ranking_the_platform_never_writes_is_refused(
         check=False,
     )
     assert completed.returncode == 2, completed.stdout + completed.stderr
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("member", ["orderings", "paths"])
+def test_a_tampered_derivation_or_orderings_table_is_caught(
+    member: str, client: Client, verifier_binary: Path, tmp_path: Path
+) -> None:
+    """The results page shows the orderings table (R-11.3), and the
+    derivation is published with the result: both are checked (review C-1)."""
+    poll = _published(CLEAR, Method.SCHULZE, TiebreakRule.COMPUTED)
+    data = json.loads(client.get(f"/fr/scrutin/{poll.pk}/resultats/?format=json").content)
+    if member == "orderings":
+        first = next(iter(data["orderings"]))
+        data["orderings"][first] += 1
+        line = "orderings       DIFFERS"
+    else:
+        data["derivation"]["paths"]["a"]["b"] += 1
+        line = "derivation      DIFFERS"
+    document = tmp_path / "publication.json"
+    document.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+
+    completed = _run(verifier_binary, document, anchored=poll)
+    assert completed.returncode == 1, completed.stdout + completed.stderr
+    assert line in completed.stdout
 
 
 # --- a document is only verified against the hash noted at closure (B-1) ------
