@@ -2378,6 +2378,14 @@ msgstr ""
 msgid "Page introuvable"
 msgstr "Page not found"
 
+#: src/apps/core/operatorsession.py
+msgid ""
+"Vous avez été déconnecté de l'espace mairie : un vote ne se fait jamais "
+"depuis une session d'agent."
+msgstr ""
+"You have been signed out of the mairie area: a vote is never cast from an "
+"operator's session."
+
 #: src/templates/500.html
 msgid "Erreur du serveur"
 msgstr "Server error"

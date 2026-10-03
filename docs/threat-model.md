@@ -121,6 +121,10 @@ Named accounts in the espace mairie, each with a role on given polls
   `is_superuser` is never consulted. A grant is itself audited.
 - **Can**, as poll administrator, see who has voted and by which channel, but
   never how (R-7.5): the screens show two lists that cannot be joined.
+- **Vote as electors**, like anyone else, and their own ballot is no more
+  linked to them than another's: their session, which names them, is signed
+  out before any ballot route runs, and signing in drops any ballot data the
+  browser held (decision log #49).
 - **Can**, as entry operator, key a paper ballot, which is linked to the
   elector by design.
 - **Cannot** change a rule once the poll is announced (INV-6), rewrite or

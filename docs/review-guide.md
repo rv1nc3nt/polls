@@ -65,7 +65,9 @@ which section of the specification they implement.
   `core/logging.py` redacts it from Django's logs. Any new route under that
   prefix inherits these obligations.
 * **The session.** It may hold a `ballot_hash` or a receipt, but never a
-  registration id next to either (`core/tokensession.py` header).
+  registration id next to either (`core/tokensession.py` header), nor an
+  operator's account id: a ballot route signs a signed-in session out first,
+  and signing in drops ballot keys (`core/operatorsession.py`).
 * **The audit log (INV-3).** Append-only by trigger. Events hold references
   and non-identifying state only. `audit/services.py` rejects known personal
   keys at any depth; `reason` is a code, and prose lives on the referenced row.

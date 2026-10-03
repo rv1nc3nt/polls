@@ -70,6 +70,7 @@ reasoning.
 | 46 | Verifier binaries were released unsigned, unchecksummed and from an unpinned compiler | settled |
 | 47 | The verifier read ballot lists leniently and ignored the participation counts | settled |
 | 48 | The serialisation had no escaping rule, and `tiebreak.winner` was unchecked | settled |
+| 49 | An operator's session could hold their own ballot | settled |
 
 ## 1. Retention purge on a poll that closed but was never published
 
@@ -1790,4 +1791,24 @@ contract stated no escaping rule. Separately, the publication's
 
 The shared corpus of vectors the review's D-4 asks each rule to point at does
 not exist yet (D-2); the rules are tested on each side meanwhile.
+
+## 49. An operator's session could hold their own ballot
+
+**Found (2026-10-03, while settling review A-16).** §6.3 keeps every identifier
+of a voter out of the session, so that the ballot hash or receipt it may hold
+pairs with no one (INV-1, `core/tokensession.py`). A signed-in operator's
+session holds their account id, and an operator is also an elector. Casting or
+modifying from a browser signed in to the espace mairie stored the ballot data
+beside that id; signing in after voting did the same, since Django's `login`
+carries the session's data over. Either way the session table named a person
+beside their ballot, for as long as the session lived.
+
+**Settled.** The two never share a session (`core/operatorsession.py`).
+`OperatorSessionMiddleware.process_view` signs out a signed-in session before
+any view of the `ballots` namespace runs, keyed on the namespace so a ballot
+route added later is covered, and says so on the page; the ballot data then
+goes into a fresh session. The sign-in receiver drops every ballot and receipt
+key (`tokensession.forget_all`). The rest of the public site leaves the
+operator signed in. `tests/integration/test_operator_voter_session.py` checks
+every stored session after each path.
 

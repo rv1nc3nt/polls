@@ -111,7 +111,10 @@ find a way round it.
   (`apps/core/tokensession.py`) stores only the `ballot_hash`, and the
   receipt only a tracking code and a ranking — never the token, and never a
   registration id or anything else that identifies a voter, which beside a
-  ballot hash would be the join INV-1 forbids.
+  ballot hash would be the join INV-1 forbids. An operator's account id is
+  such a thing, since an operator is also an elector: a ballot route signs a
+  signed-in session out before its view runs, and signing in drops any ballot
+  keys (`apps/core/operatorsession.py`).
 - **No Django admin**, in any environment.
 - **Every poll-scoped back-office screen goes through `require_poll_role`**
   (`apps/backoffice/access.py`). `commune_admin` is commune-level and grants
