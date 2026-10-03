@@ -1,0 +1,190 @@
+{
+ "format": 1,
+ "cases": [
+  {
+   "name": "empty live set",
+   "source": "SHA-256 of the empty string (FIPS 180-4); T-39",
+   "method": "schulze",
+   "options": [
+    "a",
+    "b"
+   ],
+   "ballots": [],
+   "expect": {
+    "closure_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "matrix": {
+     "a": {
+      "b": 0
+     },
+     "b": {
+      "a": 0
+     }
+    },
+    "winners": [],
+    "counts": null,
+    "tiebreak_order": null
+   }
+  },
+  {
+   "name": "T-42 worked vector",
+   "source": "docs/canonical-serialisation.md, Worked vector",
+   "method": "schulze",
+   "options": [
+    "a",
+    "b",
+    "c"
+   ],
+   "ballots": [
+    {
+     "tracking_code": "AAAAAAAAAA",
+     "ranking": [
+      [
+       "a"
+      ],
+      [
+       "b"
+      ],
+      [
+       "c"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "BBBBBBBBBB",
+     "ranking": [
+      [
+       "c"
+      ],
+      [
+       "b"
+      ],
+      [
+       "a"
+      ]
+     ]
+    }
+   ],
+   "expect": {
+    "closure_hash": "87694cf068ba44eca50e15bd4b7c1195fc4a1fae9ad3b0ba640deec22f7948e6",
+    "matrix": {
+     "a": {
+      "b": 1,
+      "c": 1
+     },
+     "b": {
+      "a": 1,
+      "c": 1
+     },
+     "c": {
+      "a": 1,
+      "b": 1
+     }
+    },
+    "winners": [
+     "a",
+     "b",
+     "c"
+    ],
+    "counts": null,
+    "tiebreak_order": null
+   }
+  },
+  {
+   "name": "ids within a tie are sorted",
+   "source": "docs/canonical-serialisation.md, A ranking",
+   "method": "schulze",
+   "options": [
+    "a",
+    "b",
+    "c"
+   ],
+   "ballots": [
+    {
+     "tracking_code": "CCCCCCCCCC",
+     "ranking": [
+      [
+       "b",
+       "a"
+      ],
+      [
+       "c"
+      ]
+     ]
+    }
+   ],
+   "expect": {
+    "closure_hash": "fd52fce679af9001792c7bb5a4c6beeb48e055fc14ef4f20cc5a5cb951973e8b",
+    "matrix": {
+     "a": {
+      "b": 0,
+      "c": 1
+     },
+     "b": {
+      "a": 0,
+      "c": 1
+     },
+     "c": {
+      "a": 0,
+      "b": 0
+     }
+    },
+    "winners": [
+     "a",
+     "b"
+    ],
+    "counts": null,
+    "tiebreak_order": null
+   }
+  },
+  {
+   "name": "records sorted by tracking code, not by input order",
+   "source": "docs/canonical-serialisation.md, The document",
+   "method": "schulze",
+   "options": [
+    "a",
+    "b"
+   ],
+   "ballots": [
+    {
+     "tracking_code": "ZZZZZZZZZZ",
+     "ranking": [
+      [
+       "a"
+      ],
+      [
+       "b"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "2222222222",
+     "ranking": [
+      [
+       "b"
+      ],
+      [
+       "a"
+      ]
+     ]
+    }
+   ],
+   "expect": {
+    "closure_hash": "921f14a42a0c0edb9011584e97ef94d2f74cfc854acc182817ca5d6c24fa7b64",
+    "matrix": {
+     "a": {
+      "b": 1
+     },
+     "b": {
+      "a": 1
+     }
+    },
+    "winners": [
+     "a",
+     "b"
+    ],
+    "counts": null,
+    "tiebreak_order": null
+   }
+  }
+ ]
+}

@@ -1,0 +1,266 @@
+{
+ "format": 1,
+ "cases": [
+  {
+   "name": "a tracking code with a 1",
+   "source": "docs/canonical-serialisation.md",
+   "method": "schulze",
+   "options": [
+    "a"
+   ],
+   "ballots": [
+    {
+     "tracking_code": "AAAAAAAAA1",
+     "ranking": [
+      [
+       "a"
+      ]
+     ]
+    }
+   ],
+   "refuse": "tracking_code"
+  },
+  {
+   "name": "a tracking code of nine characters",
+   "source": "docs/canonical-serialisation.md",
+   "method": "schulze",
+   "options": [
+    "a"
+   ],
+   "ballots": [
+    {
+     "tracking_code": "AAAAAAAAA",
+     "ranking": [
+      [
+       "a"
+      ]
+     ]
+    }
+   ],
+   "refuse": "tracking_code"
+  },
+  {
+   "name": "a lower-case tracking code",
+   "source": "docs/canonical-serialisation.md",
+   "method": "schulze",
+   "options": [
+    "a"
+   ],
+   "ballots": [
+    {
+     "tracking_code": "aaaaaaaaaa",
+     "ranking": [
+      [
+       "a"
+      ]
+     ]
+    }
+   ],
+   "refuse": "tracking_code"
+  },
+  {
+   "name": "a tracking code holding a quote",
+   "source": "docs/canonical-serialisation.md",
+   "method": "schulze",
+   "options": [
+    "a"
+   ],
+   "ballots": [
+    {
+     "tracking_code": "AAAAAAAAA\"",
+     "ranking": [
+      [
+       "a"
+      ]
+     ]
+    }
+   ],
+   "refuse": "tracking_code"
+  },
+  {
+   "name": "one tracking code on two ballots",
+   "source": "docs/canonical-serialisation.md",
+   "method": "schulze",
+   "options": [
+    "a",
+    "b"
+   ],
+   "ballots": [
+    {
+     "tracking_code": "AAAAAAAAAA",
+     "ranking": [
+      [
+       "a"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAAAAAA",
+     "ranking": [
+      [
+       "b"
+      ]
+     ]
+    }
+   ],
+   "refuse": "duplicate_tracking_code"
+  },
+  {
+   "name": "a ranking that places nothing",
+   "source": "docs/canonical-serialisation.md",
+   "method": "schulze",
+   "options": [
+    "a"
+   ],
+   "ballots": [
+    {
+     "tracking_code": "AAAAAAAAAA",
+     "ranking": []
+    }
+   ],
+   "refuse": "ranking"
+  },
+  {
+   "name": "an empty group",
+   "source": "docs/canonical-serialisation.md",
+   "method": "schulze",
+   "options": [
+    "a",
+    "b"
+   ],
+   "ballots": [
+    {
+     "tracking_code": "AAAAAAAAAA",
+     "ranking": [
+      [
+       "a"
+      ],
+      []
+     ]
+    }
+   ],
+   "refuse": "ranking"
+  },
+  {
+   "name": "an option ranked twice",
+   "source": "docs/canonical-serialisation.md",
+   "method": "schulze",
+   "options": [
+    "a",
+    "b"
+   ],
+   "ballots": [
+    {
+     "tracking_code": "AAAAAAAAAA",
+     "ranking": [
+      [
+       "a"
+      ],
+      [
+       "a"
+      ]
+     ]
+    }
+   ],
+   "refuse": "ranking"
+  },
+  {
+   "name": "an option twice in one group",
+   "source": "docs/canonical-serialisation.md",
+   "method": "schulze",
+   "options": [
+    "a",
+    "b"
+   ],
+   "ballots": [
+    {
+     "tracking_code": "AAAAAAAAAA",
+     "ranking": [
+      [
+       "a",
+       "a"
+      ]
+     ]
+    }
+   ],
+   "refuse": "ranking"
+  },
+  {
+   "name": "a ranked id holding a quote",
+   "source": "docs/canonical-serialisation.md",
+   "method": "schulze",
+   "options": [
+    "a\"b"
+   ],
+   "ballots": [
+    {
+     "tracking_code": "AAAAAAAAAA",
+     "ranking": [
+      [
+       "a\"b"
+      ]
+     ]
+    }
+   ],
+   "refuse": "option_id"
+  },
+  {
+   "name": "a ranked id with an accent",
+   "source": "docs/canonical-serialisation.md",
+   "method": "schulze",
+   "options": [
+    "é"
+   ],
+   "ballots": [
+    {
+     "tracking_code": "AAAAAAAAAA",
+     "ranking": [
+      [
+       "é"
+      ]
+     ]
+    }
+   ],
+   "refuse": "option_id"
+  },
+  {
+   "name": "a ranked id of 51 characters",
+   "source": "docs/canonical-serialisation.md",
+   "method": "schulze",
+   "options": [
+    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+   ],
+   "ballots": [
+    {
+     "tracking_code": "AAAAAAAAAA",
+     "ranking": [
+      [
+       "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      ]
+     ]
+    }
+   ],
+   "refuse": "option_id"
+  },
+  {
+   "name": "a listed option id with a space",
+   "source": "docs/canonical-serialisation.md",
+   "method": "schulze",
+   "options": [
+    "a",
+    "b c"
+   ],
+   "ballots": [
+    {
+     "tracking_code": "AAAAAAAAAA",
+     "ranking": [
+      [
+       "a"
+      ]
+     ]
+    }
+   ],
+   "refuse": "listed_option_id"
+  }
+ ]
+}

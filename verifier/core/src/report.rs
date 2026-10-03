@@ -72,6 +72,7 @@ pub struct Report {
 
 /// Input the verifier cannot work from. Disagreement is not an error: it is
 /// reported through the `*_agrees` fields of [`Report`].
+#[derive(Debug)]
 pub enum VerifyError {
     /// The CSV did not parse; the message names the line.
     Csv(String),
@@ -409,7 +410,6 @@ mod tests {
                 ..Default::default()
             },
         )
-        .ok()
         .expect("parses");
         assert_eq!(report.winners.len(), 3);
         assert!(report.tiebreak_order.is_none());
@@ -421,7 +421,6 @@ mod tests {
     fn opening_seed_resolves_the_tie_and_then_a_winner_can_agree() {
         let opening_seed = "00".repeat(32);
         let closure_hash = verify(CYCLIC, &Expected::default())
-            .ok()
             .expect("parses")
             .closure_hash;
         let expected = Expected {
@@ -430,7 +429,7 @@ mod tests {
             closure_hash: Some(&closure_hash),
             ..Default::default()
         };
-        let report = verify(CYCLIC, &expected).ok().expect("parses");
+        let report = verify(CYCLIC, &expected).expect("parses");
         let drawn = report.tiebreak_order.expect("tie resolved");
         assert_eq!(
             report.final_winner.as_deref(),
@@ -459,7 +458,7 @@ mod tests {
             winner: Some("a"),
             ..Default::default()
         };
-        let report = verify(DIVERGENT, &plurality).ok().expect("parses");
+        let report = verify(DIVERGENT, &plurality).expect("parses");
         assert_eq!(report.method, Method::Plurality);
         assert_eq!(report.counts, Some(vec![3, 2, 2]));
         assert_eq!(report.winner_agrees, Some(true));
@@ -468,7 +467,7 @@ mod tests {
             winner: Some("a"),
             ..Default::default()
         };
-        let report = verify(DIVERGENT, &schulze).ok().expect("parses");
+        let report = verify(DIVERGENT, &schulze).expect("parses");
         assert_eq!(report.method, Method::Schulze);
         assert_eq!(report.counts, None);
         assert_eq!(report.final_winner.as_deref(), Some("b"));
@@ -482,7 +481,7 @@ mod tests {
             method: Method::Approval,
             ..Default::default()
         };
-        let report = verify(DIVERGENT, &approval).ok().expect("parses");
+        let report = verify(DIVERGENT, &approval).expect("parses");
         assert_eq!(report.counts, Some(vec![7, 7, 7]));
         assert_eq!(report.winners.len(), 3);
         assert!(report.final_winner.is_none());
@@ -492,7 +491,7 @@ mod tests {
             opening_seed: Some(&seed),
             ..Default::default()
         };
-        let report = verify(DIVERGENT, &seeded).ok().expect("parses");
+        let report = verify(DIVERGENT, &seeded).expect("parses");
         assert!(report.tiebreak_order.is_some());
         assert!(report.final_winner.is_some());
     }
@@ -506,7 +505,7 @@ mod tests {
             options: Some(&listed),
             ..Default::default()
         };
-        let report = verify(DIVERGENT, &expected).ok().expect("parses");
+        let report = verify(DIVERGENT, &expected).expect("parses");
         assert_eq!(report.options, listed);
         assert_eq!(report.matrix.len(), 4);
         assert_eq!(report.counts, Some(vec![3, 2, 2, 0]));
@@ -560,9 +559,7 @@ mod tests {
 
     #[test]
     fn a_consistent_publication_agrees_on_every_count() {
-        let checked = verify_publication(&plurality_document("\"a\"", ""))
-            .ok()
-            .expect("reads");
+        let checked = verify_publication(&plurality_document("\"a\"", "")).expect("reads");
         assert_eq!(checked.report.method, Method::Plurality);
         assert_eq!(checked.report.options, ["a", "b", "c", "d"]);
         assert_eq!(checked.report.closure_hash_agrees, Some(true));
@@ -575,9 +572,7 @@ mod tests {
 
     #[test]
     fn a_publication_claiming_another_winner_disagrees() {
-        let checked = verify_publication(&plurality_document("\"b\"", ""))
-            .ok()
-            .expect("reads");
+        let checked = verify_publication(&plurality_document("\"b\"", "")).expect("reads");
         assert_eq!(checked.report.winner_agrees, Some(false));
         assert!(!checked.all_agree());
     }
@@ -586,9 +581,7 @@ mod tests {
     fn a_publication_claiming_a_tie_that_is_not_there_disagrees() {
         let extra =
             r#", "tiebreak": {"rule": "physical", "tied": ["a", "b"], "order": ["a", "b"]}"#;
-        let checked = verify_publication(&plurality_document("\"a\"", extra))
-            .ok()
-            .expect("reads");
+        let checked = verify_publication(&plurality_document("\"a\"", extra)).expect("reads");
         assert_eq!(checked.tiebreak_agrees, Some(false));
         assert!(!checked.all_agree());
     }
@@ -609,7 +602,7 @@ mod tests {
                 "derivation": {{"pairwise": {{}}, "paths": {{}}, "winners": []}}}}"#,
             seed = "00".repeat(32),
         );
-        let checked = verify_publication(&document).ok().expect("parses");
+        let checked = verify_publication(&document).expect("parses");
         assert!(checked.report.winners.is_empty());
         assert_eq!(checked.tiebreak_agrees, None);
         assert!(checked.all_agree());
@@ -636,20 +629,18 @@ mod tests {
         let honest = plurality_document("\"a\"", "");
         assert!(
             verify_publication(&honest)
-                .ok()
                 .expect("parses")
                 .participation_agrees
         );
         // Stuffed: ballots added to the list, counts left as they were.
         let inflated = honest.replace("\"ballots_online\": 5", "\"ballots_online\": 105");
-        let checked = verify_publication(&inflated).ok().expect("parses");
+        let checked = verify_publication(&inflated).expect("parses");
         assert!(!checked.participation_agrees);
         assert!(!checked.all_agree());
         // Registered that do not account for every elector.
         let unaccounted = honest.replace("\"non_voters\": 2", "\"non_voters\": 3");
         assert!(
             !verify_publication(&unaccounted)
-                .ok()
                 .expect("parses")
                 .participation_agrees
         );
@@ -657,7 +648,6 @@ mod tests {
         let huge = honest.replace("\"non_voters\": 2", "\"non_voters\": 18446744073709551615");
         assert!(
             !verify_publication(&huge)
-                .ok()
                 .expect("parses")
                 .participation_agrees
         );
@@ -735,9 +725,7 @@ mod tests {
             order[0]
         );
         let winner = format!("\"{}\"", order[0]);
-        let checked = verify_publication(&cyclic_document(&tiebreak, &winner))
-            .ok()
-            .expect("reads");
+        let checked = verify_publication(&cyclic_document(&tiebreak, &winner)).expect("reads");
         assert_eq!(checked.tiebreak_rule, Some(TiebreakRule::Computed));
         assert_eq!(checked.tiebreak_agrees, Some(true));
         assert!(checked.all_agree());
@@ -748,9 +736,7 @@ mod tests {
             reversed.join(", "),
             order[order.len() - 1]
         );
-        let checked = verify_publication(&cyclic_document(&tampered, &winner))
-            .ok()
-            .expect("reads");
+        let checked = verify_publication(&cyclic_document(&tampered, &winner)).expect("reads");
         assert_eq!(checked.tiebreak_agrees, Some(false));
     }
 
@@ -758,9 +744,7 @@ mod tests {
     fn a_physical_draw_must_be_among_exactly_the_tied_options() {
         let drawn = r#"{"rule": "physical", "tied": ["a", "b", "c"], "order": ["b", "c", "a"],
                         "winner": "b"}"#;
-        let checked = verify_publication(&cyclic_document(drawn, "\"b\""))
-            .ok()
-            .expect("reads");
+        let checked = verify_publication(&cyclic_document(drawn, "\"b\"")).expect("reads");
         assert_eq!(checked.tiebreak_rule, Some(TiebreakRule::Physical));
         assert_eq!(checked.tiebreak_agrees, Some(true));
         assert_eq!(checked.report.final_winner.as_deref(), Some("b"));
@@ -768,9 +752,7 @@ mod tests {
 
         let foreign = r#"{"rule": "physical", "tied": ["a", "b", "c"], "order": ["b", "c", "z"],
                           "winner": "b"}"#;
-        let checked = verify_publication(&cyclic_document(foreign, "\"b\""))
-            .ok()
-            .expect("reads");
+        let checked = verify_publication(&cyclic_document(foreign, "\"b\"")).expect("reads");
         assert_eq!(checked.tiebreak_agrees, Some(false));
         assert!(!checked.all_agree());
     }
@@ -783,9 +765,7 @@ mod tests {
             let drawn = format!(
                 r#"{{"rule": "physical", "tied": ["a", "b", "c"], "order": ["b", "c", "a"]{winner}}}"#
             );
-            let checked = verify_publication(&cyclic_document(&drawn, "\"b\""))
-                .ok()
-                .expect("reads");
+            let checked = verify_publication(&cyclic_document(&drawn, "\"b\"")).expect("reads");
             assert_eq!(checked.tiebreak_agrees, Some(false), "winner {winner:?}");
             assert!(!checked.all_agree());
         }

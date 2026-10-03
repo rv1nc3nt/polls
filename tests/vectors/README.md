@@ -1,0 +1,66 @@
+<!-- SPDX-License-Identifier: 0BSD -->
+
+# Shared test vectors
+
+One set of cases, read by both implementations (review D-2):
+
+- `tests/integration/test_vectors.py` runs them against the application;
+- `verifier/core/tests/vectors.rs` runs them against the verifier's core.
+
+Neither side keeps its own copy of an expected value, so a change to either
+implementation that alters a result fails here, on the side that changed.
+`tests/integration/test_differential.py` adds a thousand seeded random cases,
+written in this same format with the application's results as expectations,
+and hands them to the verifier's runner.
+
+## Format
+
+Each file is `{"format": 1, "cases": [...]}`. A case:
+
+| Member | Meaning |
+|---|---|
+| `name` | Shown when the case fails. |
+| `source` | Where the expected values come from (below). |
+| `method` | `schulze`, `plurality` or `approval`. |
+| `options` | The poll's option ids, in its order. |
+| `ballots` | The live set: `{"tracking_code": …, "ranking": [[id, …], …]}`. |
+| `opening_seed` | Optional, hex. Given a tie, the hash-chain draw is checked too. |
+| `expect` | The results, or absent for a case that must be refused. |
+| `refuse` | Instead of `expect`: the refusal the input must meet. |
+
+`expect` holds `closure_hash` (hex), `matrix` (`d[i][j]` for every ordered
+pair), `winners` (sorted; more than one is a tie), `counts` (plurality and
+approval; `null` under Schulze) and `tiebreak_order` (the draw's order, or
+`null` with no seed or no tie).
+
+`refuse` is one of:
+
+| Kind | The application refuses it in | The verifier answers |
+|---|---|---|
+| `tracking_code` | `core.canonical.check_alphabets` | `MalformedTrackingCode` |
+| `duplicate_tracking_code` | the database's unique constraint (INV-11) | `DuplicateTrackingCode` |
+| `ranking` | `ballots.ranking.validate_ranking` | `MalformedRanking` |
+| `option_id` (in a ranking) | `core.canonical.check_alphabets` | `MalformedRanking` |
+| `listed_option_id` | `PollOption`'s trigger and form | `MalformedOptionId` |
+
+## Where the expectations come from
+
+A vector whose expected values were simply copied from one implementation
+proves only that the other agrees with it (review D-1). Each case's `source`
+says which kind it is:
+
+- **outside the project**: the SHA-256 of the empty string (FIPS 180-4), and
+  the 45-voter example of M. Schulze, *Social Choice and Welfare* 36 (2011),
+  §3.1, whose pairwise matrix and winner are those printed there;
+- **hand-worked**: small enough to check on paper, and checked;
+- **a documented value**: the worked vector of `canonical-serialisation.md`
+  (T-42) and the acceptance tests named;
+- **application**: the random cases only, which test agreement, not truth.
+
+## Adding a case
+
+Write the input, work out the expected values by hand or from a published
+source, and add both. Run `uv run pytest tests/integration/test_vectors.py`
+and `cargo test --manifest-path verifier/Cargo.toml --test vectors`: a case
+both sides pass goes in. If one side disagrees, that is the finding, and the
+specification decides which is wrong, never a change to the vector to match.

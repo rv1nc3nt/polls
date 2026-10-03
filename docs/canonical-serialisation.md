@@ -106,7 +106,9 @@ with a trailing newline on each line, gives
     closure_hash = 87694cf068ba44eca50e15bd4b7c1195fc4a1fae9ad3b0ba640deec22f7948e6
 
 This vector is asserted by `tests/unit/test_canonical_and_crypto.py` (T-42) and
-by the verifier's own tests.
+by the verifier's own tests. It is also the case "T-42 worked vector" of
+`tests/vectors/`, the corpus both implementations run, with the rules of
+"Alphabets" and "A ranking" as cases to refuse.
 
 ## The tie-break, for completeness
 

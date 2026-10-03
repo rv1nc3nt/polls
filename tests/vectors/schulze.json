@@ -1,0 +1,1395 @@
+{
+ "format": 1,
+ "cases": [
+  {
+   "name": "Schulze 2011 §3.1: 45 voters, 5 candidates",
+   "source": "M. Schulze (2011), Social Choice and Welfare 36, §3.1; pairwise matrix and winner as published there",
+   "method": "schulze",
+   "options": [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E"
+   ],
+   "ballots": [
+    {
+     "tracking_code": "AAAAAA2222",
+     "ranking": [
+      [
+       "A"
+      ],
+      [
+       "C"
+      ],
+      [
+       "B"
+      ],
+      [
+       "E"
+      ],
+      [
+       "D"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA2223",
+     "ranking": [
+      [
+       "A"
+      ],
+      [
+       "C"
+      ],
+      [
+       "B"
+      ],
+      [
+       "E"
+      ],
+      [
+       "D"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA2224",
+     "ranking": [
+      [
+       "A"
+      ],
+      [
+       "C"
+      ],
+      [
+       "B"
+      ],
+      [
+       "E"
+      ],
+      [
+       "D"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA2225",
+     "ranking": [
+      [
+       "A"
+      ],
+      [
+       "C"
+      ],
+      [
+       "B"
+      ],
+      [
+       "E"
+      ],
+      [
+       "D"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA2226",
+     "ranking": [
+      [
+       "A"
+      ],
+      [
+       "C"
+      ],
+      [
+       "B"
+      ],
+      [
+       "E"
+      ],
+      [
+       "D"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA2227",
+     "ranking": [
+      [
+       "A"
+      ],
+      [
+       "D"
+      ],
+      [
+       "E"
+      ],
+      [
+       "C"
+      ],
+      [
+       "B"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA2228",
+     "ranking": [
+      [
+       "A"
+      ],
+      [
+       "D"
+      ],
+      [
+       "E"
+      ],
+      [
+       "C"
+      ],
+      [
+       "B"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA2229",
+     "ranking": [
+      [
+       "A"
+      ],
+      [
+       "D"
+      ],
+      [
+       "E"
+      ],
+      [
+       "C"
+      ],
+      [
+       "B"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA222A",
+     "ranking": [
+      [
+       "A"
+      ],
+      [
+       "D"
+      ],
+      [
+       "E"
+      ],
+      [
+       "C"
+      ],
+      [
+       "B"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA222B",
+     "ranking": [
+      [
+       "A"
+      ],
+      [
+       "D"
+      ],
+      [
+       "E"
+      ],
+      [
+       "C"
+      ],
+      [
+       "B"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA222C",
+     "ranking": [
+      [
+       "B"
+      ],
+      [
+       "E"
+      ],
+      [
+       "D"
+      ],
+      [
+       "A"
+      ],
+      [
+       "C"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA222D",
+     "ranking": [
+      [
+       "B"
+      ],
+      [
+       "E"
+      ],
+      [
+       "D"
+      ],
+      [
+       "A"
+      ],
+      [
+       "C"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA222E",
+     "ranking": [
+      [
+       "B"
+      ],
+      [
+       "E"
+      ],
+      [
+       "D"
+      ],
+      [
+       "A"
+      ],
+      [
+       "C"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA222F",
+     "ranking": [
+      [
+       "B"
+      ],
+      [
+       "E"
+      ],
+      [
+       "D"
+      ],
+      [
+       "A"
+      ],
+      [
+       "C"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA222G",
+     "ranking": [
+      [
+       "B"
+      ],
+      [
+       "E"
+      ],
+      [
+       "D"
+      ],
+      [
+       "A"
+      ],
+      [
+       "C"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA222H",
+     "ranking": [
+      [
+       "B"
+      ],
+      [
+       "E"
+      ],
+      [
+       "D"
+      ],
+      [
+       "A"
+      ],
+      [
+       "C"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA222J",
+     "ranking": [
+      [
+       "B"
+      ],
+      [
+       "E"
+      ],
+      [
+       "D"
+      ],
+      [
+       "A"
+      ],
+      [
+       "C"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA222K",
+     "ranking": [
+      [
+       "B"
+      ],
+      [
+       "E"
+      ],
+      [
+       "D"
+      ],
+      [
+       "A"
+      ],
+      [
+       "C"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA222L",
+     "ranking": [
+      [
+       "C"
+      ],
+      [
+       "A"
+      ],
+      [
+       "B"
+      ],
+      [
+       "E"
+      ],
+      [
+       "D"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA222M",
+     "ranking": [
+      [
+       "C"
+      ],
+      [
+       "A"
+      ],
+      [
+       "B"
+      ],
+      [
+       "E"
+      ],
+      [
+       "D"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA222N",
+     "ranking": [
+      [
+       "C"
+      ],
+      [
+       "A"
+      ],
+      [
+       "B"
+      ],
+      [
+       "E"
+      ],
+      [
+       "D"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA222P",
+     "ranking": [
+      [
+       "C"
+      ],
+      [
+       "A"
+      ],
+      [
+       "E"
+      ],
+      [
+       "B"
+      ],
+      [
+       "D"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA222Q",
+     "ranking": [
+      [
+       "C"
+      ],
+      [
+       "A"
+      ],
+      [
+       "E"
+      ],
+      [
+       "B"
+      ],
+      [
+       "D"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA222R",
+     "ranking": [
+      [
+       "C"
+      ],
+      [
+       "A"
+      ],
+      [
+       "E"
+      ],
+      [
+       "B"
+      ],
+      [
+       "D"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA222S",
+     "ranking": [
+      [
+       "C"
+      ],
+      [
+       "A"
+      ],
+      [
+       "E"
+      ],
+      [
+       "B"
+      ],
+      [
+       "D"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA222T",
+     "ranking": [
+      [
+       "C"
+      ],
+      [
+       "A"
+      ],
+      [
+       "E"
+      ],
+      [
+       "B"
+      ],
+      [
+       "D"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA222U",
+     "ranking": [
+      [
+       "C"
+      ],
+      [
+       "A"
+      ],
+      [
+       "E"
+      ],
+      [
+       "B"
+      ],
+      [
+       "D"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA222V",
+     "ranking": [
+      [
+       "C"
+      ],
+      [
+       "A"
+      ],
+      [
+       "E"
+      ],
+      [
+       "B"
+      ],
+      [
+       "D"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA222W",
+     "ranking": [
+      [
+       "C"
+      ],
+      [
+       "B"
+      ],
+      [
+       "A"
+      ],
+      [
+       "D"
+      ],
+      [
+       "E"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA222X",
+     "ranking": [
+      [
+       "C"
+      ],
+      [
+       "B"
+      ],
+      [
+       "A"
+      ],
+      [
+       "D"
+      ],
+      [
+       "E"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA222Y",
+     "ranking": [
+      [
+       "D"
+      ],
+      [
+       "C"
+      ],
+      [
+       "E"
+      ],
+      [
+       "B"
+      ],
+      [
+       "A"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA222Z",
+     "ranking": [
+      [
+       "D"
+      ],
+      [
+       "C"
+      ],
+      [
+       "E"
+      ],
+      [
+       "B"
+      ],
+      [
+       "A"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA2232",
+     "ranking": [
+      [
+       "D"
+      ],
+      [
+       "C"
+      ],
+      [
+       "E"
+      ],
+      [
+       "B"
+      ],
+      [
+       "A"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA2233",
+     "ranking": [
+      [
+       "D"
+      ],
+      [
+       "C"
+      ],
+      [
+       "E"
+      ],
+      [
+       "B"
+      ],
+      [
+       "A"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA2234",
+     "ranking": [
+      [
+       "D"
+      ],
+      [
+       "C"
+      ],
+      [
+       "E"
+      ],
+      [
+       "B"
+      ],
+      [
+       "A"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA2235",
+     "ranking": [
+      [
+       "D"
+      ],
+      [
+       "C"
+      ],
+      [
+       "E"
+      ],
+      [
+       "B"
+      ],
+      [
+       "A"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA2236",
+     "ranking": [
+      [
+       "D"
+      ],
+      [
+       "C"
+      ],
+      [
+       "E"
+      ],
+      [
+       "B"
+      ],
+      [
+       "A"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA2237",
+     "ranking": [
+      [
+       "E"
+      ],
+      [
+       "B"
+      ],
+      [
+       "A"
+      ],
+      [
+       "D"
+      ],
+      [
+       "C"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA2238",
+     "ranking": [
+      [
+       "E"
+      ],
+      [
+       "B"
+      ],
+      [
+       "A"
+      ],
+      [
+       "D"
+      ],
+      [
+       "C"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA2239",
+     "ranking": [
+      [
+       "E"
+      ],
+      [
+       "B"
+      ],
+      [
+       "A"
+      ],
+      [
+       "D"
+      ],
+      [
+       "C"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA223A",
+     "ranking": [
+      [
+       "E"
+      ],
+      [
+       "B"
+      ],
+      [
+       "A"
+      ],
+      [
+       "D"
+      ],
+      [
+       "C"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA223B",
+     "ranking": [
+      [
+       "E"
+      ],
+      [
+       "B"
+      ],
+      [
+       "A"
+      ],
+      [
+       "D"
+      ],
+      [
+       "C"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA223C",
+     "ranking": [
+      [
+       "E"
+      ],
+      [
+       "B"
+      ],
+      [
+       "A"
+      ],
+      [
+       "D"
+      ],
+      [
+       "C"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA223D",
+     "ranking": [
+      [
+       "E"
+      ],
+      [
+       "B"
+      ],
+      [
+       "A"
+      ],
+      [
+       "D"
+      ],
+      [
+       "C"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA223E",
+     "ranking": [
+      [
+       "E"
+      ],
+      [
+       "B"
+      ],
+      [
+       "A"
+      ],
+      [
+       "D"
+      ],
+      [
+       "C"
+      ]
+     ]
+    }
+   ],
+   "expect": {
+    "closure_hash": "0a96848b30a445a3ef4cf0d8da0ab73b13d24885bf43dcf7a49af7705f4911c2",
+    "matrix": {
+     "A": {
+      "B": 20,
+      "C": 26,
+      "D": 30,
+      "E": 22
+     },
+     "B": {
+      "A": 25,
+      "C": 16,
+      "D": 33,
+      "E": 18
+     },
+     "C": {
+      "A": 19,
+      "B": 29,
+      "D": 17,
+      "E": 24
+     },
+     "D": {
+      "A": 15,
+      "B": 12,
+      "C": 28,
+      "E": 14
+     },
+     "E": {
+      "A": 23,
+      "B": 27,
+      "C": 21,
+      "D": 31
+     }
+    },
+    "winners": [
+     "E"
+    ],
+    "counts": null,
+    "tiebreak_order": null
+   }
+  },
+  {
+   "name": "one strict ballot",
+   "source": "hand-worked",
+   "method": "schulze",
+   "options": [
+    "a",
+    "b",
+    "c"
+   ],
+   "ballots": [
+    {
+     "tracking_code": "AAAAAA2222",
+     "ranking": [
+      [
+       "a"
+      ],
+      [
+       "b"
+      ],
+      [
+       "c"
+      ]
+     ]
+    }
+   ],
+   "expect": {
+    "closure_hash": "d65973e8c3798bb0a55ff602576b58c5a40543bcd9688edd4234403d52880a30",
+    "matrix": {
+     "a": {
+      "b": 1,
+      "c": 1
+     },
+     "b": {
+      "a": 0,
+      "c": 1
+     },
+     "c": {
+      "a": 0,
+      "b": 0
+     }
+    },
+    "winners": [
+     "a"
+    ],
+    "counts": null,
+    "tiebreak_order": null
+   }
+  },
+  {
+   "name": "partial ranking: the unranked are equal-last",
+   "source": "hand-worked; R-10.4",
+   "method": "schulze",
+   "options": [
+    "a",
+    "b",
+    "c"
+   ],
+   "ballots": [
+    {
+     "tracking_code": "AAAAAA2222",
+     "ranking": [
+      [
+       "a"
+      ]
+     ]
+    }
+   ],
+   "expect": {
+    "closure_hash": "06573b0c0bd9d6d525695b201349826e6b8885a61130c69e317cdbaa14351f11",
+    "matrix": {
+     "a": {
+      "b": 1,
+      "c": 1
+     },
+     "b": {
+      "a": 0,
+      "c": 0
+     },
+     "c": {
+      "a": 0,
+      "b": 0
+     }
+    },
+    "winners": [
+     "a"
+    ],
+    "counts": null,
+    "tiebreak_order": null
+   }
+  },
+  {
+   "name": "an option nobody ranks keeps its row",
+   "source": "hand-worked; review note L5",
+   "method": "schulze",
+   "options": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "ballots": [
+    {
+     "tracking_code": "AAAAAA2222",
+     "ranking": [
+      [
+       "a"
+      ],
+      [
+       "b"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA2223",
+     "ranking": [
+      [
+       "b"
+      ],
+      [
+       "a"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA2224",
+     "ranking": [
+      [
+       "a"
+      ],
+      [
+       "c"
+      ]
+     ]
+    }
+   ],
+   "expect": {
+    "closure_hash": "5ca34fa0d4b9794f9248830bbc3ca2c1a82774c5cbaf0c23c6102b4d13757353",
+    "matrix": {
+     "a": {
+      "b": 2,
+      "c": 3,
+      "d": 3
+     },
+     "b": {
+      "a": 1,
+      "c": 2,
+      "d": 2
+     },
+     "c": {
+      "a": 0,
+      "b": 1,
+      "d": 1
+     },
+     "d": {
+      "a": 0,
+      "b": 0,
+      "c": 0
+     }
+    },
+    "winners": [
+     "a"
+    ],
+    "counts": null,
+    "tiebreak_order": null
+   }
+  },
+  {
+   "name": "ties within a ballot",
+   "source": "hand-worked",
+   "method": "schulze",
+   "options": [
+    "a",
+    "b",
+    "c"
+   ],
+   "ballots": [
+    {
+     "tracking_code": "AAAAAA2222",
+     "ranking": [
+      [
+       "a",
+       "b"
+      ],
+      [
+       "c"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA2223",
+     "ranking": [
+      [
+       "c"
+      ],
+      [
+       "a",
+       "b"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA2224",
+     "ranking": [
+      [
+       "b"
+      ],
+      [
+       "a"
+      ],
+      [
+       "c"
+      ]
+     ]
+    }
+   ],
+   "expect": {
+    "closure_hash": "ce60ea96ad3d2ba580407140df1135f9159fb8b23d610792f372373fccfffe8e",
+    "matrix": {
+     "a": {
+      "b": 0,
+      "c": 2
+     },
+     "b": {
+      "a": 1,
+      "c": 2
+     },
+     "c": {
+      "a": 1,
+      "b": 1
+     }
+    },
+    "winners": [
+     "b"
+    ],
+    "counts": null,
+    "tiebreak_order": null
+   }
+  },
+  {
+   "name": "T-9 cyclic majority: a three-way tie, broken by the hash chain",
+   "source": "T-9, T-44",
+   "method": "schulze",
+   "options": [
+    "a",
+    "b",
+    "c"
+   ],
+   "ballots": [
+    {
+     "tracking_code": "AAAAAA2222",
+     "ranking": [
+      [
+       "a"
+      ],
+      [
+       "b"
+      ],
+      [
+       "c"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA2223",
+     "ranking": [
+      [
+       "b"
+      ],
+      [
+       "c"
+      ],
+      [
+       "a"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA2224",
+     "ranking": [
+      [
+       "c"
+      ],
+      [
+       "a"
+      ],
+      [
+       "b"
+      ]
+     ]
+    }
+   ],
+   "opening_seed": "0000000000000000000000000000000000000000000000000000000000000000",
+   "expect": {
+    "closure_hash": "92276cc34889241ee389f0113ee665e396284dc9d3a7f4813c61866c08ea8fd5",
+    "matrix": {
+     "a": {
+      "b": 2,
+      "c": 1
+     },
+     "b": {
+      "a": 1,
+      "c": 2
+     },
+     "c": {
+      "a": 2,
+      "b": 1
+     }
+    },
+    "winners": [
+     "a",
+     "b",
+     "c"
+    ],
+    "counts": null,
+    "tiebreak_order": [
+     "c",
+     "b",
+     "a"
+    ]
+   }
+  },
+  {
+   "name": "a tie with another seed",
+   "source": "T-44",
+   "method": "schulze",
+   "options": [
+    "a",
+    "b",
+    "c"
+   ],
+   "ballots": [
+    {
+     "tracking_code": "AAAAAA2222",
+     "ranking": [
+      [
+       "a"
+      ],
+      [
+       "b"
+      ],
+      [
+       "c"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA2223",
+     "ranking": [
+      [
+       "b"
+      ],
+      [
+       "c"
+      ],
+      [
+       "a"
+      ]
+     ]
+    },
+    {
+     "tracking_code": "AAAAAA2224",
+     "ranking": [
+      [
+       "c"
+      ],
+      [
+       "a"
+      ],
+      [
+       "b"
+      ]
+     ]
+    }
+   ],
+   "opening_seed": "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+   "expect": {
+    "closure_hash": "92276cc34889241ee389f0113ee665e396284dc9d3a7f4813c61866c08ea8fd5",
+    "matrix": {
+     "a": {
+      "b": 2,
+      "c": 1
+     },
+     "b": {
+      "a": 1,
+      "c": 2
+     },
+     "c": {
+      "a": 2,
+      "b": 1
+     }
+    },
+    "winners": [
+     "a",
+     "b",
+     "c"
+    ],
+    "counts": null,
+    "tiebreak_order": [
+     "c",
+     "a",
+     "b"
+    ]
+   }
+  },
+  {
+   "name": "no ballots: no result, no tie",
+   "source": "T-39",
+   "method": "schulze",
+   "options": [
+    "a",
+    "b",
+    "c"
+   ],
+   "ballots": [],
+   "opening_seed": "0000000000000000000000000000000000000000000000000000000000000000",
+   "expect": {
+    "closure_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "matrix": {
+     "a": {
+      "b": 0,
+      "c": 0
+     },
+     "b": {
+      "a": 0,
+      "c": 0
+     },
+     "c": {
+      "a": 0,
+      "b": 0
+     }
+    },
+    "winners": [],
+    "counts": null,
+    "tiebreak_order": null
+   }
+  }
+ ]
+}
