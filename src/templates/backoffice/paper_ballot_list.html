@@ -11,9 +11,9 @@
     deleted one are shown here too, so nothing keyed is invisible; only in-force
     rows can still be corrected or deleted (R-8.5).
   {% endcomment %}
-  <div class="table-scroll">
+  <div class="table-scroll" role="region" aria-labelledby="tblcap-paper-ballot-list" tabindex="0">
   <table>
-    <caption>{% translate "Bulletins papier de ce scrutin" %}</caption>
+    <caption id="tblcap-paper-ballot-list">{% translate "Bulletins papier de ce scrutin" %}</caption>
     <thead>
       <tr>
         <th scope="col">{% translate "Électeur" %}</th>

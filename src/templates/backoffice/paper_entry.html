@@ -112,9 +112,9 @@
       <input type="hidden" name="q" value="{{ query }}">
       <h2>{% translate "Résultats" %}</h2>
       {% if matches %}
-        <div class="table-scroll">
+        <div class="table-scroll" role="region" aria-labelledby="tblcap-paper-entry" tabindex="0">
         <table>
-          <caption>{% translate "Choisir l'électeur, puis continuer" %}</caption>
+          <caption id="tblcap-paper-entry">{% translate "Choisir l'électeur, puis continuer" %}</caption>
           <thead>
             <tr>
               <th scope="col">{% translate "Choisir" %}</th>

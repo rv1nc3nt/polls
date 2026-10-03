@@ -37,9 +37,9 @@
     {% endfor %}
   </p>
 
-  <div class="table-scroll">
+  <div class="table-scroll" role="region" aria-labelledby="tblcap-role-admin-1" tabindex="0">
   <table>
-    <caption>
+    <caption id="tblcap-role-admin-1">
       {% blocktranslate count total=page.paginator.count trimmed %}
         {{ total }} scrutin
       {% plural %}
@@ -117,8 +117,9 @@
       {% csrf_token %}
       <input type="hidden" name="poll" value="{{ selected_poll.pk }}">
       <input type="hidden" name="action" value="sync_roles">
-      <div class="table-scroll">
+      <div class="table-scroll" role="region" aria-labelledby="tblcap-role-grid" tabindex="0">
       <table>
+        <caption class="visually-hidden" id="tblcap-role-grid">{% translate "Rôles par compte sur ce scrutin" %}</caption>
         <thead>
           <tr>
             <th scope="col">{% translate "Compte" %}</th>

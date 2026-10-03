@@ -17,9 +17,9 @@
   {% endif %}
 
   {% if polls %}
-    <div class="table-scroll">
+    <div class="table-scroll" role="region" aria-labelledby="tblcap-poll-index" tabindex="0">
     <table>
-      <caption>{% translate "Scrutins sur lesquels vous avez un rôle" %}</caption>
+      <caption id="tblcap-poll-index">{% translate "Scrutins sur lesquels vous avez un rôle" %}</caption>
       <thead>
         <tr>
           <th scope="col">{% translate "Scrutin" %}</th>

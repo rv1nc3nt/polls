@@ -4386,6 +4386,10 @@ msgstr "No active account to assign a role to."
 msgid "Enregistrer les rôles"
 msgstr "Save roles"
 
+#: src/templates/backoffice/role_admin.html
+msgid "Rôles par compte sur ce scrutin"
+msgstr "Roles per account on this poll"
+
 #: src/templates/backoffice/role_admin.html:156
 msgid ""
 "Choisissez un scrutin dans la liste ci-dessus pour voir et modifier ses "

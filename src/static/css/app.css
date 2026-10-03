@@ -864,6 +864,10 @@ tbody tr.selected th, tbody tr.selected td { background: var(--accent-soft); }
    whatever the type scale does, so it scrolls in its own box — same
    principle as `td code` below, applied to the table as a whole rather than
    forcing the surrounding page to scroll sideways with it. */
+/* Every wrapper is also a named, focusable region in the markup (role,
+   aria-labelledby on the table's caption, tabindex="0"): when a table is wider
+   than the screen, a keyboard user must be able to reach it to scroll it
+   (WCAG 2.1.1, RGAA 7.3). The global :focus-visible outline shows the focus. */
 .table-scroll { overflow-x: auto; margin: 0.5rem 0 2rem; }
 .table-scroll table { margin: 0; }
 

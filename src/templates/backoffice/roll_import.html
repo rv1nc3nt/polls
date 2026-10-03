@@ -53,9 +53,9 @@
     <button type="submit">{% translate "Rechercher" %}</button>
   </form>
 
-  <div class="table-scroll">
+  <div class="table-scroll" role="region" aria-labelledby="tblcap-roll-import" tabindex="0">
   <table>
-    <caption>
+    <caption id="tblcap-roll-import">
       {% blocktranslate count total=page.paginator.count trimmed %}
         {{ total }} électeur inscrit
       {% plural %}

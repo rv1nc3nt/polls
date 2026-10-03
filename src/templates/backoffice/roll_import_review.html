@@ -77,8 +77,8 @@
           <p class="error" role="alert">{% translate "Import refusé : le fichier est inexploitable en l'état. Corrigez-le et rechargez-le. Rien n'a été écrit." %}</p>
         {% endif %}
 
-        <h3>{% translate "Aperçu (20 premières entrées)" %}</h3>
-        <div class="table-scroll">
+        <h3 id="tblcap-preview">{% translate "Aperçu (20 premières entrées)" %}</h3>
+        <div class="table-scroll" role="region" aria-labelledby="tblcap-preview" tabindex="0">
         <table>
           <thead>
             <tr>

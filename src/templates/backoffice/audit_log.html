@@ -38,9 +38,9 @@
     <button type="submit">{% translate "Filtrer" %}</button>
   </form>
 
-  <div class="table-scroll">
+  <div class="table-scroll" role="region" aria-labelledby="tblcap-audit-log" tabindex="0">
   <table>
-    <caption>
+    <caption id="tblcap-audit-log">
       {% blocktranslate count total=page.paginator.count trimmed %}
         {{ total }} événement
       {% plural %}

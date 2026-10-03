@@ -14,9 +14,9 @@
   {% endcomment %}
   <p class="notice">{% translate "Un modèle porte la méthode de dépouillement et les règles de bulletin, jamais un intitulé, une description ou des propositions. Il s'enregistre depuis la configuration d'un scrutin." %}</p>
 
-  <div class="table-scroll">
+  <div class="table-scroll" role="region" aria-labelledby="tblcap-template-admin" tabindex="0">
   <table>
-    <caption>{% translate "Modèles enregistrés" %}</caption>
+    <caption id="tblcap-template-admin">{% translate "Modèles enregistrés" %}</caption>
     <thead>
       <tr>
         <th scope="col">{% translate "Nom du modèle" %}</th>
