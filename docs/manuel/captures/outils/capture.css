@@ -1,0 +1,10 @@
+/* SPDX-License-Identifier: 0BSD */
+
+/* Screenshot-only, linked after the application's own stylesheet by
+   render_captures.py. `.bo-side` is `position: fixed; bottom: 0` so it stays
+   put while a real browser window scrolls (§6.5): it fills the viewport, not
+   the page. A full-page capture has no scrolling viewport, only the tall
+   window asked of headless Chrome, so that background would stretch to the
+   bottom of it, and `convert -trim` would find two solid columns instead of a
+   blank margin to crop. Here the sidebar's height follows its content. */
+.bo-side { bottom: auto !important; }

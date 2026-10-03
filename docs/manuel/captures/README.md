@@ -2,8 +2,12 @@
 
 # Captures d'écran du manuel
 
-- `*.html` — le balisage réel de chaque écran, feuille de style intégrée, donc
-  consultable hors ligne dans n'importe quel navigateur. C'est la **source**.
+- `*.html` — le balisage réel de chaque écran. C'est la **source**. Chaque
+  fichier renvoie à la feuille de style et aux scripts de l'application
+  elle-même (`src/static/`), par un chemin relatif : il n'en existe qu'un
+  exemplaire, et une modification du style n'apparaît qu'une fois dans
+  l'historique. Une capture s'ouvre hors ligne depuis n'importe quelle copie
+  du dépôt. `outils/capture.css` ne contient qu'une règle propre aux captures.
 - `img/*.png` — le rendu de ces mêmes pages, c'est ce que le manuel affiche.
 
 ## Régénérer
@@ -28,11 +32,16 @@ mkdir -p docs/manuel/captures/img
 for f in docs/manuel/captures/*.html; do
   b=$(basename "$f" .html)
   chrome-headless-shell --headless --disable-gpu --no-sandbox --hide-scrollbars \
+    --allow-file-access-from-files \
     --window-size=1360,9000 --screenshot="docs/manuel/captures/img/$b.png" "file://$PWD/$f"
   convert "docs/manuel/captures/img/$b.png" -bordercolor white -border 1 \
     -trim +repage -bordercolor white -border 24 "docs/manuel/captures/img/$b.png"
 done
 ```
+
+`--allow-file-access-from-files` laisse la page charger, sous `file://`, les
+polices que la feuille de style désigne : sans lui, le navigateur les refuse et
+la capture s'affiche dans une police de substitution.
 
 Toute commande de capture d'un navigateur sans affichage convient à l'étape 3
 (`chromium --headless`, `google-chrome --headless`, Playwright…). Le
