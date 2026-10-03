@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: 0BSD
 """Delete identity data two months after closure, and the working roll two
-months after import where idle (§11, R-13.3, R-13.3 bis).
+months after import where idle (§11, R-13.3, R-13.3 bis); and expired
+sessions, which hold receipts and ballot hashes and which nothing else deletes
+(decision log #53).
 
 Scheduled, logged and idempotent — not a manual procedure. State-based
 selection, so a host that was down purges late rather than never.
@@ -12,13 +14,14 @@ from typing import Any
 
 from apps.core.jobs import JobCommand
 from apps.core.models import JobRun
+from apps.core.sessions import purge_expired
 from apps.elections.retention import due_polls, purge, purge_working_roll
 
 
 class Command(JobCommand):
     help = (
         "Purge les données d'identité des scrutins clos depuis deux mois, "
-        "et la liste de travail inutilisée depuis deux mois."
+        "la liste de travail inutilisée depuis deux mois, et les sessions expirées."
     )
     job_name = "retention_purge"
 
@@ -43,4 +46,16 @@ class Command(JobCommand):
             if working_roll_entries:
                 self.stdout.write(f"purged working roll: {working_roll_entries} entries")
 
-        run.detail = {"purged": reports, "working_roll_entries": working_roll_entries}
+        expired_sessions = 0
+        if options.get("dry_run"):
+            self.stdout.write("would delete expired sessions")
+        else:
+            expired_sessions = purge_expired()
+            if expired_sessions:
+                self.stdout.write(f"deleted {expired_sessions} expired sessions")
+
+        run.detail = {
+            "purged": reports,
+            "working_roll_entries": working_roll_entries,
+            "expired_sessions": expired_sessions,
+        }

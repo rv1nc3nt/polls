@@ -18,6 +18,7 @@ from datetime import timedelta
 from typing import Any
 
 import pytest
+from django.contrib.sessions.models import Session
 from django.core import mail as django_mail
 from django.test import Client
 from django.utils import timezone
@@ -106,6 +107,19 @@ def test_the_link_confirms_the_mailbox_and_serves_the_ballot(
     assert "Valider mon bulletin" in body
     registration.refresh_from_db()
     assert registration.state == RegistrationState.ACTIVE
+
+
+def test_opening_the_link_on_a_real_poll_writes_no_session(client: Client, live_poll: Poll) -> None:
+    """Only a sandbox poll needs the browser remembered (INV-8); a session row
+    written as a voter arrives would record who came when (decision log #53).
+    The receipt is the first thing a real poll's ballot route stores."""
+    _registration, token = _register(live_poll)
+    assert client.get(_access_url(live_poll, token)).status_code == 200
+    assert not Session.objects.exists()
+
+    cast = client.post(_access_url(live_poll, token), STRICT)
+    assert cast.status_code == 302
+    assert Session.objects.count() == 1
 
 
 @pytest.mark.parametrize(

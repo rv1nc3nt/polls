@@ -4,7 +4,8 @@
 A first ballot is cast from the page the voter confirmed their mailbox on,
 minutes later, so any record of when — or merely in which order — ballots were
 cast would pair them with registrations. None remains: no time column, no
-insertion-ordered rowid, no confirmation instant, session expiries to the day.
+insertion-ordered rowid on the ballots or on the sessions holding receipts, no
+confirmation instant, session expiries to the day.
 
 The trend (R-11.5 bis) records each point the moment it falls due instead; the
 tests below are the rules ``tests/unit/test_trend.py`` once checked against a
@@ -99,6 +100,20 @@ def test_the_ballots_table_keeps_no_insertion_order(db: None) -> None:
         assert sql.rstrip().endswith("WITHOUT ROWID"), sql
         with pytest.raises(Exception, match="rowid"):
             cursor.execute("SELECT rowid FROM ballots_ballot")
+
+
+def test_the_session_table_keeps_no_insertion_order(db: None) -> None:
+    """A voter's session holds their receipt or ballot hash, so its ``rowid``
+    would list ballots in the order cast (decision log #53). Django creates
+    the table the ordinary way; core migration 0011 rebuilds it."""
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT sql FROM sqlite_master WHERE name = 'django_session'")
+        (sql,) = cursor.fetchone()
+        assert sql.rstrip().endswith("WITHOUT ROWID"), sql
+        with pytest.raises(Exception, match="rowid"):
+            cursor.execute("SELECT rowid FROM django_session")
+        cursor.execute("SELECT name FROM sqlite_master WHERE tbl_name = 'django_session'")
+        assert "django_session_expire_date_a5c62663" in {row[0] for row in cursor.fetchall()}
 
 
 def test_a_session_expires_at_a_midnight(db: None) -> None:

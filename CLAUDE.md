@@ -79,8 +79,10 @@ find a way round it.
   table is `WITHOUT ROWID` (ballots migration 0004; Django rebuilds a table the
   ordinary way on some schema changes, which would bring the `rowid` back, and
   `test_trend_points.py` fails if it does); `Registration` keeps no
-  confirmation instant; session expiries are rounded to the day
-  (`core/sessions.py`). The trend records its points as they fall due
+  confirmation instant; the session table, which holds a voter's receipt
+  or ballot hash, is `WITHOUT ROWID` too (core migration 0011), its expiries
+  are rounded to the day (`core/sessions.py`) and `retention_purge` deletes
+  the expired rows. The trend records its points as they fall due
   (`ballots/trendpoints.py`) rather than rebuilding them from ballot times.
 - **INV-3.** `AuditEvent` has no update or delete path, in the application or
   the database. Events store a reference plus non-identifying state — never a

@@ -208,7 +208,7 @@ qu'une première tourne se termine en code 0 sans rien faire ; un hôte qui éta
 | `open_poll` | `announced → open` : fige la copie de la liste électorale et tire la graine d'ouverture, dans la même transaction que l'état. N'agit que sur un scrutin déjà annoncé — un scrutin resté `draft` n'ouvre jamais tout seul. | scrutins `announced` dont `opens_at` est atteint |
 | `close_poll` | `open → closed` : calcule l'empreinte de clôture, fige les compteurs de participation. Ne dépouille pas. | scrutins `open` dont l'échéance de saisie est atteinte |
 | `send_reminders` | rappel 48 h avant clôture aux inscrits actifs n'ayant pas voté. | |
-| `retention_purge` | efface les données d'identité des scrutins clos depuis deux mois. | |
+| `retention_purge` | efface les données d'identité des scrutins clos depuis deux mois, et les sessions expirées (elles peuvent contenir le récépissé d'un électeur). | |
 
 **Sous cron** (défaut, universel) : `/etc/cron.d/polls` ; le script
 `/opt/polls/bin/polls-manage` **source explicitement** le fichier
