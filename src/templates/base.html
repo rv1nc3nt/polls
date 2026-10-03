@@ -125,15 +125,19 @@
 
   {% if messages %}
     {% comment %} role="status" rather than "alert": these follow an action the operator
-       just took and must not interrupt a screen reader mid-sentence. {% endcomment %}
-    <ul class="messages" role="status">
-      {% for message in messages %}
-        <li class="message message--{{ message.tags }}">
-          <span class="message__level">{{ message.level_tag }}</span>
-          {{ message }}
-        </li>
-      {% endfor %}
-    </ul>
+       just took and must not interrupt a screen reader mid-sentence. On a wrapper,
+       not the <ul>: a role there replaces the list's own, and its items stop
+       being a list to assistive technology (axe, review C-8). {% endcomment %}
+    <div role="status">
+      <ul class="messages">
+        {% for message in messages %}
+          <li class="message message--{{ message.tags }}">
+            <span class="message__level">{{ message.level_tag }}</span>
+            {{ message }}
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
   {% endif %}
 
   <main id="contenu">{% block content %}{% endblock %}</main>
