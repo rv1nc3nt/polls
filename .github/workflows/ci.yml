@@ -51,6 +51,40 @@ jobs:
       - run: uv sync --frozen
       - run: uv run pytest tests/integration/test_verifier_agreement.py -q
 
+  frontend:
+    # ESLint and stylelint over src/static/ (review C-8). package.json holds
+    # only these tools: the site serves its scripts and stylesheet as written.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+
+  browser:
+    # tests/browser (review C-8): a voter's journey and the back-office editor
+    # in headless Chromium against the live test server, each page checked for
+    # script errors, CSP violations and axe-core's WCAG 2.1 AA rules. The HTTP
+    # tests cannot see any of the three; the Origin a browser sends broke
+    # every ballot without one of them failing (decision log #50).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: uv sync --frozen
+      - run: npm ci  # axe-core
+      - run: uv run playwright install --with-deps --only-shell chromium
+      - run: uv run pytest -q -m browser
+
   services:
     # T-50: service definitions under contrib/init/.
     runs-on: ubuntu-latest

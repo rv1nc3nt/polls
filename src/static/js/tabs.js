@@ -130,7 +130,7 @@
         if (current === -1) {
           return;
         }
-        var next = null;
+        var next;
         if (event.key === "ArrowRight") {
           next = (current + 1) % tabs.length;
         } else if (event.key === "ArrowLeft") {

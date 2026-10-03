@@ -25,10 +25,13 @@ cargo clippy --manifest-path verifier/Cargo.toml --workspace --all-targets -- -D
 cargo test --manifest-path verifier/Cargo.toml
 (cd verifier && cargo audit --deny warnings)  # also weekly; exceptions in verifier/.cargo/audit.toml
 uv run python manage.py compilemessages   # needs GNU gettext installed
+npm ci && npm run lint                    # ESLint + stylelint over src/static/
+uv run playwright install --only-shell chromium && uv run pytest -m browser  # after npm ci
 ```
 
 Every gate above (all but `uv sync` and `migrate`) runs in CI and must be green
-before a commit lands.
+before a commit lands. The plain `pytest` run leaves out `tests/browser`, which
+need a browser; `-m browser` runs them, and CI does both.
 
 ## Layout
 

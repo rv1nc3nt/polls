@@ -209,6 +209,15 @@ Tests, lint et typage :
     cargo fmt --manifest-path verifier/Cargo.toml --all --check
     cargo clippy --manifest-path verifier/Cargo.toml --workspace --all-targets -- -D warnings
     cargo test --manifest-path verifier/Cargo.toml
+    npm ci && npm run lint          # ESLint et stylelint sur src/static/
+
+Les tests en navigateur (`tests/browser` : le parcours d'un électeur et
+l'éditeur de l'espace mairie dans Chromium sans affichage, avec un contrôle
+d'accessibilité axe-core sur chaque page) sont exclus de `pytest -q`. Après
+`npm ci` :
+
+    uv run playwright install --only-shell chromium
+    uv run pytest -q -m browser
 
 ## Arborescence
 

@@ -22,7 +22,7 @@
   function read() {
     try {
       return window.localStorage.getItem(KEY);
-    } catch (e) {
+    } catch {
       return null;
     }
   }
@@ -34,7 +34,7 @@
       } else {
         window.localStorage.removeItem(KEY);
       }
-    } catch (e) {
+    } catch {
       /* private-browsing storage denial: the choice simply will not persist */
     }
   }

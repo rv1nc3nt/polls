@@ -193,6 +193,14 @@ Tests, lint and types:
     cargo fmt --manifest-path verifier/Cargo.toml --all --check
     cargo clippy --manifest-path verifier/Cargo.toml --workspace --all-targets -- -D warnings
     cargo test --manifest-path verifier/Cargo.toml
+    npm ci && npm run lint          # ESLint and stylelint over src/static/
+
+The browser tests (`tests/browser`, a voter's journey and the back-office
+editor in headless Chromium, with an axe-core accessibility pass on each page)
+are left out of `pytest -q`. After `npm ci`:
+
+    uv run playwright install --only-shell chromium
+    uv run pytest -q -m browser
 
 ## Layout
 

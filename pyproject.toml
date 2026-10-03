@@ -34,6 +34,7 @@ dev = [
     "pytest>=8.3",
     "pytest-django>=4.9",
     "types-markdown>=3.10.2.20260712",
+    "playwright>=1.63",
 ]
 
 [tool.ruff]
@@ -82,3 +83,6 @@ DJANGO_SETTINGS_MODULE = "config.settings.test"
 pythonpath = ["src"]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
+# tests/browser drive a real browser (review C-8): opt in with `-m browser`.
+markers = ["browser: needs Playwright's Chromium and `npm ci` (tests/browser/conftest.py)"]
+addopts = "-m 'not browser'"
