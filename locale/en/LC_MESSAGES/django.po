@@ -5626,11 +5626,12 @@ msgstr "(%(lo)s to %(hi)s)"
 #, python-format
 msgid ""
 "La bande teintée est l’intervalle à 95 %% de la proposition en tête et de sa "
-"rivale la plus proche ; survolez un point pour lire celui de chaque "
-"proposition."
+"rivale la plus proche, tracé là où il est inférieur à ±%(max)s pts ; survolez "
+"un point pour lire celui de chaque proposition."
 msgstr ""
 "The shaded band is the 95%% interval of the leading proposition and its "
-"closest rival; hover over a point to read every proposition’s."
+"closest rival, drawn where it is narrower than ±%(max)s pts; hover over a "
+"point to read every proposition’s."
 
 #, python-format
 msgid ""

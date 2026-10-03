@@ -64,6 +64,12 @@ def series(poll: Poll) -> list[TrendPoint]:
 #: the figures, and a ninth hue generated on the fly would not be told apart.
 CHART_SERIES = 8
 
+#: On the curves, a band is drawn only where its interval is narrower than
+#: ± this many points. A wider one says little beyond "too few ballots yet",
+#: which the tooltip already gives in figures, and swamps the lines it
+#: surrounds. The duels' sparklines keep every band: each is alone in its box.
+BAND_MAX_HALF_WIDTH = 10.0
+
 
 def _signed(value: float, decimals: int | None = None) -> str:
     """``+12,5`` / ``−3`` / ``0``, in the active locale, true minus sign; one
@@ -158,10 +164,10 @@ def curves(
     Colour follows the option's position in the poll, never its rank.
 
     With ``intervals`` (Schulze only), the leader's and its rival's curves
-    carry their 95 % interval as a band, and the tooltip every option's. The
-    axis is fitted to the lines, not the bands: an early band can span a
-    hundred points and would flatten every line; the template clips it to the
-    plot instead.
+    carry their 95 % interval as a band where narrower than
+    ``BAND_MAX_HALF_WIDTH``, and the tooltip every option's, however wide. The
+    axis is fitted to the lines, not the bands, which can still reach ten
+    points past them; the template clips them to the plot instead.
     """
     if not points or len(options) > CHART_SERIES:
         return None
@@ -184,13 +190,26 @@ def curves(
         bounds = {o: [_score_interval(p, o) for p in points] for o, _label in options}
     banded = _banded(points[-1]) if bounds else set()
 
+    def narrow(b: tuple[float, float] | None) -> bool:
+        return b is not None and (b[1] - b[0]) / 2 < BAND_MAX_HALF_WIDTH
+
     def band(option: OptionId) -> str | None:
-        pairs = [(k, b) for k, b in enumerate(bounds[option]) if b is not None]
-        if option not in banded or len(pairs) < 2:
+        """One closed shape per run of consecutive points narrow enough; an
+        interval usually narrows as ballots come in, but a margin moving
+        towards an even split can widen it again."""
+        if option not in banded:
             return None
-        upper = [f"{xs[k]},{y(b[1])}" for k, b in pairs]
-        lower = [f"{xs[k]},{y(b[0])}" for k, b in reversed(pairs)]
-        return "M" + " L".join(upper + lower) + " Z"
+        shapes = []
+        for is_narrow, run in itertools.groupby(
+            enumerate(bounds[option]), key=lambda kb: narrow(kb[1])
+        ):
+            pairs = [(k, b) for k, b in run if b is not None]
+            if not is_narrow or len(pairs) < 2:
+                continue
+            upper = [f"{xs[k]},{y(b[1])}" for k, b in pairs]
+            lower = [f"{xs[k]},{y(b[0])}" for k, b in reversed(pairs)]
+            shapes.append("M" + " L".join(upper + lower) + " Z")
+        return " ".join(shapes) or None
 
     def tip_interval(option: OptionId, k: int) -> dict[str, object] | None:
         b = bounds[option][k] if bounds else None
@@ -256,7 +275,8 @@ def curves(
         "ticks": ticks,
         "dates": dates,
         "series": series,
-        "banded": bool(banded),
+        "banded": any(line["band"] for line in series),
+        "band_max": number_format(BAND_MAX_HALF_WIDTH, 0),
         "columns": columns,
         "xs": ",".join(str(c) for c in xs),
     }

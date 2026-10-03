@@ -834,8 +834,10 @@ et sous l'avance de la proposition en tête, donne la fourchette dans laquelle
 l'écart a de bonnes chances de se trouver compte tenu du nombre de bulletins
 reçus ; sur la petite courbe, c'est la bande teintée. Sur le graphique de
 l'évolution, seules la proposition en tête et sa rivale la plus proche portent
-cette bande, pour que les courbes restent lisibles ; survolez un point pour
-lire l'intervalle de chaque proposition. Il se resserre à mesure
+cette bande, pour que les courbes restent lisibles, et seulement une fois
+l'intervalle inférieur à ±10 points : plus large, il dit seulement que les
+bulletins sont encore trop peu nombreux. Survolez un point pour lire
+l'intervalle de chaque proposition, quelle que soit sa largeur. Il se resserre à mesure
 que les bulletins arrivent. La mention « incertain » signale qu'il comprend
 zéro : l'écart est encore trop faible, au regard du nombre de bulletins, pour
 exclure qu'il s'inverse. Il suppose que les bulletins reçus ressemblent à ceux

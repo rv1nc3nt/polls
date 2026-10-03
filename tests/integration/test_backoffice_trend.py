@@ -238,16 +238,40 @@ def test_the_curves_band_the_leader_and_its_rival_and_the_tooltip_has_every_inte
     client: Client, poll: Poll, admin: User
 ) -> None:
     """Every band at once would bury the lines: only the pair the lead is
-    about gets one, the rest are read by hovering a point."""
-    _three_points(poll)
+    about gets one, the rest are read by hovering a point. And only where the
+    interval is narrower than ±10 points: with 10 ballots for A then 150 for
+    B, the B–A duel's is ±10,1 at the point of 120 and ±9,3 at 130, so the
+    band runs from the point of 130 (the thirteenth) to the last shown, 150."""
+    _cast(poll, [["a"], ["b"], ["c"]], 10, days_ago=3)
+    _cast(poll, [["b"], ["a"], ["c"]], 150, days_ago=2)
     client.force_login(admin)
     with _enabled(poll):
         curves = client.get(_url(poll)).context["curves"]
-        banded = {s["label"] for s in curves["series"] if s["band"]}
-        assert banded == {"B", "A"}
+        banded = {s["label"]: s["band"] for s in curves["series"] if s["band"]}
+        assert set(banded) == {"B", "A"}
+        xs = [int(x) for x in curves["xs"].split(",")]
+        assert all(band.count("M") == 1 for band in banded.values())
+        assert len(xs) == 15
+        assert all(band.startswith(f"M{xs[12]},") for band in banded.values())
         assert all(r["interval"] is not None for c in curves["columns"] for r in c["rows"])
         Poll.objects.filter(pk=poll.pk).update(state=PollState.CLOSED)
         curves = client.get(_url(poll)).context["curves"]
     assert not curves["banded"]
     assert all(s["band"] is None for s in curves["series"])
     assert all(r["interval"] is None for c in curves["columns"] for r in c["rows"])
+
+
+def test_the_curves_draw_no_band_while_every_interval_is_wide(
+    client: Client, poll: Poll, admin: User
+) -> None:
+    """30 ballots leave every duel's interval wider than ±10 points: the
+    tooltip still gives it, the chart draws no band and does not mention one."""
+    _three_points(poll)
+    client.force_login(admin)
+    with _enabled(poll):
+        response = client.get(_url(poll))
+    curves = response.context["curves"]
+    assert not curves["banded"]
+    assert all(s["band"] is None for s in curves["series"])
+    assert all(r["interval"] is not None for c in curves["columns"] for r in c["rows"])
+    assert "bande teintée" not in response.content.decode()

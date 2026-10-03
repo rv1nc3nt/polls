@@ -1414,8 +1414,11 @@ rests on the same false premise and reads as a forecast. Once closed, the last
 point is the result itself and no interval is shown. On the curves, only the
 leader and its closest rival carry the interval as a band — every band at
 once buries the lines — and the tooltip gives every option's; the axis is
-fitted to the lines and the bands clipped, since an early band can span a
-hundred points.
+fitted to the lines and the bands clipped. A band is drawn there only where
+its interval is narrower than ±10 points: an early one can span a hundred
+points, says nothing beyond "too few ballots yet" and swamps the curves. The
+tooltip and the duels' sparklines, each alone in its box, keep every
+interval.
 
 Paper entries are the exception to "never changes": countersignature and
 deletion change a row's status in place, with no instant, and are read as of
