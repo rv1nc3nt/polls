@@ -9,7 +9,10 @@
 //!   closure hash, ballot count, matrix, counts, winner and tie-break. The one
 //!   thing it cannot check is the tally method the document states, which
 //!   decides what the winner should be; it restates it for the reader to
-//!   compare with what the poll announced.
+//!   compare with what the poll announced. Those checks show the document
+//!   agrees with itself, which a document rebuilt from end to end would too;
+//!   the [`Anchors`] the reader noted from the public page before publication
+//!   are what tie it to the poll (review B-1).
 //! - [`verify`] reads the CSV ballot list, which carries neither the method
 //!   (R-10.3) nor the option list, so the caller supplies what it wants
 //!   compared ([`Expected`]); Schulze when it names no method.
@@ -55,9 +58,9 @@ pub struct Report {
     /// Option ids, in the order of the rows and columns of `matrix`.
     pub options: Vec<String>,
     /// `matrix[i][j]`: ballots ranking option `i` strictly above option `j`.
-    pub matrix: Vec<Vec<u32>>,
+    pub matrix: Vec<Vec<u64>>,
     /// Votes per option, in `options` order; `None` under Schulze.
-    pub counts: Option<Vec<u32>>,
+    pub counts: Option<Vec<u64>>,
     /// The method's winners, in `options` order; more than one is a tie.
     pub winners: Vec<String>,
     /// `Some` only once an opening seed resolved a tie (§8.3).
@@ -94,6 +97,9 @@ pub enum VerifyError {
     /// An option of `Expected::options` is not an id the application
     /// accepts (`canonical::is_option_id`).
     MalformedOptionId(String),
+    /// An option appears twice in `Expected::options` (review B-5): its row
+    /// would be counted twice and every winner would look tied with itself.
+    DuplicateOption(String),
 }
 
 impl From<BallotListError> for VerifyError {
@@ -145,6 +151,10 @@ pub fn verify_ballots(ballots: &[Ballot], expected: &Expected) -> Result<Report,
         Some(listed) => {
             if let Some(malformed) = listed.iter().find(|o| !is_option_id(o)) {
                 return Err(VerifyError::MalformedOptionId(malformed.clone()));
+            }
+            let mut seen = std::collections::BTreeSet::new();
+            if let Some(repeated) = listed.iter().find(|o| !seen.insert(o.as_str())) {
+                return Err(VerifyError::DuplicateOption(repeated.clone()));
             }
             if let Some(unknown) = ranked.iter().find(|o| !listed.contains(o)) {
                 return Err(VerifyError::UnknownOption(unknown.clone()));
@@ -215,6 +225,20 @@ pub fn verify_ballots(ballots: &[Ballot], expected: &Expected) -> Result<Report,
     })
 }
 
+/// What a reader noted from the poll's public page before the result was
+/// published (review B-1): the closure hash, shown from the moment the poll
+/// closed, and the opening seed, shown from the moment it opened. The
+/// document's own copies of them agree with it by construction; these are
+/// what show it is the poll's, and not one rebuilt afterwards. Typed in by a
+/// person, so compared ignoring case and surrounding space.
+#[derive(Default)]
+pub struct Anchors<'a> {
+    /// The closure hash as the page showed it at closure.
+    pub closure_hash: Option<&'a str>,
+    /// The opening seed as the page showed it at opening.
+    pub opening_seed: Option<&'a str>,
+}
+
 /// Everything [`verify_publication`] recomputed and checked. `report` holds
 /// the recomputation and its hash and winner comparisons; the fields beside
 /// it are the checks only the full document makes possible.
@@ -242,6 +266,13 @@ pub struct PublicationReport {
     pub tiebreak_agrees: Option<bool>,
     /// The participation counts the document states (`counts`).
     pub participation: Participation,
+    /// Whether the ballots hash to the closure hash the reader noted at
+    /// closure; `None` when none was given, and then nothing ties the
+    /// document to the poll.
+    pub closure_hash_anchor: Option<bool>,
+    /// Whether the document's opening seed is the one the reader noted at
+    /// opening; `None` when none was given.
+    pub opening_seed_anchor: Option<bool>,
     /// Whether those counts add up (review B-8): the ballots by channel make
     /// the ballot list's count, and registered electors are exactly those who
     /// voted, those whose paper entry went uncounted, and those who did not.
@@ -260,8 +291,23 @@ fn participation_adds_up(counts: &Participation, ballot_count: usize) -> bool {
     cast == u64::try_from(ballot_count).ok() && accounted == Some(counts.registered)
 }
 
+/// The overall outcome of [`verify_publication`], in the order a reader
+/// needs it: a disagreement first, then whether anything outside the document
+/// vouches for it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Verdict {
+    /// Every check passed, and the ballots hash to the closure hash noted at
+    /// closure.
+    Verified,
+    /// Every check passed, but no closure hash noted at closure was given:
+    /// the document agrees with itself, as a rebuilt one would.
+    NotAnchored,
+    /// At least one value differs.
+    Differs,
+}
+
 impl PublicationReport {
-    /// Every check passed.
+    /// Every check passed, the anchors given included.
     #[must_use]
     pub fn all_agree(&self) -> bool {
         self.report.closure_hash_agrees != Some(false)
@@ -271,6 +317,22 @@ impl PublicationReport {
             && self.counts_agree != Some(false)
             && self.tiebreak_agrees != Some(false)
             && self.participation_agrees
+            && self.closure_hash_anchor != Some(false)
+            && self.opening_seed_anchor != Some(false)
+    }
+
+    /// [`Verdict::Verified`] only when everything agrees *and* the closure
+    /// hash noted at closure was given and matches. The opening seed alone
+    /// does not anchor the ballots, so it never makes a document verified.
+    #[must_use]
+    pub fn verdict(&self) -> Verdict {
+        if !self.all_agree() {
+            Verdict::Differs
+        } else if self.closure_hash_anchor == Some(true) {
+            Verdict::Verified
+        } else {
+            Verdict::NotAnchored
+        }
     }
 }
 
@@ -297,26 +359,30 @@ fn matrix_matches(publication: &Publication, report: &Report) -> bool {
                     .all(|(j, column)| {
                         cells
                             .iter()
-                            .any(|(id, n)| id == column && *n == u64::from(report.matrix[i][j]))
+                            .any(|(id, n)| id == column && *n == report.matrix[i][j])
                     })
         })
 }
 
-/// Recompute everything from the ballots of a publication document, and check
-/// every claim it makes. Pure: no I/O.
+/// Recompute everything from the ballots of a publication document, check
+/// every claim it makes, and compare it with the `anchors` the reader noted.
+/// Pure: no I/O.
 ///
 /// # Errors
 ///
 /// [`VerifyError::Publication`] for a document that does not parse or lacks
-/// a member, and otherwise as [`verify_ballots`]. A claim that disagrees is
-/// not an error: it is reported in the [`PublicationReport`].
-pub fn verify_publication(text: &str) -> Result<PublicationReport, VerifyError> {
+/// a member, [`VerifyError::OpeningSeedNotHex`] for an anchor seed that is
+/// not hexadecimal, and otherwise as [`verify_ballots`]. A claim that
+/// disagrees is not an error: it is reported in the [`PublicationReport`].
+pub fn verify_publication(text: &str, anchors: &Anchors) -> Result<PublicationReport, VerifyError> {
     let publication = parse_publication(text).map_err(VerifyError::Publication)?;
     let rule = publication.tiebreak.as_ref().map(|t| &t.rule);
     let expected = Expected {
         method: publication.method,
         options: Some(&publication.options),
-        closure_hash: Some(&publication.closure_hash),
+        // Compared below, exactly: the document is written by the
+        // application in lower-case hex (review B-4).
+        closure_hash: None,
         // A physical draw is not the hash chain: replaying the chain would
         // produce an order the mairie never drew.
         opening_seed: match rule {
@@ -326,7 +392,19 @@ pub fn verify_publication(text: &str) -> Result<PublicationReport, VerifyError> 
         winner: None,
     };
     let mut report = verify_ballots(&publication.ballots, &expected)?;
+    report.closure_hash_agrees = Some(publication.closure_hash == report.closure_hash);
     let tied = report.winners.len() > 1;
+
+    let closure_hash_anchor = anchors
+        .closure_hash
+        .map(|noted| noted.trim().eq_ignore_ascii_case(&report.closure_hash));
+    let opening_seed_anchor = match anchors.opening_seed {
+        None => None,
+        Some(noted) => {
+            let noted = parse_hex(noted).ok_or(VerifyError::OpeningSeedNotHex)?;
+            Some(parse_hex(&publication.opening_seed).as_deref() == Some(noted.as_slice()))
+        }
+    };
 
     let tiebreak_agrees = match &publication.tiebreak {
         None => tied.then_some(false),
@@ -364,15 +442,16 @@ pub fn verify_publication(text: &str) -> Result<PublicationReport, VerifyError> 
             Some(published) => {
                 published.len() == counts.len()
                     && report.options.iter().zip(counts).all(|(option, count)| {
-                        published
-                            .iter()
-                            .any(|(id, n)| id == option && *n == u64::from(*count))
+                        published.iter().any(|(id, n)| id == option && n == count)
                     })
             }
         });
 
     Ok(PublicationReport {
-        ballot_count_agrees: publication.ballot_count == report.ballot_count as u64,
+        ballot_count_agrees: u64::try_from(report.ballot_count)
+            .is_ok_and(|count| count == publication.ballot_count),
+        closure_hash_anchor,
+        opening_seed_anchor,
         participation_agrees: participation_adds_up(
             &publication.participation,
             report.ballot_count,
@@ -559,7 +638,8 @@ mod tests {
 
     #[test]
     fn a_consistent_publication_agrees_on_every_count() {
-        let checked = verify_publication(&plurality_document("\"a\"", "")).expect("reads");
+        let checked = verify_publication(&plurality_document("\"a\"", ""), &Anchors::default())
+            .expect("reads");
         assert_eq!(checked.report.method, Method::Plurality);
         assert_eq!(checked.report.options, ["a", "b", "c", "d"]);
         assert_eq!(checked.report.closure_hash_agrees, Some(true));
@@ -572,7 +652,8 @@ mod tests {
 
     #[test]
     fn a_publication_claiming_another_winner_disagrees() {
-        let checked = verify_publication(&plurality_document("\"b\"", "")).expect("reads");
+        let checked = verify_publication(&plurality_document("\"b\"", ""), &Anchors::default())
+            .expect("reads");
         assert_eq!(checked.report.winner_agrees, Some(false));
         assert!(!checked.all_agree());
     }
@@ -581,7 +662,8 @@ mod tests {
     fn a_publication_claiming_a_tie_that_is_not_there_disagrees() {
         let extra =
             r#", "tiebreak": {"rule": "physical", "tied": ["a", "b"], "order": ["a", "b"]}"#;
-        let checked = verify_publication(&plurality_document("\"a\"", extra)).expect("reads");
+        let checked = verify_publication(&plurality_document("\"a\"", extra), &Anchors::default())
+            .expect("reads");
         assert_eq!(checked.tiebreak_agrees, Some(false));
         assert!(!checked.all_agree());
     }
@@ -602,7 +684,7 @@ mod tests {
                 "derivation": {{"pairwise": {{}}, "paths": {{}}, "winners": []}}}}"#,
             seed = "00".repeat(32),
         );
-        let checked = verify_publication(&document).expect("parses");
+        let checked = verify_publication(&document, &Anchors::default()).expect("parses");
         assert!(checked.report.winners.is_empty());
         assert_eq!(checked.tiebreak_agrees, None);
         assert!(checked.all_agree());
@@ -628,26 +710,26 @@ mod tests {
         // registered = 7 voted + 0 uncounted + 2 who did not vote.
         let honest = plurality_document("\"a\"", "");
         assert!(
-            verify_publication(&honest)
+            verify_publication(&honest, &Anchors::default())
                 .expect("parses")
                 .participation_agrees
         );
         // Stuffed: ballots added to the list, counts left as they were.
         let inflated = honest.replace("\"ballots_online\": 5", "\"ballots_online\": 105");
-        let checked = verify_publication(&inflated).expect("parses");
+        let checked = verify_publication(&inflated, &Anchors::default()).expect("parses");
         assert!(!checked.participation_agrees);
         assert!(!checked.all_agree());
         // Registered that do not account for every elector.
         let unaccounted = honest.replace("\"non_voters\": 2", "\"non_voters\": 3");
         assert!(
-            !verify_publication(&unaccounted)
+            !verify_publication(&unaccounted, &Anchors::default())
                 .expect("parses")
                 .participation_agrees
         );
         // Overflow is a disagreement, not a panic.
         let huge = honest.replace("\"non_voters\": 2", "\"non_voters\": 18446744073709551615");
         assert!(
-            !verify_publication(&huge)
+            !verify_publication(&huge, &Anchors::default())
                 .expect("parses")
                 .participation_agrees
         );
@@ -660,7 +742,7 @@ mod tests {
         let end = start[cut..].find('}').expect("closes") + cut + 2;
         let without = format!("{}{}", &start[..cut], &start[end..]);
         assert!(matches!(
-            verify_publication(&without),
+            verify_publication(&without, &Anchors::default()),
             Err(VerifyError::Publication(_))
         ));
     }
@@ -673,7 +755,7 @@ mod tests {
             1,
         );
         assert!(matches!(
-            verify_publication(&document),
+            verify_publication(&document, &Anchors::default()),
             Err(VerifyError::MalformedRanking(_, why)) if why.contains("twice")
         ));
     }
@@ -683,7 +765,7 @@ mod tests {
         let document =
             plurality_document("\"a\"", "").replacen("\"format_version\": \"1\", ", "", 1);
         assert!(matches!(
-            verify_publication(&document),
+            verify_publication(&document, &Anchors::default()),
             Err(VerifyError::Publication(_))
         ));
     }
@@ -725,7 +807,8 @@ mod tests {
             order[0]
         );
         let winner = format!("\"{}\"", order[0]);
-        let checked = verify_publication(&cyclic_document(&tiebreak, &winner)).expect("reads");
+        let checked = verify_publication(&cyclic_document(&tiebreak, &winner), &Anchors::default())
+            .expect("reads");
         assert_eq!(checked.tiebreak_rule, Some(TiebreakRule::Computed));
         assert_eq!(checked.tiebreak_agrees, Some(true));
         assert!(checked.all_agree());
@@ -736,7 +819,8 @@ mod tests {
             reversed.join(", "),
             order[order.len() - 1]
         );
-        let checked = verify_publication(&cyclic_document(&tampered, &winner)).expect("reads");
+        let checked = verify_publication(&cyclic_document(&tampered, &winner), &Anchors::default())
+            .expect("reads");
         assert_eq!(checked.tiebreak_agrees, Some(false));
     }
 
@@ -744,7 +828,8 @@ mod tests {
     fn a_physical_draw_must_be_among_exactly_the_tied_options() {
         let drawn = r#"{"rule": "physical", "tied": ["a", "b", "c"], "order": ["b", "c", "a"],
                         "winner": "b"}"#;
-        let checked = verify_publication(&cyclic_document(drawn, "\"b\"")).expect("reads");
+        let checked = verify_publication(&cyclic_document(drawn, "\"b\""), &Anchors::default())
+            .expect("reads");
         assert_eq!(checked.tiebreak_rule, Some(TiebreakRule::Physical));
         assert_eq!(checked.tiebreak_agrees, Some(true));
         assert_eq!(checked.report.final_winner.as_deref(), Some("b"));
@@ -752,7 +837,8 @@ mod tests {
 
         let foreign = r#"{"rule": "physical", "tied": ["a", "b", "c"], "order": ["b", "c", "z"],
                           "winner": "b"}"#;
-        let checked = verify_publication(&cyclic_document(foreign, "\"b\"")).expect("reads");
+        let checked = verify_publication(&cyclic_document(foreign, "\"b\""), &Anchors::default())
+            .expect("reads");
         assert_eq!(checked.tiebreak_agrees, Some(false));
         assert!(!checked.all_agree());
     }
@@ -765,7 +851,9 @@ mod tests {
             let drawn = format!(
                 r#"{{"rule": "physical", "tied": ["a", "b", "c"], "order": ["b", "c", "a"]{winner}}}"#
             );
-            let checked = verify_publication(&cyclic_document(&drawn, "\"b\"")).expect("reads");
+            let checked =
+                verify_publication(&cyclic_document(&drawn, "\"b\""), &Anchors::default())
+                    .expect("reads");
             assert_eq!(checked.tiebreak_agrees, Some(false), "winner {winner:?}");
             assert!(!checked.all_agree());
         }
@@ -801,6 +889,131 @@ mod tests {
         }
         for id in ["a", "option-b", "Grille_3", &"x".repeat(50)] {
             assert!(is_option_id(id), "{id:?}");
+        }
+    }
+
+    // --- anchors, versions and strictness (review B-1 to B-5) -----------------
+
+    const DIVERGENT_HASH: &str = "b9ca92b23c01dffbb5ddbab33a964e10bdf8bcac3c269d5bae742289aaa0fe7a";
+
+    fn anchored(closure_hash: Option<&str>, opening_seed: Option<&str>) -> PublicationReport {
+        verify_publication(
+            &plurality_document("\"a\"", ""),
+            &Anchors {
+                closure_hash,
+                opening_seed,
+            },
+        )
+        .expect("reads")
+    }
+
+    #[test]
+    fn a_consistent_document_alone_is_not_anchored() {
+        // B-1: everything agrees, which a rebuilt document would too.
+        let checked = anchored(None, None);
+        assert!(checked.all_agree());
+        assert_eq!(checked.closure_hash_anchor, None);
+        assert_eq!(checked.verdict(), Verdict::NotAnchored);
+    }
+
+    #[test]
+    fn the_closure_hash_noted_at_closure_anchors_the_document() {
+        let typed = format!("  {}  ", DIVERGENT_HASH.to_uppercase());
+        let checked = anchored(Some(&typed), None);
+        assert_eq!(checked.closure_hash_anchor, Some(true));
+        assert_eq!(checked.verdict(), Verdict::Verified);
+    }
+
+    #[test]
+    fn another_closure_hash_noted_at_closure_disagrees() {
+        // A self-consistent document whose ballots are not those hashed at
+        // closure: the one case only the anchor can catch.
+        let checked = anchored(Some(&"00".repeat(32)), None);
+        assert!(checked.report.closure_hash_agrees == Some(true));
+        assert_eq!(checked.closure_hash_anchor, Some(false));
+        assert_eq!(checked.verdict(), Verdict::Differs);
+    }
+
+    #[test]
+    fn the_opening_seed_is_compared_but_never_anchors_alone() {
+        let seed = "00".repeat(32);
+        assert_eq!(anchored(None, Some(&seed)).verdict(), Verdict::NotAnchored);
+        assert_eq!(
+            anchored(Some(DIVERGENT_HASH), Some(&seed)).verdict(),
+            Verdict::Verified
+        );
+        let other = anchored(Some(DIVERGENT_HASH), Some(&"11".repeat(32)));
+        assert_eq!(other.opening_seed_anchor, Some(false));
+        assert_eq!(other.verdict(), Verdict::Differs);
+        assert!(matches!(
+            verify_publication(
+                &plurality_document("\"a\"", ""),
+                &Anchors {
+                    closure_hash: None,
+                    opening_seed: Some("not hex"),
+                },
+            ),
+            Err(VerifyError::OpeningSeedNotHex)
+        ));
+    }
+
+    #[test]
+    fn the_documents_own_closure_hash_must_be_lower_case() {
+        // B-4: the application writes lower-case hex; anything else is not
+        // what it published.
+        let upper =
+            plurality_document("\"a\"", "").replace(DIVERGENT_HASH, &DIVERGENT_HASH.to_uppercase());
+        let checked = verify_publication(&upper, &Anchors::default()).expect("reads");
+        assert_eq!(checked.report.closure_hash_agrees, Some(false));
+        assert_eq!(checked.verdict(), Verdict::Differs);
+    }
+
+    #[test]
+    fn a_method_version_this_verifier_does_not_implement_is_refused() {
+        // B-2: recounting it under version 1 would agree or disagree by chance.
+        for version in ["2", "", "v1"] {
+            let document = plurality_document("\"a\"", "").replace(
+                "\"tally_method_version\": \"1\"",
+                &format!("\"tally_method_version\": \"{version}\""),
+            );
+            match verify_publication(&document, &Anchors::default()) {
+                Err(VerifyError::Publication(message)) => {
+                    assert!(message.contains("tally method version"), "{message}");
+                }
+                _ => panic!("accepted method version {version:?}"),
+            }
+        }
+    }
+
+    #[test]
+    fn the_tally_method_must_be_one_of_the_three_identifiers() {
+        // B-3: the document's spelling is the contract's, not a typed one.
+        for loose in ["Plurality", "majoritaire", " plurality"] {
+            let document = plurality_document("\"a\"", "").replace(
+                "\"tally_method\": \"plurality\"",
+                &format!("\"tally_method\": \"{loose}\""),
+            );
+            assert!(
+                matches!(
+                    verify_publication(&document, &Anchors::default()),
+                    Err(VerifyError::Publication(_))
+                ),
+                "accepted {loose:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn an_option_listed_twice_is_refused() {
+        // B-5: its row would be counted twice and the winner tie with itself.
+        let listed: Vec<String> = ["a", "b", "a", "c"].into_iter().map(String::from).collect();
+        let expected = Expected {
+            options: Some(&listed),
+            ..Default::default()
+        };
+        match verify(CYCLIC, &expected) {
+            Err(VerifyError::DuplicateOption(option)) => assert_eq!(option, "a"),
+            _ => panic!("expected DuplicateOption"),
         }
     }
 }

@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: 0BSD
 //! Reading the publication document (`?format=json`), whose layout is
 //! `docs/publication-format.md`. Only the members the verifier checks are
-//! read; the rest (labels, participation counts, derivation beyond the counts)
-//! is ignored, and a member it needs that is missing or of the wrong type is
-//! an error naming it.
+//! read; the rest (labels, the derivation beyond the counts) is ignored, and a
+//! member it needs that is missing or of the wrong type is an error naming it.
 
 use crate::canonical::Ballot;
 use crate::counted::Method;
@@ -11,6 +10,13 @@ use crate::json::{self, Value};
 
 /// The layout versions this verifier reads.
 pub const SUPPORTED_FORMAT_VERSIONS: &[&str] = &["1"];
+
+/// The tally method versions this verifier recounts under (R-10.2, review
+/// B-2). A document stating any other is refused: recounting it under these
+/// rules would agree or disagree by accident. The application's own list is
+/// `IMPLEMENTED_VERSIONS` in `apps/tally/methods.py`, and a test there fails
+/// when the two differ.
+pub const SUPPORTED_METHOD_VERSIONS: &[&str] = &["1"];
 
 /// How a tie among the winners was settled (§8.3).
 #[derive(Debug, PartialEq)]
@@ -157,8 +163,16 @@ pub fn parse_publication(text: &str) -> Result<Publication, String> {
     }
 
     let method_text = string(&document, "tally_method")?;
-    let method = Method::parse(&method_text)
+    let method = Method::from_id(&method_text)
         .ok_or_else(|| format!("publication: unknown tally method \"{method_text}\""))?;
+    let method_version = string(&document, "tally_method_version")?;
+    if !SUPPORTED_METHOD_VERSIONS.contains(&method_version.as_str()) {
+        return Err(format!(
+            "publication: tally method version {method_version} is not one this verifier \
+             implements ({}); use a newer verifier",
+            SUPPORTED_METHOD_VERSIONS.join(", ")
+        ));
+    }
 
     let options: Vec<String> = member(&document, "options")?
         .as_object()
@@ -283,7 +297,7 @@ pub fn parse_publication(text: &str) -> Result<Publication, String> {
         format_version,
         poll_id: string(&document, "poll_id")?,
         method,
-        method_version: string(&document, "tally_method_version")?,
+        method_version,
         closure_hash: string(&document, "closure_hash")?,
         opening_seed: string(&document, "opening_seed")?,
         options,

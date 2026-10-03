@@ -7,14 +7,15 @@
 //! build time. A binary built anywhere else says it was built from source
 //! rather than claim a version it cannot vouch for.
 
-use crate::publication::SUPPORTED_FORMAT_VERSIONS;
+use crate::publication::{SUPPORTED_FORMAT_VERSIONS, SUPPORTED_METHOD_VERSIONS};
 
 /// The release tag this binary was built for, e.g. `v1.0.0b17`.
 pub const RELEASE: Option<&str> = option_env!("POLLS_RELEASE");
 /// The commit it was built from.
 pub const COMMIT: Option<&str> = option_env!("POLLS_COMMIT");
 
-/// One line naming this build, then the publication format versions it reads.
+/// One line naming this build, then the publication format versions it reads
+/// and the tally method versions it recounts under.
 #[must_use]
 pub fn describe() -> String {
     // Set but empty, as on a workflow run that is not a release, is unset.
@@ -26,8 +27,9 @@ pub fn describe() -> String {
         (None, None) => "built from source, not a release".to_string(),
     };
     format!(
-        "{build}\npublication format versions: {}",
-        SUPPORTED_FORMAT_VERSIONS.join(", ")
+        "{build}\npublication format versions: {}\ntally method versions: {}",
+        SUPPORTED_FORMAT_VERSIONS.join(", "),
+        SUPPORTED_METHOD_VERSIONS.join(", ")
     )
 }
 
@@ -43,6 +45,7 @@ mod tests {
             Some(release) => assert!(first.starts_with(release)),
             None => assert!(first.starts_with("built from source")),
         }
-        assert!(text.ends_with("publication format versions: 1"));
+        assert!(text.contains("\npublication format versions: 1\n"));
+        assert!(text.ends_with("tally method versions: 1"));
     }
 }

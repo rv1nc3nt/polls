@@ -5,10 +5,13 @@ use crate::sha256::sha256;
 
 /// `d[i][j]`: ballots ranking `i` strictly above `j`. Options a ballot does not
 /// rank are equal-last (R-10.4).
+///
+/// `u64`, so no count can wrap (review B-6): a cell never exceeds the number
+/// of ballots, a `usize`, which `u64` holds on every target Rust supports.
 #[must_use]
-pub fn pairwise(ballots: &[Vec<Vec<String>>], options: &[String]) -> Vec<Vec<u32>> {
+pub fn pairwise(ballots: &[Vec<Vec<String>>], options: &[String]) -> Vec<Vec<u64>> {
     let n = options.len();
-    let mut d = vec![vec![0u32; n]; n];
+    let mut d = vec![vec![0u64; n]; n];
     for ranking in ballots {
         let mut rank = vec![ranking.len(); n];
         for (position, group) in ranking.iter().enumerate() {
@@ -31,9 +34,9 @@ pub fn pairwise(ballots: &[Vec<Vec<String>>], options: &[String]) -> Vec<Vec<u32
 
 /// The strongest-path strengths, exactly the loop of §8.1.
 #[must_use]
-pub fn strongest_paths(d: &[Vec<u32>], options: &[String]) -> Vec<Vec<u32>> {
+pub fn strongest_paths(d: &[Vec<u64>], options: &[String]) -> Vec<Vec<u64>> {
     let n = options.len();
-    let mut p = vec![vec![0u32; n]; n];
+    let mut p = vec![vec![0u64; n]; n];
     for i in 0..n {
         for j in 0..n {
             if i != j && d[i][j] > d[j][i] {
@@ -60,7 +63,7 @@ pub fn strongest_paths(d: &[Vec<u32>], options: &[String]) -> Vec<Vec<u32>> {
 /// The options not beaten by any other on strongest paths, in `options`
 /// order. More than one means a tie for [`tiebreak`].
 #[must_use]
-pub fn winners(p: &[Vec<u32>], options: &[String]) -> Vec<String> {
+pub fn winners(p: &[Vec<u64>], options: &[String]) -> Vec<String> {
     let n = options.len();
     (0..n)
         .filter(|&i| (0..n).all(|j| j == i || p[i][j] >= p[j][i]))

@@ -121,7 +121,7 @@ fn run(case: &Value) -> Result<(), String> {
                 continue;
             }
             let want = matrix.get(i).and_then(|r| r.get(j)).and_then(Value::as_u64);
-            if want != Some(u64::from(*n)) {
+            if want != Some(*n) {
                 wrong.push(format!("d[{i}][{j}] = {n}, expected {want:?}"));
             }
         }
@@ -137,7 +137,7 @@ fn run(case: &Value) -> Result<(), String> {
         (Some(Value::Null) | None, None) => {}
         (Some(counts @ Value::Object(_)), Some(got)) => {
             for (option, n) in report.options.iter().zip(got) {
-                if counts.get(option).and_then(Value::as_u64) != Some(u64::from(*n)) {
+                if counts.get(option).and_then(Value::as_u64) != Some(*n) {
                     wrong.push(format!("count of {option} = {n}"));
                 }
             }

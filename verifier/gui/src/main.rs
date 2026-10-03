@@ -13,7 +13,9 @@ use std::path::PathBuf;
 use eframe::egui;
 use polls_verifier_core::counted::Method;
 use polls_verifier_core::publication::TiebreakRule;
-use polls_verifier_core::report::{self, Expected, PublicationReport, Report, VerifyError};
+use polls_verifier_core::report::{
+    self, Anchors, Expected, PublicationReport, Report, Verdict, VerifyError,
+};
 
 fn main() -> eframe::Result<()> {
     let options = eframe::NativeOptions {
@@ -86,16 +88,22 @@ impl VerifierApp {
 
         // By content, not extension, as the CLI does: the CSV starts with its
         // header, never with '{'.
+        let closure_hash = non_empty(&self.expected_closure_hash);
+        let opening_seed = non_empty(&self.expected_opening_seed);
         if text.trim_start().starts_with('{') {
-            self.outcome = Some(match report::verify_publication(&text) {
+            // The two values noted from the public page tie the document to
+            // the poll (review B-1); the others are the document's to state.
+            let anchors = Anchors {
+                closure_hash,
+                opening_seed,
+            };
+            self.outcome = Some(match report::verify_publication(&text, &anchors) {
                 Ok(checked) => Outcome::Publication(checked),
                 Err(err) => Outcome::Error(error_message(err)),
             });
             return;
         }
 
-        let closure_hash = non_empty(&self.expected_closure_hash);
-        let opening_seed = non_empty(&self.expected_opening_seed);
         let winner = non_empty(&self.expected_winner);
         let options: Option<Vec<String>> = non_empty(&self.expected_options).map(|list| {
             list.split(',')
@@ -145,6 +153,9 @@ fn error_message(err: VerifyError) -> String {
             "Le code de suivi {code} figure sur plusieurs bulletins : une liste publiée \
              n'en répète jamais aucun."
         ),
+        VerifyError::DuplicateOption(option) => {
+            format!("L'identifiant « {option} » figure plusieurs fois dans la liste des options.")
+        }
         VerifyError::MalformedOptionId(option) => format!(
             "L'option « {option} » n'est pas un identifiant que la plateforme accepte \
              (lettres sans accent, chiffres, _ et -, 50 au plus) : ce n'est pas l'un de \
@@ -223,8 +234,39 @@ impl eframe::App for VerifierApp {
 
             ui.group(|ui| {
                 ui.label(
-                    "2. Pour un fichier CSV seulement : valeurs à comparer (facultatif — \
-                     affichées sur la page de résultats). Le document JSON les contient toutes.",
+                    "2. Valeurs relevées sur la page publique de la consultation. L'empreinte \
+                     de clôture, affichée dès la clôture, est ce qui montre que les fichiers \
+                     sont bien ceux du scrutin : sans elle, un document refait de bout en bout \
+                     serait aussi cohérent.",
+                );
+                egui::Grid::new("anchor-values")
+                    .num_columns(2)
+                    .spacing([8.0, 6.0])
+                    .show(ui, |ui| {
+                        ui.label("Empreinte de clôture");
+                        inputs_changed |= ui
+                            .add(
+                                egui::TextEdit::singleline(&mut self.expected_closure_hash)
+                                    .hint_text("relevée à la clôture, ex. 87694cf0…")
+                                    .desired_width(400.0),
+                            )
+                            .changed();
+                        ui.end_row();
+
+                        ui.label("Graine d'ouverture");
+                        inputs_changed |= ui
+                            .add(
+                                egui::TextEdit::singleline(&mut self.expected_opening_seed)
+                                    .hint_text("relevée à l'ouverture, ex. a1b2c3…")
+                                    .desired_width(400.0),
+                            )
+                            .changed();
+                        ui.end_row();
+                    });
+                ui.add_space(6.0);
+                ui.label(
+                    "Pour un fichier CSV seulement (le document JSON les contient) : \
+                     valeurs affichées sur la page de résultats.",
                 );
                 egui::Grid::new("expected-values")
                     .num_columns(2)
@@ -250,26 +292,6 @@ impl eframe::App for VerifierApp {
                             .add(
                                 egui::TextEdit::singleline(&mut self.expected_options)
                                     .hint_text("séparés par des virgules, ex. option-a, option-b")
-                                    .desired_width(400.0),
-                            )
-                            .changed();
-                        ui.end_row();
-
-                        ui.label("Empreinte de clôture attendue");
-                        inputs_changed |= ui
-                            .add(
-                                egui::TextEdit::singleline(&mut self.expected_closure_hash)
-                                    .hint_text("87694cf0…")
-                                    .desired_width(400.0),
-                            )
-                            .changed();
-                        ui.end_row();
-
-                        ui.label("Graine d'ouverture");
-                        inputs_changed |= ui
-                            .add(
-                                egui::TextEdit::singleline(&mut self.expected_opening_seed)
-                                    .hint_text("uniquement en cas d'égalité, ex. a1b2c3…")
                                     .desired_width(400.0),
                             )
                             .changed();
@@ -332,18 +354,44 @@ fn report_verdict(ui: &mut egui::Ui, report: &Report) {
         .into_iter()
         .flatten()
         .collect();
+    let differing = compared.iter().filter(|agrees| !**agrees).count();
     if compared.is_empty() {
         ui.colored_label(
             egui::Color32::from_rgb(170, 110, 0),
             "⚠ Rien n'a été comparé : renseignez l'empreinte de clôture ou le vainqueur annoncé \
              (étape 2) pour vérifier quelque chose. Ce qui suit n'est que le recalcul.",
         );
+    } else if differing == 0 && report.closure_hash_agrees.is_none() {
+        // The winner agrees with ballots nothing ties to the poll (review B-1).
+        ui.heading(
+            egui::RichText::new(
+                "⚠ NON ANCRÉ : le vainqueur concorde avec ces bulletins, mais rien ne montre \
+                 qu'ils sont ceux du scrutin. Renseignez l'empreinte de clôture relevée à la \
+                 clôture (étape 2).",
+            )
+            .color(egui::Color32::from_rgb(170, 110, 0)),
+        );
+        ui.add_space(6.0);
     } else {
-        headline(ui, compared.iter().filter(|agrees| !**agrees).count());
+        headline(ui, differing);
     }
 }
 
 fn publication_verdict(ui: &mut egui::Ui, checked: &PublicationReport) {
+    if checked.verdict() == Verdict::NotAnchored {
+        // Everything agrees, but nothing outside the document vouches for it
+        // (review B-1): neither green nor red, and saying what is missing.
+        ui.heading(
+            egui::RichText::new(
+                "⚠ COHÉRENT, MAIS NON ANCRÉ : le document concorde avec lui-même, comme le \
+                 ferait un document refait de bout en bout. Renseignez l'empreinte de clôture \
+                 relevée à la clôture (étape 2) pour vérifier qu'il est bien celui du scrutin.",
+            )
+            .color(egui::Color32::from_rgb(170, 110, 0)),
+        );
+        ui.add_space(6.0);
+        return;
+    }
     let compared = [
         checked.report.closure_hash_agrees,
         checked.report.winner_agrees,
@@ -352,6 +400,8 @@ fn publication_verdict(ui: &mut egui::Ui, checked: &PublicationReport) {
         checked.counts_agree,
         checked.tiebreak_agrees,
         Some(checked.participation_agrees),
+        checked.closure_hash_anchor,
+        checked.opening_seed_anchor,
     ];
     headline(
         ui,
@@ -485,6 +535,22 @@ fn show_publication(ui: &mut egui::Ui, checked: &PublicationReport) {
          celle que le scrutin annonçait.",
     );
     ui.add_space(4.0);
+    if let Some(agrees) = checked.closure_hash_anchor {
+        agreement_label(
+            ui,
+            agrees,
+            "Les bulletins donnent l'empreinte relevée à la clôture.",
+            "Les bulletins NE donnent PAS l'empreinte relevée à la clôture.",
+        );
+    }
+    if let Some(agrees) = checked.opening_seed_anchor {
+        agreement_label(
+            ui,
+            agrees,
+            "La graine d'ouverture est celle relevée à l'ouverture.",
+            "La graine d'ouverture N'EST PAS celle relevée à l'ouverture.",
+        );
+    }
     agreement_label(
         ui,
         checked.ballot_count_agrees,

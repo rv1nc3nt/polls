@@ -66,10 +66,15 @@ and cannot change afterwards:
 - the **closure hash** and the number of **ballots counted**, from the moment
   it closes.
 
-If you note them then (a screenshot is enough), you can check after
-publication that the results rest on the same ones. The verifier checks that
-the published files agree with each other; this comparison is what shows they
-were not changed between closure and publication.
+Note them then (a screenshot is enough) and give them to the verifier
+afterwards: they are what shows the published files are the poll's, and not
+files rebuilt after the fact. Without them, the verifier can only find that
+the files agree with themselves, as files rebuilt from end to end would too:
+it then reports a "not anchored" result, never a successful verification.
+
+If you did not note them in time, take the ones the consultation's page
+shows. The check is still useful, but weaker: the values are then read at the
+same time as the results.
 
 ## Downloading the verifier
 
@@ -166,24 +171,28 @@ it from a terminal):
 
 ### Verifying
 
-The "Independent verifier" window offers three steps; with the publication
-document, only the first and the last are needed:
+The "Independent verifier" window offers three steps:
 
 1. **File** — click "Choose a file…" and select the downloaded publication
    document (JSON), or drop it directly onto the window.
-2. **Values to compare** — leave empty with the publication document, which
-   contains them all. They are used with the CSV file only: the **tally
-   method** the results page gives (Schulze, majoritaire — plurality — or par
-   assentiment — approval), the **option identifiers** separated by commas,
-   the **expected closure hash**, the **opening seed** in case of a tie and
-   the **announced winner**. All are optional — without them, the
-   application still shows what it recomputed, but says so at the top of
-   the result: "Nothing was compared". That is not a verification.
+2. **Noted values** — the **closure hash** and the **opening seed** you
+   noted (see ["Before publication: note two
+   values"](#before-publication-note-two-values)), whichever the file. With
+   the CSV file only, add the values from the results page: the **tally
+   method** (Schulze, majoritaire — plurality — or par assentiment —
+   approval), the **option identifiers** separated by commas and the
+   **announced winner**; the publication document already contains them.
+   With no value to compare at all, the application still shows what it
+   recomputed, but says so at the top of the result: "Nothing was compared".
+   That is not a verification.
 3. Click **Verify**.
 
 The result opens with a summary line: "✓ VERIFIED: every compared value
 matches" in green, or "✗ … do NOT match" in red. (The application is in
-French: it reads « ✓ VÉRIFIÉ » or « ✗ … NE concordent PAS ».) If you change a
+French: it reads « ✓ VÉRIFIÉ » or « ✗ … NE concordent PAS ».) If everything
+matches but no closure hash was entered, the line is orange: « ⚠ … NON
+ANCRÉ » (not anchored). The files agree with themselves, but nothing shows
+they are the poll's: enter the closure hash and click again. If you change a
 value in step 2 after clicking **Verify**, that result is cleared: click again
 to check the new values.
 
@@ -254,13 +263,16 @@ downloaded):
 
 **Windows (PowerShell):**
 
-    .\polls-verifier-windows-x86_64.exe publication.json
+    .\polls-verifier-windows-x86_64.exe publication.json --closure-hash 87694cf0...
 
 **macOS or Linux:**
 
-    ./polls-verifier-macos-aarch64 publication.json
+    ./polls-verifier-macos-aarch64 publication.json --closure-hash 87694cf0...
 
-No other value is needed: the document contains them all. The program shows
+`--closure-hash` is the closure hash you noted (see ["Before publication:
+note two values"](#before-publication-note-two-values)); add `--opening-seed`
+followed by the opening seed if you noted it too. The document contains the
+other values. The program shows
 the tally method the document states, the number of ballots read, the hash
 it recomputed itself, the list of options, the pairwise matrix, each
 option's vote count for a plurality or approval poll and the winner(s) —
@@ -270,9 +282,15 @@ then one line per published value it checked:
     ballot count    AGREES
     matrix          AGREES
     winner          AGREES
+    participation   AGREES
+    hash at closure AGREES
 
 `AGREES` means the value recomputed from the ballots alone is identical to
 the one the site publishes; `DIFFERS` would mean the opposite (see below).
+The `hash at closure` line compares the ballots with the hash you noted, and
+`seed at opening` the seed. Without `--closure-hash`, the program ends with
+`NOT ANCHORED` and a code that is not a success: the document agrees with
+itself, as one rebuilt from end to end would.
 A `counts` line is added for a plurality or approval poll, and a `tie-break`
 line if a tie-break took place. A last line, `participation`, checks that the
 participation figures the site publishes add up: the online and paper ballots
@@ -307,7 +325,9 @@ last useful line:
 
 Without `--closure-hash` or `--winner` the program has nothing to compare:
 it shows its recomputation, then `NOTHING COMPARED`, and ends with an error
-code, never with success. A misspelt flag, or one given without a value, is
+code, never with success. With `--winner` alone it checks the winner, but
+nothing shows the ballots are the poll's: it ends with `NOT ANCHORED`, again
+not a success. A misspelt flag, or one given without a value, is
 refused rather than ignored. Each flag can be written `--closure-hash
 87694cf0...` or `--closure-hash=87694cf0...`.
 
@@ -376,8 +396,10 @@ automate the check:
 | 1 | At least one value does not match (`DIFFERS`). | Follow the steps below. |
 | 2 | The verifier could not work: unreadable or incomplete file, unknown flag or flag without a value, or an impossible ballot list (a repeated or malformed tracking code, an empty ranking, an option ranked twice, an option identifier the platform does not accept). | Correct the command, or download the file again. An impossible list in a file downloaded as-is from the results page is an anomaly to report like a disagreement. |
 | 3 | Nothing was compared (a CSV file without `--closure-hash` or `--winner`). | Add the values to compare, copied from the results page. |
+| 4 | Everything compared matches, but the ballots were not compared with the closure hash (`NOT ANCHORED`). | Run again with `--closure-hash`, the hash noted at closure. |
 
-A code 2 or 3 is never a success: it means nothing was verified.
+A code 2, 3 or 4 is never a success: nothing then shows the files are the
+poll's.
 
 If a line shows `DIFFERS`:
 
@@ -408,11 +430,13 @@ together. In particular, the verifier cannot establish:
   ranking they chose (see the [voter's
   guide](guide-electeur-en.md#8-verify-after-closure)). The more electors do
   so, the harder any tampering would be to hide.
-- **that nothing changed since closure, nor the seed since opening.** The
-  verifier checks that the document agrees with itself; a document rebuilt
-  from end to end would too. Only comparing with values noted in advance
-  shows it (see ["Before publication: note two
-  values"](#before-publication-note-two-values)). The closure hash is also
+- **that nothing changed since closure, nor the seed since opening, unless
+  you give it the values noted in advance.** Without them, it only checks
+  that the document agrees with itself; a document rebuilt from end to end
+  would too, and it reports "not anchored". With them, it checks this (see
+  ["Before publication: note two
+  values"](#before-publication-note-two-values)); it cannot know, however,
+  whether you noted them in time. The closure hash is also
   what ties the CSV file to the publication document: the verifier reads one
   or the other, never both together, and they carry the same ballots if their
   closure hash is the same.

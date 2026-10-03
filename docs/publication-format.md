@@ -27,6 +27,16 @@ winner should be. It restates the method so the reader can compare it with the
 one the poll announced. The method is fixed before the poll opens and shown on
 its public page from that point on.
 
+Those checks show the document agrees with itself, which a document rebuilt
+from end to end would too. What ties it to the poll are the values its public
+page showed before the result was published: the closure hash from the
+closure, the opening seed from the opening. The reader passes them in
+(`--closure-hash`, `--opening-seed`, or the GUI's fields), and the verifier
+compares the recomputed hash and the document's seed with them. Only a
+document whose ballots hash to the closure hash given is reported verified
+(exit 0); one that agrees with itself but was given none is reported "not
+anchored" (exit 4), never verified.
+
 ## What a verdict does not establish
 
 Every check above is internal: the document against its own ballots. Agreement
@@ -41,10 +51,10 @@ more. Outside it, and stated in the citizen manual as well
 - **Removal or alteration of a ballot.** Shown only by an elector finding
   their tracking code, with their ranking, in `ballots`.
 - **When the values were fixed.** A document rebuilt from end to end with a
-  new `opening_seed` or ballot list is as consistent as the original. Only
-  comparing `opening_seed` and `closure_hash` with the values shown on the
-  public page at opening and closure shows that they were not
-  changed afterwards.
+  new `opening_seed` or ballot list is as consistent as the original. The
+  verifier catches it only against the closure hash and opening seed the
+  reader noted from the public page at closure and opening, and cannot know
+  whether they were noted then or read later beside the result.
 - **CSV against document.** The verifier reads one or the other. They carry
   the same ballots exactly when their closure hashes are equal.
 - **`tally_method`**, restated rather than checked (above).
@@ -92,9 +102,9 @@ rest.
 |---|---|---|---|
 | `format_version` | string | read | This layout's version. |
 | `poll_id` | string (UUID) | read | Shown in the report. |
-| `tally_method` | `"schulze"` \| `"plurality"` \| `"approval"` | read, **restated** | The method the winner is recomputed under. |
-| `tally_method_version` | string | read | The method version the tally ran. Restated with the method. |
-| `closure_hash` | lower-case hex | **checked** | SHA-256 of the canonical serialisation of `ballots`. |
+| `tally_method` | `"schulze"` \| `"plurality"` \| `"approval"` | read, **restated** | The method the winner is recomputed under. Exactly one of the three identifiers; any other spelling is refused. |
+| `tally_method_version` | string | **checked** | The method version the tally ran. The verifier refuses a version it does not implement (`SUPPORTED_METHOD_VERSIONS`, kept equal to the application's `IMPLEMENTED_VERSIONS`) rather than recount under other rules. |
+| `closure_hash` | lower-case hex | **checked** | SHA-256 of the canonical serialisation of `ballots`, compared exactly: upper-case hex is not what the application writes. |
 | `opening_seed` | lower-case hex | read | Input to the computed tie-break. |
 | `counts` | object | **checked** | Participation frozen at closure: `registered`, `ballots_online`, `ballots_paper`, `paper_uncountersigned`, `non_voters`, each an integer and each required. The ballot list does not determine them, but they must add up with it: `ballots_online + ballots_paper = ballot_count`, and `registered = ballots_online + ballots_paper + paper_uncountersigned + non_voters`. |
 | `closure_override_reason` | string | ignored | Reason given for closing despite uncountersigned entries, or `""`. |
@@ -119,6 +129,10 @@ really publishes, by `tests/integration/test_verifier_agreement.py`.
 |---|---|---|
 | Encoding: unique keys | `json.rs`: `refuses_a_duplicate_key` | |
 | Versioning: no or unknown `format_version` refused | `report.rs`: `a_document_without_a_format_version_is_refused` | |
+| Anchoring: verified only against the closure hash noted at closure | `report.rs`: `a_consistent_document_alone_is_not_anchored`, `another_closure_hash_noted_at_closure_disagrees` | `test_a_document_alone_is_consistent_but_not_verified`, `test_a_rebuilt_document_is_caught_by_the_hash_noted_at_closure` |
+| `tally_method`: the three identifiers only | `report.rs`: `the_tally_method_must_be_one_of_the_three_identifiers` | |
+| `tally_method_version`: only those the verifier implements | `report.rs`: `a_method_version_this_verifier_does_not_implement_is_refused` | `test_a_method_version_the_verifier_does_not_implement_is_refused` |
+| `closure_hash`: lower-case hex | `report.rs`: `the_documents_own_closure_hash_must_be_lower_case` | |
 | `closure_hash`, `ballot_count`, `matrix`, `counts` checked | `report.rs`: `a_consistent_publication_agrees_on_every_count` | `test_the_verifier_agrees_with_the_published_document` |
 | `winner` checked | `report.rs`: `a_publication_claiming_another_winner_disagrees` | `test_a_tampered_winner_is_caught` |
 | participation `counts` add up | `report.rs`: `participation_counts_must_add_up_to_the_ballot_list`, `a_publication_without_its_counts_is_refused` | `test_published_counts_that_do_not_add_up_are_caught` |

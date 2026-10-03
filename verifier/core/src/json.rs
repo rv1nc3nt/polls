@@ -74,6 +74,8 @@ impl Value {
     }
 }
 
+use std::collections::BTreeSet;
+
 const MAX_DEPTH: usize = 64;
 
 /// Parse one JSON document.
@@ -122,7 +124,7 @@ impl Reader<'_> {
             self.pos += 1;
             Ok(())
         } else {
-            Err(self.error(&format!("expected '{}'", byte as char)))
+            Err(self.error(&format!("expected '{}'", char::from(byte))))
         }
     }
 
@@ -155,6 +157,10 @@ impl Reader<'_> {
     fn object(&mut self, depth: usize) -> Result<Value, String> {
         self.expect(b'{')?;
         let mut members: Vec<(String, Value)> = Vec::new();
+        // A set beside the list (review B-7): scanning the members for each
+        // key made an object of n keys cost n² comparisons, enough for a
+        // hostile file to stall the verifier.
+        let mut seen: BTreeSet<String> = BTreeSet::new();
         self.skip_whitespace();
         if self.peek() == Some(b'}') {
             self.pos += 1;
@@ -166,7 +172,7 @@ impl Reader<'_> {
                 return Err(self.error("expected a string key"));
             }
             let key = self.string()?;
-            if members.iter().any(|(k, _)| *k == key) {
+            if !seen.insert(key.clone()) {
                 return Err(self.error(&format!("duplicate key \"{key}\"")));
             }
             self.skip_whitespace();
@@ -253,7 +259,7 @@ impl Reader<'_> {
         for _ in 0..4 {
             let digit = self
                 .peek()
-                .and_then(|b| (b as char).to_digit(16))
+                .and_then(|b| char::from(b).to_digit(16))
                 .ok_or_else(|| self.error("invalid \\u escape"))?;
             code = code * 16 + digit;
             self.pos += 1;
@@ -382,6 +388,20 @@ mod tests {
         // Two readers must not see two different values in one file.
         let err = parse(r#"{"winner": "a", "winner": "b"}"#).unwrap_err();
         assert!(err.contains("duplicate key"), "{err}");
+    }
+
+    #[test]
+    fn an_object_of_many_keys_parses_in_linear_time() {
+        // B-7: a quadratic duplicate-key scan took minutes on this; a set
+        // takes milliseconds, and the last key is still checked.
+        let members: Vec<String> = (0..100_000).map(|n| format!("\"k{n}\": {n}")).collect();
+        let text = format!("{{{}}}", members.join(","));
+        let started = std::time::Instant::now();
+        let value = parse(&text).expect("parses");
+        assert!(started.elapsed() < std::time::Duration::from_secs(5));
+        assert_eq!(value.as_object().map(<[_]>::len), Some(100_000));
+        let repeated = format!("{{{}, \"k99999\": 0}}", members.join(","));
+        assert!(parse(&repeated).is_err());
     }
 
     #[test]

@@ -17,6 +17,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+import re
 import shutil
 import subprocess
 from datetime import timedelta
@@ -36,7 +37,7 @@ from apps.elections import closure
 from apps.elections.models import Poll, PollOption, TiebreakRule
 from apps.elections.transitions import close_poll, publish_poll
 from apps.registrations.models import Channel, Registration, RegistrationState
-from apps.tally.methods import Method, tally
+from apps.tally.methods import IMPLEMENTED_VERSIONS, Method, tally
 from apps.tally.tiebreak import tiebreak_order
 from tests.conftest import force_open
 
@@ -199,9 +200,18 @@ def _published(rows: list[tuple[str, list[list[str]]]], method: Method, rule: st
     return Poll.objects.get(pk=poll.pk)
 
 
-def _run(verifier: Path, document: Path) -> subprocess.CompletedProcess[str]:
+def _run(
+    verifier: Path, document: Path, *, anchored: Poll | None = None, extra: tuple[str, ...] = ()
+) -> subprocess.CompletedProcess[str]:
+    """The verifier on a publication document. ``anchored`` passes that poll's
+    closure hash, as a reader copies it off the public page at closure: without
+    it the document is only shown to agree with itself (review B-1)."""
+    anchor = ["--closure-hash", bytes(anchored.closure_hash or b"").hex()] if anchored else []
     return subprocess.run(  # noqa: S603
-        [str(verifier), str(document)], capture_output=True, text=True, check=False
+        [str(verifier), str(document), *anchor, *extra],
+        capture_output=True,
+        text=True,
+        check=False,
     )
 
 
@@ -230,9 +240,10 @@ def test_the_verifier_agrees_with_the_published_document(
     document = tmp_path / "publication.json"
     document.write_bytes(response.content)
 
-    completed = _run(verifier_binary, document)
+    completed = _run(verifier_binary, document, anchored=poll)
     assert completed.returncode == 0, completed.stdout + completed.stderr
     assert "DIFFERS" not in completed.stdout
+    assert "hash at closure AGREES" in completed.stdout
     assert f"method         {method}" in completed.stdout
     tiebreak = json.loads(response.content).get("tiebreak")
     if tiebreak is not None:
@@ -251,7 +262,7 @@ def test_a_tampered_winner_is_caught(client: Client, verifier_binary: Path, tmp_
     document = tmp_path / "publication.json"
     document.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
 
-    completed = _run(verifier_binary, document)
+    completed = _run(verifier_binary, document, anchored=poll)
     assert completed.returncode == 1
     assert "winner          DIFFERS" in completed.stdout
 
@@ -266,8 +277,17 @@ def test_a_tampered_winner_is_caught(client: Client, verifier_binary: Path, tmp_
         (["--closure_hash", "00"], 2),  # misspelt flag
         (["--winner"], 2),  # flag without a value
         (["--closure-hash=" + "00" * 32], 1),  # = form is read, and this hash is wrong
+        (["--winner", "a"], 4),  # the winner agrees, with ballots nothing anchors (B-1)
+        (["--winner", "b"], 1),  # and a wrong one still differs
     ],
-    ids=["nothing-compared", "unknown-flag", "missing-value", "equals-form"],
+    ids=[
+        "nothing-compared",
+        "unknown-flag",
+        "missing-value",
+        "equals-form",
+        "winner-not-anchored",
+        "wrong-winner",
+    ],
 )
 def test_the_cli_never_exits_zero_without_comparing(
     extra: list[str], code: int, verifier_binary: Path, tmp_path: Path
@@ -306,7 +326,7 @@ def test_published_counts_that_do_not_add_up_are_caught(
     document = tmp_path / "publication.json"
     document.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
 
-    completed = _run(verifier_binary, document)
+    completed = _run(verifier_binary, document, anchored=poll)
     assert completed.returncode == 1
     assert "participation   DIFFERS" in completed.stdout
 
@@ -329,3 +349,83 @@ def test_a_ranking_the_platform_never_writes_is_refused(
         check=False,
     )
     assert completed.returncode == 2, completed.stdout + completed.stderr
+
+
+# --- a document is only verified against the hash noted at closure (B-1) ------
+
+
+@pytest.mark.django_db
+def test_a_document_alone_is_consistent_but_not_verified(
+    client: Client, verifier_binary: Path, tmp_path: Path
+) -> None:
+    """Every check agrees, as it would for a document rebuilt from end to end;
+    without the closure hash noted at closure that is not a verification."""
+    poll = _published(CLEAR, Method.SCHULZE, TiebreakRule.COMPUTED)
+    document = tmp_path / "publication.json"
+    document.write_bytes(client.get(f"/fr/scrutin/{poll.pk}/resultats/?format=json").content)
+
+    completed = _run(verifier_binary, document)
+    assert completed.returncode == 4, completed.stdout + completed.stderr
+    assert "DIFFERS" not in completed.stdout
+    assert "NOT ANCHORED" in completed.stdout
+
+
+@pytest.mark.django_db
+def test_a_rebuilt_document_is_caught_by_the_hash_noted_at_closure(
+    client: Client, verifier_binary: Path, tmp_path: Path
+) -> None:
+    """Another poll's document is self-consistent; only the anchor shows it is
+    not this poll's."""
+    poll = _published(CLEAR, Method.SCHULZE, TiebreakRule.COMPUTED)
+    other = _published(DIVERGENT, Method.SCHULZE, TiebreakRule.COMPUTED)
+    document = tmp_path / "publication.json"
+    document.write_bytes(client.get(f"/fr/scrutin/{other.pk}/resultats/?format=json").content)
+
+    completed = _run(verifier_binary, document, anchored=poll)
+    assert completed.returncode == 1, completed.stdout + completed.stderr
+    assert "hash at closure DIFFERS" in completed.stdout
+    assert _run(verifier_binary, document, anchored=other).returncode == 0
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "extra",
+    [("--winner", "a"), ("--method", "schulze"), ("--options", "a,b")],
+    ids=["winner", "method", "options"],
+)
+def test_a_document_takes_no_value_it_states_itself(
+    extra: tuple[str, ...], client: Client, verifier_binary: Path, tmp_path: Path
+) -> None:
+    poll = _published(CLEAR, Method.SCHULZE, TiebreakRule.COMPUTED)
+    document = tmp_path / "publication.json"
+    document.write_bytes(client.get(f"/fr/scrutin/{poll.pk}/resultats/?format=json").content)
+    completed = _run(verifier_binary, document, anchored=poll, extra=extra)
+    assert completed.returncode == 2, completed.stdout + completed.stderr
+
+
+# --- method versions: the verifier recounts only those it implements (B-2) ----
+
+
+@pytest.mark.django_db
+def test_a_method_version_the_verifier_does_not_implement_is_refused(
+    client: Client, verifier_binary: Path, tmp_path: Path
+) -> None:
+    poll = _published(CLEAR, Method.SCHULZE, TiebreakRule.COMPUTED)
+    data = json.loads(client.get(f"/fr/scrutin/{poll.pk}/resultats/?format=json").content)
+    data["tally_method_version"] = "2"
+    document = tmp_path / "publication.json"
+    document.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+
+    completed = _run(verifier_binary, document, anchored=poll)
+    assert completed.returncode == 2, completed.stdout + completed.stderr
+    assert "tally method version 2" in completed.stderr
+
+
+def test_the_verifier_implements_exactly_the_versions_the_tally_does() -> None:
+    """A poll the application can tally under a version the verifier lacks
+    could never be verified; one the verifier accepts but the application never
+    ran would be recounted under rules nobody published (R-10.2)."""
+    source = (VERIFIER_DIR / "core" / "src" / "publication.rs").read_text(encoding="utf-8")
+    declared = re.search(r"SUPPORTED_METHOD_VERSIONS: &\[&str\] = &\[([^\]]*)\]", source)
+    assert declared is not None, "SUPPORTED_METHOD_VERSIONS not found in publication.rs"
+    assert re.findall(r'"([^"]*)"', declared.group(1)) == list(IMPLEMENTED_VERSIONS)
