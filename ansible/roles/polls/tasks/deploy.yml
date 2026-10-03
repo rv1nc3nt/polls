@@ -102,6 +102,7 @@
           tar --create --gzip --file {{ polls_src_archive }}
           --exclude-vcs
           --exclude=./.venv --exclude=./var --exclude=./node_modules
+          --exclude=./verifier/target
           --exclude=./.molecule --exclude=./.pytest_cache
           --exclude=./.mypy_cache --exclude=./.ruff_cache --exclude=./__pycache__
           -C {{ polls_source_tree }} .
