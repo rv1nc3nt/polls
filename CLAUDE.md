@@ -17,6 +17,9 @@ tests (§12).
 uv sync                                   # Python 3.13, Django 5.2 LTS
 uv run python manage.py migrate           # settings default to config.settings.dev
 uv run python manage.py makemigrations --check --dry-run  # models match migrations
+DJANGO_SETTINGS_MODULE=config.settings.prod DJANGO_SECRET_KEY=<50+ chars> \
+  DJANGO_ALLOWED_HOSTS=x DJANGO_PUBLIC_BASE_URL=https://x \
+  uv run python manage.py check --deploy --fail-level WARNING  # as ci.yml runs it
 uv run pytest -q                          # fast; no network
 uv run ruff check . && uv run ruff format --check .
 uv run mypy src tests                     # --strict, must stay clean
