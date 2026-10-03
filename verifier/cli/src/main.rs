@@ -28,6 +28,9 @@
 //! label is accepted too; Schulze without it), `--options` the poll's option
 //! ids so an option no ballot ranked still gets its row.
 //!
+//! `--version` names the release and commit the binary was built from, and
+//! the publication format versions it reads (`core::build`).
+//!
 //! Exit codes: 0 every compared value agrees, 1 at least one differs, 2 usage
 //! or input error, 3 nothing was compared (a CSV given no value to check).
 //! An unknown flag, a flag without a value or a repeated flag is a usage
@@ -38,6 +41,7 @@
 
 use std::process::ExitCode;
 
+use polls_verifier_core::build;
 use polls_verifier_core::counted::Method;
 use polls_verifier_core::publication::TiebreakRule;
 use polls_verifier_core::report::{
@@ -47,7 +51,7 @@ use polls_verifier_core::report::{
 const USAGE: &str = "usage: polls-verifier <publication.json>\n       \
     polls-verifier <ballots.csv> [--method schulze|plurality|approval] [--options <id,id,…>] \
     [--closure-hash <hex>] [--opening-seed <hex>] [--winner <option_id>]\n       \
-    polls-verifier --help";
+    polls-verifier --help | --version";
 
 const HELP: &str = "\
 Recomputes a published poll result from the files its results page offers.
@@ -65,6 +69,10 @@ Recomputes a published poll result from the files its results page offers.
         --opening-seed <h>  the published opening seed, to replay a tie-break
         --winner <id>       the announced winner
       Each flag takes its value as the next argument or after '='.
+
+  polls-verifier --version
+      The release and commit this binary was built from, and the publication
+      format versions it reads: what a bug report should quote.
 
 Exit codes:
   0  every compared value agrees
@@ -84,6 +92,7 @@ const FLAGS: &[&str] = &[
 #[derive(Debug, Default, PartialEq)]
 struct Args {
     help: bool,
+    version: bool,
     path: Option<String>,
     /// `(flag, value)` in the order given, each flag at most once.
     flags: Vec<(String, String)>,
@@ -99,13 +108,18 @@ impl Args {
 }
 
 /// Parse strictly: every argument must be the one file, a known flag with its
-/// value, or `--help`. Anything else is an error rather than ignored.
+/// value, `--help` or `--version`. Anything else is an error rather than
+/// ignored.
 fn parse_args(raw: &[String]) -> Result<Args, String> {
     let mut args = Args::default();
     let mut rest = raw.iter();
     while let Some(arg) = rest.next() {
         if arg == "--help" || arg == "-h" {
             args.help = true;
+            continue;
+        }
+        if arg == "--version" || arg == "-V" {
+            args.version = true;
             continue;
         }
         if !arg.starts_with('-') {
@@ -319,6 +333,10 @@ fn main() -> ExitCode {
         println!("{USAGE}\n\n{HELP}");
         return ExitCode::SUCCESS;
     }
+    if args.version {
+        println!("polls-verifier {}", build::describe());
+        return ExitCode::SUCCESS;
+    }
     let Some(path) = &args.path else {
         eprintln!("{USAGE}");
         return ExitCode::from(2);
@@ -365,6 +383,8 @@ mod tests {
         assert_eq!(args.get("--closure-hash"), Some("ab"));
         assert_eq!(args.get("--winner"), Some("x"));
         assert!(parse("--help").expect("parses").help);
+        assert!(parse("--version").expect("parses").version);
+        assert!(parse("-V").expect("parses").version);
     }
 
     #[test]

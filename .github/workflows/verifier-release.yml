@@ -40,6 +40,11 @@ jobs:
             cli_artifact: polls-verifier-macos-x86_64
             gui_artifact: polls-verifier-gui-macos-x86_64
     runs-on: ${{ matrix.os }}
+    # What `polls-verifier --version` and the GUI report (core::build, review
+    # B-11): the release tag, empty on a manual run, and the commit.
+    env:
+      POLLS_RELEASE: ${{ github.event.release.tag_name }}
+      POLLS_COMMIT: ${{ github.sha }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
       # rustup is on every runner; with no argument it installs the

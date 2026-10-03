@@ -413,8 +413,10 @@ Si une ligne affiche `DIFFERS` :
    la graine d'ouverture) **sans espace ni caractère manquant**.
 2. Si le désaccord persiste, **ne le gardez pas pour vous** : contactez la
    mairie en indiquant la consultation concernée, la commande exacte que
-   vous avez lancée et son résultat complet. C'est exactement le type
-   d'anomalie que cette vérifiabilité est censée pouvoir détecter.
+   vous avez lancée et son résultat complet, ainsi que la version du
+   vérificateur : `polls-verifier --version` l'affiche en ligne de commande,
+   et l'application graphique l'écrit sous son titre. C'est exactement le
+   type d'anomalie que cette vérifiabilité est censée pouvoir détecter.
 
 ## Ce que le vérificateur ne prouve pas
 

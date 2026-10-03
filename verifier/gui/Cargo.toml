@@ -2,23 +2,23 @@
 name = "polls-verifier-gui"
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.88"  # its locked dependencies (icu_*, image) need 1.88; core and cli need 1.87
+rust-version = "1.92"  # eframe 0.35 and the egui crates need 1.92; core and cli need 1.87
 license = "0BSD"
 authors = ["Romain VINCENT"]
 description = "Independent verifier for the commune polling platform (§8, §9) — desktop GUI"
 
 [dependencies]
 polls-verifier-core = { path = "../core" }
-eframe = "0.29"
+eframe = "0.35"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 # xdg-portal talks to the desktop's file chooser over D-Bus (ashpd/zbus); the
 # synchronous FileDialog::pick_file() rfd exposes runs that on a bare
 # pollster::block_on, not inside a real async runtime, so it needs zbus's
-# async-io executor (paired with "async-std" here only to pull in the glue
-# ashpd expects) rather than zbus's tokio one — the tokio feature panics with
-# "there is no reactor running" because there is no tokio::Runtime around it.
-rfd = { version = "0.15", default-features = false, features = ["xdg-portal", "async-std"] }
+# async-io executor rather than its tokio one, which panics with "there is no
+# reactor running" since no tokio::Runtime surrounds it. rfd 0.17's xdg-portal
+# brings pollster and async-io itself; 0.15 needed "async-std" alongside.
+rfd = { version = "0.17", default-features = false, features = ["xdg-portal"] }
 
 [target.'cfg(not(target_os = "linux"))'.dependencies]
-rfd = { version = "0.15", default-features = false }
+rfd = { version = "0.17", default-features = false }

@@ -23,6 +23,7 @@ uv run mypy src tests                     # --strict, must stay clean
 cargo fmt --manifest-path verifier/Cargo.toml --all --check
 cargo clippy --manifest-path verifier/Cargo.toml --workspace --all-targets -- -D warnings
 cargo test --manifest-path verifier/Cargo.toml
+(cd verifier && cargo audit --deny warnings)  # also weekly; exceptions in verifier/.cargo/audit.toml
 uv run python manage.py compilemessages   # needs GNU gettext installed
 ```
 

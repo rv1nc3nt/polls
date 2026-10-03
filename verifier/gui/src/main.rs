@@ -163,11 +163,11 @@ fn non_empty(text: &str) -> Option<&str> {
 }
 
 impl eframe::App for VerifierApp {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         // Drag-and-drop, in addition to the browse button: egui reports files
         // dropped anywhere on the window through the raw input, no dialog
         // needed.
-        let dropped: Vec<PathBuf> = ctx.input(|i| {
+        let dropped: Vec<PathBuf> = ui.ctx().input(|i| {
             i.raw
                 .dropped_files
                 .iter()
@@ -181,13 +181,16 @@ impl eframe::App for VerifierApp {
         // not stay on screen beside the new ones as if it checked them.
         let mut inputs_changed = false;
 
-        egui::CentralPanel::default().show(ctx, |ui| {
+        egui::CentralPanel::default().show(ui, |ui| {
             ui.heading("Vérificateur indépendant");
             ui.label(
                 "Recalcule l'empreinte de clôture et le résultat à partir de ce que le \
                  site publie, sans faire confiance ni au site, ni à la mairie \
                  (docs/manuel/verifier.md).",
             );
+            // What a bug report should quote (review B-11): the release and
+            // commit, and the publication formats this build reads.
+            ui.weak(polls_verifier_core::build::describe().replace('\n', " · "));
             ui.add_space(12.0);
 
             ui.group(|ui| {

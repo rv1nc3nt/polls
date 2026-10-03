@@ -387,7 +387,9 @@ If a line shows `DIFFERS`:
    and no missing character**.
 2. If the disagreement persists, **do not keep it to yourself**: contact the
    mairie, stating the consultation concerned, the exact command you ran and
-   its full output. This is exactly the kind of anomaly this verifiability
+   its full output, and the verifier's version: `polls-verifier --version`
+   prints it on the command line, and the graphical application shows it
+   under its title. This is exactly the kind of anomaly this verifiability
    is meant to be able to catch.
 
 ## What the verifier does not prove

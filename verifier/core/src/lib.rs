@@ -13,6 +13,7 @@
 
 #![warn(missing_docs, clippy::missing_errors_doc)]
 
+pub mod build;
 pub mod canonical;
 pub mod counted;
 pub mod json;
