@@ -109,8 +109,13 @@ mod tests {
         assert_eq!(winners(&p, &options).len(), 3);
     }
 
+    /// T-44. The expected order was once copied from the application's output
+    /// (review D-1); it is now derived from §8.3 alone, with `xxd` and
+    /// `openssl dgst -sha256` (`tests/vectors/derive-by-hand.sh`):
+    /// `tiebreak_seed = fdeab9ac…d9151108`, then the draws
+    /// c `2283d2f4…`, a `2d99671b…`, b `8766fffd…`, ascending.
     #[test]
-    fn tiebreak_matches_the_python_vector() {
+    fn tiebreak_matches_the_vector_derived_from_the_spec() {
         let options: Vec<String> = ["a", "b", "c"].into_iter().map(String::from).collect();
         let opening_seed: Vec<u8> = (0u8..32).collect();
         let closure_hash: Vec<u8> = (32u8..64).collect();

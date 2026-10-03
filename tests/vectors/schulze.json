@@ -1195,7 +1195,7 @@
   },
   {
    "name": "T-9 cyclic majority: a three-way tie, broken by the hash chain",
-   "source": "T-9, T-44",
+   "source": "T-9, T-44; closure hash and order derived by hand in derive-by-hand.sh",
    "method": "schulze",
    "options": [
     "a",

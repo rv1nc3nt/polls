@@ -150,6 +150,7 @@ dev = [
     { name = "pytest-django" },
     { name = "ruff" },
     { name = "types-markdown" },
+    { name = "votelib" },
 ]
 
 [package.metadata]
@@ -173,6 +174,7 @@ dev = [
     { name = "pytest-django", specifier = ">=4.9" },
     { name = "ruff", specifier = ">=0.6" },
     { name = "types-markdown", specifier = ">=3.10.2.20260712" },
+    { name = "votelib", specifier = "==0.4.0" },
 ]
 
 [[package]]
@@ -576,4 +578,13 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/92/ff/5a28bdfd8c3ebec42564ac7d0e54ca3db65044a9314a97f9564fa7a1e926/tzdata-2026.3.tar.gz", hash = "sha256:4a1518b8993086a7982523e071643f3c0e5f213e75b21318e78bcabfff9d1415", size = 198674, upload-time = "2026-07-10T08:50:37.887Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e5/6d/b53b99a9f2766d095985947a5782f1702cabb129a34f7a802d7197af832f/tzdata-2026.3-py2.py3-none-any.whl", hash = "sha256:dc096730c87af6cab1b171c9d532be840741ff5d459015e7f6947bd7d7e54931", size = 348168, upload-time = "2026-07-10T08:50:36.46Z" },
+]
+
+[[package]]
+name = "votelib"
+version = "0.4.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/0a/5e/e7574e63293d14c1c0d9530e05162fbe7bc91ade2982ddb94002dc1c97ce/votelib-0.4.0.tar.gz", hash = "sha256:29455f48f495ea5b5c5c504c75f910956d7e1a6ee4261d115b9a18017139923d", size = 97299, upload-time = "2021-11-07T16:28:23.069Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c4/82/fd8fe3fec1aa9fe647fdb4b99a0ca4104201bd96435d879ae55da2d53516/votelib-0.4.0-py3-none-any.whl", hash = "sha256:7f41b58bd732438038d4bfa98d83b00cc27c5f0147636362c93aa704b9849b6f", size = 108451, upload-time = "2021-11-07T16:28:22.035Z" },
 ]

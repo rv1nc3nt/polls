@@ -53,9 +53,19 @@ says which kind it is:
   the 45-voter example of M. Schulze, *Social Choice and Welfare* 36 (2011),
   §3.1, whose pairwise matrix and winner are those printed there;
 - **hand-worked**: small enough to check on paper, and checked;
+- **derived by hand from the contract**: `derive-by-hand.sh` recomputes the
+  T-9 case's closure hash and tie-break order, and the T-44 order, from
+  `canonical-serialisation.md` and spec §8.3 with printf, xxd and OpenSSL
+  alone; `test_vectors.py` checks that it agrees;
 - **a documented value**: the worked vector of `canonical-serialisation.md`
   (T-42) and the acceptance tests named;
 - **application**: the random cases only, which test agreement, not truth.
+
+Beyond the corpus, `tests/integration/test_independent_schulze.py` compares the
+application's pairwise counts, strongest paths and winners with `votelib`, an
+implementation neither side wrote, on the same random polls; and the
+verifier's SHA-256 is held to the FIPS 180-2 examples and to padding-boundary
+digests computed with OpenSSL and coreutils (`verifier/core/src/sha256.rs`).
 
 ## Adding a case
 

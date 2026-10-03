@@ -35,6 +35,7 @@ dev = [
     "pytest-django>=4.9",
     "types-markdown>=3.10.2.20260712",
     "playwright>=1.63",
+    "votelib==0.4.0",
 ]
 
 [tool.ruff]
@@ -72,7 +73,7 @@ plugins = ["mypy_django_plugin.main"]
 exclude = ["migrations/"]
 
 [[tool.mypy.overrides]]
-module = ["openpyxl.*"]
+module = ["openpyxl.*", "votelib.*"]
 ignore_missing_imports = true
 
 [tool.django-stubs]

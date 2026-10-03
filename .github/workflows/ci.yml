@@ -53,7 +53,10 @@ jobs:
       # The shared corpus on both sides, then 5000 random polls on a seed of
       # this run's own (review D-2): the plain test run covers the fixed
       # default seed, this one explores. A failure prints the seed.
-      - run: uv run pytest tests/integration/test_vectors.py tests/integration/test_differential.py -q
+      - run: >-
+          uv run pytest -q tests/integration/test_vectors.py
+          tests/integration/test_differential.py
+          tests/integration/test_independent_schulze.py
         env:
           POLLS_DIFFERENTIAL_SEED: ${{ github.run_id }}
           POLLS_DIFFERENTIAL_CASES: "5000"

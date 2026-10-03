@@ -13,6 +13,8 @@ cases it hands the verifier.
 from __future__ import annotations
 
 import json
+import shutil
+import subprocess
 from datetime import timedelta
 from pathlib import Path
 from typing import Any
@@ -137,3 +139,28 @@ def test_the_application_refuses_what_the_corpus_refuses(case: dict[str, Any], d
 def test_the_corpus_is_found() -> None:
     assert len(_cases("expected")) >= 15
     assert len(_cases("refused")) >= 10
+
+
+@pytest.mark.skipif(
+    not (shutil.which("xxd") and shutil.which("openssl")), reason="needs xxd and openssl"
+)
+def test_the_corpus_agrees_with_a_derivation_by_hand() -> None:
+    """Review D-1: a vector copied from one implementation only proves the
+    other agrees with it. ``derive-by-hand.sh`` computes two of them from the
+    written contract with printf, xxd and OpenSSL alone."""
+    script = VECTORS / "derive-by-hand.sh"
+    lines = subprocess.run(  # noqa: S603 — a script of this repository
+        ["sh", str(script)],  # noqa: S607
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.splitlines()
+    cyclic = next(
+        case
+        for case in json.loads((VECTORS / "schulze.json").read_text(encoding="utf-8"))["cases"]
+        if case["name"].startswith("T-9")
+    )
+    assert lines[0] == cyclic["expect"]["closure_hash"]
+    assert lines[1].split() == cyclic["expect"]["tiebreak_order"]
+    # T-44, the vector tests/unit/test_tally.py and the verifier's schulze.rs hold.
+    assert lines[2].split() == ["c", "a", "b"]
