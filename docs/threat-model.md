@@ -64,7 +64,10 @@ the closure hash.
   which Django's log filter redacts, and which answer with
   `Referrer-Policy: no-referrer` and `Cache-Control: no-store`. The token is
   exchanged for a session at once (§6.3), and the session holds only the
-  `ballot_hash`.
+  `ballot_hash`. Until decision log #51, nginx added its own `same-origin` policy,
+  which browsers applied instead, so on deployed instances the token did
+  travel in the `Referer` of same-origin requests and could reach the access
+  log.
 
 ### The mail relay
 

@@ -71,7 +71,8 @@ reasoning.
 | 47 | The verifier read ballot lists leniently and ignored the participation counts | settled |
 | 48 | The serialisation had no escaping rule, and `tiebreak.winner` was unchecked | settled |
 | 49 | An operator's session could hold their own ballot | settled |
-| 50 | No ballot could be cast in a browser: the CSRF check refused `Origin: null` | settled |
+| 50 | A browser posting from a ballot page sends `Origin: null`, which the CSRF check refused | settled |
+| 51 | In production the ballot pages sent their token as `Referer`: nginx's referrer policy overrode the application's | settled |
 
 ## 1. Retention purge on a poll that closed but was never published
 
@@ -1813,15 +1814,22 @@ key (`tokensession.forget_all`). The rest of the public site leaves the
 operator signed in. `tests/integration/test_operator_voter_session.py` checks
 every stored session after each path.
 
-## 50. No ballot could be cast in a browser: the CSRF check refused `Origin: null`
+## 50. A browser posting from a ballot page sends `Origin: null`, which the CSRF check refused
 
 **Found (2026-10-03, review C-8, by the first browser test).** §6.3 and R-7.4 ter
 have the ballot routes send `Referrer-Policy: no-referrer`, so the token in
 their address never travels in a `Referer`. The Fetch standard then has a
 browser send `Origin: null` with a form's POST, same-origin or not, and since
 Django 4.0 `CsrfViewMiddleware` refuses any POST whose `Origin` does not match
-the site. In a real browser, then, casting and modifying a ballot answered 403.
-No HTTP test noticed: Django's test client sends no `Origin` unless told to.
+the site. Wherever the application's header was the only `Referrer-Policy`,
+then, casting and modifying a ballot answered 403. No HTTP test noticed:
+Django's test client sends no `Origin` unless told to.
+
+**Correction (2026-10-03).** Deployments made with the Ansible role were never
+affected. Their nginx added `Referrer-Policy: same-origin` to every response,
+browsers apply the last of two, and so they sent the real `Origin`. That
+same header is #51's leak, and fixing it makes this exception necessary
+everywhere.
 
 **Settled.** Not by loosening the referrer policy: R-7.4 ter requires that no
 referrer be transmitted, and `strict-origin` would still send one.
@@ -1834,4 +1842,42 @@ cookie is `SameSite=Lax`, so a cross-site POST arrives without it; any other
 still refuses `null`. `tests/integration/test_ballot_csrf.py` sends the header
 a browser sends, and `tests/browser/test_voter_journey.py` casts a ballot in
 Chromium; both fail with Django's own middleware.
+
+## 51. In production the ballot pages sent their token as `Referer`: nginx's referrer policy overrode the application's
+
+**Found (2026-10-03, while checking #50 against a deployed instance).** The
+nginx template set `add_header Referrer-Policy same-origin always` for the
+whole server, so a ballot page reached the browser with two headers: the
+application's `no-referrer`, then nginx's `same-origin`. Browsers apply the
+last valid one. Checked in Chromium: under the two, a page's form posts with
+its full address as `Referer`, token included; under `no-referrer` alone, with
+none. Every same-origin request from the first ballot page, where the token is
+in the address, therefore carried it. The access log records the `Referer` of
+every route but the ballot ones, `/static/` and `/media/`, so a voter who
+switched language there (a POST to `set_language`) or followed a link to the
+site wrote their token to `polls.access.log`. R-7.4 ter was not honoured on
+any instance deployed with the role, in any release.
+
+**Settled.**
+
+- nginx sets no `Referrer-Policy`. The application sends it on every response
+  (`SECURE_REFERRER_POLICY = "same-origin"`, and `no-referrer` on the ballot
+  routes, `tokensession.protect`), so there is one source and no second
+  header. `tests/unit/test_logging.py` fails if a template sets one again, and
+  the Molecule scenario checks, through nginx, that a ballot route answers
+  `no-referrer` and any other page `same-origin`, once each.
+- With `no-referrer` now in force, a ballot page's forms post with
+  `Origin: null`: #50's exception covers the ballot routes, but the language
+  switcher posts to `set_language`. On the ballot pages it is a pair of links
+  to the same page under the other language prefix instead
+  (`core/templatetags/language_links.py`): no form, no `Referer`, and a
+  destination nginx does not log.
+- The admin guide said nginx set `no-referrer` on the ballot routes; it now
+  says the application does, and that nginx must not add another.
+
+**For an instance already running.** A token may be in the access log. Any
+line of `polls.access.log*` containing `/acces/` is one, since the ballot
+routes themselves are never logged; those lines should be removed. The fix
+must be deployed whole: nginx without its header but the application without
+#50's exception would refuse every ballot.
 

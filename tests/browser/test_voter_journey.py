@@ -58,10 +58,18 @@ def test_register_vote_and_read_the_receipt(page: Page, poll: Poll, live_server:
 
     page.goto(link.group(0))
     check_page(page)
+    # The language choice is a link here, not set_language's form, whose POST
+    # would carry Origin: null from a page that sends no referrer (#51).
+    assert page.locator('form[action*="i18n"]').count() == 0
+    page.locator('.langswitch a[hreflang="en"]').click()
+    page.wait_for_load_state()
+    assert "/en/bulletin/" in page.url
+    assert page.get_attribute("html", "lang") == "en"
+    check_page(page)
     selects = page.locator('select[name^="rank_"]')
     for index in range(selects.count()):
         selects.nth(index).select_option(str(index + 1))
-    page.get_by_role("button", name="Valider mon bulletin").click()
+    page.locator("main form button[type=submit]").click()
     page.wait_for_load_state()
     check_page(page)
 

@@ -330,8 +330,11 @@ remplacés.
 ## 11. Sécurité et conformité — points techniques
 
 - **TLS** obligatoire (certbot par défaut, renouvellement automatique). nginx
-  pose HSTS, `X-Frame-Options: DENY`, `nosniff`, et `Referrer-Policy:
-  no-referrer` sur les routes de bulletin.
+  pose HSTS, `X-Frame-Options: DENY` et `nosniff`. L'application pose
+  elle-même `Referrer-Policy` : aucun référent depuis les pages de bulletin,
+  pour que l'adresse qui porte le jeton de vote ne soit jamais transmise, et le
+  même site seulement ailleurs. nginx ne doit pas en ajouter un second : le
+  navigateur appliquerait le sien.
 - **Limitation de débit** sur l'inscription et l'envoi de courriels ;
   elle compte à travers les workers via la table de cache en base
   (`createcachetable` est lancé par le déploiement). Elle compte par adresse

@@ -1,4 +1,4 @@
-{% load i18n static %}<!doctype html>
+{% load i18n static language_links %}<!doctype html>
 {# SPDX-License-Identifier: 0BSD #}
 {% comment %} RGAA (R-14.1) applies to the back-office as much as to the public site
    (§6.5), so the conformant scaffolding lives here and every page inherits it:
@@ -93,6 +93,21 @@
        this block empty and puts both in its left panel instead (§6.5, `backoffice/_nav.html`). {% endcomment %}
     {% block header_tools %}
       <div class="header-tools">
+        {% if request.resolver_match.namespace == "ballots" %}
+        {% comment %} Links, not the form below: a ballot page sends no referrer, and the
+           form's POST would arrive with Origin: null, which CSRF refuses outside
+           the ballot routes (decision log #51). {% endcomment %}
+        <nav class="langswitch langswitch--links" aria-label="{% translate 'Langue' %}">
+          {% get_available_languages as LANGUAGES %}
+          {% for code, name in LANGUAGES %}
+            {% if code == LANGUAGE_CODE %}
+              <span lang="{{ code }}" aria-current="true">{{ name }}</span>
+            {% else %}
+              <a href="{{ request.get_full_path|in_language:code }}" lang="{{ code }}" hreflang="{{ code }}">{{ name }}</a>
+            {% endif %}
+          {% endfor %}
+        </nav>
+        {% else %}
         <form action="{% url 'set_language' %}" method="post" class="langswitch">
           {% csrf_token %}
           <input type="hidden" name="next" value="{{ request.get_full_path }}">
@@ -105,6 +120,7 @@
           </select>
           <button type="submit" class="secondary">{% translate "Changer" %}</button>
         </form>
+        {% endif %}
 
         {% comment %} Revealed by static/js/theme.js. The OS setting is honoured with or
            without this control; it only lets a visitor override it, and the choice

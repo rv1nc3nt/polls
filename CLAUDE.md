@@ -242,7 +242,9 @@ taken — that costs more than it saves.
   ballot routes — `Referrer-Policy: no-referrer`, R-7.4 ter — it sends
   `Origin: null`, which Django's CSRF check refuses. `core/csrf.py` accepts it
   there and nowhere else (decision log #50). An HTTP test cannot see this
-  class of bug; `tests/browser` can.
+  class of bug; `tests/browser` can. And nginx must not add a
+  `Referrer-Policy` of its own: browsers apply the last of two, which is how
+  the ballot pages sent their token as `Referer` in production (#51).
 - Latin-1 decodes every byte 0–255, so a CSV upload can never fail to decode —
   there is no "wrong encoding" a `_read_csv` can catch. §6.1's real defence
   against garbage content is the validation report downstream, not a

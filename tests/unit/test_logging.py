@@ -83,3 +83,19 @@ def test_the_pattern_is_the_one_nginx_suppresses() -> None:
     ).read_text()
     assert f'"~*{_TOKEN_PATH.pattern}"' in template  # the access-log map
     assert f'location ~ "{_TOKEN_PATH.pattern}"' in template  # the error-log location
+
+
+def test_nginx_leaves_the_referrer_policy_to_the_application() -> None:
+    """Decision log #51: an add_header in nginx comes beside the application's
+    `Referrer-Policy: no-referrer`, browsers apply the last one, and the ballot
+    pages' token then travels in the Referer of their same-origin requests."""
+    from pathlib import Path
+
+    templates = Path(__file__).resolve().parents[2] / "ansible/roles/polls/templates"
+    for path in templates.glob("*.j2"):
+        lines = [
+            line
+            for line in path.read_text().splitlines()
+            if not line.lstrip().startswith("#") and "Referrer-Policy" in line
+        ]
+        assert lines == [], f"{path.name}: {lines}"

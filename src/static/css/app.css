@@ -565,6 +565,10 @@ body.bo main { padding: 0; }
 }
 .langswitch, .themeswitch { display: flex; gap: 0.5rem; align-items: end; flex-wrap: wrap; margin-top: 0.75rem; }
 .langswitch label { font-weight: 400; }
+/* On the ballot pages the language choice is a pair of links, not a form
+   (base.html, decision log #51); the current language is plain text. */
+.langswitch--links { align-items: center; font-size: 0.9rem; }
+.langswitch--links [aria-current] { font-weight: 600; }
 
 /* Theme control (static/js/theme.js). Progressive enhancement: it is hidden
    until the script reveals it, since without JavaScript it does nothing and

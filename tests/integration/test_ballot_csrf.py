@@ -63,3 +63,18 @@ def test_null_is_refused_off_the_ballot_routes(db: None) -> None:
         HTTP_ORIGIN="null",
     )
     assert response.status_code == 403
+
+
+def test_a_ballot_page_offers_languages_as_links_not_a_form(live_poll: Poll) -> None:
+    """Decision log #51: set_language's form would post with Origin: null from
+    a page that sends no referrer, and be refused off the ballot routes."""
+    _registration, token = _register(live_poll)
+    body = Client().get(_access_url(live_poll, token)).content.decode()
+    assert "/i18n/setlang/" not in body
+    english = _access_url(live_poll, token).replace("/fr/", "/en/", 1)
+    assert f'href="{english}"' in body
+
+
+def test_every_other_page_keeps_the_form(live_poll: Poll) -> None:
+    body = Client().get(f"/fr/scrutin/{live_poll.pk}/").content.decode()
+    assert 'action="/i18n/setlang/"' in body

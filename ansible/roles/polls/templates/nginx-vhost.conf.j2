@@ -54,7 +54,11 @@ server {
 
     add_header X-Content-Type-Options nosniff always;
     add_header X-Frame-Options DENY always;
-    add_header Referrer-Policy same-origin always;
+    # No Referrer-Policy here: Django sends it on every response, `no-referrer`
+    # on the ballot routes and `same-origin` elsewhere. An add_header here comes
+    # in addition, and browsers apply the last one, so the ballot pages ran on
+    # `same-origin` and sent their token in the Referer of every same-origin
+    # request (decision log #51).
 {% if tls_live %}
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
 {% endif %}
