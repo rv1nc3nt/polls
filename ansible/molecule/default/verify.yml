@@ -114,8 +114,8 @@
     # Decision log #51: through nginx, a ballot route must carry the
     # application's `no-referrer` and nothing else. A second Referrer-Policy
     # from nginx is the one browsers apply, and the token then travels in the
-    # Referer. The uri module joins repeated headers with ", ", so a second
-    # header shows here as a different value.
+    # Referer. However the uri module reports a repeated header (the last
+    # value, or both joined), a second one is not exactly `no-referrer`.
     - name: A ballot route answers through nginx with no-referrer, once
       ansible.builtin.uri:
         url: http://127.0.0.1/fr/bulletin/00000000-0000-0000-0000-000000000000/acces/x/
