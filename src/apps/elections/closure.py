@@ -130,7 +130,7 @@ def tallied(
         [b.ranking for b in ballots],
         options,
         Method(poll.tally_method),
-        version=version or poll.tally_method_version,
+        version=version or poll.method_version_to_run,
     )
     return ballots, options, result
 

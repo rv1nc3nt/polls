@@ -62,7 +62,7 @@ The software is released as open source, one instance per commune. **Non-goals.*
 | `opens_at`, `closes_at` | timestamptz | timezone stored explicitly |
 | `paper_entry_deadline` | timestamptz | `≥ closes_at`, default equal to it; the paper keying window (§6.4) |
 | `tally_method` | enum | `schulze` \| `plurality` \| `approval` |
-| `tally_method_version` | string | pinned; R-10.2. One of the versions the tally implements (`tally.methods.SUPPORTED_VERSIONS`), chosen in `draft`; the tally runs that version or refuses (§8), and announcing and opening refuse an unknown one |
+| `tally_method_version` | string | pinned; R-10.2. Chosen in `draft` among the versions a new poll may use (`tally.methods.SELECTABLE_VERSIONS`), which announcing enforces; the tally runs the recorded version for as long as the code implements it (`IMPLEMENTED_VERSIONS`), a retired one included, or refuses (§8). A poll frozen before versions were checked runs under the version recorded in `legacy_tallied_as` (decision log #52) |
 | `require_complete_ranking` | bool | |
 | `allow_ties_in_ballot` | bool | |
 | `tiebreak_rule` | enum | `computed` \| `physical` |

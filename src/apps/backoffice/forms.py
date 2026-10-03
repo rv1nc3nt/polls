@@ -35,7 +35,7 @@ from apps.audit.models import Reason
 from apps.core.models import Commune, MailSettings, User
 from apps.elections import config
 from apps.elections.models import ListType, Poll, TallyMethod, TiebreakRule
-from apps.tally.methods import METHOD_VERSION, SUPPORTED_VERSIONS
+from apps.tally.methods import METHOD_VERSION, SELECTABLE_VERSIONS
 
 #: ``datetime-local`` submits without seconds; accept both shapes on the way in.
 _DATETIME_FORMATS = ("%Y-%m-%dT%H:%M", "%Y-%m-%dT%H:%M:%S")
@@ -118,11 +118,11 @@ class PollConfigForm(forms.Form):
             "celles qui conviennent »."
         ),
     )
-    # R-10.2: only a version the tally implements (``SUPPORTED_VERSIONS``); a
-    # free-text field let any string through, which nothing could tally.
+    # R-10.2: only a version a new poll may use (``SELECTABLE_VERSIONS``, #52);
+    # a free-text field let any string through, which nothing could tally.
     tally_method_version = forms.ChoiceField(
         label=_("Version de la méthode"),
-        choices=[(v, v) for v in SUPPORTED_VERSIONS],
+        choices=[(v, v) for v in SELECTABLE_VERSIONS],
         initial=METHOD_VERSION,
         help_text=_(
             "Figée avec le scrutin : le dépouillement applique toujours cette version, et "

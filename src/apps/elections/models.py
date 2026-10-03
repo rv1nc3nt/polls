@@ -16,6 +16,7 @@ from django.utils.translation import gettext_lazy as _
 
 from apps.core import images
 from apps.core.crypto import new_token_salt
+from apps.tally.methods import UnsupportedMethodVersion, version_to_run
 
 
 class PollState(models.TextChoices):
@@ -154,6 +155,12 @@ class Poll(models.Model):
         max_length=20, choices=TallyMethod.choices, default=TallyMethod.SCHULZE
     )
     tally_method_version = models.CharField(max_length=20, default="1")
+    # Set by migration 0018 only, never by the application: the version a poll
+    # was tallied under when its configuration froze before versions were
+    # checked and its recorded label names none (decision log #52). Nullable,
+    # so adding it altered the table in place instead of rebuilding it, which
+    # would have dropped the poll's triggers.
+    legacy_tallied_as = models.CharField(max_length=20, null=True, blank=True)  # noqa: DJ001
     require_complete_ranking = models.BooleanField(default=True)
     allow_ties_in_ballot = models.BooleanField(default=False)
     tiebreak_rule = models.CharField(
@@ -292,6 +299,21 @@ class Poll(models.Model):
         if language and mapping.get(language):
             return mapping[language]
         return mapping.get(self.default_language, "")
+
+    @property
+    def method_version_to_run(self) -> str:
+        """The version this poll is tallied under (``tally.version_to_run``);
+        raises ``UnsupportedMethodVersion`` if this code cannot tally it."""
+        return version_to_run(self.tally_method_version, self.legacy_tallied_as)
+
+    @property
+    def method_version_runnable(self) -> bool:
+        """Whether this code can tally the poll under the version it recorded."""
+        try:
+            version_to_run(self.tally_method_version, self.legacy_tallied_as)
+        except UnsupportedMethodVersion:
+            return False
+        return True
 
     def missing_translations(self) -> list[str]:
         """Gaps that stop the poll leaving ``draft`` (§3.8, T-22, T-53).

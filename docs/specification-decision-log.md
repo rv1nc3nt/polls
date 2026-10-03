@@ -73,6 +73,7 @@ reasoning.
 | 49 | An operator's session could hold their own ballot | settled |
 | 50 | A browser posting from a ballot page sends `Origin: null`, which the CSRF check refused | settled |
 | 51 | In production the ballot pages sent their token as `Referer`: nginx's referrer policy overrode the application's | settled |
+| 52 | A method version stays runnable when it can no longer be chosen; pre-check polls run under version 1 | settled |
 
 ## 1. Retention purge on a poll that closed but was never published
 
@@ -1496,7 +1497,7 @@ result ever published, under a version label that promised the opposite.
 **Settled.**
 
 - The field offers only the versions the tally implements
-  (`SUPPORTED_VERSIONS`, `"1"` today). `tally()` takes the poll's version and
+  (`SUPPORTED_VERSIONS`, `"1"` today; since #52, `SELECTABLE_VERSIONS`). `tally()` takes the poll's version and
   raises `UnsupportedMethodVersion` for any other; announcing and opening
   refuse such a poll, while it can still be corrected, and publishing refuses
   it too. A change to how a method counts becomes a new version, added beside
@@ -1516,7 +1517,8 @@ the current code computes for each â€” exactly what its page has been serving â€
 once. One whose field held a version the code does not implement was in fact
 tallied under version 1, like every poll before this check; it is frozen under
 version 1, and its document says so rather than repeating the label. A *closed*
-poll in that situation can be neither tallied nor published: screen 9 says
+poll in that situation could be neither tallied nor published (superseded by
+#52, which tallies it under version 1 too): screen 9 says
 why, and its configuration is frozen. Before deploying, check
 `SELECT DISTINCT tally_method_version FROM elections_poll`.
 
@@ -1880,4 +1882,43 @@ line of `polls.access.log*` containing `/acces/` is one, since the ballot
 routes themselves are never logged; those lines should be removed. The fix
 must be deployed whole: nginx without its header but the application without
 #50's exception would refuse every ballot.
+
+## 52. A method version stays runnable when it can no longer be chosen; pre-check polls run under version 1
+
+**Found (2026-10-03, reading screen 9).** #41 kept one list, the versions the
+tally implements, and used it for two questions: may a poll be configured with
+this version, and can a poll that recorded it be tallied. The day a version is
+superseded, the only way to stop new polls using it would have been to drop it
+from that list, and every poll that recorded it would have become impossible to
+tally or publish. And #41 left a closed poll whose label predates the check,
+free text nothing ever read, unpublishable for good, while it froze an already
+published one under version 1: the same poll, two answers.
+
+**Settled.**
+
+- Two lists (`apps/tally/methods.py`). `IMPLEMENTED_VERSIONS`: every version a
+  poll may have recorded; `tally()` runs it for as long as the code exists, and
+  nothing is ever removed from it. `SELECTABLE_VERSIONS`: what a poll may still
+  be configured with. Retiring a version takes it out of the second only.
+- The form offers `SELECTABLE_VERSIONS`, and announcing, the step that freezes
+  the configuration, refuses anything else: no new poll takes a retired or
+  unknown version. A template seeds the current version in place of one no
+  longer selectable. Opening, closing, tallying and publishing need only an
+  implemented version: a poll announced under a version since retired runs to
+  publication under it.
+- Polls frozen before versions were checked. Migration 0018 adds
+  `legacy_tallied_as` and sets it to `"1"` on every poll past `draft` whose
+  label names no version: under the code of the time, version 1 is what it
+  was tallied under, whatever the label said. It runs under that version, and
+  its document says so; the frozen label itself is left as it is (INV-6).
+  Drafts are not marked: announcing makes them pick a real version.
+- Only those polls. One recording a version this release does not know, as an
+  older release would meet one recorded by a newer, is still refused, and
+  screen 9 says why. Treating every unknown label as version 1 would tally it
+  under another version's rules.
+
+The column is nullable, so SQLite adds it in place: with a default it would
+have rebuilt `elections_poll` and dropped its five triggers. A test checks they
+are present; on a copy of a real database the trigger count is unchanged
+through the migration and its reversal.
 
