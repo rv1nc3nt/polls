@@ -217,8 +217,13 @@ particular method, see [Tally methods, explained](methodes-de-depouillement-en.m
 
 You can:
 
-1. **find your tracking code** in the list and check that the ranking shown
-   is the one you cast;
+1. **find your ballot**: type your tracking code into "Find your ballot" on
+   the results page, as printed on your receipt (`ABCDE-FGHJK`), and check
+   that the ranking shown is the one you cast. Proposals you did not rank are
+   not shown. In the CSV and JSON files the code is written **without the
+   dash** (`ABCDEFGHJK`) and proposals by their identifier: to search a file
+   for your code, type it without the dash. If your code is not in the list,
+   report it to the town hall;
 2. **recompute the result yourself** from the published data — an
    independent implementation of the tally and the hash is published for
    this purpose. See [Verify a result yourself](verifier-en.md) for step-by-step
