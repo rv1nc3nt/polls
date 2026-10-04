@@ -22,6 +22,10 @@ from django.utils.formats import number_format
 from apps.ballots.models import Ballot, TrendSnapshot
 from apps.core.types import OptionId
 from apps.elections.models import Poll, PollState
+from apps.elections.resultcards import interval_pts as _interval
+from apps.elections.resultcards import pct as _pct
+from apps.elections.resultcards import shown_interval as _shown_interval
+from apps.elections.resultcards import signed as _signed
 from apps.tally import trend as pure
 from apps.tally.methods import Method
 from apps.tally.trend import TrendPoint
@@ -86,27 +90,6 @@ CHART_SERIES = 8
 #: which the tooltip already gives in figures, and swamps the lines it
 #: surrounds. The duels' sparklines keep every band: each is alone in its box.
 BAND_MAX_HALF_WIDTH = 10.0
-
-
-def _signed(value: float, decimals: int | None = None) -> str:
-    """``+12,5`` / ``−3`` / ``0``, in the active locale, true minus sign; one
-    decimal only where needed unless ``decimals`` says how many."""
-    if decimals is None:
-        decimals = 1 if value % 1 else 0
-    shown = round(value, decimals)
-    text = number_format(abs(shown), decimals)
-    return ("+" if shown > 0 else "−" if shown < 0 else "") + text
-
-
-def _direction(now: float, before: float | None) -> str | None:
-    """``up``, ``down`` or ``flat`` — the stylesheet's arrow, never colour alone."""
-    if before is None:
-        return None
-    return "up" if now > before else "down" if now < before else "flat"
-
-
-def _pct(part: float, whole: int) -> float:
-    return 100 * part / whole if whole else 0.0
 
 
 def _score(point: TrendPoint, option: OptionId) -> float:
@@ -302,203 +285,6 @@ def curves(
 # --- the summary and the duels -------------------------------------------------
 
 
-def _interval(point: TrendPoint, i: OptionId, j: OptionId) -> tuple[float, float]:
-    """``margin_interval`` in points of the ballots counted, like the margin."""
-    lo, hi = point.margin_interval(i, j)
-    return _pct(lo, point.ballot_count), _pct(hi, point.ballot_count)
-
-
-def _spark(
-    values: list[float],
-    band: list[tuple[float, float]] | None = None,
-    width: int = 120,
-    height: int = 32,
-) -> dict[str, object]:
-    """A sparkline of a duel's margin, zero line included, and its confidence
-    band where given."""
-    bounds = [v for b in band or [] for v in b]
-    lo, hi = min([*values, *bounds, 0.0]), max([*values, *bounds, 0.0])
-    if hi - lo < 1:
-        lo, hi = lo - 1, hi + 1
-
-    def y(v: float) -> int:
-        return 3 + round((height - 6) * (hi - v) / (hi - lo))
-
-    def x(k: int) -> int:
-        return width // 2 if len(values) == 1 else 3 + round((width - 6) * k / (len(values) - 1))
-
-    band_path = None
-    if band:
-        upper = [f"{x(k)},{y(b[1])}" for k, b in enumerate(band)]
-        lower = [f"{x(k)},{y(b[0])}" for k, b in reversed(list(enumerate(band)))]
-        band_path = "M" + " L".join(upper + lower) + " Z"
-    return {
-        "width": width,
-        "height": height,
-        "zero_y": y(0),
-        "band": band_path,
-        "path": " ".join(f"{'M' if k == 0 else 'L'}{x(k)},{y(v)}" for k, v in enumerate(values)),
-        "end_x": x(len(values) - 1),
-        "end_y": y(values[-1]),
-    }
-
-
-def duels(
-    points: list[TrendPoint], options: list[tuple[OptionId, str]], *, intervals: bool
-) -> list[dict[str, object]]:
-    """Every head-to-head pair at the latest point, closest-run last.
-
-    Each is oriented winner first, with the ballots preferring neither (ranked
-    equal, or both left unranked, R-10.4) shown between the two shares, and
-    the margin's history as a sparkline. Pairs involving a leader come first.
-    With ``intervals``, each margin carries its 95 % interval, and the
-    sparkline the interval's history as a band.
-    """
-    last = points[-1]
-    previous = points[-2] if len(points) > 1 else None
-    slots = {o: k for k, (o, _label) in enumerate(options, start=1)}
-    labels = dict(options)
-    n = last.ballot_count
-    out = []
-    for (a, _la), (b, _lb) in itertools.combinations(options, 2):
-        left, right = (a, b) if last.margin(a, b) >= 0 else (b, a)
-        won, lost = last.pairwise[left][right], last.pairwise[right][left]
-        margin = _pct(won - lost, n)
-        history = [_pct(p.margin(left, right), p.ballot_count) for p in points]
-        delta = margin - history[-2] if previous is not None else None
-        band = [_interval(p, left, right) for p in points] if intervals else None
-        out.append(
-            {
-                "left": {
-                    "label": labels[left],
-                    "slot": slots[left],
-                    "count": won,
-                    "pct": _pct(won, n),
-                },
-                "right": {
-                    "label": labels[right],
-                    "slot": slots[right],
-                    "count": lost,
-                    "pct": _pct(lost, n),
-                },
-                "neither": n - won - lost,
-                "neither_pct": _pct(n - won - lost, n),
-                "tied": won == lost,
-                "margin": _signed(margin),
-                "margin_ballots": won - lost,
-                "delta": _signed(delta) if delta is not None else None,
-                "delta_dir": None if delta is None else _direction(delta, 0.0),
-                "interval": _shown_interval(band[-1]) if band else None,
-                "spark": _spark(history, band) if len(history) > 1 else None,
-                "leader": bool({left, right} & set(last.leaders)),
-                "abs_margin": abs(won - lost),
-            }
-        )
-    out.sort(key=lambda d: (not d["leader"], -int(d["abs_margin"])))  # type: ignore[call-overload]
-    return out
-
-
-def _shown_interval(bounds: tuple[float, float]) -> dict[str, object]:
-    """An interval for display: its bounds, and whether it leaves zero out —
-    the duel's winner is then clear of the noise of the ballots received."""
-    lo, hi = bounds
-    # Both bounds to one decimal, so "−19,0 à +23,8" reads as a pair.
-    return {"lo": _signed(lo, 1), "hi": _signed(hi, 1), "clear": lo > 0 or hi < 0}
-
-
-def summary(
-    points: list[TrendPoint],
-    options: list[tuple[OptionId, str]],
-    *,
-    schulze: bool,
-    intervals: bool,
-) -> dict[str, object]:
-    """The headline figures of the latest point, and how they moved since the
-    one before."""
-    last = points[-1]
-    previous = points[-2] if len(points) > 1 else None
-    labels = dict(options)
-    leaders = last.leaders
-    lead: dict[str, object] | None = None
-    if len(leaders) == 1:
-        leader = leaders[0]
-        if schulze:
-            duel = last.tightest_duel(leader)
-            if duel is not None:
-                rival, margin = duel
-                pts = _pct(margin, last.ballot_count)
-                before = (
-                    _pct(previous.margin(leader, rival), previous.ballot_count)
-                    if previous
-                    else None
-                )
-                lead = {
-                    "pts": _signed(pts),
-                    "interval": (
-                        _shown_interval(_interval(last, leader, rival)) if intervals else None
-                    ),
-                    "ballots": margin,
-                    "rival": labels[rival],
-                    "for_pct": _pct(last.pairwise[leader][rival], last.ballot_count),
-                    "against_pct": _pct(last.pairwise[rival][leader], last.ballot_count),
-                    "delta": _signed(pts - before) if before is not None else None,
-                    "delta_dir": _direction(pts, before),
-                }
-        elif last.counts is not None:
-            counts = last.counts
-            runner = max((o for o in counts if o != leader), key=counts.__getitem__, default=None)
-            if runner is not None:
-                gap = counts[leader] - counts[runner]
-                lead = {
-                    "pts": _signed(_pct(gap, last.ballot_count)),
-                    "ballots": gap,
-                    "rival": labels[runner],
-                    "for_pct": _pct(counts[leader], last.ballot_count),
-                    "against_pct": _pct(counts[runner], last.ballot_count),
-                    "delta": None,
-                    "delta_dir": None,
-                    "interval": None,
-                }
-    return {
-        "through": last.through,
-        "count": last.ballot_count,
-        "count_delta": last.ballot_count - previous.ballot_count if previous else None,
-        "leaders": [labels[o] for o in leaders],
-        "leader_changed": previous is not None and set(previous.leaders) != set(leaders),
-        "condorcet": labels[last.condorcet_winner] if last.condorcet_winner else None,
-        "smith": [labels[o] for o in last.smith_set],
-        "lead": lead,
-    }
-
-
-def matrix(point: TrendPoint, options: list[tuple[OptionId, str]]) -> list[dict[str, object]]:
-    """The duel matrix at one point (§8.1, the published matrix of R-11.2):
-    row ``i``, column ``j`` is the number of ballots ranking ``i`` above ``j``.
-
-    Each cell says whether the row's option wins, loses or ties that duel, so
-    the template can mark it by more than colour (R-14.1).
-    """
-    n = point.ballot_count
-    rows = []
-    for slot, (i, label) in enumerate(options, start=1):
-        cells: list[dict[str, object]] = []
-        for j, _other in options:
-            if i == j:
-                cells.append({"self": True})
-                continue
-            won, lost = point.pairwise[i][j], point.pairwise[j][i]
-            cells.append(
-                {
-                    "self": False,
-                    "count": won,
-                    "pct": _pct(won, n),
-                    "outcome": "win" if won > lost else "loss" if won < lost else "tie",
-                }
-            )
-        rows.append({"slot": slot, "label": label, "cells": cells})
-    return rows
-
-
 def table(
     points: list[TrendPoint], options: list[tuple[OptionId, str]], *, schulze: bool
 ) -> list[dict[str, object]]:
@@ -520,36 +306,3 @@ def table(
         }
         for p in reversed(points)
     ]
-
-
-def ballot_types(point: TrendPoint, options: list[tuple[OptionId, str]]) -> list[dict[str, object]]:
-    """The ballots per distinct ranking at one point, most frequent first.
-
-    Each ranking is a list of groups of options — one option per group unless
-    the ballot ranks some equal — followed by the options it left out, which
-    R-10.4 counts as equal-last.
-    """
-    slots = {o: k for k, (o, _label) in enumerate(options, start=1)}
-    labels = dict(options)
-    n = point.ballot_count
-    top = max(point.orderings.values(), default=0)
-    rows = []
-    for ordering, count in sorted(
-        point.orderings.items(), key=lambda kv: (-kv[1], [[slots[o] for o in g] for g in kv[0]])
-    ):
-        ranked = {o for group in ordering for o in group}
-        rows.append(
-            {
-                "groups": [
-                    [{"label": labels[o], "slot": slots[o]} for o in group] for group in ordering
-                ],
-                "unranked": [
-                    {"label": label, "slot": slots[o]} for o, label in options if o not in ranked
-                ],
-                "count": count,
-                "pct": _pct(count, n),
-                "bar": count,
-                "rest": top - count,
-            }
-        )
-    return rows
