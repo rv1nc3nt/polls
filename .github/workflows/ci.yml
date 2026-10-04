@@ -25,6 +25,16 @@ jobs:
       # caught by ansible/roles/polls/tasks/deploy.yml's own --check, i.e. at
       # deploy time. Catch it here instead.
       - run: uv run python manage.py makemigrations --check --dry-run
+      # Django's deployment checklist under the production settings, failing on
+      # any warning (review A-2). The three this project answers otherwise are
+      # silenced in the settings, each with its reason; the values below exist
+      # only so prod.py loads.
+      - run: uv run python manage.py check --deploy --fail-level WARNING
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings.prod
+          DJANGO_SECRET_KEY: ci-check-deploy-only-0123456789-abcdefghijklmnopqrstuvwxyz
+          DJANGO_ALLOWED_HOSTS: polls.example.org
+          DJANGO_PUBLIC_BASE_URL: https://polls.example.org
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run mypy src tests
@@ -75,9 +85,9 @@ jobs:
       - run: npm run lint
 
   browser:
-    # tests/browser (review C-8): a voter's journey and the back-office editor
-    # in headless Chromium against the live test server, each page checked for
-    # script errors, CSP violations and axe-core's WCAG 2.1 AA rules. The HTTP
+    # tests/browser (review C-8): a voter's journey, the back-office editor
+    # and every main page type (review C-3) in headless Chromium against the live test server, each page checked for
+    # script errors, CSP violations and axe-core's WCAG 2.2 AA rules. The HTTP
     # tests cannot see any of the three; the Origin a browser sends broke
     # every ballot without one of them failing (decision log #50).
     runs-on: ubuntu-latest

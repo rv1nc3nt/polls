@@ -170,6 +170,11 @@ utilisées :
 | `polls_source_code_url` | dépôt du projet sur GitHub | adresse du lien « Code source » en pied de chaque page, à côté de la mention de la licence 0BSD ; à changer pour pointer vers votre propre dépôt si vous exploitez une version modifiée. Hors de GitHub, le lien s'affiche sans le logo GitHub. |
 | `polls_trend_polls` | `[]` | identifiants des scrutins dont l'espace mairie affiche la tendance (guide de l'espace mairie, section 8). Réglage provisoire : il deviendra une option de chaque scrutin, à choisir avant son ouverture. Vide, aucun scrutin ne l'affiche. Dans `inventory.ini`, écrire les identifiants séparés par des virgules, sans crochets ni guillemets : `polls_trend_polls=a71b5307-…,4051c4c3-…`. |
 | `polls_trusted_proxy_hops` | `1` | nombre de relais devant gunicorn : `1` pour le seul nginx du rôle, `2` si TLS est terminé par un autre relais placé devant (section 11). |
+| `polls_rate_limit_registration` | `5/1h` | envois du formulaire d'inscription admis par adresse, ici cinq par heure. La forme est toujours `nombre/durée`, la durée en `s`, `m`, `h` ou `d` (secondes, minutes, heures, jours). À relever pour une commune où beaucoup d'électeurs s'inscrivent depuis une même adresse, une médiathèque par exemple. |
+| `polls_rate_limit_email` | `3/1h` | courriels de confirmation que le formulaire d'inscription peut envoyer à la demande d'une même adresse. Volontairement plus strict que le précédent : le formulaire ne doit pas servir à envoyer des courriels en masse. |
+| `polls_rate_limit_login_address` | `10/15m` | échecs de connexion à l'espace mairie admis par adresse (section 11). |
+| `polls_rate_limit_login_account` | `20/1h` | échecs de connexion admis par identifiant tapé, toutes adresses confondues (section 11). |
+| `polls_option_details_preview_length` | `1000` | nombre de caractères de la description d'une proposition affichés avant le lien « Lire la suite ». |
 
 ## 5. Première mise en service applicative
 
@@ -208,7 +213,7 @@ qu'une première tourne se termine en code 0 sans rien faire ; un hôte qui éta
 | `open_poll` | `announced → open` : fige la copie de la liste électorale et tire la graine d'ouverture, dans la même transaction que l'état. N'agit que sur un scrutin déjà annoncé — un scrutin resté `draft` n'ouvre jamais tout seul. | scrutins `announced` dont `opens_at` est atteint |
 | `close_poll` | `open → closed` : calcule l'empreinte de clôture, fige les compteurs de participation. Ne dépouille pas. | scrutins `open` dont l'échéance de saisie est atteinte |
 | `send_reminders` | rappel 48 h avant clôture aux inscrits actifs n'ayant pas voté. | |
-| `retention_purge` | efface les données d'identité des scrutins clos depuis deux mois. | |
+| `retention_purge` | efface les données d'identité des scrutins clos depuis deux mois, et les sessions expirées (elles peuvent contenir le récépissé d'un électeur). | |
 
 **Sous cron** (défaut, universel) : `/etc/cron.d/polls` ; le script
 `/opt/polls/bin/polls-manage` **source explicitement** le fichier
@@ -355,7 +360,8 @@ remplacés.
   les essais répartis sur de nombreuses adresses. Chaque échec est noté dans le
   journal du service (`journalctl -u polls`, message `sign-in failed`), avec
   une empreinte de l'adresse, jamais l'identifiant tapé. Les seuils se règlent
-  par `DJANGO_RATE_LIMIT_LOGIN_ADDRESS` et `DJANGO_RATE_LIMIT_LOGIN_ACCOUNT`.
+  par `polls_rate_limit_login_address` et `polls_rate_limit_login_account`
+  (section 4).
 - **En-têtes de sécurité** : chaque page envoie une politique de sécurité du
   contenu (`Content-Security-Policy`) qui n'autorise que les scripts, styles,
   images et polices du site lui-même, et les seules vidéos YouTube intégrées

@@ -1,0 +1,678 @@
+{
+  "format": 1,
+  "bases": {
+    "T-9 document": {
+      "source": "schulze.json, T-9 cyclic majority; draws and serialisation_bytes derived by hand in derive-by-hand.sh; strongest paths and orderings hand-worked; counts, labels and poll_id chosen to add up",
+      "document": {
+        "format_version": "1",
+        "poll_id": "00000000-0000-4000-8000-000000000009",
+        "tally_method": "schulze",
+        "tally_method_version": "1",
+        "closure_hash": "92276cc34889241ee389f0113ee665e396284dc9d3a7f4813c61866c08ea8fd5",
+        "opening_seed": "0000000000000000000000000000000000000000000000000000000000000000",
+        "counts": {
+          "registered": 5,
+          "ballots_online": 2,
+          "ballots_paper": 1,
+          "paper_uncountersigned": 0,
+          "non_voters": 2
+        },
+        "closure_override_reason": "",
+        "options": {
+          "a": {
+            "fr": "Proposition A"
+          },
+          "b": {
+            "fr": "Proposition B"
+          },
+          "c": {
+            "fr": "Proposition C"
+          }
+        },
+        "ballots": [
+          {
+            "tracking_code": "AAAAAA2222",
+            "ranking": [
+              [
+                "a"
+              ],
+              [
+                "b"
+              ],
+              [
+                "c"
+              ]
+            ]
+          },
+          {
+            "tracking_code": "AAAAAA2223",
+            "ranking": [
+              [
+                "b"
+              ],
+              [
+                "c"
+              ],
+              [
+                "a"
+              ]
+            ]
+          },
+          {
+            "tracking_code": "AAAAAA2224",
+            "ranking": [
+              [
+                "c"
+              ],
+              [
+                "a"
+              ],
+              [
+                "b"
+              ]
+            ]
+          }
+        ],
+        "ballot_count": 3,
+        "winner": "c",
+        "matrix": {
+          "a": {
+            "b": 2,
+            "c": 1
+          },
+          "b": {
+            "a": 1,
+            "c": 2
+          },
+          "c": {
+            "a": 2,
+            "b": 1
+          }
+        },
+        "derivation": {
+          "pairwise": {
+            "a": {
+              "b": 2,
+              "c": 1
+            },
+            "b": {
+              "a": 1,
+              "c": 2
+            },
+            "c": {
+              "a": 2,
+              "b": 1
+            }
+          },
+          "paths": {
+            "a": {
+              "b": 2,
+              "c": 2
+            },
+            "b": {
+              "a": 2,
+              "c": 2
+            },
+            "c": {
+              "a": 2,
+              "b": 2
+            }
+          },
+          "winners": [
+            "a",
+            "b",
+            "c"
+          ]
+        },
+        "serialisation_bytes": 183,
+        "tiebreak": {
+          "rule": "computed",
+          "tied": [
+            "a",
+            "b",
+            "c"
+          ],
+          "order": [
+            {
+              "option_id": "c",
+              "draw": "6d3c64997cb726be77ae144f0fdf7612ec4dca36c26141e9487f46a14457b160"
+            },
+            {
+              "option_id": "b",
+              "draw": "9b387f86cf5b595b41e61bbb5a009eeed43f01368b7b8bb0a6e3b438a3931003"
+            },
+            {
+              "option_id": "a",
+              "draw": "e291fee0b812ba17a520f8707ab40efdf427680e773567efe4350eb57375db78"
+            }
+          ],
+          "winner": "c"
+        },
+        "orderings": {
+          "a>b>c": 1,
+          "b>c>a": 1,
+          "c>a>b": 1
+        }
+      }
+    },
+    "plurality document": {
+      "source": "counted.json, plurality counts the first group; serialisation_bytes derived by hand in derive-by-hand.sh; counts, labels, seed and poll_id chosen to add up",
+      "document": {
+        "format_version": "1",
+        "poll_id": "00000000-0000-4000-8000-000000000002",
+        "tally_method": "plurality",
+        "tally_method_version": "1",
+        "closure_hash": "b699f48a09a7820f9dbc22c145f9212d9b47bd9ffcf760a0e07fa7c7dfb04d69",
+        "opening_seed": "abababababababababababababababababababababababababababababababab",
+        "counts": {
+          "registered": 6,
+          "ballots_online": 4,
+          "ballots_paper": 0,
+          "paper_uncountersigned": 0,
+          "non_voters": 2
+        },
+        "closure_override_reason": "",
+        "options": {
+          "a": {
+            "fr": "Proposition A"
+          },
+          "b": {
+            "fr": "Proposition B"
+          },
+          "c": {
+            "fr": "Proposition C"
+          }
+        },
+        "ballots": [
+          {
+            "tracking_code": "AAAAAA2222",
+            "ranking": [
+              [
+                "a"
+              ],
+              [
+                "b"
+              ]
+            ]
+          },
+          {
+            "tracking_code": "AAAAAA2223",
+            "ranking": [
+              [
+                "a"
+              ]
+            ]
+          },
+          {
+            "tracking_code": "AAAAAA2224",
+            "ranking": [
+              [
+                "b"
+              ],
+              [
+                "a"
+              ]
+            ]
+          },
+          {
+            "tracking_code": "AAAAAA2225",
+            "ranking": [
+              [
+                "c"
+              ]
+            ]
+          }
+        ],
+        "ballot_count": 4,
+        "winner": "a",
+        "matrix": {
+          "a": {
+            "b": 2,
+            "c": 3
+          },
+          "b": {
+            "a": 1,
+            "c": 2
+          },
+          "c": {
+            "a": 1,
+            "b": 1
+          }
+        },
+        "derivation": {
+          "counts": {
+            "a": 2,
+            "b": 1,
+            "c": 1
+          },
+          "winners": [
+            "a"
+          ]
+        },
+        "serialisation_bytes": 208
+      }
+    }
+  },
+  "cases": [
+    {
+      "name": "the T-9 document, given its closure hash and seed, is verified",
+      "source": "the base as written; a noted value is typed, so case and spaces are forgiven",
+      "base": "T-9 document",
+      "edits": [],
+      "anchors": {
+        "closure_hash": "  92276CC34889241EE389F0113EE665E396284DC9D3A7F4813C61866C08EA8FD5 ",
+        "opening_seed": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "verdict": "verified"
+    },
+    {
+      "name": "the T-9 document alone is consistent but not anchored",
+      "source": "nothing outside the document vouches for it",
+      "base": "T-9 document",
+      "edits": [],
+      "anchors": {},
+      "verdict": "not_anchored"
+    },
+    {
+      "name": "the T-9 document against another closure hash",
+      "source": "a self-consistent document whose ballots are not those hashed at closure",
+      "base": "T-9 document",
+      "edits": [],
+      "anchors": {
+        "closure_hash": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "verdict": "differs",
+      "differs": [
+        "hash_at_closure"
+      ]
+    },
+    {
+      "name": "the T-9 document against another opening seed",
+      "source": "the seed noted at opening is not the document's",
+      "base": "T-9 document",
+      "edits": [],
+      "anchors": {
+        "closure_hash": "92276cc34889241ee389f0113ee665e396284dc9d3a7f4813c61866c08ea8fd5",
+        "opening_seed": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "verdict": "differs",
+      "differs": [
+        "seed_at_opening"
+      ]
+    },
+    {
+      "name": "another winner announced",
+      "source": "the draw gives c; a is announced",
+      "base": "T-9 document",
+      "edits": [
+        {
+          "set": [
+            "winner"
+          ],
+          "value": "a"
+        }
+      ],
+      "anchors": {
+        "closure_hash": "92276cc34889241ee389f0113ee665e396284dc9d3a7f4813c61866c08ea8fd5"
+      },
+      "verdict": "differs",
+      "differs": [
+        "winner"
+      ]
+    },
+    {
+      "name": "an ordering counted twice",
+      "source": "one ballot ranks b > c > a, not two",
+      "base": "T-9 document",
+      "edits": [
+        {
+          "set": [
+            "orderings",
+            "b>c>a"
+          ],
+          "value": 2
+        }
+      ],
+      "anchors": {
+        "closure_hash": "92276cc34889241ee389f0113ee665e396284dc9d3a7f4813c61866c08ea8fd5"
+      },
+      "verdict": "differs",
+      "differs": [
+        "orderings"
+      ]
+    },
+    {
+      "name": "a strongest path altered",
+      "source": "every strongest path of the cycle is 2",
+      "base": "T-9 document",
+      "edits": [
+        {
+          "set": [
+            "derivation",
+            "paths",
+            "a",
+            "c"
+          ],
+          "value": 3
+        }
+      ],
+      "anchors": {
+        "closure_hash": "92276cc34889241ee389f0113ee665e396284dc9d3a7f4813c61866c08ea8fd5"
+      },
+      "verdict": "differs",
+      "differs": [
+        "derivation"
+      ]
+    },
+    {
+      "name": "a matrix cell altered",
+      "source": "two of three ballots rank a above b; derivation.pairwise is left as it was",
+      "base": "T-9 document",
+      "edits": [
+        {
+          "set": [
+            "matrix",
+            "a",
+            "b"
+          ],
+          "value": 3
+        }
+      ],
+      "anchors": {
+        "closure_hash": "92276cc34889241ee389f0113ee665e396284dc9d3a7f4813c61866c08ea8fd5"
+      },
+      "verdict": "differs",
+      "differs": [
+        "matrix"
+      ]
+    },
+    {
+      "name": "a ballot count that is not the list's",
+      "source": "the list holds three ballots",
+      "base": "T-9 document",
+      "edits": [
+        {
+          "set": [
+            "ballot_count"
+          ],
+          "value": 4
+        }
+      ],
+      "anchors": {
+        "closure_hash": "92276cc34889241ee389f0113ee665e396284dc9d3a7f4813c61866c08ea8fd5"
+      },
+      "verdict": "differs",
+      "differs": [
+        "ballot_count"
+      ]
+    },
+    {
+      "name": "participation that does not add up",
+      "source": "2 + 1 + 0 + 3 is not the 5 registered",
+      "base": "T-9 document",
+      "edits": [
+        {
+          "set": [
+            "counts",
+            "non_voters"
+          ],
+          "value": 3
+        }
+      ],
+      "anchors": {
+        "closure_hash": "92276cc34889241ee389f0113ee665e396284dc9d3a7f4813c61866c08ea8fd5"
+      },
+      "verdict": "differs",
+      "differs": [
+        "participation"
+      ]
+    },
+    {
+      "name": "the document's closure hash in upper case",
+      "source": "the application writes lower-case hex; the reader's anchor still matches",
+      "base": "T-9 document",
+      "edits": [
+        {
+          "set": [
+            "closure_hash"
+          ],
+          "value": "92276CC34889241EE389F0113EE665E396284DC9D3A7F4813C61866C08EA8FD5"
+        }
+      ],
+      "anchors": {
+        "closure_hash": "92276cc34889241ee389f0113ee665e396284dc9d3a7f4813c61866c08ea8fd5"
+      },
+      "verdict": "differs",
+      "differs": [
+        "closure_hash"
+      ]
+    },
+    {
+      "name": "a draw published in another order",
+      "source": "the hash chain orders c, b, a; the winner stays c",
+      "base": "T-9 document",
+      "edits": [
+        {
+          "set": [
+            "tiebreak",
+            "order",
+            0,
+            "option_id"
+          ],
+          "value": "b"
+        },
+        {
+          "set": [
+            "tiebreak",
+            "order",
+            1,
+            "option_id"
+          ],
+          "value": "c"
+        }
+      ],
+      "anchors": {
+        "closure_hash": "92276cc34889241ee389f0113ee665e396284dc9d3a7f4813c61866c08ea8fd5"
+      },
+      "verdict": "differs",
+      "differs": [
+        "tiebreak"
+      ]
+    },
+    {
+      "name": "a tie published without its draw",
+      "source": "the tally ties three ways, so the document owes the draw",
+      "base": "T-9 document",
+      "edits": [
+        {
+          "remove": [
+            "tiebreak"
+          ]
+        }
+      ],
+      "anchors": {
+        "closure_hash": "92276cc34889241ee389f0113ee665e396284dc9d3a7f4813c61866c08ea8fd5"
+      },
+      "verdict": "differs",
+      "differs": [
+        "tiebreak"
+      ]
+    },
+    {
+      "name": "a method version the verifier does not implement",
+      "source": "recounting it under version 1 would agree or disagree by chance",
+      "base": "T-9 document",
+      "edits": [
+        {
+          "set": [
+            "tally_method_version"
+          ],
+          "value": "2"
+        }
+      ],
+      "anchors": {
+        "closure_hash": "92276cc34889241ee389f0113ee665e396284dc9d3a7f4813c61866c08ea8fd5"
+      },
+      "verdict": "refused"
+    },
+    {
+      "name": "a method named in another spelling",
+      "source": "the contract names three identifiers exactly",
+      "base": "T-9 document",
+      "edits": [
+        {
+          "set": [
+            "tally_method"
+          ],
+          "value": "Schulze"
+        }
+      ],
+      "anchors": {
+        "closure_hash": "92276cc34889241ee389f0113ee665e396284dc9d3a7f4813c61866c08ea8fd5"
+      },
+      "verdict": "refused"
+    },
+    {
+      "name": "a layout version the verifier does not read",
+      "source": "publication-format.md, Versioning",
+      "base": "T-9 document",
+      "edits": [
+        {
+          "set": [
+            "format_version"
+          ],
+          "value": "2"
+        }
+      ],
+      "anchors": {
+        "closure_hash": "92276cc34889241ee389f0113ee665e396284dc9d3a7f4813c61866c08ea8fd5"
+      },
+      "verdict": "refused"
+    },
+    {
+      "name": "a key given twice",
+      "source": "two readers must not find two winners in one file",
+      "base": "T-9 document",
+      "edits": [
+        {
+          "append_member": "winner",
+          "value": "a"
+        }
+      ],
+      "anchors": {
+        "closure_hash": "92276cc34889241ee389f0113ee665e396284dc9d3a7f4813c61866c08ea8fd5"
+      },
+      "verdict": "refused"
+    },
+    {
+      "name": "a tracking code on two ballots",
+      "source": "INV-11: the database could not have published it",
+      "base": "T-9 document",
+      "edits": [
+        {
+          "set": [
+            "ballots",
+            1,
+            "tracking_code"
+          ],
+          "value": "AAAAAA2222"
+        }
+      ],
+      "anchors": {
+        "closure_hash": "92276cc34889241ee389f0113ee665e396284dc9d3a7f4813c61866c08ea8fd5"
+      },
+      "verdict": "refused"
+    },
+    {
+      "name": "the participation counts left out",
+      "source": "each count is required",
+      "base": "T-9 document",
+      "edits": [
+        {
+          "remove": [
+            "counts"
+          ]
+        }
+      ],
+      "anchors": {
+        "closure_hash": "92276cc34889241ee389f0113ee665e396284dc9d3a7f4813c61866c08ea8fd5"
+      },
+      "verdict": "refused"
+    },
+    {
+      "name": "the plurality document, given its closure hash, is verified",
+      "source": "the base as written",
+      "base": "plurality document",
+      "edits": [],
+      "anchors": {
+        "closure_hash": "b699f48a09a7820f9dbc22c145f9212d9b47bd9ffcf760a0e07fa7c7dfb04d69"
+      },
+      "verdict": "verified"
+    },
+    {
+      "name": "a vote count altered",
+      "source": "one first preference goes to b",
+      "base": "plurality document",
+      "edits": [
+        {
+          "set": [
+            "derivation",
+            "counts",
+            "b"
+          ],
+          "value": 2
+        }
+      ],
+      "anchors": {
+        "closure_hash": "b699f48a09a7820f9dbc22c145f9212d9b47bd9ffcf760a0e07fa7c7dfb04d69"
+      },
+      "verdict": "differs",
+      "differs": [
+        "counts"
+      ]
+    },
+    {
+      "name": "another tally winner in the derivation",
+      "source": "a has two first preferences, b one",
+      "base": "plurality document",
+      "edits": [
+        {
+          "set": [
+            "derivation",
+            "winners"
+          ],
+          "value": [
+            "b"
+          ]
+        }
+      ],
+      "anchors": {
+        "closure_hash": "b699f48a09a7820f9dbc22c145f9212d9b47bd9ffcf760a0e07fa7c7dfb04d69"
+      },
+      "verdict": "differs",
+      "differs": [
+        "derivation"
+      ]
+    },
+    {
+      "name": "the method restated as approval",
+      "source": "approval counts a 3, b 2, c 1: a still wins, but not on the counts published",
+      "base": "plurality document",
+      "edits": [
+        {
+          "set": [
+            "tally_method"
+          ],
+          "value": "approval"
+        }
+      ],
+      "anchors": {
+        "closure_hash": "b699f48a09a7820f9dbc22c145f9212d9b47bd9ffcf760a0e07fa7c7dfb04d69"
+      },
+      "verdict": "differs",
+      "differs": [
+        "counts"
+      ]
+    }
+  ]
+}

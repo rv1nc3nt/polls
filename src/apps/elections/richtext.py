@@ -104,6 +104,19 @@ _ALLOWED_TAGS = {
 }
 _ALLOWED_ATTRIBUTES = {"a": {"href", "title"}}
 
+#: The placeholders ``_render`` puts in the text, in the forms it builds them.
+_PLACEHOLDER = re.compile(r"YOUTUBEEMBED[0-9a-f]{32}ENDEMBED|POLLIMAGE[0-9a-f]{32}ENDIMAGE")
+
+
+def _no_placeholder(element: str, attribute: str, value: str) -> str:
+    """Drop any placeholder from an attribute value (review A-3).
+
+    A placeholder stands for markup and is swapped back only where it is text.
+    An image reference written as a link's address or title,
+    ``[voir](![a](image:1))``, would otherwise put an ``<img>`` tag inside the
+    attribute and break the link's markup."""
+    return _PLACEHOLDER.sub("", value)
+
 
 def render_poll_description(poll: Poll, language: str | None = None) -> SafeString:
     """The sanitised HTML for a poll's own description (R-3.1, R-3.12)."""
@@ -177,6 +190,7 @@ def _render(poll: Poll, raw: str) -> SafeString:
         attributes=_ALLOWED_ATTRIBUTES,
         link_rel="noopener noreferrer nofollow ugc",
         url_schemes={"http", "https"},
+        attribute_filter=_no_placeholder,
     )
 
     for token, video_id in embeds.items():

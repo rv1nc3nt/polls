@@ -238,7 +238,7 @@ pub fn parse_hex(text: &str) -> Option<Vec<u8>> {
     if !digits.len().is_multiple_of(2) {
         return None;
     }
-    let nibble = |b: u8| (b as char).to_digit(16).filter(|_| b.is_ascii_hexdigit());
+    let nibble = |b: u8| char::from(b).to_digit(16).filter(|_| b.is_ascii_hexdigit());
     digits
         .chunks(2)
         // Two hex digits make at most 255, so the conversion never fails.

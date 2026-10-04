@@ -223,8 +223,14 @@ expliquées](methodes-de-depouillement.md).
 
 Vous pouvez :
 
-1. **retrouver votre code de suivi** dans la liste et vérifier que votre
-   classement est celui que vous avez déposé ;
+1. **retrouver votre bulletin** : saisissez votre code de suivi dans la
+   rubrique « Retrouver votre bulletin » de la page de résultats, tel qu'il
+   figure sur votre récépissé (`ABCDE-FGHJK`), et vérifiez que le classement
+   affiché est celui que vous avez déposé. Les propositions que vous n'avez pas
+   classées n'y figurent pas. Dans les fichiers CSV et JSON, le code est écrit
+   **sans tiret** (`ABCDEFGHJK`) et les propositions par leur identifiant : si
+   vous y cherchez votre code, tapez-le sans le tiret. Si votre code ne figure
+   pas dans la liste, signalez-le à la mairie ;
 2. **recalculer le résultat** vous-même à partir des données publiées — une
    implémentation indépendante du dépouillement et de l'empreinte est publiée à
    cette fin. Voir [Vérifier un résultat par vous-même](verifier.md) pour la

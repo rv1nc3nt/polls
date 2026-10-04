@@ -35,6 +35,17 @@ impl Method {
         }
     }
 
+    /// The method a publication document names (review B-3): exactly one of
+    /// its three identifiers. The document is written by the application and
+    /// the contract enumerates them, so anything else is a malformed document,
+    /// not a spelling to forgive as [`Method::parse`] does for typed input.
+    #[must_use]
+    pub fn from_id(id: &str) -> Option<Method> {
+        [Method::Schulze, Method::Plurality, Method::Approval]
+            .into_iter()
+            .find(|method| method.id() == id)
+    }
+
     /// The publication's identifier for this method.
     #[must_use]
     pub fn id(self) -> &'static str {
@@ -47,10 +58,10 @@ impl Method {
 }
 
 /// Votes per option, in `options` order. `method` must be `Plurality` or
-/// `Approval`; Schulze is not a count.
+/// `Approval`; Schulze is not a count. `u64`, as `schulze::pairwise` says why.
 #[must_use]
-pub fn counts(ballots: &[Vec<Vec<String>>], options: &[String], method: Method) -> Vec<u32> {
-    let mut counts = vec![0u32; options.len()];
+pub fn counts(ballots: &[Vec<Vec<String>>], options: &[String], method: Method) -> Vec<u64> {
+    let mut counts = vec![0u64; options.len()];
     for ranking in ballots {
         let chosen: Vec<&String> = match method {
             Method::Plurality => ranking
@@ -72,7 +83,7 @@ pub fn counts(ballots: &[Vec<Vec<String>>], options: &[String], method: Method) 
 /// The options with the highest count, in `options` order; none without
 /// ballots. More than one means a tie for the §8.3 tie-break.
 #[must_use]
-pub fn winners(counts: &[u32], options: &[String], ballot_count: usize) -> Vec<String> {
+pub fn winners(counts: &[u64], options: &[String], ballot_count: usize) -> Vec<String> {
     if ballot_count == 0 {
         return Vec::new();
     }
@@ -105,6 +116,16 @@ mod tests {
         assert_eq!(Method::parse(" par assentiment "), Some(Method::Approval));
         assert_eq!(Method::parse("approval"), Some(Method::Approval));
         assert_eq!(Method::parse("borda"), None);
+    }
+
+    #[test]
+    fn from_id_takes_the_three_identifiers_and_nothing_else() {
+        assert_eq!(Method::from_id("schulze"), Some(Method::Schulze));
+        assert_eq!(Method::from_id("plurality"), Some(Method::Plurality));
+        assert_eq!(Method::from_id("approval"), Some(Method::Approval));
+        for loose in ["Schulze", " schulze", "majoritaire", "par assentiment", ""] {
+            assert_eq!(Method::from_id(loose), None, "accepted {loose:?}");
+        }
     }
 
     #[test]

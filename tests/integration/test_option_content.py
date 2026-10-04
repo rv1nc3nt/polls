@@ -279,6 +279,32 @@ def test_image_reference_size_suffix_alt_text_is_escaped(
     assert 'class="poll-image--small"' in html
 
 
+@pytest.mark.parametrize(
+    "markdown",
+    ["[voir](![a](image:{n}))", '[voir](https://example.org "![a](image:{n})")'],
+    ids=["in-href", "in-title"],
+)
+def test_an_image_reference_inside_a_link_attribute_is_dropped(
+    open_window_poll: Poll, admin_user: User, markdown: str
+) -> None:
+    """Review A-3. A placeholder that lands in an attribute is removed there,
+    so no ``<img>`` tag is written inside a link's address or title."""
+    option = open_window_poll.options.first()
+    assert option is not None
+    image = pollimages.add_poll_image(
+        open_window_poll, SimpleUploadedFile("a.png", _PNG), alt_text="", actor=admin_user
+    )
+
+    option.details_i18n = {"fr": markdown.format(n=image.short_id)}
+    option.save(update_fields=["details_i18n"])
+    html = str(richtext.render_option_details(option))
+
+    assert "<img" not in html
+    assert "POLLIMAGE" not in html
+    assert html.count("<a ") == 1
+    assert 'rel="noopener noreferrer nofollow ugc">voir</a>' in html
+
+
 def test_image_reference_bad_size_suffix_is_not_recognised(
     open_window_poll: Poll, admin_user: User
 ) -> None:

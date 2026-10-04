@@ -17,6 +17,7 @@ import uuid
 from datetime import datetime, timedelta
 
 import pytest
+from django.contrib.sessions.models import Session
 from django.core.management import call_command
 from django.db import connection, transaction
 from django.db.models import QuerySet
@@ -27,6 +28,7 @@ from apps.backoffice.auditlog import resolve_refs
 from apps.ballots import services as ballots
 from apps.ballots.models import Ballot
 from apps.core.models import User
+from apps.core.sessions import SessionStore
 from apps.elections.models import (
     Poll,
     PollOption,
@@ -528,6 +530,22 @@ def test_t66_the_command_purges_the_working_roll_alongside_closed_polls(db: None
     # No draft poll at all: the working roll is idle from the outset.
     call_command("retention_purge")
     assert not WorkingRollEntry.objects.exists()
+
+
+def test_the_command_deletes_expired_sessions_and_keeps_live_ones(db: None) -> None:
+    """A voter's session holds their receipt or ballot hash, and Django never
+    deletes an expired one by itself (decision log #53)."""
+    expired, live = SessionStore(), SessionStore()
+    for session in (expired, live):
+        session["receipt:x"] = {"tracking_code": "AAAAAAAAAA"}
+        session.save()
+    Session.objects.filter(session_key=expired.session_key).update(
+        expire_date=timezone.now() - timedelta(days=1)
+    )
+
+    call_command("retention_purge")
+
+    assert list(Session.objects.values_list("session_key", flat=True)) == [live.session_key]
 
 
 # --- T-76: the withdrawal anchor (R-3.11, R-13.3) --------------------------

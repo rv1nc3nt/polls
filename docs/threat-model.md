@@ -97,11 +97,13 @@ A stolen backup, a read-only account, a disk image: everything in
 - **Cannot** link an online ballot to its elector. No column or relation joins
   them (INV-1); the registration stores `voter_hash` and the ballot
   `ballot_hash`, two digests of a token that is never stored (§7); a ballot
-  carries no time and the table no insertion order (`WITHOUT ROWID`, #42); a
-  session's expiry is rounded to the day.
-- **Residual** (#42): dates to the day remain (a registration's creation, a
-  trend point's day), so a day with one ballot and one registration pairs
-  them. SQLite's write-ahead log keeps recent pages in write order until its
+  carries no time and the table no insertion order (`WITHOUT ROWID`, #42);
+  nor does the session table, whose voter rows hold a receipt or a ballot
+  hash (`WITHOUT ROWID`, #53), and whose expiries are rounded to the day and
+  deleted once past.
+- **Residual** (#42, #53): a trend point's day remains, and a registration's
+  creation instant, which is exact. A day with one ballot and one
+  registration pairs them. SQLite's write-ahead log keeps recent pages in write order until its
   next checkpoint; the nightly backup (`VACUUM INTO`) does not carry it, but a
   copy of the live files might. The optional PostgreSQL backend stores rows in
   insertion order and would need its own answer before being offered.

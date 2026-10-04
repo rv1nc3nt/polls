@@ -297,7 +297,8 @@ suivi ne change pas, aucun nouveau courriel n'est envoyé.
 Il vous est donné **au moment du vote** (à l'écran et par courriel), pas à
 l'inscription. Après la clôture, il vous permet de **retrouver votre bulletin
 dans la liste publiée** et de vérifier votre classement, **sans révéler votre
-identité**.
+identité** : saisissez-le dans la rubrique « Retrouver votre bulletin » de la
+page de résultats, avec ou sans tiret.
 
 ### Avec mon code de suivi, quelqu'un peut-il savoir comment j'ai voté ?
 Vous-même pouvez retrouver votre ligne dans le fichier publié — et donc, si vous

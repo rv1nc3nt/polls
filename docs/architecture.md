@@ -201,8 +201,8 @@ from the document's ballots and checks each value the document states.
 `retention_purge` (daily) deletes registrations, roll entries, paper links and
 duplicate-attempt flags 61 days after a poll closes (or after withdrawal, if
 the poll never closed). It also deletes the working roll 61 days after the
-last import once no poll still needs it. Ballots, results and the audit log
-stay. Because audit events hold only references, deleting the referenced rows
+last import once no poll still needs it, and every expired session, which
+may hold a voter's receipt. Ballots, results and the audit log stay. Because audit events hold only references, deleting the referenced rows
 is what anonymises the log.
 
 ## External interfaces

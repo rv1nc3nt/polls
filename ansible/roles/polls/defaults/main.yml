@@ -80,6 +80,16 @@ polls_operator_session_age: 28800
 # Interim, until the poll carries its own setting (decision log #39); empty
 # leaves R-11.5 in force on every poll.
 polls_trend_polls: []
+# Rate limits (R-5.8 and the back-office sign-in), as count/window: "5/1h" is
+# five per hour; s, m, h and d are the units. Per caller's address unless
+# named otherwise. Rendered into the environment file, so a value set there by
+# hand would be overwritten by the next deploy: set it here (review A-6).
+polls_rate_limit_registration: "5/1h"      # registration form submissions
+polls_rate_limit_email: "3/1h"             # confirmation mails the form sends
+polls_rate_limit_login_address: "10/15m"   # failed sign-ins per address
+polls_rate_limit_login_account: "20/1h"    # failed sign-ins per account named
+# Characters of a proposition's description shown before "Lire la suite".
+polls_option_details_preview_length: 1000
 
 # --- SMTP (§15 step 9). prod.py no longer requires DJANGO_EMAIL_HOST — a
 # commune admin can set the relay instead from the back-office (§6.5.12) — but

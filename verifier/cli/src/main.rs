@@ -15,24 +15,30 @@
 //! Usage:
 //!
 //! ```text
-//! polls-verifier publication.json
+//! polls-verifier publication.json --closure-hash <hex> [--opening-seed <hex>]
 //! polls-verifier ballots.csv [--method schulze|plurality|approval] \
 //!     [--options <id,id,…>] [--closure-hash <hex>] [--opening-seed <hex>] \
 //!     [--winner <option_id>]
 //! ```
 //!
 //! The publication document (`?format=json` on the results page) carries the
-//! method, the options and every published value, and each is checked; no
-//! flag applies to it. The CSV carries ballots only, so the flags supply what
-//! is to be compared: `--method` as the results page states it (its French
-//! label is accepted too; Schulze without it), `--options` the poll's option
-//! ids so an option no ballot ranked still gets its row.
+//! method, the options and every published value, and each is checked against
+//! its own ballots. That shows it agrees with itself, which a document rebuilt
+//! from end to end would too (review B-1); `--closure-hash`, the value the
+//! public page showed when the poll closed, is what ties it to the poll, and
+//! `--opening-seed`, shown at opening, is compared as well when given. The
+//! CSV carries ballots only, so the flags supply what is to be compared:
+//! `--method` as the results page states it (its French label is accepted
+//! too; Schulze without it), `--options` the poll's option ids so an option
+//! no ballot ranked still gets its row.
 //!
 //! `--version` names the release and commit the binary was built from, and
 //! the publication format versions it reads (`core::build`).
 //!
 //! Exit codes: 0 every compared value agrees, 1 at least one differs, 2 usage
-//! or input error, 3 nothing was compared (a CSV given no value to check).
+//! or input error, 3 nothing was compared (a CSV given no value to check), 4
+//! everything compared agrees but the ballots were not compared with the
+//! closure hash noted at closure, so nothing ties them to the poll.
 //! An unknown flag, a flag without a value or a repeated flag is a usage
 //! error: silently ignoring one would let a mistyped check pass as done.
 //!
@@ -45,10 +51,11 @@ use polls_verifier_core::build;
 use polls_verifier_core::counted::Method;
 use polls_verifier_core::publication::TiebreakRule;
 use polls_verifier_core::report::{
-    verify, verify_publication, Expected, PublicationReport, Report, VerifyError,
+    verify, verify_publication, Anchors, Expected, PublicationReport, Report, Verdict, VerifyError,
 };
 
-const USAGE: &str = "usage: polls-verifier <publication.json>\n       \
+const USAGE: &str =
+    "usage: polls-verifier <publication.json> --closure-hash <hex> [--opening-seed <hex>]\n       \
     polls-verifier <ballots.csv> [--method schulze|plurality|approval] [--options <id,id,…>] \
     [--closure-hash <hex>] [--opening-seed <hex>] [--winner <option_id>]\n       \
     polls-verifier --help | --version";
@@ -56,9 +63,13 @@ const USAGE: &str = "usage: polls-verifier <publication.json>\n       \
 const HELP: &str = "\
 Recomputes a published poll result from the files its results page offers.
 
-  polls-verifier publication.json
+  polls-verifier publication.json --closure-hash <h> [--opening-seed <h>]
       The publication document (?format=json). It carries every value, and
-      each is checked; no flag applies to it.
+      each is checked against its own ballots. That alone shows the document
+      agrees with itself, as a rebuilt one would; give the values the poll's
+      public page showed before the result was published:
+        --closure-hash <h>  the closure hash, shown from the poll's closure
+        --opening-seed <h>  the opening seed, shown from its opening
 
   polls-verifier ballots.csv [flags]
       The ballot list (?format=csv). It carries ballots only, so the flags
@@ -78,7 +89,13 @@ Exit codes:
   0  every compared value agrees
   1  at least one value differs
   2  usage or input error (unreadable file, unknown flag, malformed ballot list)
-  3  nothing was compared: a CSV was given without --closure-hash or --winner";
+  3  nothing was compared: a CSV was given without --closure-hash or --winner
+  4  everything compared agrees, but nothing was compared with the closure
+     hash shown at closure: pass --closure-hash";
+
+/// The flags a publication document takes: the values noted from the public
+/// page before publication. The others are what the document already states.
+const PUBLICATION_FLAGS: &[&str] = &["--closure-hash", "--opening-seed"];
 
 const FLAGS: &[&str] = &[
     "--method",
@@ -197,12 +214,19 @@ fn input_error(err: VerifyError) -> ExitCode {
         VerifyError::MalformedOptionId(option) => {
             eprintln!("option {option:?} is not an id the platform accepts (A-Z, a-z, 0-9, _ and -, at most 50)");
         }
+        VerifyError::DuplicateOption(option) => {
+            eprintln!("--options lists {option} more than once");
+        }
     }
     ExitCode::from(2)
 }
 
-fn check_publication(text: &str) -> ExitCode {
-    let checked: PublicationReport = match verify_publication(text) {
+fn check_publication(text: &str, args: &Args) -> ExitCode {
+    let anchors = Anchors {
+        closure_hash: args.get("--closure-hash"),
+        opening_seed: args.get("--opening-seed"),
+    };
+    let checked: PublicationReport = match verify_publication(text, &anchors) {
         Ok(checked) => checked,
         Err(err) => return input_error(err),
     };
@@ -218,12 +242,17 @@ fn check_publication(text: &str) -> ExitCode {
         checked.method_version
     );
 
-    let mut ok = true;
-    ok &= agreement("closure hash", report.closure_hash_agrees == Some(true));
-    ok &= agreement("ballot count", checked.ballot_count_agrees);
-    ok &= agreement("matrix", checked.matrix_agrees);
+    agreement("closure hash", report.closure_hash_agrees == Some(true));
+    agreement("ballot count", checked.ballot_count_agrees);
+    agreement("matrix", checked.matrix_agrees);
+    if let Some(agrees) = checked.derivation_agrees {
+        agreement("derivation", agrees);
+    }
+    if let Some(agrees) = checked.orderings_agree {
+        agreement("orderings", agrees);
+    }
     if let Some(agrees) = checked.counts_agree {
-        ok &= agreement("counts", agrees);
+        agreement("counts", agrees);
     }
     if let Some(agrees) = checked.tiebreak_agrees {
         if checked.tiebreak_rule == Some(TiebreakRule::Physical) {
@@ -235,9 +264,9 @@ fn check_publication(text: &str) -> ExitCode {
         if let Some(order) = &report.tiebreak_order {
             println!("tie-break order {}", order.join(", "));
         }
-        ok &= agreement("tie-break", agrees);
+        agreement("tie-break", agrees);
     }
-    ok &= agreement("winner", report.winner_agrees == Some(true));
+    agreement("winner", report.winner_agrees == Some(true));
     let counts = &checked.participation;
     println!(
         "participation  registered {}, online {}, paper {}, paper uncounted {}, non-voters {}",
@@ -247,12 +276,26 @@ fn check_publication(text: &str) -> ExitCode {
         counts.paper_uncountersigned,
         counts.non_voters
     );
-    ok &= agreement("participation", checked.participation_agrees);
+    agreement("participation", checked.participation_agrees);
+    if let Some(agrees) = checked.closure_hash_anchor {
+        agreement("hash at closure", agrees);
+    }
+    if let Some(agrees) = checked.opening_seed_anchor {
+        agreement("seed at opening", agrees);
+    }
 
-    if ok {
-        ExitCode::SUCCESS
-    } else {
-        ExitCode::from(1)
+    match checked.verdict() {
+        Verdict::Verified => ExitCode::SUCCESS,
+        Verdict::Differs => ExitCode::from(1),
+        Verdict::NotAnchored => {
+            // Every line above agrees; a document carefully rebuilt with other
+            // ballots would agree as well.
+            println!(
+                "NOT ANCHORED: the document agrees with itself; pass --closure-hash, the value \
+                 the results page showed when the poll closed, to check it is the poll's"
+            );
+            ExitCode::from(4)
+        }
     }
 }
 
@@ -314,11 +357,19 @@ fn check_csv(text: &str, args: &Args) -> ExitCode {
         );
         return ExitCode::from(3);
     }
-    if ok {
-        ExitCode::SUCCESS
-    } else {
-        ExitCode::from(1)
+    if !ok {
+        return ExitCode::from(1);
     }
+    if report.closure_hash_agrees.is_none() {
+        // A winner recomputed from ballots nothing ties to the poll: a list
+        // rebuilt to match it would agree as well (review B-1).
+        println!(
+            "NOT ANCHORED: the winner agrees with these ballots; pass --closure-hash, the value \
+             the results page showed when the poll closed, to check they are the poll's"
+        );
+        return ExitCode::from(4);
+    }
+    ExitCode::SUCCESS
 }
 
 fn main() -> ExitCode {
@@ -354,11 +405,15 @@ fn main() -> ExitCode {
     // By content, not extension: a browser may save the document under any
     // name. The CSV starts with its header, never with '{'.
     if text.trim_start().starts_with('{') {
-        if let Some((flag, _)) = args.flags.first() {
-            eprintln!("{flag} does not apply to a publication document: it carries every value");
+        if let Some((flag, _)) = args
+            .flags
+            .iter()
+            .find(|(flag, _)| !PUBLICATION_FLAGS.contains(&flag.as_str()))
+        {
+            eprintln!("{flag} does not apply to a publication document: it states that value");
             return ExitCode::from(2);
         }
-        check_publication(&text)
+        check_publication(&text, &args)
     } else {
         check_csv(&text, &args)
     }

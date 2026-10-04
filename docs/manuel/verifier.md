@@ -69,11 +69,17 @@ les résultats, et ne peuvent plus changer ensuite :
 - l'**empreinte de clôture** et le nombre de **bulletins retenus**, dès la
   clôture.
 
-Si vous les notez à ce moment-là (une capture d'écran suffit), vous pourrez
-vérifier après la publication que les résultats reposent bien sur les mêmes.
-Le vérificateur, lui, contrôle que les fichiers publiés sont cohérents entre
-eux ; c'est cette comparaison qui montre qu'ils n'ont pas été modifiés entre
-la clôture et la publication.
+Notez-les à ce moment-là (une capture d'écran suffit) et donnez-les ensuite
+au vérificateur : c'est ce qui montre que les fichiers publiés sont bien ceux
+du scrutin, et non des fichiers refaits après coup. Sans elles, le
+vérificateur peut seulement constater que les fichiers sont cohérents avec
+eux-mêmes, ce que des fichiers refaits de bout en bout seraient aussi : il
+l'annonce alors comme un résultat « non ancré », jamais comme une
+vérification réussie.
+
+Si vous ne les avez pas notées à temps, reprenez celles qu'affiche la page de
+la consultation. La vérification reste utile, mais elle est moins forte : ces
+valeurs sont alors lues en même temps que les résultats.
 
 ## Télécharger le vérificateur
 
@@ -177,25 +183,29 @@ gestionnaire de fichiers (ou lancez-le depuis un terminal) :
 
 ### Vérifier
 
-La fenêtre « Vérificateur indépendant » propose trois étapes ; avec le
-document de publication, seules la première et la dernière servent :
+La fenêtre « Vérificateur indépendant » propose trois étapes :
 
 1. **Fichier** — cliquez sur « Choisir un fichier… » et sélectionnez le
    document de publication (JSON) téléchargé, ou déposez-le directement dans
    la fenêtre.
-2. **Valeurs à comparer** — à laisser vide avec le document de publication,
-   qui les contient toutes. Elles ne servent qu'avec le fichier CSV : la
-   **méthode de dépouillement** que la page de résultats indique (Schulze,
-   majoritaire ou par assentiment), les **identifiants des options**
-   séparés par des virgules, l'**empreinte de clôture attendue**, la
-   **graine d'ouverture** en cas d'égalité et le **vainqueur annoncé**. Tous
-   sont facultatifs — sans eux, l'application affiche quand même ce qu'elle a
-   recalculé, mais elle l'annonce en tête du résultat : « Rien n'a été
-   comparé ». Ce n'est alors pas une vérification.
+2. **Valeurs relevées** — l'**empreinte de clôture** et la **graine
+   d'ouverture** que vous avez notées (voir [« Avant la publication : noter
+   deux valeurs »](#avant-la-publication-noter-deux-valeurs)), quel que soit
+   le fichier. Avec le fichier CSV seulement, ajoutez les valeurs de la page
+   de résultats : la **méthode de dépouillement** (Schulze, majoritaire ou
+   par assentiment), les **identifiants des options** séparés par des
+   virgules et le **vainqueur annoncé** ; le document de publication les
+   contient déjà. Sans aucune valeur à comparer, l'application affiche quand
+   même ce qu'elle a recalculé, mais elle l'annonce en tête du résultat :
+   « Rien n'a été comparé ». Ce n'est alors pas une vérification.
 3. Cliquez sur **Vérifier**.
 
 Le résultat s'ouvre sur une ligne de synthèse : « ✓ VÉRIFIÉ : toutes les
 valeurs comparées concordent » en vert, ou « ✗ … NE concordent PAS » en rouge.
+Si tout concorde mais que l'empreinte de clôture n'a pas été renseignée, la
+ligne est orange : « ⚠ … NON ANCRÉ ». Les fichiers sont cohérents, mais rien
+ne montre qu'ils sont ceux du scrutin : renseignez l'empreinte et cliquez à
+nouveau.
 Si vous modifiez une valeur de l'étape 2 après avoir cliqué sur **Vérifier**,
 ce résultat s'efface : cliquez à nouveau pour vérifier les nouvelles valeurs.
 
@@ -271,14 +281,16 @@ vous avez téléchargé) :
 
 **Windows (PowerShell) :**
 
-    .\polls-verifier-windows-x86_64.exe publication.json
+    .\polls-verifier-windows-x86_64.exe publication.json --closure-hash 87694cf0...
 
 **macOS ou Linux :**
 
-    ./polls-verifier-macos-aarch64 publication.json
+    ./polls-verifier-macos-aarch64 publication.json --closure-hash 87694cf0...
 
-Aucune autre valeur n'est à fournir : le document les contient toutes. Le
-programme affiche la méthode de dépouillement que le document déclare, le
+`--closure-hash` est l'empreinte de clôture que vous avez notée (voir
+[« Avant la publication : noter deux valeurs »](#avant-la-publication-noter-deux-valeurs)) ;
+ajoutez `--opening-seed` suivi de la graine d'ouverture si vous l'avez notée
+aussi. Les autres valeurs, le document les contient. Le programme affiche la méthode de dépouillement que le document déclare, le
 nombre de bulletins lus, l'empreinte qu'il a lui-même recalculée, la liste
 des options, la matrice des duels, le nombre de voix de chaque option pour un
 scrutin majoritaire ou par assentiment et le ou les vainqueurs — puis une
@@ -288,11 +300,23 @@ ligne par valeur publiée qu'il a vérifiée :
     ballot count    AGREES
     matrix          AGREES
     winner          AGREES
+    participation   AGREES
+    hash at closure AGREES
 
 `AGREES` signifie que la valeur recalculée à partir des seuls bulletins est
 identique à celle que le site publie ; `DIFFERS` signifierait le contraire
-(voir plus bas). S'y ajoutent une ligne `counts` pour un scrutin majoritaire
-ou par assentiment, et une ligne `tie-break` si un départage a eu lieu. Une
+(voir plus bas). La ligne `hash at closure` compare les bulletins à
+l'empreinte que vous avez notée, et `seed at opening` la graine. Sans
+`--closure-hash`, le programme termine par `NOT ANCHORED` et un code qui
+n'est pas celui d'un succès : le document concorde avec lui-même, comme le
+ferait un document refait de bout en bout.
+
+S'y ajoutent une ligne `derivation`, qui recalcule le raisonnement publié ;
+une ligne `orderings` pour le tableau du nombre de bulletins par ordre de
+classement que la page de résultats affiche (scrutin selon la méthode de
+Schulze, à quatre propositions au plus) ; une ligne `counts` pour un scrutin
+majoritaire ou par assentiment ; et une ligne `tie-break` si un départage a
+eu lieu. Une
 dernière ligne, `participation`, vérifie que les chiffres de participation
 publiés par le site tiennent ensemble : les bulletins en ligne et papier
 doivent faire le nombre de bulletins de la liste, et les inscrits doivent être
@@ -328,7 +352,9 @@ vainqueurs — puis, en dernière ligne utile :
 
 Sans `--closure-hash` ni `--winner`, le programme n'a rien à comparer : il
 affiche son recalcul, puis `NOTHING COMPARED`, et se termine sur un code
-d'erreur — jamais sur un succès. Une option mal orthographiée, ou donnée sans
+d'erreur — jamais sur un succès. Avec `--winner` seul, il vérifie le
+vainqueur, mais rien ne montre que les bulletins sont ceux du scrutin : il
+termine par `NOT ANCHORED`, là encore sans succès. Une option mal orthographiée, ou donnée sans
 valeur, est refusée plutôt qu'ignorée. Chaque option peut s'écrire
 `--closure-hash 87694cf0...` ou `--closure-hash=87694cf0...`.
 
@@ -402,8 +428,10 @@ automatisez la vérification :
 | 1 | Au moins une valeur ne concorde pas (`DIFFERS`). | Suivre les étapes ci-dessous. |
 | 2 | Le vérificateur n'a pas pu travailler : fichier illisible ou incomplet, option inconnue ou sans valeur, ou liste de bulletins impossible (un code de suivi répété ou mal formé, un classement vide, une proposition classée deux fois, un identifiant de proposition que la plateforme n'accepte pas). | Corriger la commande, ou télécharger à nouveau le fichier. Une liste impossible dans un fichier téléchargé tel quel depuis la page de résultats est une anomalie à signaler comme un désaccord. |
 | 3 | Rien n'a été comparé (fichier CSV sans `--closure-hash` ni `--winner`). | Ajouter les valeurs à comparer, recopiées depuis la page de résultats. |
+| 4 | Tout ce qui a été comparé concorde, mais les bulletins n'ont pas été comparés à l'empreinte de clôture (`NOT ANCHORED`). | Relancer avec `--closure-hash`, l'empreinte notée à la clôture. |
 
-Un code 2 ou 3 n'est jamais un succès : il signifie que rien n'a été vérifié.
+Un code 2, 3 ou 4 n'est jamais un succès : rien ne montre alors que les
+fichiers sont ceux du scrutin.
 
 Si une ligne affiche `DIFFERS` :
 
@@ -435,11 +463,13 @@ a été constituée. En particulier, le vérificateur ne peut pas établir :
   l'électeur](guide-electeur.md#8-vérifier-après-la-clôture)). Plus les
   électeurs sont nombreux à le faire, plus une altération serait difficile à
   cacher.
-- **que rien n'a changé depuis la clôture, ni la graine depuis l'ouverture.**
-  Le vérificateur contrôle que le document est cohérent avec lui-même ; un
-  document refait de bout en bout le serait aussi. Seule la comparaison avec
-  les valeurs notées à l'avance le montre (voir [« Avant la publication :
-  noter deux valeurs »](#avant-la-publication-noter-deux-valeurs)). C'est
+- **que rien n'a changé depuis la clôture, ni la graine depuis l'ouverture,
+  si vous ne lui donnez pas les valeurs notées à l'avance.** Sans elles, il
+  contrôle seulement que le document est cohérent avec lui-même ; un document
+  refait de bout en bout le serait aussi, et il l'annonce « non ancré ». Avec
+  elles, il le vérifie (voir [« Avant la publication : noter deux
+  valeurs »](#avant-la-publication-noter-deux-valeurs)) ; il ne peut pas
+  savoir, en revanche, si vous les avez notées à temps. C'est
   aussi cette empreinte qui relie le fichier CSV au document de publication :
   le vérificateur lit l'un ou l'autre, jamais les deux ensemble, et ils
   portent les mêmes bulletins si leur empreinte de clôture est la même.

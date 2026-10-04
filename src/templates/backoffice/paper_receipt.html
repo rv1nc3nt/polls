@@ -14,8 +14,10 @@
     by the print stylesheet in app.css.
   {% endcomment %}
 
-  <article class="receipt">
-    <p class="receipt__poll">{{ poll.title }}</p>
+  {% comment %} The poll's title heads the receipt: an <article> stands on its own, and
+     a screen reader's list of headings finds it by this (review C-5). {% endcomment %}
+  <article class="receipt" aria-labelledby="receipt-poll">
+    <h2 class="receipt__poll" id="receipt-poll">{{ poll.title }}</h2>
 
     {% if pending_countersign %}
       <p class="receipt__notice">{% translate "Ce bulletin est en attente de contreseing par un second opérateur. Il ne sera décompté qu'une fois contresigné." %}</p>

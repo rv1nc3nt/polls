@@ -36,6 +36,8 @@ from apps.elections import closure, results_view, richtext, sandbox, transitions
 from apps.elections.models import Poll, PollState, TiebreakRule
 from apps.registrations.models import PARTICIPATING, Channel, Registration
 
+from .forms import TrackingCodeForm
+
 #: The manual documents served publicly (docs/manuel/README.md's own table):
 #: the voter's guide, the independent-verifier walkthrough and the tally
 #: methods explainer in full, and only the électeur-facing third of the FAQ —
@@ -500,6 +502,8 @@ def results(request: HttpRequest, poll_id: str) -> HttpResponse:
     publication document verbatim. Otherwise the page renders the derivation,
     the pairwise matrix, the frozen counts, the tie-break where one applies and
     the per-ordering table (R-11.3), all from ``elections.results_view``.
+    A POST carries a tracking code and the page answers with that ballot's
+    ranking as published, or says the list does not hold it (R-11.4).
 
     A sandbox poll's result is served too, but only to a browser holding its
     share link or a voter token of its own (R-3.7, ``sandbox.may_reach``):
@@ -511,7 +515,7 @@ def results(request: HttpRequest, poll_id: str) -> HttpResponse:
     if not sandbox.may_reach(request.session, poll):
         raise Http404
 
-    fmt = request.GET.get("format")
+    fmt = request.GET.get("format") if request.method == "GET" else None
     # R-10.2: served from the copy stored at publication, never recomputed.
     if fmt == "csv":
         response = HttpResponse(closure.csv_text(poll), content_type="text/csv; charset=utf-8")
@@ -534,15 +538,30 @@ def results(request: HttpRequest, poll_id: str) -> HttpResponse:
     else:
         poll_url = ""
 
-    return render(
+    # "Find my ballot" (R-11.4). Posted, and answered in this response rather
+    # than after a redirect: a code in an address would reach nginx's access
+    # log beside the visitor's IP, and the code leads to a published ranking,
+    # so the log would say how that visitor voted.
+    lookup_form = TrackingCodeForm(request.POST if request.method == "POST" else None)
+    lookup = (
+        results_view.find_ballot(poll, lookup_form.cleaned_data["code"])
+        if lookup_form.is_valid()
+        else None
+    )
+    response = render(
         request,
         "publicsite/results.html",
         {
             "poll": poll,
             "view": results_view.result_view(poll),
+            "lookup_form": lookup_form,
+            "lookup": lookup,
             "breadcrumbs": [
                 {"label": poll.title(request.LANGUAGE_CODE), "url": poll_url},
                 {"label": _("Résultats")},
             ],
         },
     )
+    if request.method == "POST":
+        response["Cache-Control"] = "no-store"
+    return response

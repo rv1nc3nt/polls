@@ -17,6 +17,9 @@ tests (§12).
 uv sync                                   # Python 3.13, Django 5.2 LTS
 uv run python manage.py migrate           # settings default to config.settings.dev
 uv run python manage.py makemigrations --check --dry-run  # models match migrations
+DJANGO_SETTINGS_MODULE=config.settings.prod DJANGO_SECRET_KEY=<50+ chars> \
+  DJANGO_ALLOWED_HOSTS=x DJANGO_PUBLIC_BASE_URL=https://x \
+  uv run python manage.py check --deploy --fail-level WARNING  # as ci.yml runs it
 uv run pytest -q                          # fast; no network
 uv run ruff check . && uv run ruff format --check .
 uv run mypy src tests                     # --strict, must stay clean
@@ -24,6 +27,9 @@ cargo fmt --manifest-path verifier/Cargo.toml --all --check
 cargo clippy --manifest-path verifier/Cargo.toml --workspace --all-targets -- -D warnings
 cargo test --manifest-path verifier/Cargo.toml
 (cd verifier && cargo audit --deny warnings)  # also weekly; exceptions in verifier/.cargo/audit.toml
+uv export --frozen --all-groups --all-extras --no-emit-project --no-hashes -o req.txt \
+  && uvx pip-audit==2.10.1 --strict -r req.txt   # audit.yml, also weekly
+npm audit --omit=dev                      # audit.yml: what a deployment would ship
 uv run python manage.py compilemessages   # needs GNU gettext installed
 npm ci && npm run lint                    # ESLint + stylelint over src/static/
 uv run playwright install --only-shell chromium && uv run pytest -m browser  # after npm ci
@@ -79,8 +85,10 @@ find a way round it.
   table is `WITHOUT ROWID` (ballots migration 0004; Django rebuilds a table the
   ordinary way on some schema changes, which would bring the `rowid` back, and
   `test_trend_points.py` fails if it does); `Registration` keeps no
-  confirmation instant; session expiries are rounded to the day
-  (`core/sessions.py`). The trend records its points as they fall due
+  confirmation instant; the session table, which holds a voter's receipt
+  or ballot hash, is `WITHOUT ROWID` too (core migration 0011), its expiries
+  are rounded to the day (`core/sessions.py`) and `retention_purge` deletes
+  the expired rows. The trend records its points as they fall due
   (`ballots/trendpoints.py`) rather than rebuilding them from ballot times.
 - **INV-3.** `AuditEvent` has no update or delete path, in the application or
   the database. Events store a reference plus non-identifying state — never a

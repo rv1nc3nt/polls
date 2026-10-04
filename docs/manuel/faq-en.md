@@ -291,7 +291,8 @@ code does not change, and no new email is sent.
 It is given to you **at the time of voting** (on screen and by email), not
 at registration. After closing, it lets you **find your ballot in the
 published list** and check your ranking, **without revealing your
-identity**.
+identity**: type it into "Find your ballot" on the results page, with or
+without the dash.
 
 ### With my tracking code, can someone find out how I voted?
 You yourself can find your row in the published file — and so, if you share
