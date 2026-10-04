@@ -105,6 +105,7 @@ from apps.elections import (
     config,
     pollimages,
     polltemplates,
+    resultcards,
     results_view,
     richtext,
     rollimport,
@@ -1546,9 +1547,9 @@ def poll_trend(request: HttpRequest, poll: Poll) -> HttpResponse:
     }
     if points:
         context |= {
-            "summary": trend.summary(points, options, schulze=schulze, intervals=is_open),
+            "summary": resultcards.summary(points, options, schulze=schulze, intervals=is_open),
             "curves": trend.curves(points, options, schulze=schulze, intervals=is_open),
-            "duels": trend.duels(points, options, intervals=is_open),
+            "duels": resultcards.duels(points, options, intervals=is_open),
             "rows": trend.table(points, options, schulze=schulze),
         }
         # The matrix shows one point: the latest, or the one ``?point=`` names
@@ -1558,8 +1559,8 @@ def poll_trend(request: HttpRequest, poll: Poll) -> HttpResponse:
         context |= {
             "matrix_point": shown,
             "matrix_points": list(reversed(points)),
-            "matrix": trend.matrix(shown, options),
-            "ballot_types": trend.ballot_types(shown, options),
+            "matrix": resultcards.matrix(shown, options),
+            "ballot_types": resultcards.ballot_types(shown, options),
         }
     return render(request, "backoffice/poll_trend.html", context)
 

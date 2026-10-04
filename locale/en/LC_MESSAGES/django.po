@@ -5772,3 +5772,51 @@ msgid "%(date)s — %(n)s bulletin"
 msgid_plural "%(date)s — %(n)s bulletins"
 msgstr[0] "%(date)s — %(n)s ballot"
 msgstr[1] "%(date)s — %(n)s ballots"
+
+#: src/templates/publicsite/results.html
+msgid "Proposition retenue"
+msgstr "Proposal adopted"
+
+#: src/templates/publicsite/results.html
+msgid "après départage d’une égalité"
+msgstr "after breaking a tie"
+
+#: src/templates/publicsite/results.html
+msgid ""
+"Pour chaque paire, la part des bulletins qui placent l’une avant l’autre ; "
+"au milieu, ceux qui ne les départagent pas."
+msgstr ""
+"For each pair, the share of ballots placing one before the other; in the "
+"middle, those that do not separate them."
+
+#: src/templates/publicsite/results.html
+msgid "Voix par proposition"
+msgstr "Votes per proposal"
+
+#: src/templates/publicsite/results.html
+msgid ""
+"Nombre de bulletins qui classent chaque proposition, à quelque rang que ce "
+"soit."
+msgstr "Number of ballots that rank each proposal, at any rank."
+
+#: src/templates/publicsite/results.html
+msgid "Nombre de bulletins qui placent chaque proposition en premier."
+msgstr "Number of ballots that place each proposal first."
+
+#: src/templates/publicsite/results.html
+#, python-format
+msgid "%(n)s voix"
+msgid_plural "%(n)s voix"
+msgstr[0] "%(n)s vote"
+msgstr[1] "%(n)s votes"
+
+#: src/templates/publicsite/results.html
+msgid "Matrice des préférences deux à deux"
+msgstr "Pairwise preference matrix"
+
+#: src/templates/publicsite/results.html
+#, python-format
+msgid "Sur %(n)s bulletin retenu."
+msgid_plural "Sur %(n)s bulletins retenus."
+msgstr[0] "Out of %(n)s ballot counted."
+msgstr[1] "Out of %(n)s ballots counted."

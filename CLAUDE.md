@@ -34,7 +34,8 @@ SMTP relay (`mailbackend.py`) and the reversible encryption its stored
 password uses (`secretstore.py`, distinct from `crypto.py`'s one-way §7
 scheme) ·
 `src/apps/elections/` poll, options, snapshot, transitions, voting window,
-closure, retention, `sandbox.py` (sandbox access and deletion, R-3.7), `sharelink.py`, `rollimport.py` (§6.1: parsing, mapping, validation, the
+closure, `resultcards.py` (a result as cards, shared by the public results
+page and the trend; never the trend's curves or history, R-11.5 bis), retention, `sandbox.py` (sandbox access and deletion, R-3.7), `sharelink.py`, `rollimport.py` (§6.1: parsing, mapping, validation, the
 transactional apply shared by the CLI and screen 3) ·
 `src/apps/registrations/` (§6.2: `services`, `mail`, `forms`, `views`) ·
 `src/apps/ballots/` ·

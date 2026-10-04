@@ -1,0 +1,43 @@
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD — the duels of one result, elections.resultcards.duels; the trend screen and the public results page. #}
+<ul class="trend-duels">
+  {% for duel in duels %}
+    <li class="trend-duel">
+      <p class="trend-duel__names">
+        <span class="trend-s{{ duel.left.slot }}"><span class="trend-key" aria-hidden="true"></span><strong>{{ duel.left.label }}</strong></span>
+        <span class="trend-duel__vs">{% if duel.tied %}{% translate "à égalité avec" %}{% else %}{% translate "devant" %}{% endif %}</span>
+        <span class="trend-s{{ duel.right.slot }}"><span class="trend-key" aria-hidden="true"></span>{{ duel.right.label }}</span>
+      </p>
+      <div class="trend-duel__bar" aria-hidden="true">
+        <span class="trend-duel__seg trend-s{{ duel.left.slot }}" style="flex-grow: {{ duel.left.count }}"></span>
+        {% if duel.neither %}<span class="trend-duel__seg trend-duel__seg--neither" style="flex-grow: {{ duel.neither }}"></span>{% endif %}
+        <span class="trend-duel__seg trend-s{{ duel.right.slot }}" style="flex-grow: {{ duel.right.count }}"></span>
+      </div>
+      <p class="trend-duel__figures">
+        <span><strong>{{ duel.left.pct|floatformat:0 }} %</strong> ({{ duel.left.count }})</span>
+        {% if duel.neither %}<span class="trend-duel__neither">{% blocktranslate with p=duel.neither_pct|floatformat:0 n=duel.neither %}{{ p }} % sans préférence ({{ n }}){% endblocktranslate %}</span>{% endif %}
+        <span><strong>{{ duel.right.pct|floatformat:0 }} %</strong> ({{ duel.right.count }})</span>
+      </p>
+      <div class="trend-duel__margin">
+        <div class="trend-duel__value">
+          <p class="trend-duel__pts">{{ duel.margin }}<span class="trend-tile__unit">&nbsp;{% translate "pts" %}</span></p>
+          {% if duel.interval %}
+            <p class="trend-duel__ci">{% blocktranslate with lo=duel.interval.lo hi=duel.interval.hi trimmed %}à 95 % : de {{ lo }} à {{ hi }}{% endblocktranslate %}</p>
+            {% if not duel.interval.clear %}<p><span class="trend-badge trend-badge--warn">{% translate "incertain" %}</span></p>{% endif %}
+          {% endif %}
+        </div>
+        {% if duel.delta %}
+          <p class="trend-delta trend-delta--{{ duel.delta_dir }}"><span aria-hidden="true">{% if duel.delta_dir == "up" %}▲{% elif duel.delta_dir == "down" %}▼{% else %}■{% endif %}</span> {{ duel.delta }}</p>
+        {% endif %}
+        {% if duel.spark %}
+          <svg class="trend-spark trend-s{{ duel.left.slot }}" viewBox="0 0 {{ duel.spark.width }} {{ duel.spark.height }}" aria-hidden="true" focusable="false">
+            {% if duel.spark.band %}<path class="trend-spark__band" d="{{ duel.spark.band }}"/>{% endif %}
+            <line class="trend-spark__zero" x1="0" x2="{{ duel.spark.width }}" y1="{{ duel.spark.zero_y }}" y2="{{ duel.spark.zero_y }}"/>
+            <path d="{{ duel.spark.path }}"/>
+            <circle cx="{{ duel.spark.end_x }}" cy="{{ duel.spark.end_y }}" r="3"/>
+          </svg>
+        {% endif %}
+      </div>
+    </li>
+  {% endfor %}
+</ul>

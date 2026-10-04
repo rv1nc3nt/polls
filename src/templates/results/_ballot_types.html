@@ -1,0 +1,24 @@
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD — ballots per ranking of one result, elections.resultcards.ballot_types (R-11.3). #}
+<ol class="trend-types">
+  {% for row in ballot_types %}
+    <li class="trend-types__row">
+      <p class="trend-types__ranking">
+        {% for group in row.groups %}
+          {% for option in group %}
+            <span class="trend-types__option trend-s{{ option.slot }}"><span class="trend-types__rank">{{ forloop.parentloop.counter }}</span>{{ option.label }}</span>
+          {% endfor %}
+        {% endfor %}
+        {% if row.unranked %}
+          <span class="trend-types__unranked">{% translate "non classées :" %}
+            {% for option in row.unranked %}{{ option.label }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>
+        {% endif %}
+      </p>
+      <span class="trend-types__bar" aria-hidden="true"><span style="flex-grow: {{ row.bar }}"></span>{% if row.rest %}<span class="trend-types__rest" style="flex-grow: {{ row.rest }}"></span>{% endif %}</span>
+      <p class="trend-types__figures">
+        <strong>{% blocktranslate count n=row.count %}{{ n }} bulletin{% plural %}{{ n }} bulletins{% endblocktranslate %}</strong>
+        <span>{{ row.pct|floatformat:0 }} %</span>
+      </p>
+    </li>
+  {% endfor %}
+</ol>

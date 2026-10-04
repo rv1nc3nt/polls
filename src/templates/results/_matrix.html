@@ -1,0 +1,32 @@
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD — the duel matrix of one result, elections.resultcards.matrix; with its caption from the includer. #}
+<div class="table-scroll">
+  <table class="trend-matrix">
+    <caption class="help">{{ caption }}</caption>
+    <thead>
+      <tr>
+        <td></td>
+        {% for row in matrix %}<th scope="col" class="trend-s{{ row.slot }}"><span class="trend-key" aria-hidden="true"></span>{{ row.label }}</th>{% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in matrix %}
+        <tr>
+          <th scope="row" class="trend-s{{ row.slot }}"><span class="trend-key" aria-hidden="true"></span>{{ row.label }}</th>
+          {% for cell in row.cells %}
+            {% if cell.self %}
+              <td class="trend-matrix__self"><span class="visually-hidden">{% translate "sans objet" %}</span></td>
+            {% else %}
+              <td class="trend-matrix__cell trend-matrix__cell--{{ cell.outcome }}">
+                <span class="trend-matrix__mark" aria-hidden="true">{% if cell.outcome == "win" %}✓{% elif cell.outcome == "tie" %}={% endif %}</span>
+                <strong>{{ cell.count }}</strong>
+                <span class="trend-matrix__pct">{{ cell.pct|floatformat:0 }} %</span>
+                {% if cell.outcome == "win" %}<span class="visually-hidden">{% translate "(gagne)" %}</span>{% elif cell.outcome == "tie" %}<span class="visually-hidden">{% translate "(égalité)" %}</span>{% endif %}
+              </td>
+            {% endif %}
+          {% endfor %}
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

@@ -24,8 +24,12 @@ and the roll-import review work around.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
-from apps.elections import closure
+from django.utils import timezone
+
+from apps.core.types import OptionId
+from apps.elections import closure, resultcards
 from apps.elections.models import Poll, PollState, TiebreakRule
 
 
@@ -76,6 +80,10 @@ class ResultView:
     pending_physical_tiebreak: bool
     orderings: list[Ordering]
     override_reason: str
+    #: The result as the trend screen draws its final point
+    #: (``elections.resultcards``): headline figures, duels, matrix, ballots
+    #: per ranking, and the counts under plurality or approval.
+    cards: dict[str, object]
 
 
 def _labels(poll: Poll) -> dict[str, str]:
@@ -157,4 +165,21 @@ def result_view(poll: Poll) -> ResultView:
         ),
         orderings=orderings,
         override_reason=poll.closure_override_reason,
+        cards=_cards(poll, document, labels),
     )
+
+
+def _cards(poll: Poll, document: dict[str, Any], labels: dict[str, str]) -> dict[str, object]:
+    """The figures of ``elections.resultcards`` for this document. Read from
+    it, not from the ballots: what the page draws is what was published."""
+    point = resultcards.published_standing(document, (poll.closed_at or timezone.now()).date())
+    options = [(OptionId(o), labels.get(o, o)) for o in document.get("options", {})]
+    schulze = point.counts is None
+    return {
+        "schulze": schulze,
+        "summary": resultcards.summary([point], options, schulze=schulze, intervals=False),
+        "duels": resultcards.duels([point], options, intervals=False) if schulze else [],
+        "matrix": resultcards.matrix(point, options),
+        "ballot_types": resultcards.ballot_types(point, options),
+        "vote_counts": resultcards.vote_counts(point, options),
+    }

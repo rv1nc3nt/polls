@@ -102,6 +102,9 @@
   --radius-sm: 0.5rem;
   --measure: 42rem;          /* comfortable reading width for prose */
   --page: 78rem;             /* the centred content column */
+  /* One hue per option, by its position in the poll (the trend and result
+     cards, further down). */
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #4a3aa7; --s8: #e34948;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -125,6 +128,7 @@
     --band-opacity: 0.26;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 20px -4px rgba(0, 0, 0, 0.55);
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
   }
 }
 
@@ -148,6 +152,7 @@
   --band-opacity: 0.26;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 20px -4px rgba(0, 0, 0, 0.55);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -861,11 +866,17 @@ tbody tr.selected th, tbody tr.selected td { background: var(--accent-soft); }
    whatever the type scale does, so it scrolls in its own box — same
    principle as `td code` below, applied to the table as a whole rather than
    forcing the surrounding page to scroll sideways with it. */
-.table-scroll { overflow-x: auto; margin: 0.5rem 0 2rem; }
+/* Positioned, so it is the containing block of what its table hides for screen
+   readers (.visually-hidden is absolutely positioned): otherwise those spans
+   are placed against the page, outside the scrolling, and widen it on a phone. */
+.table-scroll { overflow-x: auto; margin: 0.5rem 0 2rem; position: relative; }
 .table-scroll table { margin: 0; }
 
 /* The trend screen (R-11.5 bis, backoffice/poll_trend.html): headline tiles,
-   the curves, the duels and the table, on the same cards as .facts.
+   the curves, the duels and the table, on the same cards as .facts. The public
+   results page draws the published result with the same cards
+   (elections.resultcards), so the palette, defined with the other
+   colour tokens at the top, is every page's.
 
    One categorical hue per option, by its position in the poll and never by
    its rank, so a line keeps its colour as it moves (--s1 … --s8). Light and
@@ -873,11 +884,6 @@ tbody tr.selected th, tbody tr.selected td { background: var(--accent-soft); }
    colour-vision separation; three light slots sit under 3:1 on white, which
    the ink-coloured direct labels, the figures beside every mark and the table
    make up for. Text always wears ink, never a series colour. */
-.bo main { --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #4a3aa7; --s8: #e34948; }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .bo main { --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767; }
-}
-:root[data-theme="dark"] .bo main { --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767; }
 .trend-s1 { --series: var(--s1); } .trend-s2 { --series: var(--s2); }
 .trend-s3 { --series: var(--s3); } .trend-s4 { --series: var(--s4); }
 .trend-s5 { --series: var(--s5); } .trend-s6 { --series: var(--s6); }
@@ -927,7 +933,7 @@ tbody tr.selected th, tbody tr.selected td { background: var(--accent-soft); }
 .trend-badge--warn { background: var(--accent-soft); color: var(--accent); }
 
 .trend-card { padding: 1.2rem 1.3rem 1.3rem; margin: 0 0 1.5rem; }
-.trend-card__head h2 { margin: 0 0 0.3rem; font-size: 1.15rem; }
+.trend-card__head h2, .trend-card__head h3 { margin: 0 0 0.3rem; font-size: 1.15rem; }
 .trend-card__head .help { margin: 0 0 0.8rem; max-width: var(--measure); }
 
 .trend-legend { list-style: none; display: flex; flex-wrap: wrap; gap: 0.4rem 1.2rem; padding: 0; margin: 0 0 0.6rem; font-size: 0.9rem; }

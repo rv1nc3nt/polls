@@ -15,95 +15,174 @@
 
   <h1>{% blocktranslate with title=poll.title %}Résultats : « {{ title }} »{% endblocktranslate %}</h1>
 
-  <section aria-labelledby="issue" class="result-hero">
-    <h2 id="issue" class="result-hero__eyebrow">{% translate "Issue" %}</h2>
-    <p class="outcome result-hero__outcome">
+  {% comment %}
+    The published result drawn as the back-office trend draws its last point
+    (elections.resultcards): headline tiles, duels, the duel matrix, the
+    ballots per ranking. Every figure is the publication document's own
+    (R-10.2). Never the trend itself: its curves and dated history stay in the
+    back office (R-11.5 bis).
+  {% endcomment %}
+  {% with summary=view.cards.summary %}
+  <section class="trend-tiles" aria-labelledby="issue">
+    <h2 id="issue" class="visually-hidden">{% translate "Issue" %}</h2>
+    <div class="trend-tile trend-tile--lead">
       {% if view.winner %}
-        {% blocktranslate with label=view.winner.label %}Proposition retenue : {{ label }}.{% endblocktranslate %}
+        <p class="trend-tile__label">{% translate "Proposition retenue" %}</p>
+        <p class="trend-tile__value trend-tile__value--text">{{ view.winner.label }}</p>
+        <p class="trend-badges">
+          {% if view.cards.schulze and summary.condorcet %}
+            <span class="trend-badge trend-badge--ok"><span aria-hidden="true">✓</span> {% translate "bat chacune des autres en duel" %}</span>
+          {% elif view.cards.schulze %}
+            <span class="trend-badge"><span aria-hidden="true">↻</span> {% translate "aucune ne bat toutes les autres" %}</span>
+          {% endif %}
+          {% if view.tied %}
+            <span class="trend-badge trend-badge--warn"><span aria-hidden="true">!</span> {% translate "après départage d’une égalité" %}</span>
+          {% endif %}
+        </p>
       {% elif view.tied %}
-        {% translate "Le dépouillement rapporte une égalité." %}
+        <p class="trend-tile__label">{% translate "À égalité en tête" %}</p>
+        <p class="trend-tile__value trend-tile__value--text">{% for option in view.tied %}{{ option.label }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
       {% else %}
-        {% translate "Aucun bulletin retenu : la consultation n'a pas produit de résultat." %}
+        <p class="trend-tile__label">{% translate "Proposition retenue" %}</p>
+        <p class="trend-tile__value trend-tile__value--text">—</p>
+        <p class="trend-tile__sub">{% translate "Aucun bulletin retenu : la consultation n'a pas produit de résultat." %}</p>
       {% endif %}
-    </p>
-    <dl class="facts">
-      <dt>{% translate "Méthode de dépouillement" %}</dt>
-      <dd>{{ poll.get_tally_method_display }} (v{{ view.document.tally_method_version }})</dd>
-      <dt>{% translate "Bulletins retenus" %}</dt>
-      <dd>{{ view.document.ballot_count }}</dd>
-    </dl>
-    {% if view.override_reason %}
-      {% comment %} §9 / T-19, T-32: closure was forced with pending_countersign ballots
-         outstanding. Those ballots are absent from the tally, the hash and the CSV,
-         and the reason travels into the publication. {% endcomment %}
-      <p class="notice">{% blocktranslate with reason=view.override_reason %}Clôture forcée par l'administration ; motif : {{ reason }}. Les bulletins en attente de contreseing à cet instant ne sont pas comptés.{% endblocktranslate %}</p>
+    </div>
+
+    <div class="trend-tile">
+      <p class="trend-tile__label">{% translate "Bulletins retenus" %}</p>
+      <p class="trend-tile__value">{{ view.document.ballot_count }}</p>
+      <p class="trend-tile__sub">{{ poll.get_tally_method_display }} (v{{ view.document.tally_method_version }})</p>
+    </div>
+
+    {% if view.document.ballot_count %}
+      <div class="trend-tile">
+        <p class="trend-tile__label">{% if view.cards.schulze %}{% translate "Avance dans son duel le plus serré" %}{% else %}{% translate "Avance sur la suivante" %}{% endif %}</p>
+        {% if summary.lead %}
+          <p class="trend-tile__value">{{ summary.lead.pts }}<span class="trend-tile__unit">&nbsp;{% translate "pts" %}</span></p>
+          <p class="trend-tile__sub">
+            {% blocktranslate with rival=summary.lead.rival for=summary.lead.for_pct|floatformat:0 against=summary.lead.against_pct|floatformat:0 count n=summary.lead.ballots trimmed %}
+              sur {{ rival }} : {{ for }} % contre {{ against }} %, soit {{ n }} bulletin d’écart
+            {% plural %}
+              sur {{ rival }} : {{ for }} % contre {{ against }} %, soit {{ n }} bulletins d’écart
+            {% endblocktranslate %}
+          </p>
+        {% else %}
+          <p class="trend-tile__value trend-tile__value--text">—</p>
+          <p class="trend-tile__sub">{% translate "plusieurs propositions à égalité en tête" %}</p>
+        {% endif %}
+      </div>
+
+      {% if view.cards.schulze %}
+        <div class="trend-tile">
+          <p class="trend-tile__label">{% translate "Ensemble de Smith" %}</p>
+          <p class="trend-tile__value">{{ summary.smith|length }}</p>
+          <p class="trend-tile__sub">
+            {% if summary.smith|length == 1 %}{% translate "une seule proposition bat toutes les autres" %}{% else %}{{ summary.smith|join:", " }}{% endif %}
+          </p>
+        </div>
+      {% endif %}
     {% endif %}
   </section>
+  {% endwith %}
+
+  {% if view.override_reason %}
+    {% comment %} §9 / T-19, T-32: closure was forced with pending_countersign ballots
+       outstanding. Those ballots are absent from the tally, the hash and the CSV,
+       and the reason travels into the publication. {% endcomment %}
+    <p class="notice">{% blocktranslate with reason=view.override_reason %}Clôture forcée par l'administration ; motif : {{ reason }}. Les bulletins en attente de contreseing à cet instant ne sont pas comptés.{% endblocktranslate %}</p>
+  {% endif %}
 
   <section aria-labelledby="participation">
     <h2 id="participation">{% translate "Participation, figée à la clôture" %}</h2>
     {% comment %} §9: computed on entry to `closed` and stored, never re-derived — the
        retention purge (§11) deletes the registrations a fresh count would read.
        From Registration.channel, never from counting ballots (INV-5). {% endcomment %}
-    <dl class="facts">
-      <dt>{% translate "Inscrits" %}</dt><dd>{{ view.document.counts.registered }}</dd>
-      <dt>{% translate "Votes en ligne" %}</dt><dd>{{ view.document.counts.ballots_online }}</dd>
-      <dt>{% translate "Votes papier" %}</dt><dd>{{ view.document.counts.ballots_paper }}</dd>
+    <div class="trend-tiles">
+      <div class="trend-tile">
+        <p class="trend-tile__label">{% translate "Inscrits" %}</p>
+        <p class="trend-tile__value">{{ view.document.counts.registered }}</p>
+      </div>
+      <div class="trend-tile">
+        <p class="trend-tile__label">{% translate "Votes en ligne" %}</p>
+        <p class="trend-tile__value">{{ view.document.counts.ballots_online }}</p>
+      </div>
+      <div class="trend-tile">
+        <p class="trend-tile__label">{% translate "Votes papier" %}</p>
+        <p class="trend-tile__value">{{ view.document.counts.ballots_paper }}</p>
+      </div>
       {% if view.document.counts.paper_uncountersigned %}
         {% comment %} R-8.7 bis: not counted, and not dropped in silence either. {% endcomment %}
-        <dt>{% translate "Bulletins papier non contresignés, non décomptés" %}</dt><dd>{{ view.document.counts.paper_uncountersigned }}</dd>
+        <div class="trend-tile">
+          <p class="trend-tile__label">{% translate "Bulletins papier non contresignés, non décomptés" %}</p>
+          <p class="trend-tile__value">{{ view.document.counts.paper_uncountersigned }}</p>
+        </div>
       {% endif %}
-      <dt>{% translate "N'ont pas voté" %}</dt><dd>{{ view.document.counts.non_voters }}</dd>
-    </dl>
+      <div class="trend-tile">
+        <p class="trend-tile__label">{% translate "N'ont pas voté" %}</p>
+        <p class="trend-tile__value">{{ view.document.counts.non_voters }}</p>
+      </div>
+    </div>
   </section>
 
   <section aria-labelledby="raisonnement">
     <h2 id="raisonnement">{% translate "Le raisonnement" %}</h2>
 
+    {% if view.cards.duels %}
+      <section class="trend-card" aria-labelledby="results-duels-title">
+        <header class="trend-card__head">
+          <h3 id="results-duels-title">{% translate "Duels" %}</h3>
+          <p class="help">{% translate "Pour chaque paire, la part des bulletins qui placent l’une avant l’autre ; au milieu, ceux qui ne les départagent pas." %}</p>
+        </header>
+        {% include "results/_duels.html" with duels=view.cards.duels %}
+      </section>
+    {% endif %}
+
+    {% if view.cards.vote_counts %}
+      <section class="trend-card" aria-labelledby="results-counts-title">
+        <header class="trend-card__head">
+          <h3 id="results-counts-title">{% translate "Voix par proposition" %}</h3>
+          <p class="help">{% if poll.tally_method == "approval" %}{% translate "Nombre de bulletins qui classent chaque proposition, à quelque rang que ce soit." %}{% else %}{% translate "Nombre de bulletins qui placent chaque proposition en premier." %}{% endif %}</p>
+        </header>
+        <ol class="trend-types">
+          {% for row in view.cards.vote_counts %}
+            <li class="trend-types__row">
+              <p class="trend-types__ranking">
+                <span class="trend-types__option trend-s{{ row.slot }}"><span class="trend-types__rank">{{ row.rank }}</span>{{ row.label }}</span>
+              </p>
+              <span class="trend-types__bar" aria-hidden="true"><span style="flex-grow: {{ row.bar }}"></span>{% if row.rest %}<span class="trend-types__rest" style="flex-grow: {{ row.rest }}"></span>{% endif %}</span>
+              <p class="trend-types__figures">
+                <strong>{% blocktranslate count n=row.count %}{{ n }} voix{% plural %}{{ n }} voix{% endblocktranslate %}</strong>
+                <span>{{ row.pct|floatformat:0 }} %</span>
+              </p>
+            </li>
+          {% endfor %}
+        </ol>
+      </section>
+    {% endif %}
+
     {% comment %} R-14.2: the matrix has one column per proposition, with no upper bound
        on how many a commune configures — .table-scroll lets the table itself scroll
        past a handful of columns rather than taking the whole page with it. {% endcomment %}
-    <div class="table-scroll">
-    <table>
-      <caption>{% translate "Matrice des préférences deux à deux — la ligne bat la colonne" %}</caption>
-      <thead>
-        <tr>
-          <th scope="col">{% translate "bat" %}</th>
-          {% for option_id in view.option_ids %}<th scope="col">{{ option_id }}</th>{% endfor %}
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in view.matrix_rows %}
-          <tr>
-            <th scope="row">{{ row.label }} <span class="help">({{ row.option_id }})</span></th>
-            {% for cell in row.cells %}
-              <td>{% if cell.value is None %}—{% else %}{{ cell.value }}{% endif %}</td>
-            {% endfor %}
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    </div>
+    <section class="trend-card" aria-labelledby="results-matrix-title">
+      <header class="trend-card__head">
+        <h3 id="results-matrix-title">{% translate "Matrice des préférences deux à deux" %}</h3>
+        <p class="help">{% translate "Chaque case donne le nombre de bulletins qui placent la proposition de la ligne devant celle de la colonne. Une case marquée ✓ sur fond vert : la ligne gagne ce duel ; marquée = : égalité." %}</p>
+      </header>
+      {% blocktranslate count n=view.document.ballot_count asvar matrix_caption %}Sur {{ n }} bulletin retenu.{% plural %}Sur {{ n }} bulletins retenus.{% endblocktranslate %}
+      {% include "results/_matrix.html" with matrix=view.cards.matrix caption=matrix_caption %}
+    </section>
 
-    {% if view.orderings %}
+    {% if view.cards.ballot_types %}
       {% comment %} R-11.3: for a small option count, the count of ballots per distinct
          ordering — enough on its own to recompute the result. {% endcomment %}
-      <div class="table-scroll">
-      <table>
-        <caption>{% translate "Nombre de bulletins par ordre de classement" %}</caption>
-        <thead>
-          <tr>
-            <th scope="col">{% translate "Classement" %}</th>
-            <th scope="col">{% translate "Bulletins" %}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for ordering in view.orderings %}
-            <tr><td>{{ ordering.label }}</td><td>{{ ordering.count }}</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      </div>
+      <section class="trend-card" aria-labelledby="results-types-title">
+        <header class="trend-card__head">
+          <h3 id="results-types-title">{% translate "Bulletins par classement" %}</h3>
+          <p class="help">{% translate "Nombre de bulletins portant chaque classement, du plus fréquent au moins fréquent. Chaque proposition est précédée de son rang ; des propositions classées ex æquo partagent le même ; celles laissées de côté comptent ensemble en dernier." %}</p>
+        </header>
+        {% include "results/_ballot_types.html" with ballot_types=view.cards.ballot_types %}
+      </section>
     {% endif %}
 
     {% if view.tied %}
@@ -148,3 +227,4 @@
     <p>{% blocktranslate %}Cette consultation est consultative. Son résultat éclaire la délibération du conseil municipal sans la lier. Elle ne constitue pas une consultation des électeurs au sens des articles L1112-15 et suivants du code général des collectivités territoriales.{% endblocktranslate %}</p>
   </section>
 {% endblock %}
+
