@@ -25,6 +25,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from apps.core.codes import format_tracking_code
+from apps.core.types import TrackingCode
 from apps.elections import closure
 from apps.elections.models import Poll, PollState, TiebreakRule
 
@@ -178,3 +180,32 @@ def result_view(poll: Poll) -> ResultView:
         orderings=orderings,
         override_reason=poll.closure_override_reason,
     )
+
+
+@dataclass(frozen=True)
+class BallotLookup:
+    """The answer to "find my ballot" (R-11.4): the code as the voter's receipt
+    prints it, and the ballot's ranking if the published list holds it."""
+
+    tracking_code: str
+    found: bool
+    #: One entry per rank, tied options joined: ``["A", "B = C"]``; the
+    #: template's ordered list numbers them. Empty when the code is not there.
+    lines: list[str]
+
+
+def find_ballot(poll: Poll, code: TrackingCode) -> BallotLookup:
+    """Look ``code`` up in the published ballot list (R-11.4).
+
+    Read from the publication document, the stored one once published
+    (R-10.2), never from ``Ballot``: the voter is checking what was published,
+    which is also what the verifier checks, so a ballot altered after closure
+    shows as altered here. Labels in the poll's default language, like the rest
+    of the page."""
+    ballots = closure.document(poll).get("ballots")
+    labels = _labels(poll)
+    for ballot in ballots if isinstance(ballots, list) else []:
+        if isinstance(ballot, dict) and ballot.get("tracking_code") == code:
+            lines = [" = ".join(labels.get(o, o) for o in group) for group in ballot["ranking"]]
+            return BallotLookup(format_tracking_code(code), found=True, lines=lines)
+    return BallotLookup(format_tracking_code(code), found=False, lines=[])

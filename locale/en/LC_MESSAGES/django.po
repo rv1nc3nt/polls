@@ -5924,3 +5924,51 @@ msgstr ""
 #: src/apps/ballots/ranking.py
 msgid "Le classement contient un rang vide."
 msgstr "The ranking contains an empty rank."
+
+#: src/apps/publicsite/forms.py
+msgid ""
+"Tel qu'il figure sur votre récépissé ou dans le courriel reçu après le vote, "
+"par exemple ABCDE-FGHJK. Tirets, espaces et minuscules sont acceptés."
+msgstr ""
+"As printed on your receipt or in the email you received after voting, for "
+"example ABCDE-FGHJK. Dashes, spaces and lower case are accepted."
+
+#: src/apps/publicsite/forms.py
+msgid ""
+"Ce n'est pas un code de suivi : il compte dix caractères, lettres et "
+"chiffres, sans O, 0, I ni 1."
+msgstr ""
+"This is not a tracking code: it has ten characters, letters and digits, "
+"never O, 0, I or 1."
+
+#: src/templates/publicsite/results.html
+msgid "Retrouver votre bulletin"
+msgstr "Find your ballot"
+
+#: src/templates/publicsite/results.html
+#, python-format
+msgid ""
+"Le bulletin <code>%(code)s</code> figure dans la liste publiée, avec ce "
+"classement :"
+msgstr ""
+"Ballot <code>%(code)s</code> is in the published list, with this ranking:"
+
+#: src/templates/publicsite/results.html
+msgid ""
+"Les propositions que vous n'avez pas classées n'apparaissent pas : elles "
+"comptent à égalité, après toutes les autres. Si ce classement n'est pas celui "
+"que vous avez exprimé, signalez-le à la mairie."
+msgstr ""
+"Proposals you did not rank are not shown: they count as tied, after all the "
+"others. If this ranking is not the one you cast, report it to the town hall."
+
+#: src/templates/publicsite/results.html
+#, python-format
+msgid ""
+"Aucun bulletin de la liste publiée ne porte le code <code>%(code)s</code>. "
+"Vérifiez votre saisie ; si le code est exact, votre bulletin manque à la "
+"liste : signalez-le à la mairie."
+msgstr ""
+"No ballot in the published list has the code <code>%(code)s</code>. Check "
+"what you typed; if the code is right, your ballot is missing from the list: "
+"report it to the town hall."

@@ -139,6 +139,37 @@
         {% translate "liste des bulletins, matrice, raisonnement, comptes figés, empreinte, graine, départage." %}</li>
     </ul>
     <p class="help">{% blocktranslate %}Chaque bulletin porte un code de suivi remis à l'électeur au moment du vote. Retrouvez le vôtre dans la liste publiée pour confirmer qu'il a été enregistré tel que vous l'avez exprimé. Un vérificateur indépendant, écrit séparément, recalcule à partir du document de publication (JSON) l'empreinte, la matrice, le vainqueur et le départage, et les compare aux valeurs publiées ; le fichier CSV suffit à lui seul pour recalculer l'empreinte.{% endblocktranslate %}</p>
+
+    {% comment %} R-11.4, in the page itself: the list's codes have no dash, the receipt's
+       do, so a search of the downloaded file for the code as received found nothing.
+       Posted (publicsite.views.results): a code in the address would reach the access
+       log beside the visitor's IP. The action's fragment brings the answer into view. {% endcomment %}
+    <div id="retrouver" class="lookup" tabindex="-1">
+      <h3>{% translate "Retrouver votre bulletin" %}</h3>
+      {% if lookup %}
+        {% if lookup.found %}
+          <p class="message message--success" role="status">{% blocktranslate with code=lookup.tracking_code %}Le bulletin <code>{{ code }}</code> figure dans la liste publiée, avec ce classement :{% endblocktranslate %}</p>
+          <ol class="ranking-summary">
+            {% for line in lookup.lines %}<li>{{ line }}</li>{% endfor %}
+          </ol>
+          <p class="help">{% translate "Les propositions que vous n'avez pas classées n'apparaissent pas : elles comptent à égalité, après toutes les autres. Si ce classement n'est pas celui que vous avez exprimé, signalez-le à la mairie." %}</p>
+        {% else %}
+          <p class="error" role="alert">{% blocktranslate with code=lookup.tracking_code %}Aucun bulletin de la liste publiée ne porte le code <code>{{ code }}</code>. Vérifiez votre saisie ; si le code est exact, votre bulletin manque à la liste : signalez-le à la mairie.{% endblocktranslate %}</p>
+        {% endif %}
+      {% endif %}
+      <form method="post" action="{% url 'publicsite:results' poll.pk %}#retrouver">
+        {% csrf_token %}
+        {% with field=lookup_form.code %}
+          <p class="field">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            <span class="help" id="{{ field.auto_id }}_helptext">{{ field.help_text }}</span>
+            {{ field }}
+            {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+          </p>
+        {% endwith %}
+        <button type="submit">{% translate "Rechercher" %}</button>
+      </form>
+    </div>
   </section>
 
   <section aria-labelledby="portee" class="legal">
