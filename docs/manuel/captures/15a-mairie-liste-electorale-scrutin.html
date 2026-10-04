@@ -104,6 +104,7 @@
   --ok: #1f6b2c;             /* 6:1 on --paper */
   --ok-soft: #e7f2e6;        /* ok wash — pairs with --ok the way --accent-soft pairs with --accent */
   --warn: #7a5c00;           /* 6.3:1 on --paper */
+  --band-opacity: 0.14;      /* a confidence band under its line; dark needs more */
 
   --shadow: 0 1px 2px rgba(17, 17, 26, 0.05), 0 6px 20px -4px rgba(17, 17, 26, 0.10);
   --shadow-sm: 0 1px 2px rgba(17, 17, 26, 0.06);
@@ -112,6 +113,9 @@
   --radius-sm: 0.5rem;
   --measure: 42rem;          /* comfortable reading width for prose */
   --page: 78rem;             /* the centred content column */
+  /* One hue per option, by its position in the poll (the trend and result
+     cards, further down). */
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #4a3aa7; --s8: #e34948;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -132,8 +136,10 @@
     --ok: #74c983;           /* 9:1 on --paper */
     --ok-soft: #1c2e20;
     --warn: #d9b45f;         /* 9.7:1 on --paper */
+    --band-opacity: 0.26;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 20px -4px rgba(0, 0, 0, 0.55);
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
   }
 }
 
@@ -154,8 +160,10 @@
   --ok: #74c983;
   --ok-soft: #1c2e20;
   --warn: #d9b45f;
+  --band-opacity: 0.26;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 20px -4px rgba(0, 0, 0, 0.55);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -323,6 +331,9 @@ section:last-child { margin-bottom: 0; }
 .header-tools .themeswitch button { padding: 0.3rem 0.6rem; }
 
 .contentinfo { border-top: 1px solid var(--rule); color: var(--ink-quiet); font-size: 0.9rem; margin-top: 1rem; }
+/* A filled glyph (the GitHub mark), where .ic draws outlines. */
+.ic--mark { fill: currentColor; stroke: none; }
+.software__source { display: inline-flex; align-items: center; gap: 0.35em; }
 
 /* ---- espace mairie shell (§6.5) ---------------------------------------
    A classic layout: one fixed left-column menu, the same on every screen, with
@@ -484,24 +495,42 @@ body.bo main { padding: 0; }
   color: var(--ink-quiet);
   align-self: start;
 }
-.bo-side__lang select { flex: 1 1 6rem; min-width: 0; min-height: 2.2rem; }
+/* Same compact control height as `.header-tools` on the public pages
+   (above) — the panel is narrow, and there is no reason for these controls
+   to read larger here than they do there. */
+.bo-side__lang select { flex: 1 1 6rem; min-width: 0; min-height: 2rem; font-size: 0.82rem; padding: 0.2rem 0.5rem; }
 /* The generic <button> is a bold filled CTA (§6.5's "wall of blue" is exactly
    what a routine submit should not be here) — this one only re-submits the
    form beside it, so it takes the same quiet, bordered treatment as the
    theme toggle next to it, not the accent fill "Enregistrer" gets elsewhere. */
 .bo-side__lang button {
-  min-height: 2.2rem;
-  padding: 0.4rem 0.75rem;
+  min-height: 2rem;
+  padding: 0.3rem 0.7rem;
   font-weight: 500;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   background: var(--surface);
   color: var(--ink);
   border: 1px solid var(--rule);
 }
 .bo-side__lang button:hover { opacity: 1; background: var(--paper-quiet); }
-.bo-side__tools .themeswitch { flex-direction: column; align-items: stretch; gap: 0.35rem; }
-.bo-side__tools .themeswitch [role="group"] { display: flex; }
-.bo-side__tools .themeswitch button { flex: 1; padding: 0.4rem 0.3rem; font-size: 0.8rem; }
+/* `flex-wrap: nowrap` undoes the base `.themeswitch` rule's `wrap`: with it
+   left as `wrap`, the label's `flex-basis: 100%` below (set for the row
+   layout `.bo-side__lang` still uses) reads as "claim the whole column" in
+   this column-direction box, and the button group wraps into a second
+   *column* beside it instead of a row below it. */
+.bo-side__tools .themeswitch { flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 0.5rem; }
+/* `.themeswitch > span` below (generic, public-site row layout) sets
+   align-self: center for its own context; same specificity, later in the
+   file, so it would otherwise win here too and centre "Thème" while
+   "Langue" stays left-aligned (§6.5's two controls read as one pair). */
+.bo-side__tools .themeswitch > span { align-self: start; }
+/* The label's `flex-basis: 100%` (above, for the language row) is a *height* in
+   this column box: it made the label ~2 lines tall and squeezed the button group
+   below its own content, and the group's `overflow: hidden` then clipped the
+   buttons. The label takes its content height; the group never shrinks. */
+.bo-side__theme > span { flex-basis: auto; }
+.bo-side__tools .themeswitch [role="group"] { display: flex; flex-shrink: 0; }
+.bo-side__tools .themeswitch button { flex: 1; min-height: 2rem; padding: 0.3rem 0.3rem; font-size: 0.82rem; }
 
 /* Breadcrumb: sticky, so "where am I" survives a long journal or tally. */
 .bo-crumb {
@@ -848,8 +877,213 @@ tbody tr.selected th, tbody tr.selected td { background: var(--accent-soft); }
    whatever the type scale does, so it scrolls in its own box — same
    principle as `td code` below, applied to the table as a whole rather than
    forcing the surrounding page to scroll sideways with it. */
-.table-scroll { overflow-x: auto; margin: 0.5rem 0 2rem; }
+/* Positioned, so it is the containing block of what its table hides for screen
+   readers (.visually-hidden is absolutely positioned): otherwise those spans
+   are placed against the page, outside the scrolling, and widen it on a phone. */
+.table-scroll { overflow-x: auto; margin: 0.5rem 0 2rem; position: relative; }
 .table-scroll table { margin: 0; }
+
+/* The trend screen (R-11.5 bis, backoffice/poll_trend.html): headline tiles,
+   the curves, the duels and the table, on the same cards as .facts. The public
+   results page draws the published result with the same cards
+   (elections.resultcards), so the palette, defined with the other
+   colour tokens at the top, is every page's.
+
+   One categorical hue per option, by its position in the poll and never by
+   its rank, so a line keeps its colour as it moves (--s1 … --s8). Light and
+   dark are the same eight hues stepped for each surface and validated for
+   colour-vision separation; three light slots sit under 3:1 on white, which
+   the ink-coloured direct labels, the figures beside every mark and the table
+   make up for. Text always wears ink, never a series colour. */
+.trend-s1 { --series: var(--s1); } .trend-s2 { --series: var(--s2); }
+.trend-s3 { --series: var(--s3); } .trend-s4 { --series: var(--s4); }
+.trend-s5 { --series: var(--s5); } .trend-s6 { --series: var(--s6); }
+.trend-s7 { --series: var(--s7); } .trend-s8 { --series: var(--s8); }
+
+.trend-intro { max-width: var(--measure); }
+
+/* A line key, not a box: a short stroke of the series colour (dataviz
+   convention for line charts, reused for the duel names so the two agree). */
+.trend-key {
+  display: inline-block; width: 0.9rem; height: 0.2rem; border-radius: 1px;
+  background: var(--series); vertical-align: middle; margin-right: 0.4rem;
+}
+
+.trend-tiles {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 1rem; margin: 1rem 0 1.5rem;
+}
+.trend-tile, .trend-card {
+  background: var(--surface); border: 1px solid var(--rule-soft);
+  border-radius: var(--radius); box-shadow: var(--shadow-sm);
+}
+.trend-tile { padding: 1rem 1.2rem 1.1rem; display: flex; flex-direction: column; gap: 0.3rem; }
+/* `p, li` are justified site-wide (above); these are short figures and
+   captions, not prose, and justification only stretches them. */
+.trend-tile p, .trend-duel p, .trend-tip p, .trend-tip li, .trend-legend li { text-align: left; hyphens: manual; }
+.trend-tile p { margin: 0; }
+.trend-tile__label { font-size: 0.85rem; font-weight: 600; color: var(--ink-quiet); }
+.trend-tile__value { font-size: 2.1rem; font-weight: 650; line-height: 1.1; letter-spacing: -0.01em; }
+.trend-tile__value--text { font-size: 1.35rem; line-height: 1.25; overflow-wrap: anywhere; }
+.trend-tile__unit { font-size: 0.95rem; font-weight: 500; color: var(--ink-quiet); }
+.trend-tile__sub { font-size: 0.88rem; color: var(--ink-quiet); }
+.trend-tile--lead { border-top: 3px solid var(--accent); }
+
+/* A change since the previous point: arrow and sign carry the direction, the
+   colour only echoes it. Up is not "good" here — a lead can grow for any
+   option — so up and down share one neutral ink, and only the arrow differs. */
+.trend-delta { font-size: 0.85rem; font-weight: 600; color: var(--ink-quiet); font-variant-numeric: tabular-nums; }
+.trend-delta span[aria-hidden] { font-size: 0.7rem; margin-right: 0.15rem; }
+
+.trend-badges { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.2rem !important; }
+.trend-badge {
+  display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.8rem; font-weight: 600;
+  padding: 0.15rem 0.55rem; border-radius: 999px; background: var(--paper-quiet); color: var(--ink-quiet);
+}
+.trend-badge--ok { background: var(--ok-soft); color: var(--ok); }
+.trend-badge--warn { background: var(--accent-soft); color: var(--accent); }
+
+.trend-card { padding: 1.2rem 1.3rem 1.3rem; margin: 0 0 1.5rem; }
+.trend-card__head h2, .trend-card__head h3 { margin: 0 0 0.3rem; font-size: 1.15rem; }
+/* A tile's own explanation, folded: the results page's Smith set. */
+.trend-tile__more { margin-top: 0.5rem; font-size: 0.85rem; color: var(--ink-quiet); }
+.trend-tile__more summary { cursor: pointer; color: var(--link); }
+.trend-tile__more p { margin: 0.4rem 0 0; }
+.trend-card__head .help { margin: 0 0 0.8rem; max-width: var(--measure); }
+
+.trend-legend { list-style: none; display: flex; flex-wrap: wrap; gap: 0.4rem 1.2rem; padding: 0; margin: 0 0 0.6rem; font-size: 0.9rem; }
+
+.trend-chart { position: relative; border-radius: var(--radius-sm); }
+/* Below tablet width the drawing keeps a legible size and scrolls inside its
+   card, as the tables do, rather than shrinking its 12px labels to 5px. */
+@media (max-width: 48rem) {
+  .trend-chart { overflow-x: auto; }
+  .trend-chart svg { min-width: 38rem; }
+}
+.trend-chart:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; }
+.trend-chart svg { display: block; width: 100%; height: auto; overflow: visible; touch-action: pan-y; }
+.trend-chart__above { fill: var(--ok-soft); opacity: 0.55; }
+.trend-chart__grid { stroke: var(--rule-soft); stroke-width: 1; }
+.trend-chart__grid--zero { stroke: var(--rule); stroke-width: 1.5; }
+.trend-chart__tick { fill: var(--ink-quiet); font-size: 12px; font-variant-numeric: tabular-nums; }
+.trend-chart__band { fill: var(--series); fill-opacity: var(--band-opacity); stroke: none; }
+.trend-chart__line { fill: none; stroke: var(--series); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.trend-chart__dot { fill: var(--series); stroke: var(--surface); stroke-width: 2; }
+.trend-chart__end { fill: var(--ink); font-size: 13px; }
+.trend-chart__end-value { font-weight: 700; font-variant-numeric: tabular-nums; }
+.trend-chart__cursor { stroke: var(--ink-quiet); stroke-width: 1; stroke-dasharray: 3 3; }
+
+.trend-tip {
+  position: absolute; top: 0.5rem; z-index: 2; min-width: 12rem; pointer-events: none;
+  /* Its own width, not what is left of the drawing right of the cursor;
+     trend-chart.js keeps it inside the visible part. */
+  width: max-content; max-width: min(24rem, calc(100vw - 3rem));
+  padding: 0.6rem 0.8rem; font-size: 0.85rem;
+  background: var(--surface); border: 1px solid var(--rule-soft);
+  border-radius: var(--radius-sm); box-shadow: var(--shadow);
+}
+.trend-tip__head { margin: 0 0 0.35rem; color: var(--ink-quiet); font-weight: 600; }
+.trend-tip ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.2rem; }
+.trend-tip strong { display: inline-block; min-width: 3.2rem; font-variant-numeric: tabular-nums; }
+.trend-tip__ci { color: var(--ink-quiet); font-size: 0.85em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.trend-duels { list-style: none; margin: 0; padding: 0; }
+.trend-duel {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.35rem 1.5rem;
+  align-items: center; padding: 0.9rem 0; border-top: 1px solid var(--rule-soft);
+}
+.trend-duel:first-child { border-top: 0; padding-top: 0.2rem; }
+.trend-duel__names, .trend-duel__figures { margin: 0; grid-column: 1; display: flex; flex-wrap: wrap; gap: 0.2rem 0.6rem; align-items: baseline; }
+.trend-duel__figures { justify-content: space-between; font-size: 0.88rem; color: var(--ink-quiet); font-variant-numeric: tabular-nums; }
+.trend-duel__figures strong { color: var(--ink); }
+.trend-duel__vs { color: var(--ink-quiet); font-size: 0.88rem; }
+.trend-duel__bar { grid-column: 1; display: flex; gap: 2px; height: 0.75rem; }
+.trend-duel__seg { min-width: 2px; background: var(--series); }
+.trend-duel__seg:first-child { border-radius: 4px 0 0 4px; }
+.trend-duel__seg:last-child { border-radius: 0 4px 4px 0; }
+.trend-duel__seg--neither { background: var(--rule-soft); }
+.trend-duel__margin { grid-column: 2; grid-row: 1 / span 3; display: flex; align-items: center; gap: 0.9rem; text-align: right; }
+.trend-duel__margin p { margin: 0; }
+.trend-duel__pts { font-size: 1.35rem; font-weight: 650; font-variant-numeric: tabular-nums; min-width: 5.5rem; }
+.trend-spark { width: 7.5rem; height: 2rem; overflow: visible; }
+.trend-spark path { fill: none; stroke: var(--series); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.trend-spark circle { fill: var(--series); }
+.trend-spark__zero { stroke: var(--rule-soft); stroke-width: 1; stroke-dasharray: 2 2; }
+.trend-spark path.trend-spark__band { fill: var(--series); fill-opacity: calc(var(--band-opacity) + 0.04); stroke: none; }
+/* Fixed widths, so a badge, a longer interval or a shorter change does not
+   shift one row's bar against the others'. */
+.trend-duel__value { width: 10.5rem; }
+.trend-duel__margin .trend-delta { min-width: 3.5rem; }
+.trend-duel__value p + p { margin-top: 0.2rem; }
+.trend-duel__ci { font-size: 0.8rem; color: var(--ink-quiet); font-variant-numeric: tabular-nums; }
+@media (max-width: 40rem) {
+  .trend-duel { grid-template-columns: 1fr; }
+  .trend-duel__margin { grid-column: 1; grid-row: auto; justify-content: flex-start; text-align: left; }
+  .trend-duel__value { width: auto; }
+}
+
+/* Read aloud, not shown: the duel matrix spells out what its ✓ and colour
+   carry (R-14.1). */
+.visually-hidden {
+  position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+}
+
+.trend-matrix__when { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin: 0 0 0.8rem; }
+.trend-matrix { border-collapse: separate; border-spacing: 4px; width: auto; }
+.trend-matrix th, .trend-matrix td { border: 0; background: none; font-variant-numeric: tabular-nums; }
+.trend-matrix thead th { font-size: 0.88rem; vertical-align: bottom; text-align: center; padding: 0 0.5rem 0.4rem; max-width: 10rem; }
+.trend-matrix tr, .trend-matrix tbody th { background: none !important; }
+.trend-matrix tbody th { text-align: left; vertical-align: middle; padding-right: 1rem; white-space: nowrap; }
+.trend-matrix__cell, .trend-matrix__self {
+  min-width: 6.5rem; padding: 0.55rem 0.8rem; text-align: center; border-radius: var(--radius-sm);
+}
+.trend-matrix__cell { background: var(--paper-quiet) !important; }
+.trend-matrix__cell strong { font-size: 1.15rem; }
+.trend-matrix__cell--win { background: var(--ok-soft) !important; box-shadow: inset 0 0 0 1px var(--ok); }
+.trend-matrix__cell--win strong, .trend-matrix__cell--win .trend-matrix__mark { color: var(--ok); }
+.trend-matrix__cell--loss { color: var(--ink-quiet); }
+.trend-matrix__self {
+  background: repeating-linear-gradient(135deg, var(--rule-soft) 0 1px, transparent 1px 7px) !important;
+}
+.trend-matrix__mark { font-weight: 700; margin-right: 0.25rem; }
+.trend-matrix__pct { display: block; font-size: 0.8rem; color: var(--ink-quiet); }
+
+.trend-types__caption { margin: 0 0 0.4rem; font-weight: 600; }
+.trend-types { list-style: none; margin: 0; padding: 0; }
+.trend-types__row {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(8rem, 14rem) 9rem;
+  gap: 0.4rem 1.2rem; align-items: center;
+  padding: 0.7rem 0; border-top: 1px solid var(--rule-soft);
+}
+.trend-types__row p { margin: 0; text-align: left; hyphens: manual; }
+.trend-types__ranking { display: flex; flex-wrap: wrap; gap: 0.35rem 0.5rem; }
+.trend-types__option {
+  display: inline-flex; align-items: center; gap: 0.4rem; white-space: nowrap;
+  padding: 0.15rem 0.6rem 0.15rem 0.2rem; border-radius: 999px;
+  background: var(--paper-quiet); font-size: 0.92rem; font-weight: 600;
+}
+/* The rank number sits on the option's own colour, so the chip carries the
+   identity the curves use; the number itself is ink on a light ring. */
+.trend-types__rank {
+  display: inline-grid; place-items: center; width: 1.4rem; height: 1.4rem;
+  border-radius: 50%; font-size: 0.78rem; font-weight: 700; color: var(--ink);
+  background: var(--surface); box-shadow: inset 0 0 0 2.5px var(--series);
+}
+.trend-types__unranked { color: var(--ink-quiet); font-size: 0.88rem; align-self: center; }
+.trend-types__bar { display: flex; height: 0.7rem; }
+.trend-types__bar span { background: var(--accent); border-radius: 4px; min-width: 2px; }
+.trend-types__bar .trend-types__rest { background: none; }
+.trend-types__figures { display: flex; justify-content: space-between; gap: 0.6rem; font-variant-numeric: tabular-nums; }
+.trend-types__figures span { color: var(--ink-quiet); }
+@media (max-width: 48rem) {
+  .trend-types__row { grid-template-columns: minmax(0, 1fr) auto; }
+  .trend-types__ranking { grid-column: 1 / -1; }
+}
+
+.trend-table td, .trend-table th { font-variant-numeric: tabular-nums; }
+.trend-table__aside { color: var(--ink-quiet); font-size: 0.85em; }
+.trend-table caption { text-align: left; caption-side: top; padding-bottom: 0.5rem; }
 
 table { border-collapse: collapse; width: 100%; margin: 0.5rem 0 2rem; }
 caption { text-align: left; font-weight: 600; padding-bottom: 0.6rem; }
@@ -1264,6 +1498,28 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
 .poll-image--medium { width: min(20rem, 100%); }
 .poll-image--large { width: min(32rem, 100%); }
 
+/* ---- the manual, public and mairie-area alike (apps.core.manual) ---- */
+
+/* On the public site `main` already caps prose at `--page`; `.bo-main` does
+   not (it holds tables and forms that want the room), so the manual reads
+   full-width there unless capped here to the same measure. */
+body.bo .manual-page,
+body.bo .manual-index { max-width: var(--page); }
+
+/* Full-screen captures (docs/manuel/captures/img/, ~1400px wide) would
+   otherwise render at their native size and blow past the content column;
+   capped so they stay legible without dominating the page, with a light
+   frame since a screenshot's own edges rarely line up with the page
+   background. */
+.manual-page img {
+  display: block;
+  height: auto;
+  max-width: min(100%, 55rem);
+  margin: 0.5rem 0;
+  border: 1px solid var(--rule-soft);
+  border-radius: 4px;
+}
+
 /* 16:9 responsive wrapper around the one iframe apps.elections.optioncontent
    ever emits — width comes from the surrounding text column, not from the
    iframe's own (fixed, sandboxed) attributes. */
@@ -1330,6 +1586,8 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
     <symbol id="pub-ico-cal" viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14.5" rx="1.6"/><path d="M4 9.5h16"/><path d="M8 3.5v4"/><path d="M16 3.5v4"/></symbol>
     <symbol id="pub-ico-paper" viewBox="0 0 24 24"><path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V8Z"/><path d="M14 3v5h4"/><path d="M9.5 13h5"/><path d="M9.5 16.5h5"/></symbol>
     <symbol id="pub-ico-warn" viewBox="0 0 24 24"><path d="M12 4 21 19.5H3Z"/><path d="M12 10v4"/><circle cx="12" cy="16.7" r="0.4" fill="currentColor"/></symbol>
+    
+    <symbol id="pub-ico-github" viewBox="0 0 16 16"><path d="M6.766 11.328c-2.063-.25-3.516-1.734-3.516-3.656 0-.781.281-1.625.75-2.188-.203-.515-.172-1.609.063-2.062.625-.078 1.468.25 1.968.703.594-.187 1.219-.281 1.985-.281.765 0 1.39.094 1.953.265.484-.437 1.344-.765 1.969-.687.218.422.25 1.515.046 2.047.5.593.766 1.39.766 2.203 0 1.922-1.453 3.375-3.547 3.64.531.344.89 1.094.89 1.954v1.625c0 .468.391.734.86.547C13.781 14.359 16 11.53 16 8.03 16 3.61 12.406 0 7.984 0 3.563 0 0 3.61 0 8.031a7.88 7.88 0 0 0 5.172 7.422c.422.156.828-.125.828-.547v-1.25c-.219.094-.5.156-.75.156-1.031 0-1.64-.562-2.078-1.609-.172-.422-.36-.672-.719-.719-.187-.015-.25-.093-.25-.187 0-.188.313-.328.625-.328.453 0 .844.281 1.25.86.313.452.64.655 1.031.655s.641-.14 1-.5c.266-.265.47-.5.657-.656"/></symbol>
   </svg>
 
   <header class="banner">
@@ -1344,7 +1602,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
       
       <a class="account__public" href="/" target="_blank" rel="noopener">Voir le site public</a>
       <form action="/fr/mairie/deconnexion/" method="post">
-        <input type="hidden" name="csrfmiddlewaretoken" value="6aE9zDleaPMCfTL2alDXrU74Nl7cs0SxPmMHcg3lOgWACgw7VsMKbDmByzMQPWVY">
+        <input type="hidden" name="csrfmiddlewaretoken" value="VHRdM3TDc9PPqGnZz3IZgQlZETba95U4OJgzD1zKkHBrpUdPKD811U1MPdxnGiC5">
         <button type="submit">Se déconnecter</button>
       </form>
     </div>
@@ -1375,8 +1633,10 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
   <symbol id="ico-paper" viewBox="0 0 24 24"><path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V8Z"/><path d="M14 3v5h4"/><path d="M9.5 13h5"/><path d="M9.5 16.5h5"/></symbol>
   <symbol id="ico-countersign" viewBox="0 0 24 24"><path d="M3 12.5 6.5 16 14 7.5"/><path d="m13 15 1.6 1.5L21 9"/></symbol>
   <symbol id="ico-tally" viewBox="0 0 24 24"><path d="M4 20h16"/><path d="M6.5 20v-6"/><path d="M12 20V5"/><path d="M17.5 20v-9"/></symbol>
+  <symbol id="ico-trend" viewBox="0 0 24 24"><path d="M4 18 9.5 11l4 4L20 7"/><path d="M15.5 7H20v4.5"/></symbol>
   <symbol id="ico-audit" viewBox="0 0 24 24"><path d="m12 3.5 7 2.4v5.3c0 4.6-3 7.4-7 8.8-4-1.4-7-4.2-7-8.8V5.9Z"/><path d="m9 12 2 2 4-4.5"/></symbol>
   <symbol id="ico-commune" viewBox="0 0 24 24"><path d="M4 20h16"/><path d="M5.5 20V10.5L12 5l6.5 5.5V20"/><path d="M9.5 20v-5h5v5"/></symbol>
+  <symbol id="ico-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9.5 9.3a2.5 2.5 0 0 1 4.8 1c0 1.7-2.3 1.8-2.3 3.4"/><circle cx="12" cy="17" r="0.15"/></symbol>
   <symbol id="ico-chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
 </svg>
 
@@ -1391,6 +1651,14 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
              href="/fr/mairie/">
             <svg class="bo-ico" aria-hidden="true"><use href="#ico-polls"></use></svg>
             <span class="bo-side__text">Scrutins</span>
+          </a>
+        </li>
+      
+        <li>
+          <a class="bo-side__link"
+             href="/fr/mairie/aide/">
+            <svg class="bo-ico" aria-hidden="true"><use href="#ico-help"></use></svg>
+            <span class="bo-side__text">Aide</span>
           </a>
         </li>
       
@@ -1413,7 +1681,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
           <li>
             
             <a class="bo-side__link"
-               href="/fr/mairie/scrutin/b59c7bbb-b2ca-4306-9085-0525cb8d9654/">
+               href="/fr/mairie/scrutin/e2f3fbe2-12d5-4931-a540-9a333b387309/">
               <svg class="bo-ico" aria-hidden="true"><use href="#ico-dashboard"></use></svg>
               <span class="bo-side__text">Tableau de bord</span>
             </a>
@@ -1422,7 +1690,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
           <li>
             
             <a class="bo-side__link"
-               href="/fr/mairie/scrutin/b59c7bbb-b2ca-4306-9085-0525cb8d9654/configuration/">
+               href="/fr/mairie/scrutin/e2f3fbe2-12d5-4931-a540-9a333b387309/configuration/">
               <svg class="bo-ico" aria-hidden="true"><use href="#ico-config"></use></svg>
               <span class="bo-side__text">Configuration</span>
             </a>
@@ -1431,7 +1699,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
           <li>
             
             <a class="bo-side__link is-current"
-               href="/fr/mairie/scrutin/b59c7bbb-b2ca-4306-9085-0525cb8d9654/liste-electorale/" aria-current="page">
+               href="/fr/mairie/scrutin/e2f3fbe2-12d5-4931-a540-9a333b387309/liste-electorale/" aria-current="page">
               <svg class="bo-ico" aria-hidden="true"><use href="#ico-roll"></use></svg>
               <span class="bo-side__text">Liste électorale</span>
             </a>
@@ -1440,7 +1708,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
           <li>
             
             <a class="bo-side__link"
-               href="/fr/mairie/scrutin/b59c7bbb-b2ca-4306-9085-0525cb8d9654/inscriptions/">
+               href="/fr/mairie/scrutin/e2f3fbe2-12d5-4931-a540-9a333b387309/inscriptions/">
               <svg class="bo-ico" aria-hidden="true"><use href="#ico-registrations"></use></svg>
               <span class="bo-side__text">Inscriptions</span>
             </a>
@@ -1454,7 +1722,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
           <li>
             
             <a class="bo-side__link"
-               href="/fr/mairie/scrutin/b59c7bbb-b2ca-4306-9085-0525cb8d9654/bulletins-papier/">
+               href="/fr/mairie/scrutin/e2f3fbe2-12d5-4931-a540-9a333b387309/bulletins-papier/">
               <svg class="bo-ico" aria-hidden="true"><use href="#ico-paper"></use></svg>
               <span class="bo-side__text">Bulletins papier</span>
             </a>
@@ -1468,7 +1736,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
           <li>
             
             <a class="bo-side__link"
-               href="/fr/mairie/scrutin/b59c7bbb-b2ca-4306-9085-0525cb8d9654/depouillement/">
+               href="/fr/mairie/scrutin/e2f3fbe2-12d5-4931-a540-9a333b387309/depouillement/">
               <svg class="bo-ico" aria-hidden="true"><use href="#ico-tally"></use></svg>
               <span class="bo-side__text">Dépouillement</span>
             </a>
@@ -1482,7 +1750,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
           <li>
             
             <a class="bo-side__link"
-               href="/fr/mairie/scrutin/b59c7bbb-b2ca-4306-9085-0525cb8d9654/journal/">
+               href="/fr/mairie/scrutin/e2f3fbe2-12d5-4931-a540-9a333b387309/journal/">
               <svg class="bo-ico" aria-hidden="true"><use href="#ico-audit"></use></svg>
               <span class="bo-side__text">Journal d&#x27;audit</span>
             </a>
@@ -1495,8 +1763,8 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
   
   <div class="bo-side__tools">
     <form class="langswitch bo-side__lang" action="/i18n/setlang/" method="post">
-      <input type="hidden" name="csrfmiddlewaretoken" value="6aE9zDleaPMCfTL2alDXrU74Nl7cs0SxPmMHcg3lOgWACgw7VsMKbDmByzMQPWVY">
-      <input type="hidden" name="next" value="/fr/mairie/scrutin/b59c7bbb-b2ca-4306-9085-0525cb8d9654/liste-electorale/">
+      <input type="hidden" name="csrfmiddlewaretoken" value="VHRdM3TDc9PPqGnZz3IZgQlZETba95U4OJgzD1zKkHBrpUdPKD811U1MPdxnGiC5">
+      <input type="hidden" name="next" value="/fr/mairie/scrutin/e2f3fbe2-12d5-4931-a540-9a333b387309/liste-electorale/">
       <label for="bo-lang-select">Langue</label>
       <select id="bo-lang-select" name="language">
         
@@ -1534,10 +1802,16 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
         </li>
         
           <li>
-            <a href="/fr/mairie/scrutin/b59c7bbb-b2ca-4306-9085-0525cb8d9654/">Réaménagement de la place de la Mairie</a>
+            <a href="/fr/mairie/scrutin/e2f3fbe2-12d5-4931-a540-9a333b387309/">Réaménagement de la place de la Mairie</a>
           </li>
         
-        <li aria-current="page">Liste électorale</li>
+        
+          
+          
+            <li aria-current="page">Liste électorale</li>
+          
+        
+        
       </ol>
     </nav>
   
@@ -1556,6 +1830,11 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
         <button type="submit">Rechercher</button>
       </form>
 
+      
+        
+        <p class="help">La colonne « Participation » indique si l'électeur s'est inscrit et s'il a voté, jamais ce qu'il a voté. Une inscription en attente d'examen n'apparaît pas encore ici : elle figure dans la file d'attente des inscriptions.</p>
+      
+
       <div class="table-scroll">
       <table>
         <caption>
@@ -1567,6 +1846,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
             <th scope="col">Nom d'usage</th>
             <th scope="col">Prénoms</th>
             <th scope="col">Date de naissance</th>
+            <th scope="col">Participation</th>
           </tr>
         </thead>
         <tbody>
@@ -1579,6 +1859,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
                 1971 (date incomplète)
                 <span class="notice">(incertaine)</span>
               </td>
+              <td>pas d&#x27;inscription</td>
             </tr>
           
             <tr>
@@ -1589,6 +1870,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
                 30/09/1954
                 
               </td>
+              <td>a voté en ligne</td>
             </tr>
           
             <tr>
@@ -1599,6 +1881,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
                 22/07/1978
                 
               </td>
+              <td>a voté en ligne</td>
             </tr>
           
             <tr>
@@ -1609,6 +1892,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
                 28/02/1948
                 
               </td>
+              <td>inscrit, n&#x27;a pas voté</td>
             </tr>
           
             <tr>
@@ -1619,6 +1903,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
                 19/05/1969
                 
               </td>
+              <td>pas d&#x27;inscription</td>
             </tr>
           
             <tr>
@@ -1629,6 +1914,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
                 14/03/1962
                 
               </td>
+              <td>a voté en ligne</td>
             </tr>
           
             <tr>
@@ -1639,6 +1925,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
                 05/12/1982
                 
               </td>
+              <td>inscription non confirmée</td>
             </tr>
           
             <tr>
@@ -1649,6 +1936,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
                 07/11/1985
                 
               </td>
+              <td>a voté en ligne</td>
             </tr>
           
             <tr>
@@ -1659,6 +1947,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
                 03/01/1990
                 
               </td>
+              <td>a voté en ligne</td>
             </tr>
           
             <tr>
@@ -1669,6 +1958,7 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
                 11/08/1996
                 
               </td>
+              <td>a voté sur papier</td>
             </tr>
           
         </tbody>
@@ -1693,6 +1983,12 @@ td code { display: inline-block; max-width: 32rem; overflow-x: auto; }
     
 
     
+
+    
+    <p class="software">
+      Logiciel libre sous licence <a href="https://spdx.org/licenses/0BSD.html" lang="en">0BSD</a>
+      · <a href="https://github.com/rv1nc3nt/polls" class="software__source"><svg class="ic ic--mark" aria-hidden="true" focusable="false"><use href="#pub-ico-github"/></svg>Code source sur GitHub</a>
+    </p>
   </footer>
 
   
