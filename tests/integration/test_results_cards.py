@@ -147,6 +147,8 @@ def test_a_schulze_result_has_its_duels_matrix_and_rankings() -> None:
     assert html.count("trend-matrix__cell--win") == 3
     assert html.count('class="trend-types__row"') == 3
     assert "Voix par proposition" not in text
+    # The Smith set is explained where it is shown.
+    assert "Le plus petit groupe de propositions dont chacune bat en duel" in text
     assert "trend-chart.js" in html  # draws the bars' widths
 
 
@@ -159,6 +161,7 @@ def test_a_counted_result_shows_its_votes_and_no_duels(method: str, first: str) 
     html = _page(poll)
     text = _text(html)
     assert "Voix par proposition" in text
+    assert "Ensemble de Smith" not in text
     assert first in text
     assert 'class="trend-duel"' not in html
     assert "trend-matrix__cell" in html  # the matrix is published for every method

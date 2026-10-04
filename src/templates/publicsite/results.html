@@ -80,6 +80,13 @@
           <p class="trend-tile__sub">
             {% if summary.smith|length == 1 %}{% translate "une seule proposition bat toutes les autres" %}{% else %}{{ summary.smith|join:", " }}{% endif %}
           </p>
+          {% comment %} A term of art a voter cannot be expected to know: explained in
+             place, folded so the tile stays a tile. {% endcomment %}
+          <details class="trend-tile__more">
+            <summary>{% translate "Qu’est-ce que c’est ?" %}</summary>
+            <p>{% translate "Le plus petit groupe de propositions dont chacune bat en duel toutes celles qui n’en font pas partie. La proposition retenue en fait toujours partie." %}</p>
+            <p>{% translate "Avec une seule proposition, celle-ci bat chacune des autres. Avec plusieurs, aucune ne les bat toutes : elles se battent en cycle ou font jeu égal, et la méthode de Schulze les départage par l’ampleur de leurs victoires." %}</p>
+          </details>
         </div>
       {% endif %}
     {% endif %}
