@@ -67,6 +67,35 @@ implementation neither side wrote, on the same random polls; and the
 verifier's SHA-256 is held to the FIPS 180-2 examples and to padding-boundary
 digests computed with OpenSSL and coreutils (`verifier/core/src/sha256.rs`).
 
+## Whole publication documents
+
+`documents/publications.json` holds the same kind of cases one level up: whole
+publication documents (`docs/publication-format.md`), in a subdirectory so the
+ballot-level runners above do not read it. It is `{"format": 1, "bases": {…},
+"cases": [...]}`.
+
+A **base** is a complete, honest document with its `source`. Its ballots,
+closure hash, matrix and winners are those of a case above; its strongest
+paths and orderings are hand-worked; its draws and `serialisation_bytes` are
+derived by `derive-by-hand.sh`; its counts, labels and ids are chosen to add
+up. `test_vectors.py` checks that the application's writer
+(`elections.closure.compose`) produces each base exactly.
+
+A **case** names a `base`, applies its `edits` in order, and states what the
+verifier must make of the result:
+
+| Member | Meaning |
+|---|---|
+| `edits` | Each `{"set": path, "value": v}`, `{"remove": path}` (an object member), or `{"append_member": key, "value": v}` (to the document itself, even if the key is there: a duplicate key). A path is a list of member names and list indices. |
+| `anchors` | `closure_hash` and `opening_seed`, as a reader noted them; either may be absent. |
+| `verdict` | `verified` (exit 0), `differs` (1), `refused` (2, the document cannot be read) or `not_anchored` (4). |
+| `differs` | With `differs` only: exactly the checks that disagree, sorted: `ballot_count`, `closure_hash`, `counts`, `derivation`, `hash_at_closure`, `matrix`, `orderings`, `participation`, `seed_at_opening`, `tiebreak`, `winner`. |
+
+`verifier/core/tests/documents.rs` holds the verifier's core to each verdict
+and list; `test_verifier_agreement.py` runs the command line on each and
+checks its exit code and the lines it prints as `DIFFERS`. A case's expected
+verdict is worked out from the edit and the contract, like any other vector.
+
 ## Adding a case
 
 Write the input, work out the expected values by hand or from a published

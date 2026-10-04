@@ -22,6 +22,7 @@ import shutil
 import subprocess
 from datetime import timedelta
 from pathlib import Path
+from typing import Any
 
 import pytest
 from django.test import Client
@@ -456,3 +457,78 @@ def test_the_verifier_implements_exactly_the_versions_the_tally_does() -> None:
     declared = re.search(r"SUPPORTED_METHOD_VERSIONS: &\[&str\] = &\[([^\]]*)\]", source)
     assert declared is not None, "SUPPORTED_METHOD_VERSIONS not found in publication.rs"
     assert re.findall(r'"([^"]*)"', declared.group(1)) == list(IMPLEMENTED_VERSIONS)
+
+
+# --- the shared publication-document vectors, end to end (review D-1) ---------
+
+DOCUMENTS = Path(__file__).resolve().parents[1] / "vectors" / "documents" / "publications.json"
+_CORPUS: dict[str, Any] = json.loads(DOCUMENTS.read_text(encoding="utf-8"))
+
+#: The exit code each verdict ends on (the CLI's --help).
+EXIT_CODES = {"verified": 0, "differs": 1, "refused": 2, "not_anchored": 4}
+
+#: The corpus's name for each check, and the label the CLI prints it under.
+CLI_LABELS = {
+    "closure_hash": "closure hash",
+    "ballot_count": "ballot count",
+    "matrix": "matrix",
+    "derivation": "derivation",
+    "orderings": "orderings",
+    "counts": "counts",
+    "tiebreak": "tie-break",
+    "winner": "winner",
+    "participation": "participation",
+    "hash_at_closure": "hash at closure",
+    "seed_at_opening": "seed at opening",
+}
+
+
+def _edited(case: dict[str, Any]) -> str:
+    """The case's document as text: its base, with its edits applied."""
+    document = json.loads(json.dumps(_CORPUS["bases"][case["base"]]["document"]))
+    appended: list[tuple[str, Any]] = []
+    for edit in case["edits"]:
+        if "append_member" in edit:
+            # A key the document already has, which a dict cannot hold: added
+            # to the text below.
+            appended.append((edit["append_member"], edit["value"]))
+            continue
+        path = edit.get("set", edit.get("remove"))
+        target = document
+        for key in path[:-1]:
+            target = target[key]
+        if "set" in edit:
+            target[path[-1]] = edit["value"]
+        else:
+            del target[path[-1]]
+    text = json.dumps(document, ensure_ascii=False)
+    for key, value in appended:
+        text = text[: text.rindex("}")] + f", {json.dumps(key)}: {json.dumps(value)}}}"
+    return text
+
+
+@pytest.mark.parametrize("case", _CORPUS["cases"], ids=lambda case: str(case["name"]))
+def test_the_cli_reaches_each_document_vector_verdict(
+    case: dict[str, Any], verifier_binary: Path, tmp_path: Path
+) -> None:
+    """``documents.rs`` holds the core to each case's verdict; this holds the
+    command line a citizen runs to the same, through its exit code and the
+    checks it prints as differing."""
+    document = tmp_path / "publication.json"
+    document.write_text(_edited(case), encoding="utf-8")
+    flags = [
+        part
+        for name in ("closure_hash", "opening_seed")
+        if name in case["anchors"]
+        for part in (f"--{name.replace('_', '-')}", case["anchors"][name])
+    ]
+    completed = subprocess.run(  # noqa: S603
+        [str(verifier_binary), str(document), *flags], capture_output=True, text=True, check=False
+    )
+    assert completed.returncode == EXIT_CODES[case["verdict"]], completed.stdout + completed.stderr
+    differing = sorted(
+        name
+        for name, label in CLI_LABELS.items()
+        if re.search(rf"^{re.escape(label)} +DIFFERS$", completed.stdout, re.MULTILINE)
+    )
+    assert differing == case.get("differs", []), completed.stdout

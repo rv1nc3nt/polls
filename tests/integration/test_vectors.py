@@ -34,12 +34,20 @@ from apps.core.canonical import (
     closure_hash,
 )
 from apps.core.types import OptionId, TrackingCode
+from apps.elections.closure import PollRecord, compose, serialise_document
 from apps.elections.models import Poll, PollOption
 from apps.tally.methods import Method, tally
 from apps.tally.tiebreak import tiebreak_order
 from tests.conftest import force_open
 
 VECTORS = Path(__file__).resolve().parents[1] / "vectors"
+DOCUMENTS = VECTORS / "documents" / "publications.json"
+
+
+def _document_corpus() -> dict[str, Any]:
+    corpus: dict[str, Any] = json.loads(DOCUMENTS.read_text(encoding="utf-8"))
+    assert corpus["format"] == 1
+    return corpus
 
 
 def _canonical(case: dict[str, Any]) -> list[CanonicalBallot]:
@@ -165,6 +173,16 @@ def test_the_corpus_agrees_with_a_derivation_by_hand() -> None:
     assert lines[1].split() == cyclic["expect"]["tiebreak_order"]
     # T-44, the vector tests/unit/test_tally.py and the verifier's schulze.rs hold.
     assert lines[2].split() == ["c", "a", "b"]
+    # The publication documents' hand-derived values (documents/publications.json).
+    bases = _document_corpus()["bases"]
+    t9 = bases["T-9 document"]["document"]
+    pairs = lines[3].split()
+    assert t9["tiebreak"]["order"] == [
+        {"option_id": option, "draw": draw}
+        for option, draw in zip(pairs[::2], pairs[1::2], strict=True)
+    ]
+    assert t9["serialisation_bytes"] == int(lines[4])
+    assert bases["plurality document"]["document"]["serialisation_bytes"] == int(lines[5])
 
 
 def test_the_contracts_name_only_vectors_and_tests_that_exist() -> None:
@@ -203,3 +221,46 @@ def test_the_contracts_name_only_vectors_and_tests_that_exist() -> None:
         name for name in tests if f"fn {name}(" not in sources and f"def {name}(" not in sources
     )
     assert tests and missing == [], missing
+
+
+# --- whole publication documents (review D-1) ---------------------------------
+
+
+@pytest.mark.parametrize("base", sorted(_document_corpus()["bases"]))
+def test_the_application_writes_each_document_vector(base: str) -> None:
+    """The application's writer, given a base document's poll, ballots and
+    tally, produces that document exactly: every value the verifier checks and
+    every value it does not. The documents were worked out by hand
+    (``derive-by-hand.sh`` for the draws and lengths), so this checks the
+    writer against them, not against the verifier; ``documents.rs`` and
+    ``test_verifier_agreement.py`` hold the verifier to their verdicts."""
+    document: dict[str, Any] = _document_corpus()["bases"][base]["document"]
+    ballots = [
+        CanonicalBallot(
+            TrackingCode(b["tracking_code"]), [[OptionId(o) for o in g] for g in b["ranking"]]
+        )
+        for b in document["ballots"]
+    ]
+    assert closure_hash(ballots).hex() == document["closure_hash"]
+    options = [OptionId(o) for o in document["options"]]
+    result = tally(
+        [b.ranking for b in ballots],
+        options,
+        Method(document["tally_method"]),
+        version=document["tally_method_version"],
+    )
+    tiebreak = document.get("tiebreak", {})
+    record = PollRecord(
+        poll_id=document["poll_id"],
+        tally_method=document["tally_method"],
+        closure_hash=bytes.fromhex(document["closure_hash"]),
+        opening_seed=bytes.fromhex(document["opening_seed"]),
+        counts=document["counts"],
+        closure_override_reason=document["closure_override_reason"],
+        labels=document["options"],
+        tiebreak_rule=tiebreak.get("rule", "computed"),
+        physical_tiebreak_order=tiebreak.get("order", [])
+        if tiebreak.get("rule") == "physical"
+        else [],
+    )
+    assert json.loads(serialise_document(compose(record, ballots, result))) == document

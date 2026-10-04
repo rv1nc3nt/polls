@@ -120,10 +120,15 @@ rest.
 
 ## Vectors
 
-The rules of this page concern a whole document, which the ballot-level corpus
-of `tests/vectors/` does not hold; each is pinned instead by a test of the
-verifier's core (`verifier/core/src/`) and, against documents the application
-really publishes, by `tests/integration/test_verifier_agreement.py`.
+The rules of this page concern a whole document. Both sides run the
+document corpus `tests/vectors/documents/publications.json`: whole documents
+worked out by hand, and cases that change one thing in them and state the
+verdict and the checks that must disagree. The application must write each
+base document exactly (`test_vectors.py`); the verifier's core must reach each
+verdict (`verifier/core/tests/documents.rs`), and so must its command line,
+through its exit code (`test_verifier_agreement.py`). Each rule is also pinned
+by a test of the verifier's core (`verifier/core/src/`) and, against documents
+the application really publishes, by `tests/integration/test_verifier_agreement.py`.
 
 | Rule | Verifier test | Agreement test |
 |---|---|---|

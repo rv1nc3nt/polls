@@ -232,6 +232,42 @@ def published_csv(poll: Poll) -> str:
 PUBLICATION_FORMAT_VERSION = "1"
 
 
+@dataclass(frozen=True)
+class PollRecord:
+    """What the publication document states about a poll beyond its ballots
+    and their tally: identity, commitments, frozen counts and the tie-break's
+    inputs. Read off the ``Poll`` by ``publication``; given directly by the
+    shared document vectors (``tests/vectors/documents/publications.json``),
+    which check that ``compose`` writes exactly the documents worked out by
+    hand (review D-1)."""
+
+    poll_id: str
+    tally_method: str
+    closure_hash: bytes
+    opening_seed: bytes
+    counts: dict[str, int]
+    closure_override_reason: str
+    #: Option id → labels by language, in the poll's option order.
+    labels: dict[str, dict[str, str]]
+    tiebreak_rule: str
+    physical_tiebreak_order: list[str]
+
+
+def poll_record(poll: Poll) -> PollRecord:
+    """The ``PollRecord`` of a closed or published poll."""
+    return PollRecord(
+        poll_id=str(poll.id),
+        tally_method=poll.tally_method,
+        closure_hash=bytes(poll.closure_hash or b""),
+        opening_seed=bytes(poll.opening_seed or b""),
+        counts=poll.frozen_counts,
+        closure_override_reason=poll.closure_override_reason,
+        labels={o.option_id: o.label_i18n for o in poll.options.all()},
+        tiebreak_rule=poll.tiebreak_rule,
+        physical_tiebreak_order=list(poll.physical_tiebreak_order or []),
+    )
+
+
 def publication(poll: Poll, version: str | None = None) -> dict[str, Any]:
     """Everything §9 requires published, as one JSON-serialisable document.
 
@@ -240,20 +276,28 @@ def publication(poll: Poll, version: str | None = None) -> dict[str, Any]:
     independent of the labels (R-10.7, T-23). Labels are frozen at `open`
     (R-3.3, INV-6), so this table shows exactly what voters ranked.
     """
-    ballots, options, result = tallied(poll, version)
+    ballots, _options, result = tallied(poll, version)
+    return compose(poll_record(poll), ballots, result)
 
+
+def compose(
+    record: PollRecord, ballots: list[CanonicalBallot], result: TallyResult
+) -> dict[str, Any]:
+    """The publication document from a poll's record, its live set and the
+    tally over it. Pure: ``publication`` gathers the inputs."""
+    options = [OptionId(o) for o in record.labels]
     document: dict[str, Any] = {
         "format_version": PUBLICATION_FORMAT_VERSION,
-        "poll_id": str(poll.id),
-        "tally_method": poll.tally_method,
+        "poll_id": record.poll_id,
+        "tally_method": record.tally_method,
         # The version the tally actually ran, which is the poll's own save
         # for a legacy poll frozen under version 1 (``freeze_publication``).
         "tally_method_version": result.method_version,
-        "closure_hash": (poll.closure_hash or b"").hex(),
-        "opening_seed": (poll.opening_seed or b"").hex(),
-        "counts": poll.frozen_counts,
-        "closure_override_reason": poll.closure_override_reason,
-        "options": {o.option_id: o.label_i18n for o in poll.options.all()},
+        "closure_hash": record.closure_hash.hex(),
+        "opening_seed": record.opening_seed.hex(),
+        "counts": record.counts,
+        "closure_override_reason": record.closure_override_reason,
+        "options": record.labels,
         # R-11.2 requires the anonymised ballot list in *both* CSV and JSON
         # form — not just the derivation built from it — so that a third party
         # who fetches only the JSON artefact can still find their own tracking
@@ -271,10 +315,10 @@ def publication(poll: Poll, version: str | None = None) -> dict[str, Any]:
     }
 
     if result.tied:
-        if poll.tiebreak_rule == TiebreakRule.COMPUTED:
-            if not (poll.closure_hash and poll.opening_seed):
-                raise TiebreakInputsMissing(str(poll.pk))
-            order = tiebreak_order(result.tied, bytes(poll.opening_seed), bytes(poll.closure_hash))
+        if record.tiebreak_rule == TiebreakRule.COMPUTED:
+            if not (record.closure_hash and record.opening_seed):
+                raise TiebreakInputsMissing(record.poll_id)
+            order = tiebreak_order(result.tied, record.opening_seed, record.closure_hash)
             document["tiebreak"] = {
                 "rule": "computed",
                 "tied": list(result.tied),
@@ -282,22 +326,22 @@ def publication(poll: Poll, version: str | None = None) -> dict[str, Any]:
                 "winner": order[0][0],
             }
             document["winner"] = order[0][0]
-        elif poll.tiebreak_rule == TiebreakRule.PHYSICAL:
+        elif record.tiebreak_rule == TiebreakRule.PHYSICAL:
             # §8.3: the tally reports the tie and stops; a poll admin enters the
             # result of the physical draw on screen 9 and it is logged. Until
             # then there is no winner — ``unresolved_physical_tiebreak`` refuses
             # publication, so a published document always carries the order.
             tiebreak: dict[str, Any] = {"rule": "physical", "tied": list(result.tied)}
-            if _is_tiebreak_permutation(poll.physical_tiebreak_order, result.tied):
-                draw_order = list(poll.physical_tiebreak_order)
+            if _is_tiebreak_permutation(record.physical_tiebreak_order, result.tied):
+                draw_order = list(record.physical_tiebreak_order)
                 tiebreak["order"] = draw_order
                 tiebreak["winner"] = draw_order[0]
                 document["winner"] = draw_order[0]
             document["tiebreak"] = tiebreak
         else:
-            raise ValueError(f"unknown tie-break rule {poll.tiebreak_rule!r}")
+            raise ValueError(f"unknown tie-break rule {record.tiebreak_rule!r}")
 
-    if len(options) <= 4 and poll.tally_method == Method.SCHULZE:
+    if len(options) <= 4 and record.tally_method == Method.SCHULZE:
         document["orderings"] = ordering_summary(ballots, options)
     return document
 
