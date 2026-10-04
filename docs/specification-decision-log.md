@@ -74,6 +74,7 @@ reasoning.
 | 50 | A browser posting from a ballot page sends `Origin: null`, which the CSRF check refused | settled |
 | 51 | In production the ballot pages sent their token as `Referer`: nginx's referrer policy overrode the application's | settled |
 | 52 | A method version stays runnable when it can no longer be chosen; pre-check polls run under version 1 | settled |
+| 53 | The session table kept the order ballots were cast in | settled |
 
 ## 1. Retention purge on a poll that closed but was never published
 
@@ -1922,3 +1923,37 @@ have rebuilt `elections_poll` and dropped its five triggers. A test checks they
 are present; on a copy of a real database the trigger count is unchanged
 through the migration and its reversal.
 
+## 53. The session table kept the order ballots were cast in
+
+**Found (2026-10-03, review A-1).** #42 took the time and the order off
+`Ballot` and left them in the session table. A voter's session row is created
+as they open the mailed link (the sandbox grant was written for every poll)
+and, in the request that casts, receives the receipt: tracking code and
+ranking. For a modification it holds the ballot hash instead. `django_session`
+is an ordinary SQLite table, so its `rowid` lists those tracking codes in the
+order electors arrived and cast, which is what `ballots_ballot` was rebuilt
+`WITHOUT ROWID` to forget. A throwaway test casting three ballots read them
+back in order. Nothing scheduled `clearsessions`, so the rows outlived their
+expiry and the retention purge. Beside `Registration.created_at`, which is
+exact and not to the day as #42 says, that pairs electors with ballots for
+whoever registers and votes in one sitting.
+
+**Settled.**
+
+- `django_session` is rebuilt `WITHOUT ROWID` (core migration 0011), its rows
+  stored by their random `session_key`. This covers whatever a ballot route
+  stores in the session, not only the receipt. Django cannot express it; a
+  test fails if a later migration's table rebuild restores the `rowid`.
+- The sandbox grant is written for sandbox polls only. A real poll is
+  reachable without it, so opening the link on one writes no session at all;
+  the receipt is the first thing stored.
+- `retention_purge`, already scheduled daily everywhere, deletes expired
+  sessions (`core/sessions.purge_expired`). A receipt is no use past its
+  session's two weeks.
+
+**What remains.** `Registration.created_at` is exact. With no ballot order left
+in the database it pairs nothing on its own, but rounding it to the day, as
+session expiries are, would match the residual #42 describes; that is a
+decision for the commune, since the review queue sorts by it. The rows the
+rebuild copies leave their bytes in free pages until SQLite reuses them; the
+nightly backup (`VACUUM INTO`) carries none.

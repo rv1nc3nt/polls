@@ -22,6 +22,7 @@ from dataclasses import dataclass
 
 from django.conf import settings
 from django.core.cache import cache
+from django.db import transaction
 from django.http import HttpRequest
 
 _SPEC = re.compile(r"^\s*(\d+)\s*/\s*(\d+)\s*([smhd])\s*$")
@@ -43,6 +44,18 @@ class Limit:
             raise ValueError(f"unparsable rate limit: {spec!r}")
         count, amount, unit = match.groups()
         return cls(count=int(count), window=int(amount) * _UNITS[unit])
+
+
+def _serialised() -> transaction.Atomic:
+    """The block an increment runs in (review A-4).
+
+    ``cache.incr`` is a read then a write, on every backend but LocMem's, so
+    two requests could read the same count and both write it plus one,
+    undercounting a burst. Production's ``DatabaseCache`` lives in the
+    application's database, whose transactions are ``IMMEDIATE``
+    (``settings/base.py``): the block takes the write lock before the read,
+    so concurrent increments run one after the other."""
+    return transaction.atomic()
 
 
 def client_digest(request: HttpRequest) -> str:
@@ -80,8 +93,9 @@ def allow(bucket: str, request: HttpRequest, limit: Limit) -> bool:
     """
     key = f"ratelimit:{bucket}:{client_digest(request)}"
     try:
-        cache.add(key, 0, timeout=limit.window)
-        return int(cache.incr(key)) <= limit.count
+        with _serialised():
+            cache.add(key, 0, timeout=limit.window)
+            return int(cache.incr(key)) <= limit.count
     except ValueError:
         # The entry expired between `add` and `incr`; this attempt starts a
         # fresh window.
@@ -132,8 +146,9 @@ def count_failure(bucket: str, ident: str, limit: Limit) -> None:
     """Record one failure for ``ident`` in ``bucket``."""
     key = f"ratelimit:{bucket}:{ident}"
     try:
-        cache.add(key, 0, timeout=limit.window)
-        cache.incr(key)
+        with _serialised():
+            cache.add(key, 0, timeout=limit.window)
+            cache.incr(key)
     except ValueError:
         cache.set(key, 1, timeout=limit.window)
     except Exception:  # noqa: S110 — fail open, as above

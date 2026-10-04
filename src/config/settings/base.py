@@ -8,6 +8,7 @@ the repository.
 from __future__ import annotations
 
 import os
+import tomllib
 import uuid
 from pathlib import Path
 
@@ -155,6 +156,10 @@ SESSION_COOKIE_SAMESITE = "Lax"
 # (apps/core/operatorsession.py, review A-16). Voters' sessions are unaffected.
 OPERATOR_SESSION_AGE = int(os.environ.get("DJANGO_OPERATOR_SESSION_AGE", 8 * 3600))
 CSRF_COOKIE_SAMESITE = "Lax"
+# security.W003 looks for Django's CSRF middleware by name and misses
+# apps.core.csrf.BallotRouteCsrfMiddleware, its subclass; apps.core.checks
+# (core.E001) checks for that one instead (review A-2).
+SILENCED_SYSTEM_CHECKS = ["security.W003"]
 X_FRAME_OPTIONS = "DENY"
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "same-origin"
@@ -228,8 +233,23 @@ LOGGING = {
     "root": {"handlers": ["console"], "level": os.environ.get("DJANGO_LOG_LEVEL", "INFO")},
 }
 
-# Application version, reported by GET /sante (§14).
-APP_VERSION = os.environ.get("APP_VERSION", "0.1.0-dev")
+
+def project_version() -> str:
+    """The ``version`` of ``pyproject.toml``, which a release commit bumps and
+    tags (CLAUDE.md, "Releases"). Read from the file: the project is a uv
+    virtual package, so no installed metadata carries it."""
+    try:
+        with (BASE_DIR / "pyproject.toml").open("rb") as file:
+            return str(tomllib.load(file)["project"]["version"])
+    except (OSError, KeyError, tomllib.TOMLDecodeError):
+        return "unknown"
+
+
+# Application version, reported by GET /sante (§14). Ansible sets APP_VERSION to
+# the release it deployed; anywhere else, a hand install under contrib/init/
+# included, it is the source tree's own version rather than a made-up one
+# (review A-5).
+APP_VERSION = os.environ.get("APP_VERSION") or project_version()
 # Where the footer's "code source" link points (apps.core.context.software).
 # The upstream repository by default; a commune running its own fork may point
 # it there. A github.com address gets the GitHub mark, anything else plain text.

@@ -8,10 +8,14 @@ trusted proxy wrote can be believed, so the limiter counts from the right.
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
+from django.core.cache import cache
+from django.db import connection
 from django.test import RequestFactory, override_settings
 
-from apps.core.ratelimit import client_digest
+from apps.core.ratelimit import Limit, allow, client_digest, count_failure
 
 _PROXIED = {"SECURE_PROXY_SSL_HEADER": ("HTTP_X_FORWARDED_PROTO", "https")}
 
@@ -59,3 +63,28 @@ def test_no_usable_header_falls_back_to_the_socket(forwarded: str | None) -> Non
 def test_without_a_proxy_the_header_is_ignored() -> None:
     """Direct exposure (development): the header is entirely the client's."""
     assert _digest("203.0.113.9", remote="198.51.100.4") == _digest(None, remote="198.51.100.4")
+
+
+@pytest.mark.django_db(transaction=True)
+def test_an_increment_runs_inside_a_transaction(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Review A-4: ``cache.incr`` reads then writes, so it runs in a block that
+    takes the database's write lock first and two requests cannot both count
+    from the same value. ``transaction=True``, or the test's own transaction
+    would make every call look covered."""
+    cache.clear()
+    seen: list[bool] = []
+    real = cache.incr
+
+    def incr(key: str, *args: Any, **kwargs: Any) -> Any:
+        seen.append(connection.in_atomic_block)
+        return real(key, *args, **kwargs)
+
+    monkeypatch.setattr(cache, "incr", incr)
+    request = RequestFactory().get("/")
+    request.META["REMOTE_ADDR"] = "198.51.100.7"
+    limit = Limit(count=1, window=60)
+
+    assert allow("registration", request, limit) is True
+    assert allow("registration", request, limit) is False
+    count_failure("login", "account", limit)
+    assert seen == [True, True, True]

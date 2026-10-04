@@ -111,7 +111,10 @@ def access(request: HttpRequest, poll_id: str, token: str) -> HttpResponse:
     poll = get_object_or_404(Poll, pk=poll_id)
     tok = Token(token)
     holder = registrations.arrive(poll, tok)
-    if holder is not None:
+    if holder is not None and poll.is_sandbox:
+        # A real poll is reachable anyway (``sandbox.may_reach``), so nothing
+        # is written for it: a session row created as the voter arrives would
+        # be one more record of who came when (decision log #53).
         sandbox.grant_voter(request.session, poll)
     elif not sandbox.may_reach(request.session, poll):
         raise Http404

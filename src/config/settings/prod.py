@@ -27,6 +27,14 @@ SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SECURE_HSTS_SECONDS = 31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+# `check --deploy` gates CI (review A-2), so the two warnings answered elsewhere
+# are silenced here, each for its reason. W008: nginx answers plain HTTP with a
+# 301 to HTTPS before Django sees it (nginx-vhost.conf.j2), and the smoke play
+# and monitoring reach gunicorn on the loopback, where SECURE_SSL_REDIRECT would
+# redirect them too. W021: HSTS preloading binds the commune's whole domain,
+# subdomains included, to HTTPS in every browser for months, and is undone only
+# slowly; that is the commune's decision, not a default this software makes.
+SILENCED_SYSTEM_CHECKS = [*SILENCED_SYSTEM_CHECKS, "security.W008", "security.W021"]
 CSRF_TRUSTED_ORIGINS = [
     o for o in os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",") if o
 ]
