@@ -5820,3 +5820,25 @@ msgid "Sur %(n)s bulletin retenu."
 msgid_plural "Sur %(n)s bulletins retenus."
 msgstr[0] "Out of %(n)s ballot counted."
 msgstr[1] "Out of %(n)s ballots counted."
+
+#: src/templates/publicsite/results.html
+msgid "Qu’est-ce que c’est ?"
+msgstr "What is it?"
+
+#: src/templates/publicsite/results.html
+msgid ""
+"Le plus petit groupe de propositions dont chacune bat en duel toutes celles "
+"qui n’en font pas partie. La proposition retenue en fait toujours partie."
+msgstr ""
+"The smallest group of proposals each of which beats, head to head, every "
+"proposal outside it. The adopted proposal is always in it."
+
+#: src/templates/publicsite/results.html
+msgid ""
+"Avec une seule proposition, celle-ci bat chacune des autres. Avec plusieurs, "
+"aucune ne les bat toutes : elles se battent en cycle ou font jeu égal, et la "
+"méthode de Schulze les départage par l’ampleur de leurs victoires."
+msgstr ""
+"With a single proposal, it beats each of the others. With several, none "
+"beats them all: they beat one another in a cycle or draw, and the Schulze "
+"method separates them by the size of their wins."

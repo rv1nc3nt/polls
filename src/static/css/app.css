@@ -934,6 +934,10 @@ tbody tr.selected th, tbody tr.selected td { background: var(--accent-soft); }
 
 .trend-card { padding: 1.2rem 1.3rem 1.3rem; margin: 0 0 1.5rem; }
 .trend-card__head h2, .trend-card__head h3 { margin: 0 0 0.3rem; font-size: 1.15rem; }
+/* A tile's own explanation, folded: the results page's Smith set. */
+.trend-tile__more { margin-top: 0.5rem; font-size: 0.85rem; color: var(--ink-quiet); }
+.trend-tile__more summary { cursor: pointer; color: var(--link); }
+.trend-tile__more p { margin: 0.4rem 0 0; }
 .trend-card__head .help { margin: 0 0 0.8rem; max-width: var(--measure); }
 
 .trend-legend { list-style: none; display: flex; flex-wrap: wrap; gap: 0.4rem 1.2rem; padding: 0; margin: 0 0 0.6rem; font-size: 0.9rem; }
