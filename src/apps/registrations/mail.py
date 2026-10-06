@@ -144,3 +144,19 @@ def send_reminder(registration: Registration) -> int:
         }
         body = render_to_string("registrations/mail/reminder.txt", context)
     return send_mail(subject, body, default_from_email(), [registration.email])
+
+
+def send_review_reopened(registration: Registration) -> int:
+    """R-5.4: an acceptance withdrawn and the registration back under review.
+
+    The link the elector holds stopped working when ``voter_hash`` was
+    cleared, so they are told, rather than finding out at the ballot page. No
+    reason and nothing about the decision: the reason is the mairie's record,
+    and a new link follows if the registration is accepted again.
+    """
+    poll = registration.poll
+    with translation.override(registration.language):
+        context = {"poll_title": poll.title(registration.language)}
+        subject = _("Votre inscription est réexaminée : %(poll)s") % {"poll": context["poll_title"]}
+        body = render_to_string("registrations/mail/review_reopened.txt", context)
+    return send_mail(subject, body, default_from_email(), [registration.email])

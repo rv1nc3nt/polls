@@ -54,6 +54,13 @@ class Action(models.TextChoices):
     # (§6.5.4). Names the registration only, never the address it went to (§10).
     REGISTRATION_LINK_RESENT = "registration_link_resent", _("lien de confirmation renvoyé")
     REGISTRATION_DUPLICATE = "registration_duplicate", _("tentative de doublon d'inscription")
+    # A poll admin sending a decided registration back to review (R-5.4): a
+    # refusal reconsidered, or an acceptance withdrawn while no ballot was
+    # cast. ``before`` and ``after`` say which; the reason is a code (§10).
+    REGISTRATION_REVIEW_REOPENED = (
+        "registration_review_reopened",
+        _("examen d'inscription rouvert"),
+    )
     REGISTRATION_INELIGIBLE = (
         "registration_ineligible",
         _("inscription refusée : type de liste non autorisé"),
@@ -102,6 +109,8 @@ class Reason(models.TextChoices):
     VOTED_ONLINE_ALREADY = "voted_online_already", _("a déjà voté en ligne")
     COUNTERSIGN_UNAVAILABLE = "countersign_unavailable", _("contreseing indisponible")
     DEADLINE_REACHED = "deadline_reached", _("échéance atteinte")
+    DECISION_ERROR = "decision_error", _("erreur dans la décision")
+    NEW_INFORMATION = "new_information", _("élément nouveau")
     ADMINISTRATIVE_DECISION = "administrative_decision", _("décision administrative")
     OTHER = "other", _("autre")
 

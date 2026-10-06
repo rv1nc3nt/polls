@@ -75,6 +75,7 @@ reasoning.
 | 51 | In production the ballot pages sent their token as `Referer`: nginx's referrer policy overrode the application's | settled |
 | 52 | A method version stays runnable when it can no longer be chosen; pre-check polls run under version 1 | settled |
 | 53 | The session table kept the order ballots were cast in | settled |
+| 54 | A registration decision can be taken back; the journal names the registrant | settled |
 
 ## 1. Retention purge on a poll that closed but was never published
 
@@ -1957,3 +1958,41 @@ session expiries are, would match the residual #42 describes; that is a
 decision for the commune, since the review queue sorts by it. The rows the
 rebuild copies leave their bytes in free pages until SQLite reuses them; the
 nightly backup (`VACUUM INTO`) carries none.
+
+## 54. A registration decision can be taken back; the journal names the registrant
+
+**Asked (2026-10-06, by the requirements owner).** A refusal could not be
+undone: an elector refused by mistake could only re-register with another
+address or vote on paper. Nor could an acceptance be withdrawn, for a wrong
+match say. And the journal showed `registration:<uuid>` where a reader needed
+a name, which only a database query could supply.
+
+**Settled.** R-5.4 and R-12.1/R-12.2 are amended, in both languages.
+
+- While registration is open, a poll admin may send a `rejected`
+  registration, or a `pending_email` or `active` one with no ballot (channel
+  `none`), back to `pending_review`, with a reason code
+  (`decision_error`, `new_information`, `voter_request`,
+  `administrative_decision`, `other`) and an optional note on the row. The
+  usual decision follows in the queue; there is one code path for deciding.
+- Any acceptance qualifies, automatic matches included, so a wrong match can
+  be corrected; the reason and the author are logged, like every decision.
+- Withdrawing an acceptance clears `voter_hash` and unbinds the roll entry:
+  the link already mailed opens nothing, and a new one is minted if the
+  registration is accepted again. It is a compare-and-set on
+  `channel = 'none'`, as `mark_voted` is, so a ballot cast an instant before
+  makes it refuse rather than strand the vote (INV-5). The elector is mailed
+  that the registration is being examined again, with no reason.
+- One action, `registration_review_reopened`, for both directions; its
+  `before` and `after` say which. The audit migration that adds it and the two
+  reason codes changes choices only: `sqlmigrate` emits no SQL, so the audit
+  table and its INV-3 triggers are untouched.
+- The journal shows, beside a `registration:` reference whose row still
+  exists, the name declared on it, to the two roles that read the journal
+  (auditors already read the frozen roll in clear, R-4.4). It is read at
+  display time and never written to the event (INV-3, §10): the purge removes
+  it with the row, and the event still reads as before.
+- Never reopened: a `pending_review` registration (nothing to take back),
+  and the rows a deleted paper ballot leaves behind, which carry no address
+  and were never an application.
+

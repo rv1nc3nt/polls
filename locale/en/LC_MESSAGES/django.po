@@ -6042,3 +6042,151 @@ msgstr ""
 "With a single proposal, it beats each of the others. With several, none "
 "beats them all: they beat one another in a cycle or draw, and the Schulze "
 "method separates them by the size of their wins."
+
+#: src/apps/audit/models.py
+msgid "examen d'inscription rouvert"
+msgstr "registration review reopened"
+
+#: src/apps/audit/models.py
+msgid "erreur dans la décision"
+msgstr "error in the decision"
+
+#: src/apps/audit/models.py
+msgid "élément nouveau"
+msgstr "new information"
+
+#: src/apps/registrations/services.py
+msgid ""
+"Cette inscription ne peut pas être réexaminée : un bulletin a été "
+"enregistré, ou elle n'a pas encore été examinée."
+msgstr ""
+"This registration cannot be reviewed again: a ballot has been recorded, or "
+"it has not been reviewed yet."
+
+#: src/apps/registrations/services.py
+msgid ""
+"Un bulletin vient d'être enregistré pour cet électeur : l'acceptation "
+"demeure."
+msgstr "A ballot has just been recorded for this elector: the acceptance stands."
+
+#: src/apps/registrations/mail.py
+#, python-format
+msgid "Votre inscription est réexaminée : %(poll)s"
+msgstr "Your registration is being reviewed again: %(poll)s"
+
+#: src/templates/registrations/mail/review_reopened.txt
+#, python-format
+msgid ""
+"Bonjour,\n"
+"\n"
+"Votre inscription à la consultation « %(poll_title)s » est à nouveau en "
+"cours d'examen par la mairie.\n"
+"\n"
+"Le lien de vote que vous avez reçu ne fonctionne plus. Si votre inscription "
+"est acceptée, vous recevrez un nouveau lien par courriel."
+msgstr ""
+"Hello,\n"
+"\n"
+"Your registration for the consultation “%(poll_title)s” is being reviewed "
+"again by the mairie.\n"
+"\n"
+"The voting link you received no longer works. If your registration is "
+"accepted, you will receive a new link by email."
+
+#: src/templates/registrations/mail/review_reopened.txt
+msgid "Pour toute question, adressez-vous à la mairie."
+msgstr "If you have any questions, contact the mairie."
+
+#: src/apps/backoffice/views.py
+msgid ""
+"L'inscription est de nouveau en attente d'examen. Son lien de vote ne "
+"fonctionne plus et l'électeur en a été informé."
+msgstr ""
+"The registration is awaiting review again. Its voting link no longer works "
+"and the elector has been told."
+
+#: src/apps/backoffice/views.py
+msgid "L'inscription est de nouveau en attente d'examen."
+msgstr "The registration is awaiting review again."
+
+#: src/templates/backoffice/registration_reopen.html
+msgid "Réexaminer une inscription"
+msgstr "Review a registration again"
+
+#: src/templates/backoffice/registration_reopen.html
+msgid "Demandeur"
+msgstr "Applicant"
+
+#: src/templates/backoffice/registration_reopen.html
+msgid "Note"
+msgstr "Note"
+
+#: src/templates/backoffice/registration_reopen.html
+msgid "Cette inscription est déjà en attente d'examen."
+msgstr "This registration is already awaiting review."
+
+#: src/templates/backoffice/registration_reopen.html
+msgid ""
+"Cette inscription ne peut pas être réexaminée : un bulletin a été "
+"enregistré pour cet électeur, en ligne ou sur papier, et la décision "
+"demeure."
+msgstr ""
+"This registration cannot be reviewed again: a ballot has been recorded for "
+"this elector, online or on paper, and the decision stands."
+
+#: src/templates/backoffice/registration_reopen.html
+msgid "Retour aux inscriptions"
+msgstr "Back to registrations"
+
+#: src/templates/backoffice/registration_reopen.html
+msgid ""
+"Cette inscription a été acceptée et aucun bulletin n'a encore été "
+"enregistré. La réexaminer la remet en attente d'examen : le lien de vote "
+"déjà envoyé cessera de fonctionner, et l'électeur sera prévenu par "
+"courriel. S'il est de nouveau accepté, il recevra un nouveau lien."
+msgstr ""
+"This registration was accepted and no ballot has been recorded yet. Reviewing "
+"it again puts it back to awaiting review: the voting link already sent will "
+"stop working, and the elector will be told by email. If accepted again, they "
+"will receive a new link."
+
+#: src/templates/backoffice/registration_reopen.html
+msgid ""
+"Cette inscription a été refusée. La réexaminer la remet en attente "
+"d'examen, où vous pourrez l'accepter ou la refuser de nouveau."
+msgstr ""
+"This registration was refused. Reviewing it again puts it back to awaiting "
+"review, where you can accept or refuse it again."
+
+#: src/templates/backoffice/registration_reopen.html
+msgid "Remettre en attente d'examen"
+msgstr "Put back to awaiting review"
+
+#: src/templates/backoffice/registration_queue.html
+#, python-format
+msgid "Réexaminer l'inscription de %(name)s"
+msgstr "Review %(name)s’s registration again"
+
+#: src/templates/backoffice/registration_queue.html
+msgid "Refusées"
+msgstr "Refused"
+
+#: src/templates/backoffice/registration_queue.html
+msgid ""
+"Une inscription refusée peut être réexaminée tant que les inscriptions sont "
+"ouvertes : elle revient alors en attente d'examen."
+msgstr ""
+"A refused registration can be reviewed again while registration is open: it "
+"then goes back to awaiting review."
+
+#: src/templates/backoffice/registration_queue.html
+msgid "Inscriptions refusées"
+msgstr "Refused registrations"
+
+#: src/templates/backoffice/registration_queue.html
+msgid "Aucune inscription refusée."
+msgstr "No refused registration."
+
+#: src/templates/backoffice/audit_log.html
+msgid "Réexaminer"
+msgstr "Review again"

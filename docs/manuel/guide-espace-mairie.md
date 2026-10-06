@@ -589,6 +589,30 @@ une inscription à sa place : la confirmation prouve que l'électeur a accès à
 sa boîte, et c'est aussi par ce courriel que lui parvient son lien de vote. Un
 électeur dont l'adresse est inutilisable vote sur **papier**, en mairie.
 
+### Revenir sur une décision
+
+Une décision n'est pas définitive tant que les inscriptions sont ouvertes.
+**Réexaminer** remet l'inscription **en attente d'examen**, où vous l'acceptez
+ou la refusez de nouveau, comme n'importe quelle demande. Le lien se trouve :
+
+- dans la section **Refusées**, en bas de l'écran, pour une inscription
+  refusée ;
+- dans la liste des électeurs en attente de confirmation, pour une inscription
+  acceptée dont l'adresse n'est pas encore confirmée ;
+- dans le **journal d'audit** (section 10), en face de l'inscription concernée,
+  pour toute inscription qui peut être réexaminée.
+
+Une inscription **acceptée** — par vous ou automatiquement — ne peut être
+réexaminée que si **aucun bulletin** n'a été enregistré pour l'électeur, en
+ligne ou sur papier : une fois le vote exprimé, l'acceptation demeure. En la
+réexaminant, le lien de vote déjà envoyé **cesse de fonctionner**, et l'électeur
+reçoit un courriel lui indiquant que son inscription est de nouveau à l'étude ;
+s'il est accepté de nouveau, il reçoit un nouveau lien.
+
+Un **motif** est obligatoire et la décision est inscrite au journal. Comme pour
+les autres décisions, la note facultative reste avec l'inscription et disparaît
+avec elle.
+
 ### Tentatives de doublon
 
 Une tentative d'inscription contre une entrée de liste **déjà inscrite** est
@@ -917,6 +941,15 @@ et le motif quand il en faut un. Les événements stockent une **référence + u
 motif est un **code**, jamais de la prose. La prose d'un opérateur vit sur la
 ligne référencée (l'inscription, le lien de bulletin papier), là où la purge de
 rétention la reprend.
+
+Quand l'objet est une **inscription**, le journal affiche sous sa référence le
+**nom déclaré** par la personne, tant que l'inscription existe. Ce nom n'est pas
+enregistré dans le journal : il est lu dans l'inscription au moment de
+l'affichage, si bien que la purge de rétention le fait disparaître avec elle ;
+il ne reste alors que la référence, avec la mention « objet supprimé
+(rétention) ». L'administrateur du scrutin y trouve aussi le lien
+**Réexaminer** pour une inscription qui peut l'être (section 6, « Revenir sur
+une décision »).
 
 ## 11. Protection des données — ce que l'espace mairie doit savoir
 

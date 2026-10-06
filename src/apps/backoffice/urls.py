@@ -78,6 +78,11 @@ urlpatterns = [
         views.registration_resend,
         name="registration_resend",
     ),
+    path(
+        "scrutin/<uuid:poll_id>/inscriptions/<uuid:registration_id>/reexamen/",
+        views.registration_reopen,
+        name="registration_reopen",
+    ),
     # Read-only: which import is currently in force, and when it landed. The
     # import screens above are where that changes.
     path(
