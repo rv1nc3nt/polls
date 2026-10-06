@@ -5972,3 +5972,73 @@ msgstr ""
 "No ballot in the published list has the code <code>%(code)s</code>. Check "
 "what you typed; if the code is right, your ballot is missing from the list: "
 "report it to the town hall."
+
+#: src/templates/publicsite/results.html
+msgid "Proposition retenue"
+msgstr "Proposal adopted"
+
+#: src/templates/publicsite/results.html
+msgid "après départage d’une égalité"
+msgstr "after breaking a tie"
+
+#: src/templates/publicsite/results.html
+msgid ""
+"Pour chaque paire, la part des bulletins qui placent l’une avant l’autre ; "
+"au milieu, ceux qui ne les départagent pas."
+msgstr ""
+"For each pair, the share of ballots placing one before the other; in the "
+"middle, those that do not separate them."
+
+#: src/templates/publicsite/results.html
+msgid "Voix par proposition"
+msgstr "Votes per proposal"
+
+#: src/templates/publicsite/results.html
+msgid ""
+"Nombre de bulletins qui classent chaque proposition, à quelque rang que ce "
+"soit."
+msgstr "Number of ballots that rank each proposal, at any rank."
+
+#: src/templates/publicsite/results.html
+msgid "Nombre de bulletins qui placent chaque proposition en premier."
+msgstr "Number of ballots that place each proposal first."
+
+#: src/templates/publicsite/results.html
+#, python-format
+msgid "%(n)s voix"
+msgid_plural "%(n)s voix"
+msgstr[0] "%(n)s vote"
+msgstr[1] "%(n)s votes"
+
+#: src/templates/publicsite/results.html
+msgid "Matrice des préférences deux à deux"
+msgstr "Pairwise preference matrix"
+
+#: src/templates/publicsite/results.html
+#, python-format
+msgid "Sur %(n)s bulletin retenu."
+msgid_plural "Sur %(n)s bulletins retenus."
+msgstr[0] "Out of %(n)s ballot counted."
+msgstr[1] "Out of %(n)s ballots counted."
+
+#: src/templates/publicsite/results.html
+msgid "Qu’est-ce que c’est ?"
+msgstr "What is it?"
+
+#: src/templates/publicsite/results.html
+msgid ""
+"Le plus petit groupe de propositions dont chacune bat en duel toutes celles "
+"qui n’en font pas partie. La proposition retenue en fait toujours partie."
+msgstr ""
+"The smallest group of proposals each of which beats, head to head, every "
+"proposal outside it. The adopted proposal is always in it."
+
+#: src/templates/publicsite/results.html
+msgid ""
+"Avec une seule proposition, celle-ci bat chacune des autres. Avec plusieurs, "
+"aucune ne les bat toutes : elles se battent en cycle ou font jeu égal, et la "
+"méthode de Schulze les départage par l’ampleur de leurs victoires."
+msgstr ""
+"With a single proposal, it beats each of the others. With several, none "
+"beats them all: they beat one another in a cycle or draw, and the Schulze "
+"method separates them by the size of their wins."

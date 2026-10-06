@@ -182,27 +182,48 @@ def standing(
 ) -> TrendPoint:
     """Every figure of one point, from the ballots it counts."""
     d = pairwise_matrix(ballots, options)
-    counts: dict[OptionId, int] | None = None
+    counts = None if method is Method.SCHULZE else option_counts(ballots, options, method)
+    return standing_of(
+        through, sequence, len(ballots), d, counts, orderings(ballots, options), options, method
+    )
+
+
+def standing_of(
+    through: date,
+    sequence: int,
+    ballot_count: int,
+    d: Mapping[OptionId, Mapping[OptionId, int]],
+    counts: Mapping[OptionId, int] | None,
+    table: Mapping[Ordering, int],
+    options: Sequence[OptionId],
+    method: Method,
+) -> TrendPoint:
+    """Every figure of one point, from the figures a tally publishes: the
+    pairwise matrix, the counts under plurality or approval, and the ballots
+    per ranking. ``standing`` derives them from the ballots; the public results
+    page reads them from the published document (``elections.resultcards``)."""
     if method is Method.SCHULZE:
         # §8.1: the strongest-path relation is transitive, so counting who
         # strictly beats an option ranks it consistently with the winner.
         p = schulze_paths(d, options)
         beats = {i: {j for j in options if j != i and p[i][j] > p[j][i]} for i in options}
     else:
-        counts = option_counts(ballots, options, method)
-        beats = {i: {j for j in options if counts[i] > counts[j]} for i in options}
+        if counts is None:
+            raise ValueError(f"{method} is decided on counts, and none were given")
+        tally = counts
+        beats = {i: {j for j in options if tally[i] > tally[j]} for i in options}
     ranks = {i: 1 + sum(1 for j in options if i in beats[j]) for i in options}
     condorcet = [i for i in options if all(d[i][j] > d[j][i] for j in options if j != i)]
     return TrendPoint(
         through=through,
         sequence=sequence,
-        ballot_count=len(ballots),
+        ballot_count=ballot_count,
         ranks=ranks,
         condorcet_winner=condorcet[0] if condorcet else None,
         smith_set=smith_set(d, options),
-        pairwise=d,
-        counts=counts,
-        orderings=orderings(ballots, options),
+        pairwise={i: dict(d[i]) for i in options},
+        counts=dict(counts) if counts is not None else None,
+        orderings=dict(table),
     )
 
 
