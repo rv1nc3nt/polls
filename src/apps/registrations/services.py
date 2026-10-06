@@ -36,6 +36,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from django.db import IntegrityError, transaction
+from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from apps.audit import services as audit
@@ -576,6 +577,32 @@ def reopen_review(
         reason=reason,
     )
     return locked, was_accepted
+
+
+def acknowledge_duplicate(attempt: DuplicateAttempt, actor: User) -> DuplicateAttempt:
+    """Mark a duplicate-attempt flag handled (R-5.9), once.
+
+    The flag is how R-5.9's "signalée à l'administrateur de scrutin" reaches
+    the poll admin, on the dashboard; marking it handled takes it off there.
+    Logged against the registration the attempt targeted, as the attempt
+    itself was, so the journal shows both together and records who dismissed
+    it. Nothing about the attempter exists to record (§10). A second call is a
+    no-op: the first acknowledgement stands, and is not logged twice.
+    """
+    updated = DuplicateAttempt.objects.filter(pk=attempt.pk, acknowledged_at=None).update(
+        acknowledged_at=timezone.now()
+    )
+    attempt.refresh_from_db()
+    if updated:
+        audit.record(
+            action=Action.DUPLICATE_ATTEMPT_ACKNOWLEDGED,
+            poll=attempt.poll,
+            actor=actor,
+            object_ref=audit.ref(attempt.existing_registration),
+            before={"duplicate_attempt": "open"},
+            after={"duplicate_attempt": "acknowledged"},
+        )
+    return attempt
 
 
 def find_by_token(poll: Poll, token: Token) -> Registration | None:

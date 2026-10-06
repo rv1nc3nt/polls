@@ -54,6 +54,57 @@
     </div>
   {% endif %}
 
+  {% if duplicates %}
+    {% comment %} R-5.9: an attempt to register against a roll entry that already has a
+       registration is logged *and flagged to the poll admin*. The journal does the
+       first; this does the second, until they mark it handled. Poll admin only
+       (backoffice.views.poll_dashboard). {% endcomment %}
+    <div class="status status--warn">
+      <svg class="ic" aria-hidden="true"><use href="#pub-ico-warn"/></svg>
+      <div>
+        <strong>{% blocktranslate count counter=duplicates|length %}{{ counter }} tentative de doublon d'inscription à examiner{% plural %}{{ counter }} tentatives de doublon d'inscription à examiner{% endblocktranslate %}</strong>
+        <p>{% translate "Quelqu'un a tenté de s'inscrire sous l'identité d'un électeur déjà inscrit. Ce peut être la même personne qui recommence, ou une usurpation : voyez le détail ci-dessous." %}</p>
+      </div>
+    </div>
+
+    <section aria-labelledby="doublons">
+      <h2 id="doublons">{% translate "Tentatives de doublon" %}</h2>
+      <p class="help">{% translate "Rien n'est conservé sur l'auteur de la tentative ; seule l'inscription existante est connue. En cas de doute, contactez l'électeur inscrit." %}</p>
+      <div class="table-scroll" role="region" aria-labelledby="tblcap-dashboard-duplicates" tabindex="0">
+      <table>
+        <caption id="tblcap-dashboard-duplicates">{% translate "Tentatives d'inscription visant une entrée de la liste déjà inscrite" %}</caption>
+        <thead>
+          <tr>
+            <th scope="col">{% translate "Tentative le" %}</th>
+            <th scope="col">{% translate "Inscription existante" %}</th>
+            <th scope="col">{% translate "État" %}</th>
+            <th scope="col">{% translate "Vote" %}</th>
+            <th scope="col">{% translate "Action" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for flag in duplicates %}
+            <tr>
+              <td>{{ flag.at }}</td>
+              <th scope="row">{{ flag.name }}</th>
+              <td>{{ flag.state }}</td>
+              <td>{% if flag.channel == "online" %}{% translate "a voté en ligne" %}{% elif flag.channel == "paper" %}{% translate "a voté sur papier" %}{% else %}{% translate "n'a pas voté" %}{% endif %}</td>
+              <td>
+                <a href="{% url 'backoffice:audit_log' poll.pk %}?object={{ flag.registration_ref|urlencode }}">{% translate "Voir dans le journal" %}</a>
+                <form method="post" action="{% url 'backoffice:duplicate_acknowledge' poll.pk %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="attempt" value="{{ flag.pk }}">
+                  <button type="submit" class="secondary">{% blocktranslate with name=flag.name %}Marquer comme traitée la tentative visant {{ name }}{% endblocktranslate %}</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    </section>
+  {% endif %}
+
   <section aria-labelledby="etat">
     <h2 id="etat">{% translate "État" %}</h2>
     {% if online_voting_closed %}

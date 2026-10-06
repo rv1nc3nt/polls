@@ -17,6 +17,7 @@ figure and identifies nobody.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 
 from django.db.models import Count, Q
 from django.utils.translation import gettext as _
@@ -26,7 +27,13 @@ from apps.elections.closure import frozen_counts
 from apps.elections.models import Poll, PollState
 from apps.elections.transitions import announcing_blockers, closing_blockers, opening_blockers
 from apps.elections.windows import online_voting_closed
-from apps.registrations.models import PARTICIPATING, Channel, Registration, RegistrationState
+from apps.registrations.models import (
+    PARTICIPATING,
+    Channel,
+    DuplicateAttempt,
+    Registration,
+    RegistrationState,
+)
 
 
 @dataclass(frozen=True)
@@ -152,6 +159,49 @@ def describe_blocker(code: str) -> str:
             }
         case _:
             return code
+
+
+@dataclass(frozen=True)
+class DuplicateFlag:
+    """One attempt to register against a roll entry that already had a
+    registration (R-5.9), as the poll admin sees it: when, and the registration
+    it collided with. Nothing about the attempter: none was ever kept (§10)."""
+
+    pk: str
+    at: datetime
+    registration_ref: str
+    name: str
+    state: str
+    #: The existing registration's channel: whether that elector has voted, and
+    #: how (R-7.5), which bears on what the attempt might have been.
+    channel: str
+
+
+def duplicate_flags(poll: Poll) -> list[DuplicateFlag]:
+    """The duplicate attempts not yet marked handled, most recent first.
+
+    R-5.9 has each one "signalée à l'administrateur de scrutin": the journal
+    records it, and this is where it is put in front of them until they deal
+    with it (``registrations.services.acknowledge_duplicate``). The purge
+    deletes the flags with the registrations (§11).
+    """
+    attempts = (
+        DuplicateAttempt.objects.filter(poll=poll, acknowledged_at=None)
+        .select_related("existing_registration")
+        .order_by("-at")
+    )
+    return [
+        DuplicateFlag(
+            pk=str(attempt.pk),
+            at=attempt.at,
+            registration_ref=f"registration:{attempt.existing_registration.pk}",
+            name=f"{attempt.existing_registration.declared_last_name} "
+            f"{attempt.existing_registration.declared_first_names}".strip(),
+            state=attempt.existing_registration.get_state_display(),
+            channel=attempt.existing_registration.channel,
+        )
+        for attempt in attempts
+    ]
 
 
 def blockers(poll: Poll) -> list[str]:
