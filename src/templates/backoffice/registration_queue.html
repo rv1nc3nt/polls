@@ -179,6 +179,7 @@
                 <input type="hidden" name="registration" value="{{ registration.pk }}">
                 <button type="submit">{% blocktranslate with name=registration.declared_last_name %}Renvoyer le lien à {{ name }}{% endblocktranslate %}</button>
               </form>
+              <a href="{% url 'backoffice:registration_reopen' poll.pk registration.pk %}">{% blocktranslate with name=registration.declared_last_name %}Réexaminer l'inscription de {{ name }}{% endblocktranslate %}</a>
             </td>
           </tr>
         {% endfor %}
@@ -187,5 +188,41 @@
     </div>
   {% else %}
     <p>{% translate "Aucune inscription n'attend de confirmation." %}</p>
+  {% endif %}
+
+  {% comment %}
+    R-5.4: a refusal can be reconsidered while registration is open. Reopening
+    sends the application back to the queue above, where the usual decision
+    follows. Accepted registrations are reopened from the audit journal, or
+    from the list above while their mailbox is unconfirmed.
+  {% endcomment %}
+  <h2 id="refusees">{% translate "Refusées" %}</h2>
+  <p class="help">{% translate "Une inscription refusée peut être réexaminée tant que les inscriptions sont ouvertes : elle revient alors en attente d'examen." %}</p>
+  {% if refused %}
+    <div class="table-scroll" role="region" aria-labelledby="tblcap-registration-queue-3" tabindex="0">
+    <table>
+      <caption id="tblcap-registration-queue-3">{% translate "Inscriptions refusées" %}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{% translate "Demandeur" %}</th>
+          <th scope="col">{% translate "Adresse électronique" %}</th>
+          <th scope="col">{% translate "Demande reçue le" %}</th>
+          <th scope="col">{% translate "Action" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for registration in refused %}
+          <tr>
+            <th scope="row">{{ registration.declared_last_name }} {{ registration.declared_first_names }}</th>
+            <td>{{ registration.email }}</td>
+            <td>{{ registration.created_at }}</td>
+            <td><a href="{% url 'backoffice:registration_reopen' poll.pk registration.pk %}">{% blocktranslate with name=registration.declared_last_name %}Réexaminer l'inscription de {{ name }}{% endblocktranslate %}</a></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  {% else %}
+    <p>{% translate "Aucune inscription refusée." %}</p>
   {% endif %}
 {% endblock %}

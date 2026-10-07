@@ -72,6 +72,15 @@
                  the log. {% endcomment %}
               <span class="purged">{% translate "objet supprimé (rétention)" %}</span>
             {% endif %}
+            {% if row.subject %}
+              {% comment %} The registrant's name, read from the live registration and
+                 never stored in the event (INV-3): the purge removes it with the
+                 row. {% endcomment %}
+              <span class="journal-subject">{{ row.subject.name }}</span>
+              {% if row.may_reopen and row.subject.reopenable %}
+                <a href="{% url 'backoffice:registration_reopen' poll.pk row.subject.pk %}">{% translate "Réexaminer" %}</a>
+              {% endif %}
+            {% endif %}
           </td>
           <td>{{ row.event.get_reason_display }}</td>
           <td>

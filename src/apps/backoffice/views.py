@@ -142,7 +142,7 @@ from apps.elections.windows import WindowClosed, online_voting_closed
 from apps.publicsite.views import _draft_preview_context
 from apps.registrations import mail as registration_mail
 from apps.registrations import services as registrations
-from apps.registrations.models import Channel, Registration
+from apps.registrations.models import Channel, Registration, RegistrationState
 from apps.tally.methods import Method
 from apps.tally.trend import LAG, STEP
 
@@ -162,6 +162,7 @@ from . import (
 from .access import (
     accessible_polls,
     current_operator,
+    has_poll_role,
     is_commune_admin,
     poll_roles,
     require_commune_admin,
@@ -976,10 +977,16 @@ def audit_log(request: HttpRequest, poll: Poll) -> HttpResponse:
     # dict by a variable key. ``exists`` is None where the reference names
     # nothing this screen knows how to resolve.
     alive = auditlog.resolve_refs(events_on_page)
+    # Who a registration event concerns, until the purge takes the row (R-12.2):
+    # both roles that read the journal see it. Reopening is the poll admin's.
+    subjects = auditlog.registration_subjects(events_on_page)
+    may_reopen = has_poll_role(request.user, poll, Role.POLL_ADMIN)
     rows = [
         {
             "event": event,
             "exists": alive.get(event.object_ref),
+            "subject": subjects.get(event.object_ref),
+            "may_reopen": may_reopen,
             # JSON rather than Python's dict repr, which is what the template
             # would otherwise print. This is the form the value is stored in and
             # the form an auditor quoting it should be quoting (§10).
@@ -1023,6 +1030,7 @@ def registration_queue(request: HttpRequest, poll: Poll) -> HttpResponse:
                 for registration in queue
             ],
             "awaiting": review.awaiting_confirmation(poll),
+            "refused": review.refused(poll),
             "approval_reasons": review.choices(review.APPROVAL_REASONS),
             "refusal_reasons": review.choices(review.REFUSAL_REASONS),
         },
@@ -1120,6 +1128,67 @@ def registration_decide(request: HttpRequest, poll: Poll) -> HttpResponse:
         messages.error(request, str(refusal))
 
     return redirect("backoffice:registration_queue", poll_id=str(poll.pk))
+
+
+@require_poll_role(Role.POLL_ADMIN)
+def registration_reopen(request: HttpRequest, poll: Poll, registration_id: str) -> HttpResponse:
+    """Send a decided registration back to review (R-5.4): a refusal
+    reconsidered, or an acceptance withdrawn while no ballot was cast.
+
+    The page is its own confirmation step (R-2.4): it shows whose registration
+    this is, where it stands and what reopening does, and acts only on POST,
+    with a reason from ``review.REOPEN_REASONS``. A withdrawn acceptance mails
+    the elector, after commit like every other mail, that their link no longer
+    works.
+    """
+    registration = get_object_or_404(Registration, pk=registration_id, poll=poll)
+    if request.method == "POST":
+        value = request.POST.get("reason", "")
+        reason = value if value in {str(r) for r in review.REOPEN_REASONS} else ""
+        if not reason:
+            messages.error(request, _("Un motif est obligatoire."))
+        else:
+            try:
+                registration, was_accepted = registrations.reopen_review(
+                    registration,
+                    reason=reason,
+                    actor=current_operator(request),
+                    note=request.POST.get("note", "").strip(),
+                )
+            except (registrations.RegistrationRefused, WindowClosed) as refusal:
+                messages.error(request, str(refusal))
+            else:
+                if was_accepted:
+                    transaction.on_commit(
+                        lambda: registration_mail.send_review_reopened(registration)
+                    )
+                    messages.success(
+                        request,
+                        _(
+                            "L'inscription est de nouveau en attente d'examen. Son lien de vote "
+                            "ne fonctionne plus et l'électeur en a été informé."
+                        ),
+                    )
+                else:
+                    messages.success(
+                        request, _("L'inscription est de nouveau en attente d'examen.")
+                    )
+                return redirect(
+                    f"{reverse('backoffice:registration_queue', args=[poll.pk])}"
+                    f"#demande-{registration.pk}"
+                )
+    return render(
+        request,
+        "backoffice/registration_reopen.html",
+        {
+            "poll": poll,
+            "registration": registration,
+            "reopenable": registrations.can_reopen(registration),
+            "accepted": registration.state
+            in (RegistrationState.PENDING_EMAIL, RegistrationState.ACTIVE),
+            "reasons": review.choices(review.REOPEN_REASONS),
+        },
+    )
 
 
 # --- Screen 3: import de la liste électorale (§6.5.3, §6.1) -----------------

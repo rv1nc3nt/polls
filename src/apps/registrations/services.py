@@ -494,6 +494,90 @@ def resend_confirmation(
     return locked, token
 
 
+#: The decided states a registration can be sent back to review from (R-5.4):
+#: a refusal, or an acceptance — mailbox confirmed or not — with no ballot.
+_ACCEPTED = (RegistrationState.PENDING_EMAIL, RegistrationState.ACTIVE)
+
+
+def can_reopen(registration: Registration) -> bool:
+    """Whether a poll admin may send ``registration`` back to review (R-5.4).
+
+    A refusal, or an acceptance while the elector's channel is still ``none``:
+    once a ballot is cast, online or on paper, the decision stands. Never the
+    row a deleted paper ballot leaves behind (no address, ``_is_cleared_paper_shell``)
+    or one ``_retire_paper_shell`` set aside: neither is an application, and
+    the review queue could only mail a link to nobody. Says nothing about the
+    window, which ``reopen_review`` checks.
+    """
+    if registration.email_canonical == "":
+        return False
+    if registration.state == RegistrationState.REJECTED:
+        return True
+    return registration.state in _ACCEPTED and registration.channel == Channel.NONE
+
+
+@transaction.atomic
+def reopen_review(
+    registration: Registration, reason: Reason | str, actor: User, note: str = ""
+) -> tuple[Registration, bool]:
+    """Send a decided registration back to ``pending_review`` (R-5.4).
+
+    A refusal is reconsidered; an acceptance is withdrawn while no ballot has
+    been cast. Either way the registration returns to the queue and the usual
+    decision follows, with the roll entry chosen there and a new link minted on
+    acceptance. Returns the registration and whether it had been accepted, in
+    which case the caller tells the elector (``mail.send_review_reopened``).
+
+    Withdrawing an acceptance clears ``voter_hash``, so the link already mailed
+    no longer opens anything, and unbinds the roll entry, as ``pending_review``
+    rows have none (INV-4 then frees it). Like ``mark_voted`` it is a
+    compare-and-set on ``channel = 'none'``: a ballot cast an instant earlier
+    makes this refuse rather than strand the vote (INV-5).
+
+    ``reason`` is a code and is logged; ``note`` is prose and is stored on the
+    row, where the purge takes it (§10).
+    """
+    check_registration_window(registration.poll)
+    if not reason:
+        raise RegistrationRefused(_("Un motif est obligatoire."))
+    locked = Registration.objects.select_for_update().get(pk=registration.pk)
+    if not can_reopen(locked):
+        raise RegistrationRefused(
+            _(
+                "Cette inscription ne peut pas être réexaminée : un bulletin a été "
+                "enregistré, ou elle n'a pas encore été examinée."
+            )
+        )
+    before = str(locked.state)
+    was_accepted = locked.state in _ACCEPTED
+    changes: dict[str, Any] = {"state": RegistrationState.PENDING_REVIEW}
+    if note:
+        changes["review_reason"] = note
+    if was_accepted:
+        changes |= {"voter_hash": None, "roll_entry": None}
+        updated = Registration.objects.filter(
+            pk=locked.pk, channel=Channel.NONE, state__in=_ACCEPTED
+        ).update(**changes)
+        if updated != 1:
+            raise RegistrationRefused(
+                _("Un bulletin vient d'être enregistré pour cet électeur : l'acceptation demeure.")
+            )
+    else:
+        Registration.objects.filter(pk=locked.pk).update(**changes)
+    locked.refresh_from_db()
+
+    audit.record(
+        action=Action.REGISTRATION_REVIEW_REOPENED,
+        poll=locked.poll,
+        actor=actor,
+        object_ref=audit.ref(locked),
+        before={"state": before},
+        after={"state": str(locked.state)},
+        reason=reason,
+    )
+    return locked, was_accepted
+
+
 def find_by_token(poll: Poll, token: Token) -> Registration | None:
     """The one lookup a token permits (§7): ``voter_hash`` → registration.
 

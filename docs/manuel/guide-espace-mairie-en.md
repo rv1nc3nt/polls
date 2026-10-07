@@ -568,6 +568,29 @@ voter's behalf: confirmation proves that they can read their mailbox, and that
 email is also how their voting link reaches them. A voter whose address is
 unusable votes on **paper**, at the mairie.
 
+### Going back on a decision
+
+A decision is not final while registration is open. **Review again** («
+Réexaminer ») puts the registration back to **awaiting review**, where you
+accept or refuse it again like any other application. The link is:
+
+- in the **Refused** section («Refusées»), at the bottom of the screen, for a
+  refused registration;
+- in the list of voters awaiting confirmation, for an accepted registration
+  whose address is not yet confirmed;
+- in the **audit log** (section 10), beside the registration concerned, for any
+  registration that can be reviewed again.
+
+An **accepted** registration — by you or automatically — can be reviewed again
+only if **no ballot** has been recorded for the voter, online or on paper: once
+the vote is cast, the acceptance stands. Reviewing it again makes the voting
+link already sent **stop working**, and the voter receives an email saying
+their registration is being examined again; if accepted again, they receive a
+new link.
+
+A **reason** is required and the decision is logged. As with the other
+decisions, the optional note stays with the registration and goes with it.
+
 ### Duplicate attempts
 
 An attempt to register against a roll entry that is **already registered**
@@ -857,6 +880,14 @@ Each entry shows the operator, the timestamp, the object, the
 an address; the reason is a **code**, never prose. An operator's prose lives
 on the referenced row (the registration, the paper-ballot link), which is
 where the retention purge picks it up.
+
+When the object is a **registration**, the log shows under its reference the
+**name the person declared**, for as long as the registration exists. The name
+is not recorded in the log: it is read from the registration when the page is
+shown, so the retention purge removes it with the registration; only the
+reference then remains, marked « objet supprimé (rétention) ». The poll
+administrator also finds there the **Review again** link for a registration
+that can be (section 6, "Going back on a decision").
 
 ## 11. Data protection — what the mairie area needs to know
 

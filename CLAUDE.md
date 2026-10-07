@@ -95,7 +95,10 @@ find a way round it.
   the database. Events store a reference plus non-identifying state — never a
   name, date of birth or email; `reason` is a code from `audit.models.Reason`, never
   prose. Operator prose belongs on the referenced row, where the retention
-  purge takes it (§10).
+  purge takes it (§10). The journal *shows* the name declared on a registration
+  beside its reference (R-12.2), read from the live row at display time: that is
+  not storing it, and the purge removes it with the row. Never copy it into an
+  event.
   Deleting a **sandbox** poll (R-3.7, `elections/sandbox.py`) is the one
   exception for ballots, registrations and roll entries: the delete triggers
   exempt `is_sandbox = 1` and nothing else, `inv3_poll_no_delete` refuses every

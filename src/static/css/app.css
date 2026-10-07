@@ -259,6 +259,8 @@ section:last-child { margin-bottom: 0; }
 .notice, .help { color: var(--ink-quiet); }
 .help { font-size: 0.9rem; }
 .pending, .purged { font-style: italic; color: var(--ink-quiet); }
+/* Screen 8: who a registration event concerns, under its reference. */
+.journal-subject { display: block; font-weight: 600; }
 .required { font-weight: 400; color: var(--ink-quiet); }
 /* Inline annotations next to a table cell — "(date incertaine)", "(illisible)".
    Small, italic, in the warn key; the words carry the meaning (3.1). */

@@ -36,6 +36,15 @@ APPROVAL_REASONS = (
     Reason.ADMINISTRATIVE_DECISION,
     Reason.OTHER,
 )
+#: Sending a decided registration back to review (R-5.4): why the decision is
+#: being reconsidered, not what the next one will be.
+REOPEN_REASONS = (
+    Reason.DECISION_ERROR,
+    Reason.NEW_INFORMATION,
+    Reason.VOTER_REQUEST,
+    Reason.ADMINISTRATIVE_DECISION,
+    Reason.OTHER,
+)
 REFUSAL_REASONS = (
     Reason.NAME_DIVERGENCE_REFUSED,
     Reason.NO_ROLL_MATCH,
@@ -89,6 +98,18 @@ def awaiting_confirmation(poll: Poll) -> list[Registration]:
         Registration.objects.filter(
             poll=poll, state=RegistrationState.PENDING_EMAIL, channel=Channel.NONE
         ).order_by("created_at")
+    )
+
+
+def refused(poll: Poll) -> list[Registration]:
+    """Refused applications, most recent first, each of which a poll admin may
+    send back to review (R-5.4). Not the rows a deleted paper ballot left
+    behind, which carry no address and were never an application
+    (``registrations.services.can_reopen``)."""
+    return list(
+        Registration.objects.filter(poll=poll, state=RegistrationState.REJECTED)
+        .exclude(email_canonical="")
+        .order_by("-created_at")
     )
 
 
