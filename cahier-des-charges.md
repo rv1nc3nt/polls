@@ -110,6 +110,8 @@ Seul un fichier structurellement inexploitable fait échec à l'import : colonne
 
 Dans les cas d'examen manuel, l'administrateur accepte ou rejette l'inscription en motivant sa décision. Une inscription acceptée passe à l'état d'attente de confirmation prévu à la règle R-5.5, et jamais directement à l'état actif. L'électeur est informé que son inscription est en cours d'examen.
 
+Tant que les inscriptions sont ouvertes, l'administrateur peut, en motivant sa décision, remettre en examen une inscription refusée, ou une inscription acceptée — automatiquement ou à l'issue d'un examen — tant qu'aucun bulletin n'a été enregistré pour l'électeur, en ligne ou sur papier. L'inscription revient en attente d'examen, où la décision est prise de nouveau. Lorsqu'elle avait été acceptée, le lien précédemment adressé cesse de permettre de voter et l'électeur en est informé ; s'il est accepté de nouveau, un nouveau lien lui est adressé.
+
 **R-5.5** L'inscription est confirmée par un lien adressé à l'adresse électronique déclarée. Une inscription non confirmée n'emporte aucun bulletin, ne permet pas de voter et n'est pas décomptée dans la participation.
 
 **R-5.6** Le courriel de confirmation comporte, lorsque le scrutin admet la modification, le lien de modification, lequel cesse d'être opérant à la clôture. Il ne comporte pas de code de suivi : celui-ci se rattache à un bulletin, qui n'existe pas encore au stade de l'inscription, et n'est délivré qu'à l'expression du vote (R-6.4) ou sur le récépissé papier (R-8.4).
@@ -240,9 +242,9 @@ Aucun générateur pseudo-aléatoire de bibliothèque n'est employé, la reprodu
 
 ## 12. Journal d'audit
 
-**R-12.1** Le journal est en ajout seul et consigne au minimum : les modifications de la configuration des scrutins ; les changements d'état et les prorogations de la date de clôture ; les imports et les copies figées de la liste électorale ; les décisions rendues sur les inscriptions soumises à examen ; les tentatives d'inscription refusées ; la création, la rectification et la suppression des bulletins papier ; les contreseings et les passer-outre à la clôture ; les attributions de rôles ; et les accès au journal lui-même.
+**R-12.1** Le journal est en ajout seul et consigne au minimum : les modifications de la configuration des scrutins ; les changements d'état et les prorogations de la date de clôture ; les imports et les copies figées de la liste électorale ; les décisions rendues sur les inscriptions soumises à examen et leurs remises en examen ; les tentatives d'inscription refusées ; la création, la rectification et la suppression des bulletins papier ; les contreseings et les passer-outre à la clôture ; les attributions de rôles ; et les accès au journal lui-même.
 
-**R-12.2** Chaque inscription mentionne l'opérateur, l'horodatage, l'objet concerné, l'état antérieur et postérieur, ainsi que le motif lorsqu'il est exigé.
+**R-12.2** Chaque inscription mentionne l'opérateur, l'horodatage, l'objet concerné, l'état antérieur et postérieur, ainsi que le motif lorsqu'il est exigé. Lorsque l'objet est une inscription électorale encore conservée, le journal affiche en outre le nom déclaré par l'intéressé, lu dans l'inscription elle-même et non consigné au journal : la purge de la règle R-13.3 le fait disparaître avec elle.
 
 **R-12.3** Les auditeurs disposent d'un accès en lecture à l'intégralité du journal. Aucun rôle ne permet de modifier ni de supprimer une inscription.
 

@@ -112,6 +112,8 @@ Only a structurally unusable file aborts the import: a missing mandatory column,
 
 In review cases, the administrator accepts or rejects the registration with reasons. An accepted registration passes to the pending-confirmation state under R-5.5, never directly to an active state. The elector is informed that their registration is under review.
 
+While registration is open, the administrator may, with reasons, send back to review a refused registration, or an accepted one — accepted automatically or after review — as long as no ballot has been recorded for the elector, online or on paper. The registration returns to pending review, where the decision is taken again. Where it had been accepted, the link previously sent no longer allows voting and the elector is informed; if accepted again, a new link is sent to them.
+
 **R-5.5** Registration is confirmed by a link sent to the declared email address. An unconfirmed registration carries no ballot, permits no vote, and is not counted in participation figures.
 
 **R-5.6** The confirmation email contains, where the poll permits modification, the modification link, which ceases to operate at closure. It contains no tracking code: the tracking code attaches to a ballot, which does not yet exist at registration, and is issued only when the vote is cast (R-6.4) or on the paper receipt (R-8.4).
@@ -242,9 +244,9 @@ No library pseudo-random generator is used, reproducibility having to depend nei
 
 ## 12. Audit log
 
-**R-12.1** The log is append-only and records at minimum: modifications to poll configurations; state changes and extensions of the closing date; imports and frozen copies of the electoral roll; decisions rendered on registrations submitted for review; refused registration attempts; the creation, correction and deletion of paper ballots; countersignatures and closure overrides; role assignments; and access to the log itself.
+**R-12.1** The log is append-only and records at minimum: modifications to poll configurations; state changes and extensions of the closing date; imports and frozen copies of the electoral roll; decisions rendered on registrations submitted for review and their return to review; refused registration attempts; the creation, correction and deletion of paper ballots; countersignatures and closure overrides; role assignments; and access to the log itself.
 
-**R-12.2** Each entry states the operator, the timestamp, the object concerned, the state before and after, and the reason where one is required.
+**R-12.2** Each entry states the operator, the timestamp, the object concerned, the state before and after, and the reason where one is required. Where the object is an elector's registration still retained, the log also shows the name the person declared, read from the registration itself and not recorded in the log: the purge of R-13.3 removes it with the registration.
 
 **R-12.3** Auditors have read access to the entirety of the log. No role permits an entry to be modified or deleted.
 

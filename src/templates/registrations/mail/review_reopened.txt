@@ -1,0 +1,8 @@
+{% load i18n %}{% autoescape off %}{% blocktranslate %}Bonjour,
+
+Votre inscription à la consultation « {{ poll_title }} » est à nouveau en cours d'examen par la mairie.
+
+Le lien de vote que vous avez reçu ne fonctionne plus. Si votre inscription est acceptée, vous recevrez un nouveau lien par courriel.{% endblocktranslate %}
+
+{% translate "Pour toute question, adressez-vous à la mairie." %}
+{% endautoescape %}

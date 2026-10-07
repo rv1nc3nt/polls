@@ -1,0 +1,68 @@
+{% extends "backoffice/base.html" %}
+{% load i18n %}
+{# SPDX-License-Identifier: 0BSD #}
+
+{% block screen_title %}{% translate "Réexaminer une inscription" %}{% endblock %}
+{% block heading %}{% translate "Réexaminer une inscription" %}{% endblock %}
+
+{% block screen %}
+  {% comment %}
+    R-5.4: a decided registration goes back to the review queue, where the
+    usual decision follows. The page is its own confirmation step (R-2.4): it
+    says what reopening does before anything is done.
+  {% endcomment %}
+  <dl class="facts">
+    <dt>{% translate "Demandeur" %}</dt>
+    <dd>{{ registration.declared_last_name }} {{ registration.declared_first_names }}</dd>
+    <dt>{% translate "Date de naissance déclarée" %}</dt>
+    <dd>{{ registration.declared_dob|default:"—" }}</dd>
+    <dt>{% translate "Adresse électronique" %}</dt>
+    <dd>{{ registration.email|default:"—" }}</dd>
+    <dt>{% translate "État" %}</dt>
+    <dd>{{ registration.get_state_display }}</dd>
+    {% if registration.review_reason %}
+      <dt>{% translate "Note" %}</dt>
+      <dd>{{ registration.review_reason }}</dd>
+    {% endif %}
+  </dl>
+
+  {% if not reopenable %}
+    <p class="notice">
+      {% if registration.state == "pending_review" %}
+        {% translate "Cette inscription est déjà en attente d'examen." %}
+      {% else %}
+        {% translate "Cette inscription ne peut pas être réexaminée : un bulletin a été enregistré pour cet électeur, en ligne ou sur papier, et la décision demeure." %}
+      {% endif %}
+    </p>
+    <p><a href="{% url 'backoffice:registration_queue' poll.pk %}">{% translate "Retour aux inscriptions" %}</a></p>
+  {% else %}
+    <p>
+      {% if accepted %}
+        {% translate "Cette inscription a été acceptée et aucun bulletin n'a encore été enregistré. La réexaminer la remet en attente d'examen : le lien de vote déjà envoyé cessera de fonctionner, et l'électeur sera prévenu par courriel. S'il est de nouveau accepté, il recevra un nouveau lien." %}
+      {% else %}
+        {% translate "Cette inscription a été refusée. La réexaminer la remet en attente d'examen, où vous pourrez l'accepter ou la refuser de nouveau." %}
+      {% endif %}
+    </p>
+    <form method="post" class="decision">
+      {% csrf_token %}
+      <p>
+        <label for="reopen-reason">{% translate "Motif" %}</label>
+        <select id="reopen-reason" name="reason" required>
+          <option value="">{% translate "— choisir —" %}</option>
+          {% for value, label in reasons %}
+            <option value="{{ value }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </p>
+      <p>
+        <label for="reopen-note">{% translate "Note (facultative)" %}</label>
+        <span class="help" id="reopen-note-help">{% translate "Conservée avec la demande et supprimée avec elle. N'apparaît pas dans le journal d'audit." %}</span>
+        <input id="reopen-note" type="text" name="note" maxlength="500" aria-describedby="reopen-note-help">
+      </p>
+      <p>
+        <button type="submit">{% translate "Remettre en attente d'examen" %}</button>
+        <a href="{% url 'backoffice:registration_queue' poll.pk %}">{% translate "Annuler" %}</a>
+      </p>
+    </form>
+  {% endif %}
+{% endblock %}

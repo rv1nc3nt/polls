@@ -68,6 +68,15 @@ def instance(_flushable_db: None, settings: Any) -> dict[str, str]:
         email_canonical="claire.martin@example.fr",
         state=RegistrationState.PENDING_REVIEW,
     )
+    refused = Registration.objects.create(
+        poll=live,
+        declared_last_name="Bernard",
+        declared_first_names="Luc",
+        declared_dob="03/04/1975",
+        email="luc.bernard@example.fr",
+        email_canonical="luc.bernard@example.fr",
+        state=RegistrationState.REJECTED,
+    )
     paper = ballots.enter_paper(
         live,
         str(RollEntry.objects.get(poll=live).pk),
@@ -98,7 +107,12 @@ def instance(_flushable_db: None, settings: Any) -> dict[str, str]:
     )
     close_poll(published, early_reason=Reason.ADMINISTRATIVE_DECISION)
     publish_poll(Poll.objects.get(pk=published.pk), operator)
-    return {"live": str(live.pk), "published": str(published.pk), "paper": str(paper.pk)}
+    return {
+        "live": str(live.pk),
+        "published": str(published.pk),
+        "paper": str(paper.pk),
+        "refused": str(refused.pk),
+    }
 
 
 PUBLIC = {
@@ -114,6 +128,7 @@ BACK_OFFICE = {
     "dashboard": "/fr/mairie/scrutin/{live}/",
     "configuration": "/fr/mairie/scrutin/{live}/configuration/",
     "registration-queue": "/fr/mairie/scrutin/{live}/inscriptions/",
+    "registration-reopen": "/fr/mairie/scrutin/{live}/inscriptions/{refused}/reexamen/",
     "roll-status": "/fr/mairie/scrutin/{live}/liste-electorale/",
     "paper-entry": "/fr/mairie/scrutin/{live}/bulletin-papier/",
     "paper-list": "/fr/mairie/scrutin/{live}/bulletins-papier/",

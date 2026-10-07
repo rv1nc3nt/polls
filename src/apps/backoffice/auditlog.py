@@ -29,6 +29,8 @@ from django.db.models import QuerySet
 from apps.audit.models import AuditEvent
 from apps.core.models import User
 from apps.elections.models import Poll
+from apps.registrations.models import Registration
+from apps.registrations.services import can_reopen
 
 #: The apps whose rows an ``object_ref`` can name. Scanned rather than listed
 #: one model at a time so a model added later resolves without a change here.
@@ -125,6 +127,45 @@ def resolve_refs(page: list[AuditEvent]) -> dict[str, bool]:
         for pk in pks:
             alive[f"{model_name}:{pk}"] = pk in found
     return alive
+
+
+@dataclass(frozen=True)
+class RegistrationSubject:
+    """The registration an event names, as the journal shows it beside the
+    reference: its declared name, and whether a poll admin may send it back to
+    review (R-5.4)."""
+
+    pk: str
+    name: str
+    reopenable: bool
+
+
+def registration_subjects(page: list[AuditEvent]) -> dict[str, RegistrationSubject]:
+    """``registration:<uuid>`` → who it is, for each such reference on the page
+    whose row still exists.
+
+    Read from the live row at display time and never written to the event
+    (INV-3, §10): the event keeps the bare reference, and once the retention
+    purge deletes the registration (§11) the name is gone from this screen
+    too, which shows "objet supprimé (rétention)" instead. One query per page.
+    """
+    pks: set[uuid.UUID] = set()
+    for event in page:
+        model_name, _sep, pk = event.object_ref.partition(":")
+        if model_name != "registration":
+            continue
+        try:
+            pks.add(uuid.UUID(pk))
+        except ValueError:
+            continue
+    return {
+        f"registration:{registration.pk}": RegistrationSubject(
+            pk=str(registration.pk),
+            name=f"{registration.declared_last_name} {registration.declared_first_names}".strip(),
+            reopenable=can_reopen(registration),
+        )
+        for registration in Registration.objects.filter(pk__in=pks)
+    }
 
 
 def as_json(payload: dict[str, Any]) -> str:
