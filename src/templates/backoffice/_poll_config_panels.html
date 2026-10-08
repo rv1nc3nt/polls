@@ -1,4 +1,4 @@
-{% load i18n static %}
+{% load i18n static accessibility %}
 {# SPDX-License-Identifier: 0BSD #}
 {% comment %}
   The five field-editing panels shared by screen 2's draft editor
@@ -75,8 +75,8 @@
       <p class="field">
         <label for="{{ form.is_sandbox.id_for_label }}">{{ form.is_sandbox.label }}</label>
         <span class="help">{{ form.is_sandbox.help_text }}</span>
-        {{ form.is_sandbox }}
-        {% for message in form.is_sandbox.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+        {{ form.is_sandbox|accessible_field }}
+        {% accessible_errors form.is_sandbox %}
       </p>
     </fieldset>
   {% elif poll %}
@@ -144,8 +144,8 @@
         <p class="field">
           <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span class="required">{% translate "(obligatoire)" %}</span>{% endif %}</label>
           {% if field.help_text %}<span class="help">{{ field.help_text }}</span>{% endif %}
-          {{ field }}
-          {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+          {{ field|accessible_field }}
+          {% accessible_errors field %}
         </p>
       {% endif %}
     {% endfor %}

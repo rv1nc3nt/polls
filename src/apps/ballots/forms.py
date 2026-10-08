@@ -24,12 +24,13 @@ from typing import Any
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
+from apps.core.forms import AccessibleForm
 from apps.elections.models import Poll
 
 from .ranking import BallotRefused, validate_ranking
 
 
-class RankingForm(forms.Form):
+class RankingForm(AccessibleForm):
     """One ``rank_<option_id>`` select per proposition, plus a hidden ``order``.
 
     ``cleaned_data["ranking"]`` is the ``list[list[str]]`` the services and the

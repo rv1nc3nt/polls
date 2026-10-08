@@ -1,5 +1,5 @@
 {% extends "backoffice/base.html" %}
-{% load i18n %}
+{% load i18n accessibility %}
 {# SPDX-License-Identifier: 0BSD #}
 
 {% block screen_title %}{% translate "Saisie d'un bulletin papier" %}{% endblock %}
@@ -16,7 +16,7 @@
   <form method="get" class="paper-search">
     <label for="q">{% translate "Rechercher un électeur dans la liste électorale figée" %}</label>
     <span class="help">{% translate "Nom, prénom, date de naissance (JJ/MM/AAAA), ou plusieurs à la fois." %}</span>
-    <input id="q" type="search" name="q" value="{{ query }}" autofocus>
+    <input id="q" type="search" name="q" value="{{ query }}" autofocus autocomplete="off">
     <button type="submit">{% translate "Rechercher" %}</button>
   </form>
 
@@ -76,14 +76,14 @@
         </fieldset>
 
         <p>
-          <input type="checkbox" id="identity_confirmed" name="identity_confirmed" value="1">
+          <input type="checkbox" id="identity_confirmed" name="identity_confirmed" value="1" aria-required="true">
           <label for="identity_confirmed">{% translate "Identité confirmée avec l'électeur présent (entrées de la liste indistinguables)." %}</label>
         </p>
 
         <p class="field">
           <label for="note">{% translate "Note (facultative)" %}</label>
           <span class="help">{% translate "Conservée avec le bulletin et supprimée avec lui. N'apparaît pas dans le journal d'audit." %}</span>
-          <input id="note" type="text" name="note" maxlength="500">
+          <input id="note" type="text" name="note" maxlength="500" autocomplete="off">
         </p>
 
         {% if poll.languages|length > 1 %}

@@ -20,14 +20,19 @@
   {% for option_id, field in form.ranked_fields %}
     <li class="ranking__row">
       <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-      {{ field }}
       {% if field.errors %}
-        <p class="error" role="alert">{{ field.errors|join:" " }}</p>
+        {# Add aria-describedby to link field to its error - RGAA 11.7, WCAG 3.3.1 #}
+        <div>
+          {{ field }}
+          <p class="error" id="{{ field.id_for_label }}_error" role="alert">{{ field.errors|join:" " }}</p>
+        </div>
+      {% else %}
+        {{ field }}
       {% endif %}
     </li>
   {% endfor %}
 </ol>
 
 {% if form.non_field_errors %}
-  <p class="error" role="alert">{{ form.non_field_errors|join:" " }}</p>
+  <p class="error" id="form_errors" role="alert" aria-live="assertive">{{ form.non_field_errors|join:" " }}</p>
 {% endif %}
