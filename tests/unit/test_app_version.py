@@ -19,7 +19,7 @@ def test_without_app_version_the_source_tree_version_is_reported() -> None:
     with (BASE_DIR / "pyproject.toml").open("rb") as file:
         declared = tomllib.load(file)["project"]["version"]
     assert project_version() == declared
-    # PEP 440, as a release is spelt (CLAUDE.md, "Releases").
+    # PEP 440, as a release is spelt (AGENTS.md, "Releases").
     assert re.fullmatch(r"\d+\.\d+\.\d+((a|b|rc)\d+)?", declared)
 
 

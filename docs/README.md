@@ -40,5 +40,5 @@ itself, so their paths and names are fixed: renaming one breaks the site.
 | [`../CHANGELOG.md`](../CHANGELOG.md) | see what each release changed, and whether it deploys while a poll is open. |
 
 Rules for the whole tree (self-sufficiency of `manuel/`, French authoritative, where
-a departure from the specification is recorded) are in the root `CLAUDE.md`,
+a departure from the specification is recorded) are in the root `AGENTS.md`,
 "Conventions".
