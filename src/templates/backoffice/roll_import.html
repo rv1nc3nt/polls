@@ -1,5 +1,5 @@
 {% extends "backoffice/base.html" %}
-{% load i18n %}
+{% load i18n accessibility %}
 {# SPDX-License-Identifier: 0BSD #}
 
 {% block screen_title %}{% translate "Liste électorale" %}{% endblock %}
@@ -33,7 +33,7 @@
     <p class="field">
       <label for="file">{% translate "Fichier (.csv ou .xlsx)" %}</label>
       <span class="help">{% translate "Encodage UTF-8 ou Latin-1, détecté automatiquement." %}</span>
-      <input id="file" type="file" name="file" accept=".csv,.xlsx" required>
+      <input id="file" type="file" name="file" accept=".csv,.xlsx" required aria-required="true">
     </p>
     <button type="submit">{% translate "Charger le fichier" %}</button>
   </form>
@@ -48,7 +48,7 @@
   <form method="get" class="filters" role="search" aria-label="{% translate 'Rechercher dans la liste électorale' %}">
     <p>
       <label for="q">{% translate "Rechercher" %}</label>
-      <input id="q" type="search" name="q" value="{{ query }}">
+      <input id="q" type="search" name="q" value="{{ query }}" autocomplete="off">
     </p>
     <button type="submit">{% translate "Rechercher" %}</button>
   </form>

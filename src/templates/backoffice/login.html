@@ -1,5 +1,5 @@
 {% extends "backoffice/base.html" %}
-{% load i18n %}
+{% load i18n accessibility %}
 {# SPDX-License-Identifier: 0BSD #}
 
 {% block screen_title %}{% translate "Connexion" %}{% endblock %}
@@ -16,11 +16,13 @@
     {% csrf_token %}
     <p>
       <label for="{{ form.username.id_for_label }}">{% translate "Identifiant" %}</label>
-      {{ form.username }}
+      {{ form.username|accessible_field }}
+      {% accessible_errors form.username %}
     </p>
     <p>
       <label for="{{ form.password.id_for_label }}">{% translate "Mot de passe" %}</label>
-      {{ form.password }}
+      {{ form.password|accessible_field }}
+      {% accessible_errors form.password %}
     </p>
     <input type="hidden" name="next" value="{{ next }}">
     <button type="submit">{% translate "Se connecter" %}</button>

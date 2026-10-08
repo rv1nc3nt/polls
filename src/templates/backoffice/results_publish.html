@@ -1,5 +1,5 @@
 {% extends "backoffice/base.html" %}
-{% load i18n %}
+{% load i18n accessibility %}
 {# SPDX-License-Identifier: 0BSD #}
 
 {% block screen_title %}{% translate "Clôture et publication" %}{% endblock %}
@@ -54,7 +54,14 @@
         <form method="post">
           {% csrf_token %}
           <input type="hidden" name="action" value="record_reconciliation">
-          {{ reconciliation_form.as_p }}
+          {% for field in reconciliation_form %}
+            <p class="field">
+              <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span class="required">{% translate "(obligatoire)" %}</span>{% endif %}</label>
+              {% if field.help_text %}<span class="help">{{ field.help_text }}</span>{% endif %}
+              {{ field|accessible_field }}
+              {% accessible_errors field %}
+            </p>
+          {% endfor %}
           <button type="submit">{% translate "Enregistrer le rapprochement" %}</button>
         </form>
       {% else %}
@@ -209,7 +216,7 @@
               {% for option in screen9.tied %}
                 <p class="field">
                   <label for="order-{{ forloop.counter }}">{% blocktranslate with n=forloop.counter %}Rang {{ n }}{% endblocktranslate %}</label>
-                  <select id="order-{{ forloop.counter }}" name="order" required>
+                  <select id="order-{{ forloop.counter }}" name="order" required aria-required="true">
                     <option value="">{% translate "— choisir —" %}</option>
                     {% for choice in screen9.tied %}
                       <option value="{{ choice.option_id }}">{{ choice.label }} ({{ choice.option_id }})</option>

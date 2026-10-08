@@ -1,5 +1,5 @@
 {% extends "backoffice/base.html" %}
-{% load i18n %}
+{% load i18n accessibility %}
 {# SPDX-License-Identifier: 0BSD #}
 
 {% block screen_title %}{% translate "Messagerie" %}{% endblock %}
@@ -24,8 +24,8 @@
       <p class="field">
         <label for="{{ field.id_for_label }}">{{ field.label }}</label>
         {% if field.help_text %}<span class="help">{{ field.help_text }}</span>{% endif %}
-        {{ field }}
-        {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+        {{ field|accessible_field }}
+        {% accessible_errors field %}
       </p>
     {% endfor %}
     <button type="submit">{% translate "Enregistrer" %}</button>
@@ -40,8 +40,8 @@
       {% for field in test_form %}
         <p class="field">
           <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-          {{ field }}
-          {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+          {{ field|accessible_field }}
+          {% accessible_errors field %}
         </p>
       {% endfor %}
       <button type="submit">{% translate "Envoyer un message de test" %}</button>
