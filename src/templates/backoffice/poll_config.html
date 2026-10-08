@@ -37,7 +37,7 @@
       {% for field in template_form %}
         <p class="field">
           <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-          {{ field|accessible_field }}
+          {{ field }}
           {% accessible_errors field %}
         </p>
       {% endfor %}
@@ -189,7 +189,7 @@
         {% for field in extension %}
           <p class="field">
             <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-            {{ field|accessible_field }}
+            {{ field }}
             {% accessible_errors field %}
           </p>
         {% endfor %}
@@ -218,7 +218,7 @@
           {% for field in closing_form %}
             <p class="field">
               <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-              {{ field|accessible_field }}
+              {{ field }}
               {% accessible_errors field %}
             </p>
           {% endfor %}
@@ -250,7 +250,7 @@
           {% for field in withdrawal_form %}
             <p class="field">
               <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-              {{ field|accessible_field }}
+              {{ field }}
               {% accessible_errors field %}
             </p>
           {% endfor %}

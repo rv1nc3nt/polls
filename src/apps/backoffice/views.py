@@ -68,6 +68,7 @@ form, the same shape as ``poll_image_upload``/``poll_image_delete``
 from __future__ import annotations
 
 import logging
+import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -441,7 +442,12 @@ def duplicate_acknowledge(request: HttpRequest, poll: Poll) -> HttpResponse:
     and no ballot, only whether the flag is still shown, and it is logged.
     """
     if request.method == "POST":
-        attempt = get_object_or_404(DuplicateAttempt, pk=request.POST.get("attempt", ""), poll=poll)
+        try:
+            attempt_id = uuid.UUID(request.POST.get("attempt", ""))
+        except ValueError:
+            # A stale or tampered form is a missing flag, not a server error.
+            raise Http404 from None
+        attempt = get_object_or_404(DuplicateAttempt, pk=attempt_id, poll=poll)
         registrations.acknowledge_duplicate(attempt, actor=current_operator(request))
         messages.success(request, _("Tentative de doublon marquée comme traitée."))
     return redirect(f"{reverse('backoffice:dashboard', args=[poll.pk])}#doublons")

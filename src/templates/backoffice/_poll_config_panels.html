@@ -75,7 +75,7 @@
       <p class="field">
         <label for="{{ form.is_sandbox.id_for_label }}">{{ form.is_sandbox.label }}</label>
         <span class="help">{{ form.is_sandbox.help_text }}</span>
-        {{ form.is_sandbox|accessible_field }}
+        {{ form.is_sandbox }}
         {% accessible_errors form.is_sandbox %}
       </p>
     </fieldset>
@@ -144,7 +144,7 @@
         <p class="field">
           <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span class="required">{% translate "(obligatoire)" %}</span>{% endif %}</label>
           {% if field.help_text %}<span class="help">{{ field.help_text }}</span>{% endif %}
-          {{ field|accessible_field }}
+          {{ field }}
           {% accessible_errors field %}
         </p>
       {% endif %}

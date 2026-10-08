@@ -26,7 +26,7 @@
           {{ field.label }} <span class="required">{% translate "(obligatoire)" %}</span>
         </label>
         <span class="help" id="{{ field.auto_id }}-help">{{ field.help_text }}</span>
-        {{ field|accessible_field }}
+        {{ field }}
         {% accessible_errors field %}
       </p>
     {% endwith %}
@@ -41,7 +41,7 @@
             {{ field.label }}{% if field.field.required %} <span class="required">{% translate "(obligatoire)" %}</span>{% endif %}
           </label>
           {% if field.help_text %}<span class="help" id="{{ field.auto_id }}-help">{{ field.help_text }}</span>{% endif %}
-          {{ field|accessible_field }}
+          {{ field }}
           {% accessible_errors field %}
         </p>
       {% endif %}{% endfor %}
@@ -57,7 +57,7 @@
             {{ field.label }}{% if field.field.required %} <span class="required">{% translate "(obligatoire)" %}</span>{% endif %}
           </label>
           {% if field.help_text %}<span class="help" id="{{ field.auto_id }}-help">{{ field.help_text }}</span>{% endif %}
-          {{ field|accessible_field }}
+          {{ field }}
           {% accessible_errors field %}
         </p>
       {% endif %}{% endfor %}
