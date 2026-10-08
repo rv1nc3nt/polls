@@ -1,5 +1,5 @@
 {% extends "backoffice/base.html" %}
-{% load i18n %}
+{% load i18n accessibility %}
 {# SPDX-License-Identifier: 0BSD #}
 
 {% block screen_title %}{% translate "Comptes" %}{% endblock %}
@@ -23,7 +23,7 @@
         <label for="{{ field.id_for_label }}">{{ field.label }}</label>
         {% if field.help_text %}<span class="help">{{ field.help_text }}</span>{% endif %}
         {{ field }}
-        {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+        {% accessible_errors field %}
       </p>
     {% endfor %}
     <button type="submit">{% translate "Créer le compte" %}</button>
@@ -90,7 +90,7 @@
                 {% csrf_token %}
                 <input type="hidden" name="account" value="{{ row.account.pk }}">
                 <label for="pw-{{ row.account.pk }}">{% translate "Nouveau mot de passe" %}</label>
-                <input id="pw-{{ row.account.pk }}" type="password" name="raw_password" autocomplete="new-password">
+                <input id="pw-{{ row.account.pk }}" type="password" name="raw_password" autocomplete="new-password" aria-required="true">
                 <button type="submit" name="action" value="set_password">{% translate "Réinitialiser le mot de passe" %}</button>
               </form>
 

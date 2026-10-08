@@ -54,6 +54,12 @@ class Action(models.TextChoices):
     # (§6.5.4). Names the registration only, never the address it went to (§10).
     REGISTRATION_LINK_RESENT = "registration_link_resent", _("lien de confirmation renvoyé")
     REGISTRATION_DUPLICATE = "registration_duplicate", _("tentative de doublon d'inscription")
+    # A poll admin marking that flag handled on the dashboard (R-5.9): who
+    # dismissed a possible usurpation, and when, is on record.
+    DUPLICATE_ATTEMPT_ACKNOWLEDGED = (
+        "duplicate_attempt_acknowledged",
+        _("tentative de doublon traitée"),
+    )
     # A poll admin sending a decided registration back to review (R-5.4): a
     # refusal reconsidered, or an acceptance withdrawn while no ballot was
     # cast. ``before`` and ``after`` say which; the reason is a code (§10).

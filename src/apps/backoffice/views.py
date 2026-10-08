@@ -68,6 +68,7 @@ form, the same shape as ``poll_image_upload``/``poll_image_delete``
 from __future__ import annotations
 
 import logging
+import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -142,7 +143,7 @@ from apps.elections.windows import WindowClosed, online_voting_closed
 from apps.publicsite.views import _draft_preview_context
 from apps.registrations import mail as registration_mail
 from apps.registrations import services as registrations
-from apps.registrations.models import Channel, Registration, RegistrationState
+from apps.registrations.models import Channel, DuplicateAttempt, Registration, RegistrationState
 from apps.tally.methods import Method
 from apps.tally.trend import LAG, STEP
 
@@ -409,14 +410,18 @@ def poll_dashboard(request: HttpRequest, poll: Poll) -> HttpResponse:
     would make either refuse has to be visible before anyone reaches for that
     button too, not only before the hour the job would fire.
     """
+    roles = poll_roles(request.user, poll)
     return render(
         request,
         "backoffice/dashboard.html",
         {
             "poll": poll,
+            # R-5.9 flags the attempt to the poll admin, and their names are
+            # the poll admin's to read (screen 4): not shown to the other roles.
+            "duplicates": dashboard.duplicate_flags(poll) if Role.POLL_ADMIN in roles else [],
             "participation": dashboard.participation(poll),
             "blockers": dashboard.blockers(poll),
-            "actions": dashboard.permitted_actions(poll, poll_roles(request.user, poll)),
+            "actions": dashboard.permitted_actions(poll, roles),
             # ``state`` reads ``open`` for the whole paper-keying stretch past
             # ``closes_at`` (§6.4) — same clock gate as the public page
             # (`apps.publicsite.views.poll_detail`), so an operator sees the
@@ -427,6 +432,25 @@ def poll_dashboard(request: HttpRequest, poll: Poll) -> HttpResponse:
             "overdue": overdue_transition(poll),
         },
     )
+
+
+@require_poll_role(Role.POLL_ADMIN)
+def duplicate_acknowledge(request: HttpRequest, poll: Poll) -> HttpResponse:
+    """Mark one duplicate-attempt flag handled (R-5.9), from the dashboard.
+
+    Not a definitive poll action in R-2.4's sense: it changes no registration
+    and no ballot, only whether the flag is still shown, and it is logged.
+    """
+    if request.method == "POST":
+        try:
+            attempt_id = uuid.UUID(request.POST.get("attempt", ""))
+        except ValueError:
+            # A stale or tampered form is a missing flag, not a server error.
+            raise Http404 from None
+        attempt = get_object_or_404(DuplicateAttempt, pk=attempt_id, poll=poll)
+        registrations.acknowledge_duplicate(attempt, actor=current_operator(request))
+        messages.success(request, _("Tentative de doublon marquée comme traitée."))
+    return redirect(f"{reverse('backoffice:dashboard', args=[poll.pk])}#doublons")
 
 
 def _confirmation_page(

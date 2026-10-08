@@ -1,5 +1,5 @@
 {% extends "backoffice/base.html" %}
-{% load i18n %}
+{% load i18n accessibility %}
 {# SPDX-License-Identifier: 0BSD #}
 
 {% block screen_title %}{% translate "Première installation" %}{% endblock %}
@@ -27,7 +27,7 @@
         </label>
         <span class="help" id="{{ field.auto_id }}-help">{{ field.help_text }}</span>
         {{ field }}
-        {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+        {% accessible_errors field %}
       </p>
     {% endwith %}
 
@@ -42,7 +42,7 @@
           </label>
           {% if field.help_text %}<span class="help" id="{{ field.auto_id }}-help">{{ field.help_text }}</span>{% endif %}
           {{ field }}
-          {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+          {% accessible_errors field %}
         </p>
       {% endif %}{% endfor %}
     </fieldset>
@@ -58,7 +58,7 @@
           </label>
           {% if field.help_text %}<span class="help" id="{{ field.auto_id }}-help">{{ field.help_text }}</span>{% endif %}
           {{ field }}
-          {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+          {% accessible_errors field %}
         </p>
       {% endif %}{% endfor %}
     </fieldset>

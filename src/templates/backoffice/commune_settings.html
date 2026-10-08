@@ -1,5 +1,5 @@
 {% extends "backoffice/base.html" %}
-{% load i18n %}
+{% load i18n accessibility %}
 {# SPDX-License-Identifier: 0BSD #}
 
 {% block screen_title %}{% translate "Commune" %}{% endblock %}
@@ -19,7 +19,7 @@
         <label for="{{ field.id_for_label }}">{{ field.label }}</label>
         {% if field.help_text %}<span class="help">{{ field.help_text }}</span>{% endif %}
         {{ field }}
-        {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+        {% accessible_errors field %}
       </p>
     {% endfor %}
     <button type="submit">{% translate "Enregistrer" %}</button>
@@ -45,7 +45,7 @@
       {% csrf_token %}
       <p class="field">
         <label for="commune-logo-file">{% translate "Remplacer le logo" %}</label>
-        <input type="file" name="logo" id="commune-logo-file" accept="image/png,image/jpeg,image/gif,image/webp" required>
+        <input type="file" name="logo" id="commune-logo-file" accept="image/png,image/jpeg,image/gif,image/webp" required aria-required="true">
       </p>
       <button type="submit">{% translate "Envoyer" %}</button>
     </form>

@@ -4,9 +4,10 @@
 The journeys check the pages a voter and an editor pass through. This visits
 the rest, public and espace mairie alike, on an instance with something on
 each screen: an open poll with a registration awaiting review, a paper ballot
-awaiting countersignature and the trend shown, and a published poll. Each page
-must load without a script error or a CSP violation and pass axe's WCAG 2.2 AA
-rules; axe finds only part of what a person would, so this is a floor.
+awaiting countersignature, a duplicate attempt flagged and the trend shown,
+and a published poll. Each page must load without a script error or a CSP
+violation and pass axe's WCAG 2.2 AA rules; axe finds only part of what a
+person would, so this is a floor.
 """
 
 from __future__ import annotations
@@ -24,7 +25,7 @@ from apps.ballots.models import Ballot, BallotSource
 from apps.core.models import PollRole, Role, User
 from apps.elections.models import Poll, RollEntry
 from apps.elections.transitions import close_poll, publish_poll
-from apps.registrations.models import Channel, Registration, RegistrationState
+from apps.registrations.models import Channel, DuplicateAttempt, Registration, RegistrationState
 from tests.browser.conftest import check_page
 from tests.conftest import _create_open_poll
 
@@ -84,6 +85,9 @@ def instance(_flushable_db: None, settings: Any) -> dict[str, str]:
         str(keyer.pk),
         "fr",
         identity_confirmed=True,
+    )
+    DuplicateAttempt.objects.create(
+        poll=live, existing_registration=Registration.objects.get(poll=live, channel=Channel.PAPER)
     )
     settings.TREND_POLL_IDS = frozenset({live.pk})
 

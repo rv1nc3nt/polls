@@ -76,6 +76,7 @@ reasoning.
 | 52 | A method version stays runnable when it can no longer be chosen; pre-check polls run under version 1 | settled |
 | 53 | The session table kept the order ballots were cast in | settled |
 | 54 | A registration decision can be taken back; the journal names the registrant | settled |
+| 55 | Duplicate registration attempts were recorded but shown nowhere | settled |
 
 ## 1. Retention purge on a poll that closed but was never published
 
@@ -1996,3 +1997,26 @@ a name, which only a database query could supply.
   and the rows a deleted paper ballot leaves behind, which carry no address
   and were never an application.
 
+## 55. Duplicate registration attempts were recorded but shown nowhere
+
+**Found (2026-10-06).** R-5.9 has an attempt against an already-registered
+roll entry flagged to the poll admin. The attempt was refused, logged and
+stored as a `DuplicateAttempt` row with an `acknowledged_at` column, but no
+screen read it: the flag existed only in the database.
+
+**Settled.** The dashboard (screen 1) lists the unacknowledged attempts, to a
+POLL_ADMIN only — the role R-5.9 names, and the one that can act on the
+existing registration (#54). Each row shows the attempt's instant and the
+existing registration's declared name, state and channel, links to the
+journal filtered on that registration, and offers *marquer comme traitée*.
+
+- Nothing about the attempter is shown, because nothing is stored (§10): the
+  row references the existing registration only.
+- Acknowledging is a compare-and-set on `acknowledged_at IS NULL`, so a
+  second click or a concurrent one logs nothing more. It writes
+  `duplicate_attempt_acknowledged` against the existing registration's
+  reference, with `before`/`after` naming the flag's state, no prose. The
+  audit migration that adds the action changes choices only: `sqlmigrate`
+  emits no SQL.
+- Acknowledging does not touch the registration. If the attempt reveals a
+  wrong match, the remedy is #54's reopening.

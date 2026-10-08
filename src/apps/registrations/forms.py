@@ -16,8 +16,10 @@ from __future__ import annotations
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
+from apps.core.forms import AccessibleForm
 
-class RegistrationForm(forms.Form):
+
+class RegistrationForm(AccessibleForm):
     last_name = forms.CharField(
         label=_("Nom de famille"),
         max_length=200,

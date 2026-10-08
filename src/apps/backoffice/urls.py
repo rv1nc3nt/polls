@@ -64,6 +64,11 @@ urlpatterns = [
     ),
     path("scrutin/<uuid:poll_id>/journal/", views.audit_log, name="audit_log"),
     path(
+        "scrutin/<uuid:poll_id>/doublons/traiter/",
+        views.duplicate_acknowledge,
+        name="duplicate_acknowledge",
+    ),
+    path(
         "scrutin/<uuid:poll_id>/inscriptions/",
         views.registration_queue,
         name="registration_queue",

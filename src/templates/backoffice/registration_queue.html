@@ -1,5 +1,5 @@
 {% extends "backoffice/base.html" %}
-{% load i18n %}
+{% load i18n accessibility %}
 {# SPDX-License-Identifier: 0BSD #}
 
 {% block screen_title %}{% translate "Inscriptions en attente" %}{% endblock %}
@@ -110,7 +110,7 @@
             will write a name into the wrong field.
           {% endcomment %}
           <span class="help">{% translate "Conservée avec la demande et supprimée avec elle. N'apparaît pas dans le journal d'audit." %}</span>
-          <input id="note-{{ row.registration.pk }}" type="text" name="note" maxlength="500">
+          <input id="note-{{ row.registration.pk }}" type="text" name="note" maxlength="500" autocomplete="off">
         </p>
         {% comment %}
           §6.2 step 5 logs a reason on both decisions, and §10 makes it a code
@@ -121,7 +121,7 @@
         <fieldset class="decision__half">
           <legend>{% translate "Accepter" %}</legend>
           <label for="ok-{{ row.registration.pk }}">{% translate "Motif" %}</label>
-          <select id="ok-{{ row.registration.pk }}" name="approve_reason">
+          <select id="ok-{{ row.registration.pk }}" name="approve_reason" aria-required="true">
             <option value="">{% translate "— choisir —" %}</option>
             {% for value, label in approval_reasons %}
               <option value="{{ value }}">{{ label }}</option>
@@ -133,7 +133,7 @@
         <fieldset class="decision__half">
           <legend>{% translate "Refuser" %}</legend>
           <label for="no-{{ row.registration.pk }}">{% translate "Motif" %}</label>
-          <select id="no-{{ row.registration.pk }}" name="reject_reason">
+          <select id="no-{{ row.registration.pk }}" name="reject_reason" aria-required="true">
             <option value="">{% translate "— choisir —" %}</option>
             {% for value, label in refusal_reasons %}
               <option value="{{ value }}">{{ label }}</option>
