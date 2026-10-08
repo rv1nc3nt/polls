@@ -1,5 +1,5 @@
 {% extends "backoffice/base.html" %}
-{% load i18n %}
+{% load i18n accessibility %}
 {# SPDX-License-Identifier: 0BSD #}
 
 {% block screen_title %}{% translate "Réexaminer une inscription" %}{% endblock %}
@@ -47,7 +47,7 @@
       {% csrf_token %}
       <p>
         <label for="reopen-reason">{% translate "Motif" %}</label>
-        <select id="reopen-reason" name="reason" required>
+        <select id="reopen-reason" name="reason" required aria-required="true">
           <option value="">{% translate "— choisir —" %}</option>
           {% for value, label in reasons %}
             <option value="{{ value }}">{{ label }}</option>
@@ -57,7 +57,7 @@
       <p>
         <label for="reopen-note">{% translate "Note (facultative)" %}</label>
         <span class="help" id="reopen-note-help">{% translate "Conservée avec la demande et supprimée avec elle. N'apparaît pas dans le journal d'audit." %}</span>
-        <input id="reopen-note" type="text" name="note" maxlength="500" aria-describedby="reopen-note-help">
+        <input id="reopen-note" type="text" name="note" maxlength="500" aria-describedby="reopen-note-help" autocomplete="off">
       </p>
       <p>
         <button type="submit">{% translate "Remettre en attente d'examen" %}</button>

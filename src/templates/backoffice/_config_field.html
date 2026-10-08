@@ -1,3 +1,4 @@
+{% load accessibility %}
 {# SPDX-License-Identifier: 0BSD #}
 {% comment %}
   One field of screen 2's configuration form (_poll_config_panels.html), with its
@@ -10,13 +11,13 @@
     <label id="{{ field.auto_id }}_label">{{ field.label }}</label>
     {% if field.help_text %}<span class="help">{{ field.help_text }}</span>{% endif %}
     {{ field }}
-    {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+    {% accessible_errors field %}
   </div>
 {% else %}
   <p class="field">
     <label for="{{ field.id_for_label }}">{{ field.label }}</label>
     {% if field.help_text %}<span class="help">{{ field.help_text }}</span>{% endif %}
     {{ field }}
-    {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+    {% accessible_errors field %}
   </p>
 {% endif %}

@@ -32,6 +32,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from apps.audit.models import Reason
+from apps.core.forms import AccessibleForm, AccessibleModelForm
 from apps.core.models import Commune, MailSettings, User
 from apps.elections import config
 from apps.elections.models import ListType, Poll, TallyMethod, TiebreakRule
@@ -82,7 +83,7 @@ def _language_name(code: str) -> str:
     return dict(settings.LANGUAGES).get(code, code)
 
 
-class PollConfigForm(forms.Form):
+class PollConfigForm(AccessibleForm):
     """The editable configuration of a ``draft`` poll (§3.1, §6.5.2)."""
 
     opens_at = _DateTimeField(
@@ -359,7 +360,7 @@ class PollCreateForm(PollConfigForm):
     )
 
 
-class OptionForm(forms.Form):
+class OptionForm(AccessibleForm):
     """One proposition row. Blank rows are ignored; a deleted row is dropped."""
 
     pk = forms.CharField(required=False, widget=forms.HiddenInput)
@@ -486,7 +487,7 @@ def option_drafts(formset: forms.BaseFormSet[OptionForm]) -> list[config.OptionD
     return [draft for _, _, draft in rows]
 
 
-class ExtensionForm(forms.Form):
+class ExtensionForm(AccessibleForm):
     """R-3.4 — the one configuration change still allowed once the poll is open.
 
     The instant and the reason are validated here; that the poll is ``open``
@@ -512,7 +513,7 @@ CLOSURE_REASONS: tuple[Reason, ...] = (
 )
 
 
-class ClosureOverrideForm(forms.Form):
+class ClosureOverrideForm(AccessibleForm):
     """Screen 2's manual ``close_poll`` trigger (§4).
 
     The reason is required when the closure is early (R-3.4) or when
@@ -531,7 +532,7 @@ class ClosureOverrideForm(forms.Form):
     )
 
 
-class ReconciliationForm(forms.Form):
+class ReconciliationForm(AccessibleForm):
     """Screen 9's reconciliation entry (R-8.6), shown while the poll is still
     ``open`` and ``paper_requires_reconciliation`` is set.
 
@@ -559,7 +560,7 @@ WITHDRAWAL_REASONS: tuple[Reason, ...] = (
 )
 
 
-class WithdrawalForm(forms.Form):
+class WithdrawalForm(AccessibleForm):
     """Screen 2's manual ``withdraw_poll`` trigger (R-3.11).
 
     Unlike ``ClosureOverrideForm``'s reason, this one is required unconditionally
@@ -636,7 +637,7 @@ def config_warnings(poll: Poll) -> list[str]:
 # --- Screen 10: comptes et rôles (§6.5.10) --------------------------------
 
 
-class NewAccountForm(forms.ModelForm):  # type: ignore[type-arg]  # not subscriptable at runtime
+class NewAccountForm(AccessibleModelForm):
     """A new named operator account (R-2.2).
 
     Validates shape and — through the model's unique username — that the login
@@ -647,7 +648,7 @@ class NewAccountForm(forms.ModelForm):  # type: ignore[type-arg]  # not subscrip
 
     raw_password = forms.CharField(
         label=_("Mot de passe initial"),
-        widget=forms.PasswordInput,
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
         help_text=_("À remettre à la personne, qui le changera à la première connexion."),
     )
 
@@ -681,7 +682,7 @@ class NewAccountForm(forms.ModelForm):  # type: ignore[type-arg]  # not subscrip
 # --- Screen 11: première installation (§6.5.11) --------------------------
 
 
-class FirstRunForm(forms.Form):
+class FirstRunForm(AccessibleForm):
     """The first-run wizard: the commune record and the initial administrator
     in one form (§6.5.11).
 
@@ -747,9 +748,13 @@ class FirstRunForm(forms.Form):
         max_length=200,
         help_text=_("Le journal d'audit nomme une personne, pas une fonction."),
     )
-    raw_password = forms.CharField(label=_("Mot de passe"), widget=forms.PasswordInput)
+    raw_password = forms.CharField(
+        label=_("Mot de passe"),
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
+    )
     raw_password_confirm = forms.CharField(
-        label=_("Confirmer le mot de passe"), widget=forms.PasswordInput
+        label=_("Confirmer le mot de passe"),
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
     )
 
     def clean_raw_password(self) -> str:
@@ -789,7 +794,7 @@ class FirstRunForm(forms.Form):
 # --- Screen 12: paramètres de messagerie (§6.5.12) ------------------------
 
 
-class MailSettingsForm(forms.ModelForm):  # type: ignore[type-arg]  # not subscriptable at runtime
+class MailSettingsForm(AccessibleModelForm):
     """The SMTP relay. The password is entered here but never redisplayed —
     ``instance`` never puts it back in ``initial`` (it lives encrypted, off
     this form's fields entirely) — and a blank submission keeps whatever is
@@ -833,7 +838,7 @@ class MailSettingsForm(forms.ModelForm):  # type: ignore[type-arg]  # not subscr
         return port
 
 
-class MailTestForm(forms.Form):
+class MailTestForm(AccessibleForm):
     """Screen 12's "envoyer un message de test" action."""
 
     recipient = forms.EmailField(label=_("Adresse de test"))
@@ -842,7 +847,7 @@ class MailTestForm(forms.Form):
 # --- Screen 13: modèles de scrutin (§6.5.13) -------------------------------
 
 
-class TemplateNameForm(forms.Form):
+class TemplateNameForm(AccessibleForm):
     """One field, shared by screen 2's *enregistrer comme modèle* (§3.9) and
     screen 13's rename — both write nothing but a name."""
 
@@ -852,7 +857,7 @@ class TemplateNameForm(forms.Form):
 # --- Screen 14: paramètres de la commune (§6.5.14) -------------------------
 
 
-class CommuneSettingsForm(forms.ModelForm):  # type: ignore[type-arg]  # not subscriptable at runtime
+class CommuneSettingsForm(AccessibleModelForm):
     """The commune record, editable after first-run (§6.5.14) — same fields
     the wizard collects, plus the site's own address (``public_base_url``)."""
 

@@ -1,5 +1,5 @@
 {% extends "backoffice/base.html" %}
-{% load i18n static tz %}
+{% load i18n static tz accessibility %}
 {# SPDX-License-Identifier: 0BSD #}
 
 {% block screen_title %}{% translate "Configuration du scrutin" %}{% endblock %}
@@ -38,7 +38,7 @@
         <p class="field">
           <label for="{{ field.id_for_label }}">{{ field.label }}</label>
           {{ field }}
-          {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+          {% accessible_errors field %}
         </p>
       {% endfor %}
       <button type="submit">{% translate "Enregistrer comme modèle" %}</button>
@@ -190,7 +190,7 @@
           <p class="field">
             <label for="{{ field.id_for_label }}">{{ field.label }}</label>
             {{ field }}
-            {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+            {% accessible_errors field %}
           </p>
         {% endfor %}
         <button type="submit">{% translate "Reporter la clôture" %}</button>
@@ -219,7 +219,7 @@
             <p class="field">
               <label for="{{ field.id_for_label }}">{{ field.label }}</label>
               {{ field }}
-              {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+              {% accessible_errors field %}
             </p>
           {% endfor %}
           <button type="submit">{% translate "Clôturer le scrutin maintenant" %}</button>
@@ -251,7 +251,7 @@
             <p class="field">
               <label for="{{ field.id_for_label }}">{{ field.label }}</label>
               {{ field }}
-              {% for message in field.errors %}<span class="error" role="alert">{{ message }}</span>{% endfor %}
+              {% accessible_errors field %}
             </p>
           {% endfor %}
           <button type="submit">{% translate "Retirer le scrutin" %}</button>

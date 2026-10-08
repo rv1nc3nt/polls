@@ -1,5 +1,5 @@
 {% extends "backoffice/base.html" %}
-{% load i18n %}
+{% load i18n accessibility %}
 {# SPDX-License-Identifier: 0BSD #}
 
 {% block screen_title %}{% translate "Bulletin papier" %}{% endblock %}
@@ -45,7 +45,7 @@
           {% include "ballots/_ranking_field.html" %}
           <p>
             <label for="correct-reason">{% translate "Motif" %}</label>
-            <select id="correct-reason" name="reason">
+            <select id="correct-reason" name="reason" aria-required="true">
               <option value="">{% translate "— choisir —" %}</option>
               {% for value, label in correction_reasons %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
             </select>
@@ -53,7 +53,7 @@
           <p>
             <label for="correct-note">{% translate "Note (facultative)" %}</label>
             <span class="help">{% translate "Conservée avec le bulletin, absente du journal d'audit." %}</span>
-            <input id="correct-note" type="text" name="note" maxlength="500">
+            <input id="correct-note" type="text" name="note" maxlength="500" autocomplete="off">
           </p>
           <button type="submit" name="action" value="correct">{% translate "Enregistrer la rectification" %}</button>
         </fieldset>
@@ -75,14 +75,14 @@
               <p class="help">{% translate "La suppression retire le bulletin du décompte et rouvre le vote en ligne pour cet électeur. Le bulletin n'est jamais effacé physiquement." %}</p>
               <p>
                 <label for="delete-reason">{% translate "Motif" %}</label>
-                <select id="delete-reason" name="reason">
+                <select id="delete-reason" name="reason" aria-required="true">
                   <option value="">{% translate "— choisir —" %}</option>
                   {% for value, label in deletion_reasons %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
                 </select>
               </p>
               <p>
                 <label for="delete-note">{% translate "Note (facultative)" %}</label>
-                <input id="delete-note" type="text" name="note" maxlength="500">
+                <input id="delete-note" type="text" name="note" maxlength="500" autocomplete="off">
               </p>
               <button type="submit" name="action" value="delete">{% translate "Supprimer le bulletin" %}</button>
             </fieldset>

@@ -6190,3 +6190,65 @@ msgstr "No refused registration."
 #: src/templates/backoffice/audit_log.html
 msgid "Réexaminer"
 msgstr "Review again"
+
+#: src/apps/audit/models.py
+msgid "tentative de doublon traitée"
+msgstr "duplicate attempt handled"
+
+#: src/apps/backoffice/views.py
+msgid "Tentative de doublon marquée comme traitée."
+msgstr "Duplicate attempt marked as handled."
+
+#: src/templates/backoffice/dashboard.html
+#, python-format
+msgid "%(counter)s tentative de doublon d'inscription à examiner"
+msgid_plural "%(counter)s tentatives de doublon d'inscription à examiner"
+msgstr[0] "%(counter)s duplicate registration attempt to examine"
+msgstr[1] "%(counter)s duplicate registration attempts to examine"
+
+#: src/templates/backoffice/dashboard.html
+msgid ""
+"Quelqu'un a tenté de s'inscrire sous l'identité d'un électeur déjà inscrit. "
+"Ce peut être la même personne qui recommence, ou une usurpation : voyez le "
+"détail ci-dessous."
+msgstr ""
+"Someone tried to register under the identity of an elector already "
+"registered. It may be the same person trying again, or an impersonation: see "
+"the details below."
+
+#: src/templates/backoffice/dashboard.html
+msgid "Tentatives de doublon"
+msgstr "Duplicate attempts"
+
+#: src/templates/backoffice/dashboard.html
+msgid ""
+"Rien n'est conservé sur l'auteur de la tentative ; seule l'inscription "
+"existante est connue. En cas de doute, contactez l'électeur inscrit."
+msgstr ""
+"Nothing is kept about whoever made the attempt; only the existing "
+"registration is known. If in doubt, contact the registered elector."
+
+#: src/templates/backoffice/dashboard.html
+msgid "Tentatives d'inscription visant une entrée de la liste déjà inscrite"
+msgstr "Registration attempts against a roll entry already registered"
+
+#: src/templates/backoffice/dashboard.html
+msgid "Tentative le"
+msgstr "Attempt on"
+
+#: src/templates/backoffice/dashboard.html
+msgid "Vote"
+msgstr "Vote"
+
+#: src/templates/backoffice/dashboard.html
+msgid "n'a pas voté"
+msgstr "has not voted"
+
+#: src/templates/backoffice/dashboard.html
+msgid "Voir dans le journal"
+msgstr "See in the log"
+
+#: src/templates/backoffice/dashboard.html
+#, python-format
+msgid "Marquer comme traitée la tentative visant %(name)s"
+msgstr "Mark the attempt on %(name)s as handled"

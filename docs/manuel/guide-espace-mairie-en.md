@@ -259,6 +259,8 @@ actions allowed in the current state**.
   blocked: n ballots awaiting countersignature*, or, if
   `paper_requires_reconciliation` is enabled and not yet recorded, *closing
   blocked: paper-ballot reconciliation not recorded*.
+- For the poll administrator, it flags the **duplicate registration
+  attempts** still to be examined (section 6, "Duplicate attempts").
 - Turnout is **counted from registrations, never from ballots**; on a
   closed poll, the counters shown are the ones frozen at closing, not a
   fresh count (the registrations behind a fresh count are deleted two
@@ -596,7 +598,20 @@ decisions, the optional note stays with the registration and goes with it.
 An attempt to register against a roll entry that is **already registered**
 is refused, invites the person to contact the mairie, is logged and
 **flagged to the poll administrator**. No detail of the existing
-registration is disclosed. Likewise, a **single email address** can only be
+registration is disclosed to the person attempting it.
+
+The flag appears on the poll's **dashboard**, for the poll administrator
+only: when the attempt was made, the name of the elector already registered,
+the state of their registration and whether they have voted. Nothing is kept
+about whoever made the attempt — no name, no address. It may be the same
+person trying again, not remembering they are already registered; it may also
+be someone impersonating them. If in doubt, contact the registered elector; if
+their registration is wrong, examine it again ("Going back on a decision",
+above). The *See in the log* link shows everything about that registration.
+Once the matter is settled, *Mark as handled* takes the flag off the
+dashboard; that step is logged.
+
+Likewise, a **single email address** can only be
 used once per poll: two people sharing a mailbox cannot both
 register online — their way in is **paper voting at the mairie**. The
 screen's help text recalls this.

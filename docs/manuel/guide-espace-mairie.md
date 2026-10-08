@@ -269,6 +269,8 @@ permises dans l'état courant**.
   bulletins en attente de contreseing*, ou, si `paper_requires_reconciliation`
   est activé et qu'il n'est pas encore enregistré, *clôture bloquée :
   rapprochement des bulletins papier non enregistré*.
+- Pour l'administrateur du scrutin, il signale les **tentatives de doublon**
+  d'inscription qui restent à examiner (section 6, « Tentatives de doublon »).
 - La participation est **comptée sur les inscriptions, jamais sur les
   bulletins** ; sur un scrutin clos, ce sont les compteurs figés à la clôture
   qui s'affichent, pas un comptage frais (les inscriptions derrière un comptage
@@ -618,7 +620,21 @@ avec elle.
 Une tentative d'inscription contre une entrée de liste **déjà inscrite** est
 refusée, invite la personne à contacter la mairie, est inscrite au journal et
 **signalée à l'administrateur du scrutin**. Aucun détail de l'inscription
-existante n'est divulgué. De même, une **même adresse électronique** ne sert
+existante n'est divulgué à la personne qui tente.
+
+Le signalement apparaît sur le **tableau de bord** du scrutin, pour
+l'administrateur du scrutin seulement : la date de la tentative, le nom de
+l'électeur déjà inscrit, l'état de son inscription et s'il a déjà voté. Rien
+n'est conservé sur l'auteur de la tentative — ni nom, ni adresse. Ce peut
+être la même personne qui recommence, sans se souvenir qu'elle est déjà
+inscrite ; ce peut aussi être quelqu'un qui se fait passer pour elle. En cas
+de doute, contactez l'électeur inscrit ; si son inscription n'est pas la
+bonne, réexaminez-la (« Revenir sur une décision », ci-dessus). Le lien *Voir
+dans le journal* montre tout ce qui concerne cette inscription. Une fois
+l'affaire réglée, *Marquer comme traitée* retire le signalement du tableau de
+bord ; ce geste est inscrit au journal.
+
+De même, une **même adresse électronique** ne sert
 qu'une fois par scrutin : deux personnes partageant une boîte ne
 peuvent pas s'inscrire toutes les deux en ligne — leur voie est le **vote papier
 à la mairie**. Le texte d'aide de l'écran le rappelle.
