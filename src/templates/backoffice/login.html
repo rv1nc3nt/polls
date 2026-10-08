@@ -16,12 +16,12 @@
     {% csrf_token %}
     <p>
       <label for="{{ form.username.id_for_label }}">{% translate "Identifiant" %}</label>
-      {{ form.username|accessible_field }}
+      {{ form.username }}
       {% accessible_errors form.username %}
     </p>
     <p>
       <label for="{{ form.password.id_for_label }}">{% translate "Mot de passe" %}</label>
-      {{ form.password|accessible_field }}
+      {{ form.password }}
       {% accessible_errors form.password %}
     </p>
     <input type="hidden" name="next" value="{{ next }}">

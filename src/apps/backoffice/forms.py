@@ -637,7 +637,7 @@ def config_warnings(poll: Poll) -> list[str]:
 # --- Screen 10: comptes et rôles (§6.5.10) --------------------------------
 
 
-class NewAccountForm(AccessibleModelForm):  # type: ignore[type-arg]  # not subscriptable at runtime
+class NewAccountForm(AccessibleModelForm):
     """A new named operator account (R-2.2).
 
     Validates shape and — through the model's unique username — that the login
@@ -648,7 +648,7 @@ class NewAccountForm(AccessibleModelForm):  # type: ignore[type-arg]  # not subs
 
     raw_password = forms.CharField(
         label=_("Mot de passe initial"),
-        widget=forms.PasswordInput,
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
         help_text=_("À remettre à la personne, qui le changera à la première connexion."),
     )
 
@@ -748,9 +748,13 @@ class FirstRunForm(AccessibleForm):
         max_length=200,
         help_text=_("Le journal d'audit nomme une personne, pas une fonction."),
     )
-    raw_password = forms.CharField(label=_("Mot de passe"), widget=forms.PasswordInput)
+    raw_password = forms.CharField(
+        label=_("Mot de passe"),
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
+    )
     raw_password_confirm = forms.CharField(
-        label=_("Confirmer le mot de passe"), widget=forms.PasswordInput
+        label=_("Confirmer le mot de passe"),
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
     )
 
     def clean_raw_password(self) -> str:
@@ -790,7 +794,7 @@ class FirstRunForm(AccessibleForm):
 # --- Screen 12: paramètres de messagerie (§6.5.12) ------------------------
 
 
-class MailSettingsForm(AccessibleModelForm):  # type: ignore[type-arg]  # not subscriptable at runtime
+class MailSettingsForm(AccessibleModelForm):
     """The SMTP relay. The password is entered here but never redisplayed —
     ``instance`` never puts it back in ``initial`` (it lives encrypted, off
     this form's fields entirely) — and a blank submission keeps whatever is
@@ -853,7 +857,7 @@ class TemplateNameForm(AccessibleForm):
 # --- Screen 14: paramètres de la commune (§6.5.14) -------------------------
 
 
-class CommuneSettingsForm(AccessibleModelForm):  # type: ignore[type-arg]  # not subscriptable at runtime
+class CommuneSettingsForm(AccessibleModelForm):
     """The commune record, editable after first-run (§6.5.14) — same fields
     the wizard collects, plus the site's own address (``public_base_url``)."""
 

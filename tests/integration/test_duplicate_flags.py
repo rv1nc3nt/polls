@@ -123,3 +123,13 @@ def test_another_polls_flag_is_not_reachable(
     assert client.post(url, {"attempt": str(attempt.pk)}).status_code == 404
     attempt.refresh_from_db()
     assert attempt.acknowledged_at is None
+
+
+@pytest.mark.parametrize("value", ["", "not-a-uuid", "0" * 31])
+def test_a_missing_or_malformed_flag_id_is_a_404_not_a_server_error(
+    client: Client, live_poll: Poll, value: str
+) -> None:
+    client.force_login(_user(live_poll, "p.admin", Role.POLL_ADMIN))
+    url = f"/fr/mairie/scrutin/{live_poll.pk}/doublons/traiter/"
+    assert client.post(url, {"attempt": value}).status_code == 404
+    assert client.post(url, {}).status_code == 404
