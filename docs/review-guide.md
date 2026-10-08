@@ -11,7 +11,7 @@ documentation pass are in `docs/review-notes.md`.
 Read in this order. Each item is short, and the later ones assume the
 earlier.
 
-1. **`CLAUDE.md`, "Properties that must not be broken".** The non-negotiable
+1. **`AGENTS.md`, "Properties that must not be broken".** The non-negotiable
    properties in half a page.
 2. **`spec-plateforme-vote.md` §5 (invariants INV-1 to INV-11) and §7 (the
    token scheme).** Everything else serves these.
@@ -132,7 +132,7 @@ clear error message. A change that only touches one side is incomplete.
   `Action.<NAME>` in `src/`, docstrings included, so writing `Action.X` in a
   comment can hide an unused action. `test_single_transition_point.py` and
   `test_inv1_separation.py` parse the AST, so comments do not affect them.
-* **The rest of CLAUDE.md "Gotchas".** UUIDs stored without dashes on SQLite,
+* **The rest of AGENTS.md "Gotchas".** UUIDs stored without dashes on SQLite,
   single-line `{# #}` template comments, the paginator row-count trap, and
   configuration frozen outside `draft` in tests.
 

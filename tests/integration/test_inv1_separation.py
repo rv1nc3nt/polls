@@ -88,7 +88,7 @@ def test_every_module_of_the_two_apps_keeps_the_boundary() -> None:
     """Review note L3: the test above checks three modules; this checks them
     all, migrations included. ``registrations`` never imports ``ballots``, and
     ``ballots`` reaches ``registrations`` only through its services, which
-    take and return ids and strings — never a ``Registration`` (CLAUDE.md,
+    take and return ids and strings — never a ``Registration`` (AGENTS.md,
     INV-1)."""
     allowed = "apps.registrations.services"
     for path in sorted((SRC / "apps" / "registrations").rglob("*.py")):
@@ -105,7 +105,7 @@ def test_every_module_of_the_two_apps_keeps_the_boundary() -> None:
 
 def test_tally_package_imports_no_model_at_all() -> None:
     """INV-9: the tally reads only ballots, never the register of electors —
-    and ``apps/tally/`` is documented (its own module docstring, CLAUDE.md) as
+    and ``apps/tally/`` is documented (its own module docstring, AGENTS.md) as
     a pure package importing no model at all, not even ``Ballot``: callers
     pass it plain rankings (§8's ``tally(ballots, method, params)``, "No I/O,
     no clock, no randomness beyond the seeded tie-break"). Checked the same

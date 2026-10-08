@@ -163,7 +163,7 @@ def _create_open_poll(
         PollOption.objects.create(
             poll=poll, option_id=option_id, label_i18n={"fr": option_id.upper()}, position=position
         )
-    # What a real import would leave behind; some tests count it (CLAUDE.md).
+    # What a real import would leave behind; some tests count it (AGENTS.md).
     # force_open's own RollEntry snapshot is taken from this.
     WorkingRollEntry.objects.create(
         birth_name=birth_name,

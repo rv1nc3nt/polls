@@ -236,7 +236,7 @@ LOGGING = {
 
 def project_version() -> str:
     """The ``version`` of ``pyproject.toml``, which a release commit bumps and
-    tags (CLAUDE.md, "Releases"). Read from the file: the project is a uv
+    tags (AGENTS.md, "Releases"). Read from the file: the project is a uv
     virtual package, so no installed metadata carries it."""
     try:
         with (BASE_DIR / "pyproject.toml").open("rb") as file:
