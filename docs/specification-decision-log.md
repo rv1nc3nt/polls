@@ -2020,3 +2020,23 @@ journal filtered on that registration, and offers *marquer comme traitée*.
   emits no SQL.
 - Acknowledging does not touch the registration. If the attempt reveals a
   wrong match, the remedy is #54's reopening.
+
+## 56. `review_all_registrations` was never built; an exact match is accepted unreviewed
+
+**Found (2026-10-09), reviewing the open points.** §13 item 9 said the
+requirements lean towards reviewing every registration and that the setting
+should default to true, the queue being built either way. There is no setting:
+`registrations.services._resolve` sends a single match on an eligible list
+type to `pending_email` with no human look, and only no match, several
+matches or an uncertain date (R-4.9) to `pending_review`. That is the weaker
+position of requirements §15 item 5, which the client has not yet chosen
+between.
+
+**What the code does.** R-5.4 as written, nothing more. §13 is corrected to
+say so and the question stays open, with the client.
+
+**If universal review is chosen.** A per-poll flag frozen with the rest of the
+configuration (INV-6, so a trigger migration), read by `_resolve` to return
+`pending_review` for a single eligible match; `reopen_review` and the queue
+need no change. Requirements R-5.4 changes in both languages in the same
+commit.
