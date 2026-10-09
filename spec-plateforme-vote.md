@@ -627,15 +627,18 @@ T-16 and T-38 need a throwaway host (a container or a virtual machine under Mole
 
 ## 13. Deferred — implement as configuration, not constants
 
-1. The option labels for the first poll, in each enabled language.
-2. Which languages are enabled beyond French.
-3. `opens_at` / `closes_at`.
-4. Named data-protection referent for the privacy notice — `Commune.data_protection_referent` (§3.10).
-5. Which of `paper_requires_signed_form`, `paper_requires_countersign`, `paper_requires_reconciliation` are enabled for the first poll — all default false.
-6. Acceptance of the residual correlation risk at R-13.4 bis.
-7. Whether a paper keying window is used and how long it runs (`paper_entry_deadline`); the default is none, the deadline sitting on `closes_at`.
-8. Whether postal enrolment is offered. If it is, the roll import also imports the address (R-4.2) and the registration form collects it; neither is in the first release.
-9. `review_all_registrations` — whether **every** registration goes to the manual queue, or only those R-5.4 sends there. The requirements lean towards universal review — an exact name-and-date match proves less than it looks (R-5.12), and the volume in one commune is small — so default it to true. The queue screen (§6.5) and the scheduled-review path are built either way.
+Status as of 1.0.0b17. **Built** means the configuration exists and is exercised; the *value* is still the commune's to supply. **Open** means the mechanism itself is missing.
+
+1. The option labels for the first poll, in each enabled language. *Built* (per-option, per-language labels, R-3.1; opening is refused while one is missing). Value: the commune's.
+2. Which languages are enabled beyond French. *Built*: `Poll.languages`, screen 2. Value: the commune's.
+3. `opens_at` / `closes_at`. *Built*: screen 2, with the closing extension of R-3.4. Value: the commune's.
+4. Named data-protection referent for the privacy notice — `Commune.data_protection_referent` (§3.10). *Built*: set at first run and editable on the commune settings screen. Value: the commune's — and the notice is not valid until it is filled.
+5. Which of `paper_requires_signed_form`, `paper_requires_countersign`, `paper_requires_reconciliation` are enabled for the first poll — all default false. *Built*, with the guards of §9. Value: the commune's (R-8.2).
+6. Acceptance of the residual correlation risk at R-13.4 bis. *Not software*: the commune's decision, to be recorded before the first poll opens.
+7. Whether a paper keying window is used and how long it runs (`paper_entry_deadline`); the default is none, the deadline sitting on `closes_at`. *Built* (§6.4).
+8. Whether postal enrolment is offered. If it is, the roll import also imports the address (R-4.2) and the registration form collects it. **Open**: neither the import nor the form carries an address, and no setting turns it on. Nothing in the first release depends on it.
+9. `review_all_registrations` — whether **every** registration goes to the manual queue, or only those R-5.4 sends there. **Open, and the code departs from this item as first written.** The requirements lean towards universal review — an exact name-and-date match proves less than it looks (R-5.12), and the volume in one commune is small — and this item once said to default the setting to true. No such setting exists: `registrations.services._resolve` sends a single eligible match straight to `pending_email` and only the other cases to the queue, i.e. the weaker of the two positions (decision log #56). The queue screen (§6.5) and the reopening of §6.2 are built either way.
+10. A separate registration period, the snapshot frozen at its start (requirements §15, item 6; §4). **Open**, undecided by the client; registration, review and voting all begin at `open`.
 
 ---
 
